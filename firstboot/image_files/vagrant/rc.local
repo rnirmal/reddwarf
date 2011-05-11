@@ -1,0 +1,43 @@
+#!/bin/sh -e
+# First boot should be executed only once on first startup
+
+FIRSTBOOT_CONF=/etc/firstboot.conf
+FIRSTBOOT_LOG=/var/log/firstboot
+FIRSTBOOT_SCRIPT=/etc/init.d/firstboot
+
+. $FIRSTBOOT_CONF
+
+if [ "$firstboot" = "true" ]; then
+    if [ "$firstboot_status" != "false" ]; then
+        echo "`date`: First boot already completed" >> $FIRSTBOOT_LOG
+    else
+	# Check that network is first up and the apt repository reachable
+	while true; do
+	    (ping -c1 apt.rackspace.com 2>&1)
+	    status=`echo $?`
+	    if [ "$status" -ne "0" ]; then sleep 1;
+	    else break;
+	    fi
+	done
+
+	# Update the Apt repository and install the firstboot package
+        echo "`date`: Performing first boot" >> $FIRSTBOOT_LOG
+	apt-get update 1>> $FIRSTBOOT_LOG 2>> $FIRSTBOOT_LOG
+	wait
+	apt-get install firstboot -y --force-yes 1>> $FIRSTBOOT_LOG 2>> $FIRSTBOOT_LOG
+	wait
+
+	# Check if the package is installed and script available
+	# and run the startup script and update the config file on status completed
+	if [ -e "$FIRSTBOOT_SCRIPT" ]; then
+	    $FIRSTBOOT_SCRIPT 1>> $FIRSTBOOT_LOG 2>> $FIRSTBOOT_LOG
+	    wait
+	    sed -i 's/firstboot_status=false/firstboot_status=completed/g' $FIRSTBOOT_CONF
+	    echo "`date`: Completed firstboot" >> $FIRSTBOOT_LOG
+	else
+	    echo "`date`: ERROR: Could not locate the firstboot script" >> $FIRSTBOOT_LOG
+	fi
+    fi
+fi
+
+exit 0

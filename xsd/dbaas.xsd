@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--(C) 2010 Rackspace Hosting, All Rights Reserved-->
+<schema  elementFormDefault="qualified" 
+         attributeFormDefault="unqualified" 
+         targetNamespace="http://docs.rackspacecloud.com/database/api/v1.0" 
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+         xmlns="http://www.w3.org/2001/XMLSchema" 
+         xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0" 
+         xmlns:xsdxt="http://docs.rackspacecloud.com/xsd-ext/v1.0">
+  <annotation>
+    <xsd:appinfo xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+      <xsdxt:title>Dbaas</xsdxt:title>
+      <!-- <xsdxt:link rel="index" href="admin-api.xsd"/> -->
+    </xsd:appinfo>
+    <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+      <p>This schema defines entity contains entities related to a user.</p>
+    </xsd:documentation>
+  </annotation>
+  <element name="user" type="dbaas:User">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>A MySQL User.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/user.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+  <element name="users" type="dbaas:Users">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A MySQL User.</p>
+        </xsd:documentation>
+        <xsd:appinfo>
+          <xsdxt:samples>
+            <xsdxt:sample>
+              <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+            </xsdxt:sample>
+            <xsdxt:sample>
+              <xsdxt:code type="application/json" href="../samples/user.json"/>
+            </xsdxt:sample>
+          </xsdxt:samples>
+        </xsd:appinfo>
+      </annotation>
+    </element>
+  <element name="container" type="dbaas:DatabaseContainer">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>A Database Container.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/user.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+  
+  <!--Complex Types-->
+  <complexType name="Users">
+     <sequence>
+         <element name="users" type="dbaas:User" minOccurs="1" maxOccurs="unbounded">
+           <annotation>
+             <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+               <p>A list of database names.</p>
+             </xsd:documentation>
+           </annotation>
+         </element>
+      </sequence>
+   </complexType>     
+     
+  <complexType name="User">
+    <sequence>
+       <element name="databases" type="xsd:Database" minOccurs="0" maxOccurs="unbounded">
+         <annotation>
+           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+             <p>A list of databases.</p>
+           </xsd:documentation>
+         </annotation>
+       </element>
+    </sequence>
+    <attribute name="username" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The username for the user.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="password" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The password for the user.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="status" type="dbaas:UserStatusType" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The status of the user.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="database" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A single convenience method for adding a user to the single database.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+  
+  <complexType name="DatabaseContainer">
+   <sequence>
+      <element name="databases" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
+         <annotation>
+           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+             <p>A list of optional databases.</p>
+           </xsd:documentation>
+         </annotation>
+       </element>
+   </sequence>
+   <attribute name="id" type="xsd:ID" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A unique database container id.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+   <attribute name="name" type="xsd:string" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The name for the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+   <attribute name="flavorRef" type="xsd:string" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The flavor reference of the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+   <attribute name="imageRef" type="xsd:string" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The image reference for the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+   <attribute name="status" type="dbaas:StatusType" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The status of the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+ </complexType>
+ 
+ <complexType name="Database">
+    <attribute name="character_set" type="xsd:string" use="optional">
+       <annotation>
+         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+           <p>The Database character set.</p>
+         </xsd:documentation>
+       </annotation>
+     </attribute>
+    <attribute name="name" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The name for the container.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="collate" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The Collation type of the database.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+ 
+ 
+  <!--Simple Types-->
+  <simpleType name="StatusType">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>The container status.</p>
+      </xsd:documentation>
+    </annotation>
+    <restriction base="xsd:string">
+      <enumeration value="HEALTHY">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>Healthy status.</p>
+          </xsd:documentation>
+        </annotation>
+      </enumeration>
+      <enumeration value="DOWN">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>Down status.</p>
+          </xsd:documentation>
+        </annotation>
+      </enumeration>
+      <enumeration value="UNAVAILABLE">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>unavailable status.</p>
+          </xsd:documentation>
+        </annotation>
+      </enumeration>
+      <enumeration value="PREPARING">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>Preparing status.</p>
+          </xsd:documentation>
+        </annotation>
+      </enumeration>
+      <enumeration value="INVALID">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>invalid status.</p>
+          </xsd:documentation>
+        </annotation>
+      </enumeration>
+    </restriction>
+  </simpleType>
+  
+  <simpleType name="UserStatusType">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>The mysql user status.</p>
+      </xsd:documentation>
+    </annotation>
+    <restriction base="xsd:string">
+      <enumeration value="ENABLED">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>Enabled status.</p>
+          </xsd:documentation>
+        </annotation>
+      </enumeration>
+    </restriction>
+  </simpleType>
+</schema>

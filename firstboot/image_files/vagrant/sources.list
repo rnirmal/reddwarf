@@ -1,0 +1,10 @@
+# Rackspace Internal APT repository
+deb http://apt.rackspace.com/ubuntu lucid main
+
+# Nova-trunk PPA mirror
+deb http://ppa.rackspace.com:9998/nova-ppa lucid main
+
+# Ubuntu lucid mirror
+deb http://apt.rackspace.com:9998/ubuntu lucid main restricted universe
+deb http://apt.rackspace.com:9998/ubuntu lucid-updates main restricted universe
+deb http://apt.rackspace.com:9998/ubuntu lucid-security main restricted universe

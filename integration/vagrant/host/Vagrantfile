@@ -1,0 +1,27 @@
+Vagrant::Config.run do |config|
+
+  if ! ENV['GLANCEIMAGES']
+    raise ArgumentError, "GLANCEIMAGES environment variable not defined."
+  end
+  if ! ENV['GLANCESRC']
+    raise ArgumentError, "GLANCESRC environment variable not defined."
+  end
+
+  config.vm.box = "ovz_attempt_9"
+
+  # Forward guest port 80 to host port 4567 and name the mapping "web"
+  config.vm.forward_port("nova-api", 8774, 12774)
+  config.vm.forward_port("platform-api", 8775, 12775)
+  config.vm.forward_port("jenkins", 8080, 8989)
+
+  #TODO: Change from hardcoded path (see guest vagrant file for example)
+  config.vm.share_folder "glance", "/glance", ENV['GLANCESRC']
+  config.vm.share_folder "glance_images", "/glance_images", ENV['GLANCEIMAGES']
+  config.vm.share_folder "nova", "/src", "../../../"
+#  config.vm.share_folder "firstboot", "/src/firstboot", "../../../firstboot"
+#  config.vm.share_folder "dbaas-mycnf", "/src/dbaas-mycnf",  "../../../dbaas-mycnf"
+  config.vm.share_folder "vagrant-common", "/vagrant-common", "./../common"
+  config.vm.share_folder "tests", "/tests", "./../../"
+
+  #config.vm.provision :shell, :path => "on_up.sh"
+end

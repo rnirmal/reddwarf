@@ -1,0 +1,11 @@
+1. Do a fresh check out.
+2. Download the virtualbox ovz_attempt_9 box from http://c205047.r47.cf1.rackcdn.com/ovz_attempt_9.box
+3. Download the openvz glance image from http://c205047.r47.cf1.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz
+4. Define the environment variables
+     GLANCESRC = path to launchpad trunk of glance (we are assuming you know how to get this)
+     GLANCEIMAGES = the glance images (path to directory of #3)
+5. Make sure you have the box "ovz_attempt_9" (We should rename this in the future). Add it with the command "vagrant box add ovz_attempt_9 [path to file downloaded in #2]"
+6. Enter the directory integration/vagrant/host.
+7. vagrant up
+8. make sure its running, then, on your host machine (i.e. do NOT use vagrant ssh to enter it)
+     ./run_ci.sh

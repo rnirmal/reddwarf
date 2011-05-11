@@ -1,0 +1,8 @@
+Package: *
+Pin: origin ppa.rackspace.com
+Pin-Priority: 10
+
+Package: python-sqlalchemy
+Pin: version 0.6.3-1ubuntu0~lucid1
+Pin-Priority: 1000
+
