@@ -179,17 +179,21 @@ class MySQLDatabaseTest(test.TestCase):
 
 class MySQLUserTest(test.TestCase):
 
+    invalid_list = [" te!$3", "te!$3 ", "t'e!$3", "\"te!$3",
+                    ";te!$3", "t`e!$3", "te,!$3", "t/e!$3",
+                    "t\e!$3"]
+
     def test_valid_name_pwd(self):
-        name = "testuser"
-        passwd = "password"
+        name = "test02"
+        passwd = "pass$*%^"
         dbname = "testdb"
         myuser = MySQLUser()
         try:
             myuser.name = name
             myuser.password = passwd
             myuser.databases = dbname
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, e)
 
         self.assertEqual(myuser.name, name)
         self.assertEqual(myuser.password, passwd)
@@ -205,7 +209,7 @@ class MySQLUserTest(test.TestCase):
             myuser.name = validname
             self.assertTrue(True)
         except ValueError as e:
-            self.assertFalse(True, msg=e)
+            self.assertFalse(True, e)
         try:
             myuser.name = longname
             self.assertFalse(True)
@@ -218,34 +222,40 @@ class MySQLUserTest(test.TestCase):
         myuser = MySQLUser()
         der_myuser = MySQLUser()
         try:
-            myuser.name = "aksdhfsd"
-            myuser.password = "sdfsad345"
+            myuser.name = "!@#$%^&*()_"
+            myuser.password = "-+=:.<>?~"
             myuser.databases = "sambpleadsf"
             json = myuser.serialize()
 
             der_myuser.deserialize(json)
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, e)
         self.assertEqual(myuser.name, der_myuser.name)
         self.assertEqual(myuser.password, der_myuser.password)
         self.assertEquals(myuser.databases, der_myuser.databases)
 
     def test_invalid_username(self):
-        invalid_username = "te!@#%'$3"
+        for name in self.invalid_list:
+            self._invalid_user_name(name)
+
+    def _invalid_user_name(self, name):
         myuser = MySQLUser()
         try:
-            myuser.name = invalid_username
-            self.assertFalse(True)
+            myuser.name = name
+            self.assertFalse(True, name)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                    "%s is not a valid user name" % invalid_username)
+                    "%s is not a valid user name" % name)
 
     def test_invalid_password(self):
-        invalid_password = "te!@#%'$3"
+        for password in self.invalid_list:
+            self._invalid_password(password)
+
+    def _invalid_password(self, password):
         myuser = MySQLUser()
         try:
-            myuser.password = invalid_password
-            self.assertFalse(True)
+            myuser.password = password
+            self.assertFalse(True, password)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                    "%s is not a valid password" % invalid_password)
+                    "%s is not a valid password" % password)

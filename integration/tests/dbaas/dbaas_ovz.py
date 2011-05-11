@@ -325,6 +325,7 @@ class TestDatabases(Base):
         databases = list()
         databases.append({"name": self.dbname, "charset": "latin2",
                           "collate": "latin2_general_ci"})
+        databases.append({"name": "seconddb"})
 
         global dbaas
         global container_id
@@ -368,15 +369,17 @@ class TestUsers(Base):
     Test the creation and deletion of users
     """
 
-    username = "testuser"
-    password = "testpassword"
-    username1 = "anouser"
-    password1 = "anopassword"
-    db1 = "TESTDB"
-    db2 = "firstdb"
+    username = "tes!@#tuser"
+    username_urlencoded = "tes%21%40%23tuser"
+    password = "testpa$^%ssword"
+    username1 = "anous*&^er"
+    username1_urlendcoded = "anous%2A%26%5Eer"
+    password1 = "anopas*?.sword"
+    db1 = "firstdb"
+    db2 = "seconddb"
 
     def test_create_users(self):
-        users = []
+        users = list()
         users.append({"name": self.username, "password": self.password,
                       "database": self.db1})
         users.append({"name": self.username1, "password": self.password1,
@@ -394,8 +397,8 @@ class TestUsers(Base):
 
     def test_delete_users(self):
         global dbaas
-        dbaas.users.delete(container_id, self.username)
-        dbaas.users.delete(container_id, self.username1)
+        dbaas.users.delete(container_id, self.username_urlencoded)
+        dbaas.users.delete(container_id, self.username1_urlendcoded)
         time.sleep(5)
 
         self._check_connection(self.username, self.password)
@@ -403,7 +406,7 @@ class TestUsers(Base):
 
     def _check_database_for_user(self, user, password, dbs):
         global container_ip
-        dblist, err = _process("sudo mysql -h %s -u %s -p%s -e 'show databases;'"
+        dblist, err = _process("sudo mysql -h %s -u '%s' -p'%s' -e 'show databases;'"
                                 % (container_ip, user, password))
         if err:
             self.assertFalse(True, err)
@@ -416,7 +419,7 @@ class TestUsers(Base):
     def _check_connection(self, username, password):
         global container_ip
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
-        dblist, err = _process("sudo mysql -h %s -u %s -p%s -e 'show databases;'"
+        dblist, err = _process("sudo mysql -h %s -u '%s' -p'%s' -e 'show databases;'"
                                 % (container_ip, username, password))
         if pos_error.match(err):
             self.assertTrue(True)
