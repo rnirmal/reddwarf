@@ -57,6 +57,8 @@ def _clean_up():
 
 if __name__ == '__main__':
 
+    add_support_for_localization()
+
     # Strip non-nose arguments out before passing this to nosetests
     nose_args = []
     conf_file = "~/nemesis.conf"
@@ -94,8 +96,6 @@ if __name__ == '__main__':
 
     # Now that the FlagFiles and other args have been parsed, time to import
     # everything.
-
-    add_support_for_localization()
 
     import proboscis
     from tests import initialize

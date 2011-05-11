@@ -8,6 +8,7 @@ Vagrant::Config.run do |config|
   end
 
   config.vm.box = "ovz_attempt_9"
+  config.vm.box_url = "http://c205047.r47.cf1.rackcdn.com/ovz_attempt_9.box"
 
   # Forward guest port 80 to host port 4567 and name the mapping "web"
   config.vm.forward_port("nova-api", 8774, 12774)
