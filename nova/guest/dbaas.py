@@ -116,7 +116,7 @@ class DBaaSAgent(object):
                 mydb = models.MySQLDatabase()
                 mydb.deserialize(item)
                 t = text("""CREATE DATABASE IF NOT EXISTS
-                            %s CHARACTER SET = %s COLLATE = %s;"""
+                            `%s` CHARACTER SET = %s COLLATE = %s;"""
                          % (mydb.name, mydb.character_set, mydb.collate))
                 client.execute(t)
 
@@ -128,7 +128,7 @@ class DBaaSAgent(object):
         with client:
             mydb = models.MySQLDatabase()
             mydb.deserialize(database)
-            t = text("""DROP DATABASE %s;""" % mydb.name)
+            t = text("""DROP DATABASE `%s`;""" % mydb.name)
             client.execute(t)
 
     def enable_root(self):
@@ -182,10 +182,6 @@ class DBaaSAgent(object):
         preparer = DBaaSPreparer(self)
         preparer.prepare()
 
-        # Create a default TESTDB in addition to the user supplied ones
-        defaultdb = models.MySQLDatabase()
-        defaultdb.name = "TESTDB"
-        databases.append(defaultdb.serialize())
         self.create_database(databases)
 
 

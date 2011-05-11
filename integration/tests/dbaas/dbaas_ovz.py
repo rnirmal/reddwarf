@@ -303,12 +303,6 @@ class TestMysqlAccess(Base):
         out, err = _process("mysql -h %s -u root -pdsfgnear" % container_ip)
         self._mysql_error_handler(err)
 
-    def test_zdefault_database(self):
-        if _check_database("TESTDB"):
-            self.assertTrue(True)
-        else:
-            self.assertFalse(True)
-
     def test_zfirst_db(self):
         if _check_database("firstdb"):
             self.assertTrue(True)
@@ -323,10 +317,12 @@ class TestDatabases(Base):
     Test the creation and deletion of additional MySQL databases
     """
 
-    dbname = "third"
+    dbname = "third #?@some_-"
+    dbname_regex = "third\s\#\?\@some\_\-"
+    dbname_urlencoded = "third%20%23%3F%40some_-"
 
     def test_create_database(self):
-        databases = []
+        databases = list()
         databases.append({"name": self.dbname, "charset": "latin2",
                           "collate": "latin2_general_ci"})
 
@@ -335,7 +331,7 @@ class TestDatabases(Base):
         dbaas.databases.create(container_id, databases)
         time.sleep(5)
 
-        if _check_database(self.dbname):
+        if _check_database(self.dbname_regex):
             self.assertTrue(True)
         else:
             self.assertFalse(True)
@@ -351,12 +347,12 @@ class TestDatabases(Base):
     @expect_exception(NotFound)
     def test_delete_database_on_missing_container(self):
         global dbaas
-        dbaas.databases.delete(-1, self.dbname)
+        dbaas.databases.delete(-1,  self.dbname_urlencoded)
 
     def test_delete_database(self):
         global dbaas
         global container_id
-        dbaas.databases.delete(container_id, self.dbname)
+        dbaas.databases.delete(container_id, self.dbname_urlencoded)
         time.sleep(5)
 
         if not _check_database(self.dbname):

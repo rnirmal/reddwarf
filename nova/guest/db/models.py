@@ -32,7 +32,7 @@ class MySQLDatabase(Base):
     # Defaults
     __charset__ = "utf8"
     __collation__ = "utf8_general_ci"
-    dbname = re.compile("^[A-Za-z0-9_\-\.]+$")
+    dbname = re.compile("^[A-Za-z0-9_\-]+[\s\?\#\@]*[A-Za-z0-9_\-]+$")
 
     # Complete list of acceptable values
     charset = { "big5": ["big5_chinese_ci", "big5_bin",],
