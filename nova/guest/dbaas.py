@@ -85,15 +85,16 @@ class DBaaSAgent(object):
             for item in users:
                 user = models.MySQLUser()
                 user.deserialize(item)
-                t = text("CREATE USER :user@:host IDENTIFIED BY :pwd;")
-                client.execute(t, user=user.name, host=host, pwd=user.password)
+                t = text("""CREATE USER `%s`@:host IDENTIFIED BY '%s';"""
+                         % (user.name, user.password))
+                client.execute(t, host=host)
                 for database in user.databases:
                     mydb = models.MySQLDatabase()
                     mydb.deserialize(database)
                     t = text("""
-                            GRANT ALL PRIVILEGES ON %s.* TO :user@:host;"""
-                            % mydb.name)
-                    client.execute(t, user=user.name, host=host)
+                            GRANT ALL PRIVILEGES ON `%s`.* TO `%s`@:host;"""
+                            % (mydb.name, user.name))
+                    client.execute(t, host=host)
 
     def delete_user(self, user):
         """Delete the specified users"""
@@ -103,8 +104,8 @@ class DBaaSAgent(object):
         with client:
             mysql_user = models.MySQLUser()
             mysql_user.deserialize(user)
-            t = text("""DROP USER :user""")
-            client.execute(t, user=mysql_user.name)
+            t = text("""DROP USER `%s`""" % mysql_user.name)
+            client.execute(t)
 
     def create_database(self, databases):
         """Create the list of specified databases"""

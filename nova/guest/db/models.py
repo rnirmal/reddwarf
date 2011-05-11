@@ -331,9 +331,7 @@ class MySQLDatabase(Base):
 class MySQLUser(Base):
     """Represents a MySQL User and its associated properties"""
 
-    username = re.compile("^[A-Za-z0-9_\-\.]+$")
-    #TODO (rnirmal): Find out supported chars for password
-    pwd = re.compile("^[A-Za-z0-9_\-\.]+$")
+    not_supported_chars = re.compile("^\s|\s$|'|\"|;|`|,|/|\\\\")
 
     def __init__(self):
         self._name = None
@@ -346,7 +344,7 @@ class MySQLUser(Base):
 
     @name.setter
     def name(self, value):
-        if not value or not self.username.match(value):
+        if not value or self.not_supported_chars.search(value):
             raise ValueError("%s is not a valid user name" % value)
         elif len(value) > 16:
             raise ValueError("User name %s is too long. Max length = 16"
@@ -360,7 +358,7 @@ class MySQLUser(Base):
 
     @password.setter
     def password(self, value):
-        if not value or not self.pwd.match(value):
+        if not value or self.not_supported_chars.search(value):
             raise ValueError("%s is not a valid password" % value)
         else:
             self._password = value
