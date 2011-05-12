@@ -1,5 +1,6 @@
-#!/bin/bash
-# Initializes the Host VM.  Meant to be called un a bare-bones environment.
+# Host Environment Initializer - Dependency Installer
+# This file is meant to be run in a VM or otherwise disposable environment.
+# It installs all the dependencies needed by Nova.
 
 self="${0#./}"
 base="${self%/*}"
@@ -13,52 +14,34 @@ else
 fi
 cd $home
 
-source /vagrant-common/DbaasPkg.sh
-source /vagrant-common/Utils.sh
-
-if [ -f ~/dependencies_are_installed ]
-then
-    echo Dependencies are already installed.
-else
-    exclaim 'Installing Dependencies...'
-    sudo bash /vagrant-common/install_dependencies.sh
-    if [ $? -ne 0 ]
-    then
-        echo "An error occured installing dependencies."
-        exit 1
-    fi
-
-    sudo bash /vagrant-common/install_apt_repo.sh
-    if [ $? -ne 0 ]
-    then
-        echo "An error occured installing the repo."
-        exit 1
-    fi
-
-    sudo bash /vagrant-common/install_aptproxy.sh
-    if [ $? -ne 0 ]
-    then
-        echo "An error occured installing the aptproxy."
-        exit 1
-    fi
-
-    pkg_install python-sphinx python-cheetah python-pastedeploy python-migrate python-netaddr python-lockfile
-
-    cp /etc/hosts ~/hosts_tmp
-    echo '127.0.0.1    apt.rackspace.com' >> ~/hosts_tmp
-    echo '127.0.0.1    ppa.rackspace.com' >> ~/hosts_tmp
-    sudo cp ~/hosts_tmp /etc/hosts
-
-    #sudo bash /vagrant-common/initialize_nova.sh
-    #if [ $? -ne 0 ]
-    #then
-    #    echo "An error occured initializing nova."
-    #    exit 1
-    #fi
-
-    echo "Dependencies installed at `date`." >> ~/dependencies_are_installed
-    
-fi
+source Utils.sh
 
 
+exclaim () {
+    echo "*******************************************************************************"
+    echo "$@"
+    echo "*******************************************************************************"
+}
+
+
+
+pkg_install python-software-properties
+
+exclaim Installing Nova dependencies.
+cd /src/contrib
+sudo ./nova.sh install
+
+#TODO: Make this optional - its only there for OpenVZ environments.
+exclaim Destroying virbr0.
+pkg_remove user-mode-linux kvm libvirt-bin
+sudo apt-get -y --allow-unauthenticated autoremove
+
+sudo ifconfig virbr0 down
+sudo brctl delbr virbr0
+
+
+exclaim Installing additional Nova dependencies.
+
+pkg_install mysql-server-5.1
+pkg_install python-mysqldb
 
