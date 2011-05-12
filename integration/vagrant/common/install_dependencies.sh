@@ -34,7 +34,7 @@ sudo ./nova.sh install
 #TODO: Make this optional - its only there for OpenVZ environments.
 exclaim Destroying virbr0.
 pkg_remove user-mode-linux kvm libvirt-bin
-sudo apt-get autoremove
+sudo apt-get -y --allow-unauthenticated autoremove
 
 sudo ifconfig virbr0 down
 sudo brctl delbr virbr0

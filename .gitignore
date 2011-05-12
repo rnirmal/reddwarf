@@ -27,4 +27,5 @@ nova.log
 /CA*
 /nova/CA/crl.pem
 vagrantup.Dummy*
-
+contrib/images
+contrib/tty.tgz
