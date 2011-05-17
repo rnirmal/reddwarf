@@ -56,13 +56,19 @@ class Controller(common.DBaaSController):
         """ Returns a list of dbcontainer names and ids for a given user """
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
-        return {'dbcontainers': self.server_controller.index(req)['servers']}
+        resp = {'dbcontainers': self.server_controller.index(req)['servers']}
+        for t in resp['dbcontainers']:
+            self._remove_excess_fields(t)
+        return resp
 
     def detail(self, req):
         """ Returns a list of dbcontainer details for a given user """
         LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
-        return {'dbcontainers': self.server_controller.detail(req)['servers']}
+        resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
+        for t in resp['dbcontainers']:
+            self._remove_excess_fields(t)
+        return resp
 
     def show(self, req, id):
         """ Returns dbcontainer details by container id """
@@ -71,7 +77,9 @@ class Controller(common.DBaaSController):
         response = self.server_controller.show(req, id)
         if isinstance(response, Exception):
             return response  # Just return the exception to throw it
-        return {'dbcontainer': response['server']}
+        resp = {'dbcontainer': response['server']}
+        self._remove_excess_fields(resp['dbcontainer'])
+        return resp
 
     def delete(self, req, id):
         """ Destroys a dbcontainer """
@@ -96,6 +104,37 @@ class Controller(common.DBaaSController):
         ctxt = req.environ['nova.context']
         self.guest_api.prepare(ctxt, server_id, databases)
         return {'dbcontainer': server['server']}
+
+    def _remove_excess_fields(self, response):
+        """
+        Removes the excess fields from the parent dbcontainer call.
+
+        We delete elements but if the call came from the index function
+        the response will not have all the fields and we expect some to
+        raise a key error exception.
+        """
+        LOG.debug("Removing the excess information from the containers.")
+        try:
+            del response['hostId']
+        except KeyError:
+            pass
+        try:
+            del response['addresses']['private']
+        except KeyError:
+            pass
+        try:
+            del response['imageRef']
+        except KeyError:
+            pass
+        try:
+            del response['links']
+        except KeyError:
+            pass
+        try:
+            del response['metadata']
+        except KeyError:
+            pass
+        return response
 
     def _deserialize_create(self, request):
         """
