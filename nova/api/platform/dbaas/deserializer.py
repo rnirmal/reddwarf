@@ -31,11 +31,20 @@ class RequestJSONDeserializer(object):
 
     def deserialize_create(self, body):
         """Just load the request body as json"""
-        request = self._add_image_ref(utils.loads(body))
-        return utils.dumps({'server': request['dbcontainer']})
+        body = utils.loads(body)
+        self._add_image_ref(body)
+        self._add_mysql_security_group(body)
+        return utils.dumps({'server': body['dbcontainer']})
 
     def _add_image_ref(self, body):
+        """Add the configured imageRef, it replaces any user specified
+           image"""
         body['dbcontainer']['imageRef'] = FLAGS.reddwarf_imageRef
+        return body
+
+    def _add_mysql_security_group(self, body):
+        """Add mysql default security group rule"""
+        body['dbcontainer']['firewallRules'] = [FLAGS.default_firewall_rule_name]
         return body
 
 
@@ -49,14 +58,29 @@ class RequestXMLDeserializer(object):
         dom = minidom.parseString(string)
         dbcontainer = self._extract_dbcontainer(dom)
         server_node = self._rename_to_server(dom)
-        server_body = self._add_image_ref(server_node)
-        return {'dbcontainer': dbcontainer}, server_body
+        self._add_image_ref(server_node)
+        self._add_mysql_security_group(dom, server_node, dbcontainer)
+        return {'dbcontainer': dbcontainer}, server_node.toxml()
 
     def _add_image_ref(self, node):
+        """Add the configured imageRef, it replaces any user specified
+           image"""
         imageRef = minidom.Attr("imageRef")
         imageRef.value = FLAGS.reddwarf_imageRef
         node.setAttributeNode(imageRef)
-        return node.toxml()
+        return node
+
+    def _add_mysql_security_group(self, dom, server_node, dbcontainer):
+        """Add mysql default security group rule"""
+        defaultRule = dom.createElement("rule")
+        ruleName = minidom.Attr("name")
+        ruleName.value = FLAGS.default_firewall_rule_name
+        defaultRule.setAttributeNode(ruleName)
+        firewallRules = dom.createElement("firewallRules")
+        firewallRules.appendChild(defaultRule)
+        server_node.appendChild(firewallRules)
+        dbcontainer["firewallRules"] = [FLAGS.default_firewall_rule_name]
+        return server_node
 
     def deserialize_databases(self, string):
         """Deserialize an xml formatted create databases request"""

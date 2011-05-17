@@ -18,6 +18,7 @@
 from webob import exc
 
 from nova import compute
+from nova import db
 from nova import flags
 from nova import log as logging
 from nova import utils
@@ -135,6 +136,10 @@ class Controller(common.DBaaSController):
         env, body = self._deserialize_create(req)
         req.body = str(body)
 
+        self._setup_security_groups(req,
+                                    FLAGS.default_firewall_rule_name,
+                                    FLAGS.default_guest_mysql_port)
+
         databases = common.populate_databases(
                                     env['dbcontainer'].get('databases', ''))
 
@@ -161,6 +166,28 @@ class Controller(common.DBaaSController):
             if response.has_key(attr):
                 del response[attr]
         return response
+
+    def _setup_security_groups(self, req, group_name, port):
+        context = req.environ['nova.context']
+        self.compute_api.ensure_default_security_group(context)
+
+        if not db.security_group_exists(context, context.project_id, group_name):
+            LOG.debug('Creating a new firewall rule %s for project %s'
+                        % (group_name, context.project_id))
+            values = {'name': group_name,
+                      'description': group_name,
+                      'user_id': context.user_id,
+                      'project_id': context.project_id}
+            security_group = db.security_group_create(context, values)
+            rules = {'group_id': security_group['id'],
+                     'parent_group_id': security_group['id'],
+                     'cidr': '0.0.0.0/0',
+                     'protocol': 'tcp',
+                     'from_port': port,
+                     'to_port': port}
+            security_group_rule = db.security_group_rule_create(context, rules)
+            self.compute_api.trigger_security_group_rules_refresh(context,
+                                                          security_group['id'])
 
     def _deserialize_create(self, request):
         """ Deserialize a create request

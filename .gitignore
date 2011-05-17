@@ -19,7 +19,7 @@ twistd.log
 experiments.py
 .vagrant
 n.log
-nova.conf
+nova*.conf
 glance.log
 v.sh
 nova.log
@@ -29,3 +29,5 @@ nova.log
 vagrantup.Dummy*
 contrib/images
 contrib/tty.tgz
+*.sqlite
+vagrantup.*
