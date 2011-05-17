@@ -152,13 +152,6 @@
        </xsd:documentation>
      </annotation>
    </attribute>
-   <attribute name="imageRef" type="xsd:string" use="required">
-     <annotation>
-       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>The image reference for the container.</p>
-       </xsd:documentation>
-     </annotation>
-   </attribute>
    <attribute name="status" type="dbaas:StatusType" use="required">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
