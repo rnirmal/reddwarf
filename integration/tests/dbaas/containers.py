@@ -48,9 +48,6 @@ class ContainerTestInfo(object):
 container_info = ContainerTestInfo()
 dbaas = None  # Rich client used throughout this test.
 
-def dumb_log(msg):
-    sys.__stderr__.write(str(msg) + "\n\n")
-
 @test(groups=[GROUP, GROUP_START], depends_on_groups=["services.initialize"])
 class Setup(unittest.TestCase):
     """Makes sure the client can hit the ReST service.
@@ -68,10 +65,7 @@ class Setup(unittest.TestCase):
     def test_find_image(self):
         self.assertNotEqual(None, test_config.dbaas_image)
         images = dbaas.images.list()
-        dumb_log("IMAGES!")
-        dumb_log(images)
         for image in images:
-            dumb_log(str(image.id) + "==" + str(test_config.dbaas_image))
             if int(image.id) == test_config.dbaas_image:
                 container_info.dbaas_image = image
                 for link in container_info.dbaas_image.links:
