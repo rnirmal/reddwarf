@@ -30,6 +30,8 @@ LOG.setLevel(logging.DEBUG)
 
 
 FLAGS = flags.FLAGS
+flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
+                    'Default image for reddwarf')
 
 
 class Controller(common.DBaaSController):
@@ -38,8 +40,7 @@ class Controller(common.DBaaSController):
     _serialization_metadata = {
         'application/xml': {
             "attributes": {
-                "dbcontainer": ["id", "name", "status", "progress",
-                                "flavorRef", "imageRef"],
+                "dbcontainer": ["id", "name", "status", "flavorRef"],
                 "dbtype": ["name", "version"],
                 "link": ["rel", "type", "href"],
             },
