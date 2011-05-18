@@ -1,4 +1,4 @@
-The Choose Your Own Adventure README for Nova:
+The Choose Your Own Adventure README for Nova:  
 
   You have come across a cloud computing fabric controller.  It has identified
   itself as "Nova."  It is apparent that it maintains compatibility with
@@ -10,7 +10,7 @@ To tame it for use in your own cloud: read http://nova.openstack.org/getting.sta
 
 To study its anatomy: read http://nova.openstack.org/architecture.html
 
-To dissect it in detail: visit http://code.launchpad.net/nova
+To dissect it in detail:visit http://code.launchpad.net/nova
 
 To taunt it with its weaknesses: use http://bugs.launchpad.net/nova
 
