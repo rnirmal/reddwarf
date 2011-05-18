@@ -27,6 +27,7 @@ handles RPC calls relating to Platform specific operations.
 
 
 import os
+import re
 import uuid
 
 from datetime import date
@@ -39,8 +40,11 @@ from sqlalchemy.sql.expression import text
 from nova import flags
 from nova import log as logging
 from nova import utils
+from nova.compute import power_state
 from nova.exception import ProcessExecutionError
+from nova.guest import utils as guest_utils
 from nova.guest.db import models
+from reddwarf.db import api as dbapi
 
 ADMIN_USER_NAME = "os_admin"
 LOG = logging.getLogger('nova.guest.dbaas')
@@ -48,6 +52,9 @@ FLAGS = flags.FLAGS
 FLUSH = text("""FLUSH PRIVILEGES;""")
 
 ENGINE = None
+MYSQL_NOT_INSTALLED = re.compile("[\w\n]*mysql[.]* unrecognized service[\w\n]*")
+MYSQL_STOPPED = re.compile("[\w\n]*mysql stop/waiting[\w\n]*")
+MYSQL_RUNNING = re.compile("[\w\n]*mysql start/running. process [0-9]*[\w\n]*")
 
 
 def generate_random_password():
@@ -184,6 +191,22 @@ class DBaaSAgent(object):
         preparer.prepare()
 
         self.create_database(databases)
+
+    def update_status(self):
+        """Update the status of the MySQL service"""
+        out, err = utils.execute("sudo", "service", "mysql", "status")
+        instance_id = guest_utils.get_instance_id()
+        if err:
+            LOG.error(err)
+
+        if MYSQL_RUNNING.match(out):
+            dbapi.guest_status_update(instance_id, power_state.RUNNING)
+        elif MYSQL_STOPPED.match(out):
+            dbapi.guest_status_update(instance_id, power_state.SHUTDOWN)
+        elif MYSQL_NOT_INSTALLED.match(out):
+            dbapi.guest_status_update(instance_id, power_state.BUILDING)
+        else:
+            dbapi.guest_status_update(instance_id, power_state.NOSTATE)
 
 
 class LocalSqlClient(object):
