@@ -13,15 +13,15 @@ else
 fi
 cd $home
 
-http_proxy=$http_proxy source /vagrant-common/DbaasPkg.sh
-http_proxy=$http_proxy source /vagrant-common/Utils.sh
+source /vagrant-common/DbaasPkg.sh
+source /vagrant-common/Utils.sh
 
 exclaim "Building and installing packages."
 if [ -f ~/dependencies_are_installed ]
 then
     rm -rf /tmp/build
     mkdir /tmp/build
-    dbaas_pkg_install_nova
+    http_proxy=$http_proxy dbaas_pkg_install_nova
     if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_dbaasmycnf
     if [ $? -ne 0 ]; then exit 1; fi

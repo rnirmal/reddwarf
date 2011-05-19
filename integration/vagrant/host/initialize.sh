@@ -13,8 +13,8 @@ else
 fi
 cd $home
 
-http_proxy=$http_proxy source /vagrant-common/DbaasPkg.sh
-http_proxy=$http_proxy source /vagrant-common/Utils.sh
+source /vagrant-common/DbaasPkg.sh
+source /vagrant-common/Utils.sh
 
 if [ -f ~/dependencies_are_installed ]
 then
