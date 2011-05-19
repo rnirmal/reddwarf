@@ -15,7 +15,7 @@ cd $home
 
 source Utils.sh
 
-wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
-sudo echo "deb http://pkg.jenkins-ci.org/debian binary/" > /etc/apt/sources.list.d/jenkins.list
-sudo aptitude update
+wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo -E apt-key add -
+sudo -E echo "deb http://pkg.jenkins-ci.org/debian binary/" > /etc/apt/sources.list.d/jenkins.list
+sudo -E aptitude update
 pkg_install jenkins

@@ -21,21 +21,21 @@ then
     echo Dependencies are already installed.
 else
     exclaim 'Installing Dependencies...'
-    sudo bash /vagrant-common/install_dependencies.sh
+    sudo -E bash /vagrant-common/install_dependencies.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing dependencies."
         exit 1
     fi
 
-    sudo bash /vagrant-common/install_apt_repo.sh
+    sudo -E bash /vagrant-common/install_apt_repo.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing the repo."
         exit 1
     fi
 
-    sudo bash /vagrant-common/install_aptproxy.sh
+    sudo -E bash /vagrant-common/install_aptproxy.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing the aptproxy."
@@ -47,9 +47,9 @@ else
     cp /etc/hosts ~/hosts_tmp
     echo '127.0.0.1    apt.rackspace.com' >> ~/hosts_tmp
     echo '127.0.0.1    ppa.rackspace.com' >> ~/hosts_tmp
-    sudo cp ~/hosts_tmp /etc/hosts
+    sudo -E cp ~/hosts_tmp /etc/hosts
 
-    #sudo bash /vagrant-common/initialize_nova.sh
+    #sudo -E bash /vagrant-common/initialize_nova.sh
     #if [ $? -ne 0 ]
     #then
     #    echo "An error occured initializing nova."
