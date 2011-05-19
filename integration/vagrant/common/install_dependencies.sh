@@ -29,7 +29,10 @@ pkg_install python-software-properties
 
 exclaim Installing Nova dependencies.
 cd /src/contrib
+#UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
+sed -i.bak -e 's/sudo /sudo -E /g' ./nova.sh
 sudo -E ./nova.sh install
+mv ./nova.sh.bak ./nova.sh
 
 #TODO: Make this optional - its only there for OpenVZ environments.
 exclaim Destroying virbr0.
