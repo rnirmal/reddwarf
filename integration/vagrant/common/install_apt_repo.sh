@@ -18,6 +18,7 @@ source Utils.sh
 # Installs a local apt-repo.
 
 #get proper sphinx version from the drizzle ppa
+pkg_install python-software-properties
 add-apt-repository ppa:drizzle-developers/ppa
 apt-get update
 

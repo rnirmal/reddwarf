@@ -21,6 +21,7 @@ then
     echo Dependencies are already installed.
 else
     exclaim 'Installing Dependencies...'
+    sudo usermod -g root vagrant
     sudo -E bash /vagrant-common/install_dependencies.sh
     if [ $? -ne 0 ]
     then
