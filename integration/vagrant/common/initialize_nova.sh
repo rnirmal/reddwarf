@@ -40,9 +40,9 @@ mysql -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost'
 mysql -u root -e "DELETE FROM mysql.user WHERE User='';"
 mysql -u root -e "FLUSH PRIVILEGES;"
 
-sudo sed -i.bak 's/^bind/#bind/g' /etc/mysql/my.cnf
-# sudo cp /vagrant-common/mysql_my.cnf /etc/mysql/my.cnf
-sudo service mysql restart
+sudo -E sed -i.bak 's/^bind/#bind/g' /etc/mysql/my.cnf
+# sudo -E cp /vagrant-common/mysql_my.cnf /etc/mysql/my.cnf
+sudo -E service mysql restart
 
 exclaim Initializing Nova database.
 
