@@ -29,15 +29,15 @@ pkg_install python-software-properties
 
 exclaim Installing Nova dependencies.
 cd /src/contrib
-sudo ./nova.sh install
+sudo -E ./nova.sh install
 
 #TODO: Make this optional - its only there for OpenVZ environments.
 exclaim Destroying virbr0.
 pkg_remove user-mode-linux kvm libvirt-bin
-sudo apt-get -y --allow-unauthenticated autoremove
+sudo -E apt-get -y --allow-unauthenticated autoremove
 
-sudo ifconfig virbr0 down
-sudo brctl delbr virbr0
+sudo -E ifconfig virbr0 down
+sudo -E brctl delbr virbr0
 
 
 exclaim Installing additional Nova dependencies.
