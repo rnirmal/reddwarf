@@ -106,39 +106,27 @@ class Controller(common.DBaaSController):
         return {'dbcontainer': server['server']}
 
     def _remove_excess_fields(self, response):
-        """
-        Removes the excess fields from the parent dbcontainer call.
+        """ Removes the excess fields from the parent dbcontainer call.
 
         We delete elements but if the call came from the index function
         the response will not have all the fields and we expect some to
         raise a key error exception.
         """
         LOG.debug("Removing the excess information from the containers.")
-        try:
+        if response.has_key("hostId"):
             del response['hostId']
-        except KeyError:
-            pass
-        try:
+        if response.has_key("addresses"):
             del response['addresses']['private']
-        except KeyError:
-            pass
-        try:
+        if response.has_key("imageRef"):
             del response['imageRef']
-        except KeyError:
-            pass
-        try:
+        if response.has_key("links"):
             del response['links']
-        except KeyError:
-            pass
-        try:
+        if response.has_key("metadata"):
             del response['metadata']
-        except KeyError:
-            pass
         return response
 
     def _deserialize_create(self, request):
-        """
-        Deserialize a create request
+        """ Deserialize a create request
 
         Overrides normal behavior in the case of xml content
         """

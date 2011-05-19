@@ -65,7 +65,7 @@ class DbContainers(base.ManagerWithFind):
 
         :rtype: list of :class:`DbContainer`.
         """
-        return self._list("/dbcontainers/detail", "flavors")
+        return self._list("/dbcontainers/detail", "dbcontainers")
 
     def get(self, dbcontainer):
         """
