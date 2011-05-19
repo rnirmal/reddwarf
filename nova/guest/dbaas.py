@@ -194,20 +194,22 @@ class DBaaSAgent(object):
 
     def update_status(self):
         """Update the status of the MySQL service"""
-        out, err = utils.execute("sudo", "service", "mysql", "status")
-        instance_id = guest_utils.get_instance_id()
-        if err:
-            LOG.error(err)
+        try:
+            out, err = utils.execute("sudo", "service", "mysql", "status")
+            instance_id = guest_utils.get_instance_id()
+            if err:
+                LOG.error(err)
 
-        if MYSQL_RUNNING.match(out):
-            dbapi.guest_status_update(instance_id, power_state.RUNNING)
-        elif MYSQL_STOPPED.match(out):
-            dbapi.guest_status_update(instance_id, power_state.SHUTDOWN)
-        elif MYSQL_NOT_INSTALLED.match(out):
-            dbapi.guest_status_update(instance_id, power_state.BUILDING)
-        else:
-            dbapi.guest_status_update(instance_id, power_state.NOSTATE)
-
+            if MYSQL_RUNNING.match(out):
+                dbapi.guest_status_update(instance_id, power_state.RUNNING)
+            elif MYSQL_STOPPED.match(out):
+                dbapi.guest_status_update(instance_id, power_state.SHUTDOWN)
+            elif MYSQL_NOT_INSTALLED.match(out):
+                dbapi.guest_status_update(instance_id, power_state.BUILDING)
+            else:
+                dbapi.guest_status_update(instance_id, power_state.NOSTATE)
+        except:
+            pass
 
 class LocalSqlClient(object):
     """A sqlalchemy wrapper to manage transactions"""

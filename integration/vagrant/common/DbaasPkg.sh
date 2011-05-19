@@ -36,6 +36,23 @@ dbaas_pkg_install_firstboot() {
     sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ includedeb lucid firstboot/*.deb
 }
 
+dbaas_pkg_install_glance() {
+    # TODO(tim.simpson) Make this package it up for real and run that like above.
+    sudo cp -rf /glance ~/glance
+    if [ $? -ne 0 ]
+    then
+        echo "Failure to copy glance to temporary location."
+        exit 1
+    fi
+    cd ~/glance
+    sudo python setup.py install
+    if [ $? -ne 0 ]
+    then
+        echo "Failure to install glance."
+        exit 1
+    fi
+}
+
 dbaas_pkg_install_nova() {
     # Builds and installs all of the stuff for Nova.
 

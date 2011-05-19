@@ -15,8 +15,7 @@ GROUP_STOP="dbaas.guest.shutdown"
 from datetime import datetime
 from nose.plugins.skip import SkipTest
 from novaclient.exceptions import NotFound
-from sqlalchemy import create_engine
-from sqlalchemy.sql.expression import text
+from nova.compute import power_state
 
 from dbaas import Dbaas
 from tests.util import test_config
@@ -24,6 +23,7 @@ from proboscis.decorators import time_out
 from proboscis import test
 from tests.util import check_database
 from tests.util import process
+from tests.util import get_db_guest_state
 from tests.util.users import Requirements
 from tests.util import string_in_list
 
@@ -33,7 +33,7 @@ class ContainerTestInfo(object):
     def __init__(self):
         self.dbaas = None  # The rich client instance used by these tests.
         self.dbaas_flavor_href = None  # The flavor of the container.
-        self.dbaas_image = None  # The image used to create the container.
+        self.dbaas_image_href = None  # The image used to create the container.
         self.id = None  # The ID of the instance in the database.
         self.ip = None  # The IP of the instance.
         self.name = None  # Test name, generated each test run.
@@ -112,7 +112,6 @@ class CreateContainer(unittest.TestCase):
 
         container_info.result = dbaas.dbcontainers.create(container_info.name,
                                                      container_info.dbaas_flavor_href,
-                                                     container_info.dbaas_image_href,
                                                      databases)
         container_info.id = container_info.result.id
 
@@ -147,6 +146,10 @@ class VerifyGuestStarted(unittest.TestCase):
                 time.sleep(10)
             else:
                 break
+
+    def test_guest_status_db_building(self):
+        state = get_db_guest_state(container_info.id)
+        self.assertEqual(state, power_state.BUILDING)
 
 
 @test(depends_on_classes=[VerifyGuestStarted], groups=[GROUP, GROUP_START])
@@ -196,6 +199,11 @@ class TestGuestProcess(unittest.TestCase):
                         self.assertFalse(False, guest_process)
                     break
 
+    def test_guest_status_db_running(self):
+        time.sleep(65)
+        state = get_db_guest_state(container_info.id)
+        self.assertEqual(state, power_state.RUNNING)
+
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
 class DeleteContainer(unittest.TestCase):
@@ -211,3 +219,7 @@ class DeleteContainer(unittest.TestCase):
                 container_info.result = dbaas.dbcontainers.get(container_info.result)
         except NotFound:
             pass
+
+    def test_guest_status_db_shutdown(self):
+        state = get_db_guest_state(container_info.id)
+        self.assertEqual(state, power_state.SHUTDOWN)
