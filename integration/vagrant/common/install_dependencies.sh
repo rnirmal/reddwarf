@@ -40,7 +40,7 @@ sudo -E http_proxy=$http_proxy bash ./nova.sh install
 if [ -n "${http_proxy+x}" ]; then
     exclaim Reverting proxy hotfix.
     mv ./nova.sh.bak ./nova.sh
-    rm ./nova.sh.delete
+    rm ./nova.sh.bak.delete
 fi
 
 #TODO: Make this optional - its only there for OpenVZ environments.
