@@ -30,31 +30,37 @@ class DnsDriver(object):
         pass
 
     def create_entry(self, entry):
+        """Creates the entry in the driver at the given dns zone."""
         pass
 
-    def delete_entry(self, name, dns_zone=""):
+    def delete_entry(self, name, type, dns_zone=None):
+        """Deletes an entry with the given name and type from a dns zone."""
         pass
 
-    def delete_instance_entry(self, instance, address):
+    def get_entries_by_content(self, content, dns_zone=None):
+        """Retrieves all entries in a dns_zone with a matching content field."""
         pass
 
-    def get_entries_by_address(self, address, dns_zone=""):
+    def get_entries_by_name(self, name, dns_zone=None):
+        """Retrieves all entries in a dns zone with the given name field."""
         pass
 
-    def get_entries_by_name(self, name, dns_zone=""):
+    def get_dns_zones(self, name=None):
+        """Returns all dns zones (optionally filtered by the name argument."""
         pass
 
-    def get_dns_zones(self):
+    def modify_content(self, name, content, dns_zone):
+        #TODO(tim.simpson) I've found no use for this in RS impl of DNS w/
+        #                  instances. Check to see its really needed.
         pass
 
-    def modify_address(self, name, address, dns_zone):
+    def rename_entry(self, content, name, dns_zone):
+        #TODO(tim.simpson) I've found no use for this in RS impl of DNS w/
+        #                  instances. Check to see its really needed.
         pass
 
-    def rename_entry(self, address, name, dns_zone):
-        pass
 
-
-class DnsInstanceEntryCreator(object):
+class DnsInstanceEntryFactory(object):
     """Defines how instance DNS entries are created for instances.
 
     By default, the DNS entry returns None meaning instances do not get entries
@@ -63,15 +69,16 @@ class DnsInstanceEntryCreator(object):
 
     """
 
-    def create_entry(self, instance):
+    def create_entry(self, instance, dns_driver):
+        #TODO(tim.simpson): dns_driver may not be necessary. Consider removing.
         return None
 
 
-class DnsSimpleInstanceEntryCreator(object):
+class DnsSimpleInstanceEntryFactory(object):
     """Creates a CNAME with the name being the instance name."""
 
-    def create_entry(self, instance):
-        return DnsEntry(name=instance.name, address=None, type="CNAME")
+    def create_entry(self, instance, dns_driver):
+        return DnsEntry(name=instance.name, content=None, type="CNAME")
 
 
 class DnsEntry(object):
@@ -82,15 +89,31 @@ class DnsEntry(object):
 
     """
 
-    #TODO(tim.simpson) "content" & "data" seem more widely used than "address."
-    def __init__(self, name, address, type, priority=None, dns_zone=""):
-        self.address = address
+    def __init__(self, name, content, type, ttl=None, priority=None,
+                 dns_zone=None):
+        self.content = content
         self.name = name
         self.type = type
         self.priority = priority
         self.dns_zone = dns_zone
+        self.ttl = ttl
 
 
 class DnsEntryNotFound(NotFound):
     """Raised when a driver cannot find a DnsEntry."""
     pass
+
+
+class DnsZone(object):
+    """Represents a DNS Zone.
+
+    For some APIs it is inefficient to simply represent a zone as a string
+    because this would necessitate a look up on every call.  So this opaque
+    object can contain additional data needed by the DNS driver.  The only
+    constant is it must contain the domain name of the zone.
+
+    """
+
+    @property
+    def name(self):
+        return ""

@@ -34,7 +34,7 @@ class FakeEntryFactory(object):
     def create_entry(self, instance):
         name = instance["name"]
         if self.make_entry:
-            return DnsEntry(name=name, address=None, type="CNAME")
+            return DnsEntry(name=name, content=None, type="CNAME")
         else:
             return None
 
@@ -54,11 +54,11 @@ class TestWhenEntryCreatorReturnsEntryForInstance(BaseCase):
     def setUp(self):
         super(TestWhenEntryCreatorReturnsEntryForInstance, self).setUp()
         self.instance = {'name': 'my-instance'}
-        self.address = "255.1.1.1"
-        initial_entries = self.driver.get_entries_by_address(self.address)
+        self.content = "255.1.1.1"
+        initial_entries = self.driver.get_entries_by_content(self.content)
         self.assertEquals(0, len(list(initial_entries)))
-        self.manager.create_instance_entry(self.instance, self.address)
-        self.entries = list(self.driver.get_entries_by_address(self.address))
+        self.manager.create_instance_entry(self.instance, self.content)
+        self.entries = list(self.driver.get_entries_by_content(self.content))
 
     def test_new_entry_should_exist(self):
         self.assertEqual(1, len(self.entries))
@@ -69,17 +69,17 @@ class TestWhenEntryCreatorReturnsEntryForInstance(BaseCase):
         self.assertEquals(expected_name, actual_name)
 
     def test_on_delete_should_remove_entry(self):
-        self.manager.delete_instance_entry(self.instance, self.address)
-        final_entries = list(self.driver.get_entries_by_address(self.address))
+        self.manager.delete_instance_entry(self.instance, self.content)
+        final_entries = list(self.driver.get_entries_by_content(self.content))
         self.assertEquals(0, len(final_entries))
 
     def test_on_delete_should_not_remove_entry_if_none(self):
         expected_name = self.entry_factory.create_entry(self.instance).name
 
         self.entry_factory.make_entry = False
-        self.manager.delete_instance_entry(self.instance, self.address)
+        self.manager.delete_instance_entry(self.instance, self.content)
 
-        final_entries = list(self.driver.get_entries_by_address(self.address))
+        final_entries = list(self.driver.get_entries_by_content(self.content))
         self.assertEqual(1, len(final_entries))
         actual_name = final_entries[0].name
         self.assertEquals(expected_name, actual_name)
@@ -91,21 +91,21 @@ class TestWhenEntryCreatorReturnsNoneForInstance(BaseCase):
         super(TestWhenEntryCreatorReturnsNoneForInstance, self).setUp()
         self.entry_factory.make_entry = False
         self.instance = {'name': 'my-instance'}
-        self.address = "255.1.1.1"
-        initial_entries = self.driver.get_entries_by_address(self.address)
+        self.content = "255.1.1.1"
+        initial_entries = self.driver.get_entries_by_content(self.content)
         self.assertEquals(0, len(list(initial_entries)))
-        self.manager.create_instance_entry(self.instance, self.address)
-        self.entries = list(self.driver.get_entries_by_address(self.address))
+        self.manager.create_instance_entry(self.instance, self.content)
+        self.entries = list(self.driver.get_entries_by_content(self.content))
 
     def test_no_entry_is_added(self):
         self.assertEqual(0, len(self.entries))
 
     def test_on_delete_should_do_nothing(self):
-        self.manager.delete_instance_entry(self.instance, self.address)
-        final_entries = list(self.driver.get_entries_by_address(self.address))
+        self.manager.delete_instance_entry(self.instance, self.content)
+        final_entries = list(self.driver.get_entries_by_content(self.content))
         self.assertEquals(0, len(final_entries))
 
     def test_on_delete_should_fail_if_entry_returned(self):
         self.entry_factory.make_entry = True
         self.assertRaises(DnsEntryNotFound, self.manager.delete_instance_entry,
-                          self.instance, self.address)
+                          self.instance, self.content)

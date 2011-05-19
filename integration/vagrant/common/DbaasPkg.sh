@@ -71,3 +71,28 @@ dbaas_pkg_install_nova() {
     cd /tmp/build
     sudo reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid nova_`echo $gitversion`_amd64.changes
 }
+
+dbaas_pkg_install_rsdns() {
+    if [ -d /rsdns ]
+    then
+        echo Installing RS DNS.
+        echo Creating temporary copy.
+        sudo cp -rf /rsdns ~/rsdns
+        if [ $? -ne 0 ]
+        then
+            echo "Could not copy RSDNS directory to temporary local location."
+            exit 1
+        fi
+        echo Installing RSDNS.
+        cd /home/vagrant/rsdns
+        sudo python setup.py install
+        if [ $? -ne 0 ]
+        then
+            echo "Failure to install RSDNS."
+            exit 1
+        fi
+        echo Installed successfully.
+    else
+        echo "Not installing RS DNS because it wasn't found."
+    fi
+}

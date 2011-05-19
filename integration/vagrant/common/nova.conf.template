@@ -11,3 +11,5 @@
 --ovz_ve_private_dir=/var/lib/vz/private/
 --allow_admin_api=False
 --flat_network_bridge=br100
+--dns_driver=rsdns.driver.RsDnsDriver
+--dns_instance_entry_factory=rsdns.driver.RsDnsInstanceEntryFactory

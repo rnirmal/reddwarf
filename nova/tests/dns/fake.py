@@ -30,7 +30,7 @@ class FakeDnsDriver(object):
         self.zones = FakeZoneHolder()
 
     def create_entry(self, entry):
-        #name, address, type, dns_zone, priority=None
+        #name, content, type, dns_zone, priority=None
         self.zones.add_entry(entry)
 
     def delete_entry(self, name, dns_zone=""):
@@ -39,9 +39,9 @@ class FakeDnsDriver(object):
                                    % (dns_zone, name))
         self.zones.delete_entry(name, dns_zone)
 
-    def get_entries_by_address(self, address, dns_zone=""):
+    def get_entries_by_content(self, content, dns_zone=""):
         zone = self.zones.get_zone(dns_zone)
-        return (entry for entry in zone if entry.address == address)
+        return (entry for entry in zone if entry.content == content)
 
     def get_entries_by_name(self, name, dns_zone=""):
         zone = self.zones.get_zone(dns_zone)
@@ -50,12 +50,12 @@ class FakeDnsDriver(object):
     def get_dns_zones(self):
         return self.zones.zone_names
 
-    def modify_address(self, name, address, dns_zone):
+    def modify_content(self, name, content, dns_zone):
         entry = self.get_entries_by_name(name, dns_zone)
-        entry.address = address
+        entry.content = content
 
-    def rename_entry(self, address, name, dns_zone):
-        entry = self.get_entries_by_address(address, dns_zone)
+    def rename_entry(self, content, name, dns_zone):
+        entry = self.get_entries_by_content(content, dns_zone)
         entry.name = name
 
 

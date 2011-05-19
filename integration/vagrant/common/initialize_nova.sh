@@ -48,10 +48,21 @@ exclaim Initializing Nova database.
 
 cat /vagrant-common/nova.conf.template > /home/vagrant/nova.conf
 
+
+glance_manage () {
+    echo glance-manage $@
+    /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+}
+
 nova_manage () {
     echo nova-manage $@
     /src/bin/nova-manage --flagfile=/home/vagrant/nova.conf $@
 }
+
+cd ~/
+glance_manage version_control
+glance_manage db_sync
+
 cd ~/
 nova_manage db sync
 nova_manage user admin admin admin admin
@@ -132,5 +143,5 @@ done
 
 
 # TODO: It may be necessary to delete all other instances of this.
-    
+
 # TODO: Add the fake LVM stuff so nova volumes doesnt complain (see baz' wiki article)
