@@ -24,7 +24,7 @@ echo "Error bringing up VM!"
 exit 1
 fi
 
-bash ./run_cmd.sh sudo -E bash /vagrant/initialize.sh
+bash ./run_cmd.sh sudo -E http_proxy=$http_proxy bash /vagrant/initialize.sh
 if [ $? -ne 0 ]
 then 
 echo "Error initializing VM environment."
@@ -34,7 +34,7 @@ fi
 
 # At this point you could save the Vagrant Box if you wanted to...
 
-bash ./run_cmd.sh sudo -E bash /vagrant/build.sh
+bash ./run_cmd.sh sudo -E http_proxy=$http_proxy bash /vagrant/build.sh
 if [ $? -ne 0 ]
 then 
 echo "Error building and installing packages."
@@ -42,7 +42,7 @@ echo "Error building and installing packages."
 exit 1
 fi
 
-bash ./run_cmd.sh sudo -E bash /vagrant-common/initialize_nova.sh
+bash ./run_cmd.sh sudo -E http_proxy=$http_proxy bash /vagrant-common/initialize_nova.sh
 if [ $? -ne 0 ]
 then 
 echo "Error initializing nova."
@@ -50,7 +50,7 @@ echo "Error initializing nova."
 exit 1
 fi
 
-bash ./run_cmd.sh sudo -E bash /vagrant/test.sh
+bash ./run_cmd.sh sudo -E http_proxy=$http_proxy bash /vagrant/test.sh
 if [ $? -ne 0 ]
 then 
 echo "Error running tests."
