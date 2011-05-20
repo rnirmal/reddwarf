@@ -20,6 +20,7 @@ source Utils.sh
 #get proper sphinx version from the drizzle ppa
 pkg_install python-software-properties
 add-apt-repository ppa:drizzle-developers/ppa
+add-apt-repository ppa:bzr/ppa
 apt-get update
 
 #install a bunch of libs

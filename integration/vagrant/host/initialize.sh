@@ -22,21 +22,21 @@ then
 else
     exclaim 'Installing Dependencies...'
     sudo usermod -g root vagrant
-    sudo -E http_proxy=$http_proxy bash /vagrant-common/install_dependencies.sh
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/install_dependencies.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing dependencies."
         exit 1
     fi
 
-    sudo -E http_proxy=$http_proxy bash /vagrant-common/install_apt_repo.sh
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/install_apt_repo.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing the repo."
         exit 1
     fi
 
-    sudo -E http_proxy=$http_proxy bash /vagrant-common/install_aptproxy.sh
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/install_aptproxy.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing the aptproxy."
