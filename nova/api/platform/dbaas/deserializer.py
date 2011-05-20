@@ -17,7 +17,11 @@ from xml.dom import minidom
 
 
 from nova import exception
+from nova import flags
 from nova import utils
+
+
+FLAGS = flags.FLAGS
 
 
 class RequestJSONDeserializer(object):
@@ -27,8 +31,12 @@ class RequestJSONDeserializer(object):
 
     def deserialize_create(self, body):
         """Just load the request body as json"""
-        json = utils.loads(body)
-        return utils.dumps({'server': json['dbcontainer']})
+        request = self._add_image_ref(utils.loads(body))
+        return utils.dumps({'server': request['dbcontainer']})
+
+    def _add_image_ref(self, body):
+        body['dbcontainer']['imageRef'] = FLAGS.reddwarf_imageRef
+        return body
 
 
 class RequestXMLDeserializer(object):
@@ -40,8 +48,15 @@ class RequestXMLDeserializer(object):
         """Deserialize an xml formatted server create request"""
         dom = minidom.parseString(string)
         dbcontainer = self._extract_dbcontainer(dom)
-        server_body = self._rename_to_server(dom)
+        server_node = self._rename_to_server(dom)
+        server_body = self._add_image_ref(server_node)
         return {'dbcontainer': dbcontainer}, server_body
+
+    def _add_image_ref(self, node):
+        imageRef = minidom.Attr("imageRef")
+        imageRef.value = FLAGS.reddwarf_imageRef
+        node.setAttributeNode(imageRef)
+        return node.toxml()
 
     def deserialize_databases(self, string):
         """Deserialize an xml formatted create databases request"""
@@ -56,8 +71,8 @@ class RequestXMLDeserializer(object):
     def _rename_to_server(self, node):
         """Rename dbcontainer to server for processing by the serves code"""
         dbcontainer_node = self._find_first_child_named(node, "dbcontainer")
-        server_body = node.renameNode(dbcontainer_node, "", "server")
-        return server_body.toxml()
+        node.renameNode(dbcontainer_node, "", "server")
+        return dbcontainer_node
 
     def _extract_dbcontainer(self, node):
         """Marshal the dbcontainer attributes of a parsed request"""

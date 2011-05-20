@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from webob import exc
+
 from nova import compute
 from nova import flags
 from nova import log as logging
@@ -23,6 +25,7 @@ from nova.api.openstack import servers
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.guest import api as guest_api
+from reddwarf.db import api as dbapi
 
 
 LOG = logging.getLogger('nova.api.platform.dbaas.dbcontainers')
@@ -30,6 +33,8 @@ LOG.setLevel(logging.DEBUG)
 
 
 FLAGS = flags.FLAGS
+flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
+                    'Default image for reddwarf')
 
 
 class Controller(common.DBaaSController):
@@ -38,8 +43,7 @@ class Controller(common.DBaaSController):
     _serialization_metadata = {
         'application/xml': {
             "attributes": {
-                "dbcontainer": ["id", "name", "status", "progress",
-                                "flavorRef", "imageRef"],
+                "dbcontainer": ["id", "name", "status", "flavorRef"],
                 "dbtype": ["name", "version"],
                 "link": ["rel", "type", "href"],
             },
@@ -77,7 +81,10 @@ class Controller(common.DBaaSController):
         """ Destroys a dbcontainer """
         LOG.info("Delete Container by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
-        return self.server_controller.delete(req, id)
+        result = self.server_controller.delete(req, id)
+        if isinstance(result, exc.HTTPAccepted):
+            dbapi.guest_status_delete(id)
+        return result
 
     def create(self, req):
         """ Creates a new DBContainer for a given user """
@@ -94,6 +101,7 @@ class Controller(common.DBaaSController):
         server_id = str(server['server']['id'])
         # Send the prepare call to Guest
         ctxt = req.environ['nova.context']
+        dbapi.guest_status_create(server_id)
         self.guest_api.prepare(ctxt, server_id, databases)
         return {'dbcontainer': server['server']}
 
