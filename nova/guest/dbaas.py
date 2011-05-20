@@ -28,6 +28,7 @@ handles RPC calls relating to Platform specific operations.
 
 import os
 import re
+import sys
 import uuid
 
 from datetime import date
@@ -209,7 +210,8 @@ class DBaaSAgent(object):
             else:
                 dbapi.guest_status_update(instance_id, power_state.NOSTATE)
         except:
-            pass
+            LOG.error(sys.exc_info()[0])
+
 
 class LocalSqlClient(object):
     """A sqlalchemy wrapper to manage transactions"""

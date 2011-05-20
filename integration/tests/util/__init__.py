@@ -62,16 +62,6 @@ def init_engine(user, password, host):
                                (user, password, host),
                                pool_recycle=1800, echo=True)
 
-def get_db_guest_state(instance_id):
-    engine = create_engine("mysql://nova:novapass@localhost:3306/nova",
-                               pool_recycle=1800, echo=True)
-    client = LocalSqlClient(engine)
-    with client:
-        t = text("""SELECT state from guest_status WHERE instance_id=:id;""")
-        result = client.execute(t, id=instance_id)
-        for row in result:
-            return row['state']
-
 def process(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)

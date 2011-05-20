@@ -15,7 +15,9 @@ GROUP_STOP="dbaas.guest.shutdown"
 from datetime import datetime
 from nose.plugins.skip import SkipTest
 from novaclient.exceptions import NotFound
+from nova import exception
 from nova.compute import power_state
+from reddwarf.db import api as dbapi
 
 from dbaas import Dbaas
 from tests.util import test_config
@@ -23,7 +25,6 @@ from proboscis.decorators import time_out
 from proboscis import test
 from tests.util import check_database
 from tests.util import process
-from tests.util import get_db_guest_state
 from tests.util.users import Requirements
 from tests.util import string_in_list
 
@@ -110,9 +111,10 @@ class CreateContainer(unittest.TestCase):
         databases.append({"name": "firstdb", "charset": "latin2",
                           "collate": "latin2_general_ci"})
 
-        container_info.result = dbaas.dbcontainers.create(container_info.name,
-                                                     container_info.dbaas_flavor_href,
-                                                     databases)
+        container_info.result = dbaas.dbcontainers.create(
+                                            container_info.name,
+                                            container_info.dbaas_flavor_href,
+                                            databases)
         container_info.id = container_info.result.id
 
 
@@ -148,8 +150,8 @@ class VerifyGuestStarted(unittest.TestCase):
                 break
 
     def test_guest_status_db_building(self):
-        state = get_db_guest_state(container_info.id)
-        self.assertEqual(state, power_state.BUILDING)
+        result = dbapi.guest_status_get(container_info.id)
+        self.assertEqual(result.state, power_state.BUILDING)
 
 
 @test(depends_on_classes=[VerifyGuestStarted], groups=[GROUP, GROUP_START])
@@ -199,9 +201,13 @@ class TestGuestProcess(unittest.TestCase):
                         self.assertFalse(False, guest_process)
                     break
 
+    @time_out(65)
     def test_guest_status_db_running(self):
-        time.sleep(65)
-        state = get_db_guest_state(container_info.id)
+        state = power_state.BUILDING
+        while state == power_state.BUILDING:
+            time.sleep(5)
+            result = dbapi.guest_status_get(container_info.id)
+            state = result.state
         self.assertEqual(state, power_state.RUNNING)
 
 
@@ -220,6 +226,13 @@ class DeleteContainer(unittest.TestCase):
         except NotFound:
             pass
 
+    @time_out(60)
     def test_guest_status_db_shutdown(self):
-        state = get_db_guest_state(container_info.id)
-        self.assertEqual(state, power_state.SHUTDOWN)
+        try:
+            state = power_state.RUNNING
+            while state == power_state.RUNNING:
+                time.sleep(5)
+                result = dbapi.guest_status_get(container_info.id)
+                state = result.state
+        except exception.InstanceNotFound:
+            self.assertTrue(True)

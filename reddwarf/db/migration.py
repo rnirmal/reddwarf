@@ -33,7 +33,7 @@ def db_sync(sql_connection):
     Syncs the database to the latest version. If it is not under version control
     then it's first version controlled and upgraded to the latest version
 
-    :param options: list of options
+    :param sql_connection: sql connection url
     """
     repo_path = _find_migrate_repo()
     try:
@@ -50,7 +50,7 @@ def db_version(sql_connection):
     Get the current version of the database. Throws a DatabaseNotControlledError
     if the database is not under version control
 
-    :param options: list of options
+    :param sql_connection: sql connection url
     """
     repo_path = _find_migrate_repo()
     return versioning_api.db_version(sql_connection, repo_path)

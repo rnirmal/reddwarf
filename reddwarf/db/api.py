@@ -27,7 +27,7 @@ from reddwarf.db import models
 def guest_status_create(instance_id):
     """Create a new guest status for the instance
 
-    :param values: dict containing column values.
+    :param instance_id: instance id for the guest
     """
     guest_status = models.GuestStatus()
     state = power_state.BUILDING
