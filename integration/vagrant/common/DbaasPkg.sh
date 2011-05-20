@@ -38,6 +38,7 @@ dbaas_pkg_install_firstboot() {
 
 dbaas_pkg_install_glance() {
     # TODO(tim.simpson) Make this package it up for real and run that like above.
+    sudo rm -rf ~/glance
     sudo cp -rf /glance ~/glance
     if [ $? -ne 0 ]
     then
@@ -93,6 +94,7 @@ dbaas_pkg_install_rsdns() {
     if [ -d /rsdns ]
     then
         echo Installing RS DNS.
+        sudo rm -rf ~/rsdns
         echo Creating temporary copy.
         sudo cp -rf /rsdns ~/rsdns
         if [ $? -ne 0 ]

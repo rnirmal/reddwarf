@@ -47,7 +47,10 @@ sudo -E service mysql restart
 exclaim Initializing Nova database.
 
 cat /vagrant-common/nova.conf.template > /home/vagrant/nova.conf
-
+if [ -d /rsdns ]
+then
+    cat /rsdns/nova.conf >> /home/vagrant/nova.conf
+fi
 
 glance_manage () {
     echo glance-manage $@

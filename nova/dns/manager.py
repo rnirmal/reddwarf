@@ -20,6 +20,7 @@ Dns manager.
 """
 
 from nova import flags
+from nova import log as logging
 from nova import utils
 from nova.manager import Manager
 
@@ -30,6 +31,7 @@ flags.DEFINE_string('dns_instance_entry_factory',
                     'nova.dns.driver.DnsInstanceEntryFactory',
                     'Method used to create entries for instances')
 
+LOG = logging.getLogger('nova.dns.manager')
 
 class DnsManager(Manager):
     """Handles associating DNS to and from IPs."""
@@ -53,6 +55,7 @@ class DnsManager(Manager):
 
         """
         entry = self.entry_factory.create_entry(instance)
+        LOG.debug("Creating entry address %s." % str(entry))
         if entry:
             entry.content = content
             self.driver.create_entry(entry)
@@ -60,6 +63,7 @@ class DnsManager(Manager):
     def delete_instance_entry(self, instance, content):
         """Removes a DNS entry associated to an instance."""
         entry = self.entry_factory.create_entry(instance)
+        LOG.debug("Deleting instance entry with %s" % str(entry))
         if entry:
             entry.content = content
-            self.driver.delete_entry(entry.name)
+            self.driver.delete_entry(entry.name, entry.type)

@@ -227,12 +227,10 @@ class ComputeManager(manager.SchedulerDependentManager):
         self.db.instance_update(context,
                                 instance_id,
                                 {'host': self.host, 'launched_on': self.host})
-
         self.db.instance_set_state(context,
                                    instance_id,
                                    power_state.NOSTATE,
                                    'networking')
-
         is_vpn = instance_ref['image_id'] == str(FLAGS.vpn_image_id)
         # NOTE(vish): This could be a cast because we don't do anything
         #             with the address currently, but I'm leaving it as
@@ -291,7 +289,6 @@ class ComputeManager(manager.SchedulerDependentManager):
             floating_ips = fixed_ip.get('floating_ips') or []
             for floating_ip in floating_ips:
                 address = floating_ip['address']
-                self.dns_manager.delete_instance_entry(instance_ref, address)
                 LOG.debug("Disassociating address %s", address,
                           context=context)
                 # NOTE(vish): Right now we don't really care if the ip is
@@ -310,6 +307,7 @@ class ComputeManager(manager.SchedulerDependentManager):
                                                          True)
 
             address = fixed_ip['address']
+            self.dns_manager.delete_instance_entry(instance_ref, address)
             if address:
                 LOG.debug(_("Deallocating address %s"), address,
                           context=context)

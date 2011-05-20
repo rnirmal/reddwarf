@@ -82,12 +82,7 @@ class DnsSimpleInstanceEntryFactory(object):
 
 
 class DnsEntry(object):
-    """Simple representation of a DNS record.
-
-    http://en.wikipedia.org/wiki/Domain_Name_System
-    RR (Resource record) fields
-
-    """
+    """Simple representation of a DNS record."""
 
     def __init__(self, name, content, type, ttl=None, priority=None,
                  dns_zone=None):
@@ -97,6 +92,10 @@ class DnsEntry(object):
         self.priority = priority
         self.dns_zone = dns_zone
         self.ttl = ttl
+
+    def __str__(self):
+        return "{ name:%s, content:%s, type:%s, zone:%s }" % \
+               (self.name, self.content, self.type, self.dns_zone)
 
 
 class DnsEntryNotFound(NotFound):
@@ -117,3 +116,6 @@ class DnsZone(object):
     @property
     def name(self):
         return ""
+
+    def __str__(self):
+        return self.name
