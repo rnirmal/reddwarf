@@ -201,11 +201,11 @@ class TestGuestProcess(unittest.TestCase):
                         self.assertFalse(False, guest_process)
                     break
 
-    @time_out(65)
+    @time_out(130)
     def test_guest_status_db_running(self):
         state = power_state.BUILDING
-        while state == power_state.BUILDING:
-            time.sleep(5)
+        while state != power_state.RUNNING:
+            time.sleep(10)
             result = dbapi.guest_status_get(container_info.id)
             state = result.state
         time.sleep(1)

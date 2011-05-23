@@ -526,7 +526,46 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Apply the rules
         linux_net.iptables_manager.apply()
-    
+
+    def _set_vmguarpages(self, instance):
+        """
+        Set the vmguarpages attribute for a container.  This number represents
+        the number of 4k blocks that are guaranteed to the container.
+        """
+
+        vmguarpages = self._calc_pages(instance)
+
+        try:
+            _, err =  utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                    '--save', '--vmguarpages', vmguarpages)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error("Cannot set vmguarpages for %s" %
+                                  instance[id])
+        return True
+
+    def _set_privvmpages(self, instance):
+        """
+        Set the privvmpages attribute for a container.  This represents the
+        memory allocation limit.  Think of this as a bursting limit.  For now
+        We are setting to the same as vmguarpages but in the future this can be
+        used to thin provision a box.
+        """
+        privvmpages = self._calc_pages(instance)
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--privvmpages', privvmpages)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error("Cannot set privvmpages for %s" %
+                                  instance['id'])
+        return True
+
     def snapshot(self, instance, name):
         """
         Snapshots the specified instance.
@@ -822,3 +861,11 @@ class OpenVzConnection(driver.ComputeDriver):
         Added because now nova requires this method
         """
         return
+
+    def _calc_pages(self, instance, block_size=4096):
+        """
+        Returns the number of pages for a given size of storage/memory
+        """
+        instance_type = instance_types.get_instance_type(
+            instance['instance_type_id'])
+        return (((int(instance_type['memory_mb']) * 1024) * 1024) / block_size)

@@ -16,7 +16,7 @@
 #    under the License.
 
 """
-Dns Driver base class that all Schedulers should inherit from
+Dns Driver base class that all DNS drivers should inherit from
 """
 
 

@@ -258,7 +258,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             LOG.exception(msg)
 
         if not FLAGS.stub_network:
-           self.dns_manager.create_instance_entry(instance_ref, address)
+            self.dns_manager.create_instance_entry(instance_ref, address)
 
         if not FLAGS.stub_network and FLAGS.auto_assign_floating_ip:
             public_ip = self.network_api.allocate_floating_ip(context)
