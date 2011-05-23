@@ -33,8 +33,13 @@ cd /src/contrib
 # check to see if http_proxy is set http_proxy=$http_proxy bash hack
 if [ -n "${http_proxy+x}" ]; then
     exclaim Setting up proxy hotfix.
-    sed -i.bak -e "s/sudo /sudo -E http_proxy=$http_proxy https_proxy=$https_proxy /g" ./nova.sh
-    sed -i.bak.delete -e "s/wget /http_proxy=$http_proxy/ wget /g" ./nova.sh
+    PROXY_STR="http_proxy=$http_proxy https_proxy=$https_proxy"
+    #escape out the /. chars that are present for the sed strin
+    PROXY_STR=$(echo $PROXY_STR|sed 's/\([\/\.]\)/\\\1/g')
+    SED_STR="s/sudo /sudo -E $PROXY_STR /g"
+    sed -i.bak -e "$SED_STR" ./nova.sh
+    SED_STR="s/wget /$PROXY_STR wget /g"
+    sed -i.bak.delete -e "$SED_STR" ./nova.sh
 fi
 sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash ./nova.sh install
 if [ -n "${http_proxy+x}" ]; then
