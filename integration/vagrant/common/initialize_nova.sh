@@ -40,9 +40,9 @@ mysql -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost'
 mysql -u root -e "DELETE FROM mysql.user WHERE User='';"
 mysql -u root -e "FLUSH PRIVILEGES;"
 
-sudo sed -i.bak 's/^bind/#bind/g' /etc/mysql/my.cnf
-# sudo cp /vagrant-common/mysql_my.cnf /etc/mysql/my.cnf
-sudo service mysql restart
+sudo -E sed -i.bak 's/^bind/#bind/g' /etc/mysql/my.cnf
+# sudo -E cp /vagrant-common/mysql_my.cnf /etc/mysql/my.cnf
+sudo -E service mysql restart
 
 exclaim Initializing Nova database.
 
@@ -52,10 +52,26 @@ nova_manage () {
     echo nova-manage $@
     /src/bin/nova-manage --flagfile=/home/vagrant/nova.conf $@
 }
+
+glance_manage () {
+    echo glance-manage $@
+    /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+}
+
+reddwarf_manage () {
+    echo reddwarf-manage $@
+    /src/bin/reddwarf-manage --sql_connection=mysql://nova:novapass@localhost/nova $@
+}
+
 cd ~/
 nova_manage db sync
 nova_manage user admin admin admin admin
 nova_manage project create dbaas admin
+
+glance_manage version_control
+glance_manage db_sync
+
+reddwarf_manage db sync
 
 exclaim Creating Nova certs.
 

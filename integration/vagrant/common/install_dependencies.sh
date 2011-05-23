@@ -29,15 +29,27 @@ pkg_install python-software-properties
 
 exclaim Installing Nova dependencies.
 cd /src/contrib
-sudo ./nova.sh install
+#UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
+# check to see if http_proxy is set http_proxy=$http_proxy bash hack
+if [ -n "${http_proxy+x}" ]; then
+    exclaim Setting up proxy hotfix.
+    sed -i.bak -e "s/sudo /sudo -E http_proxy=$http_proxy https_proxy=$https_proxy /g" ./nova.sh
+    sed -i.bak.delete -e "s/wget /http_proxy=$http_proxy/ wget /g" ./nova.sh
+fi
+sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash ./nova.sh install
+if [ -n "${http_proxy+x}" ]; then
+    exclaim Reverting proxy hotfix.
+    mv ./nova.sh.bak ./nova.sh
+    rm ./nova.sh.bak.delete
+fi
 
 #TODO: Make this optional - its only there for OpenVZ environments.
 exclaim Destroying virbr0.
 pkg_remove user-mode-linux kvm libvirt-bin
-sudo apt-get -y --allow-unauthenticated autoremove
+sudo -E apt-get -y --allow-unauthenticated autoremove
 
-sudo ifconfig virbr0 down
-sudo brctl delbr virbr0
+sudo -E ifconfig virbr0 down
+sudo -E brctl delbr virbr0
 
 
 exclaim Installing additional Nova dependencies.

@@ -13,10 +13,10 @@ ip_chunk() {
 
 pkg_install () {
     echo Installing $@...
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install $@
+    sudo -E DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install $@
 }
 
 pkg_remove () {
     echo Uninstalling $@...
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated remove $@
+    sudo -E DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated remove $@
 }

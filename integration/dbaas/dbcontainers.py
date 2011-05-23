@@ -39,14 +39,13 @@ class DbContainers(base.ManagerWithFind):
     """
     resource_class = DbContainer
 
-    def create(self, name, flavor_id, image_id, databases=None):
+    def create(self, name, flavor_id, databases=None):
         """
         Create (boot) a new dbcontainer.
         """
         body = {"dbcontainer": {
             "name": name,
-            "flavorRef": flavor_id,
-            "imageRef": image_id
+            "flavorRef": flavor_id
         }}
         if databases:
             body["dbcontainer"]["databases"] = databases

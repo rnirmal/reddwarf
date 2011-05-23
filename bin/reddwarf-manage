@@ -1,0 +1,150 @@
+#!/usr/bin/env python
+
+#    Copyright 2011 OpenStack LLC
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+"""
+Reddwarf Management Command Line Utility
+"""
+
+import optparse
+import os
+import sys
+
+# If ../reddwarf/__init__.py exists, add ../ to Python search path, so that
+# it will override what happens to be installed in /usr/(local/)lib/python...
+possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
+                                   os.pardir,
+                                   os.pardir))
+if os.path.exists(os.path.join(possible_topdir, 'reddwarf', '__init__.py')):
+    sys.path.insert(0, possible_topdir)
+
+
+from nova import version
+from reddwarf.db import migration
+
+
+class DbCommands(object):
+    """Commands to manage the datastore"""
+
+    def __init__(self):
+        pass
+
+    def sync(self, options):
+        """Sync the database up to the most recent version"""
+        print "Current Version = %s" \
+                    % migration.db_sync(options.sql_connection)
+
+    def version(self, options):
+        """Print the current database version"""
+        print "Current Version = %s" \
+                    % migration.db_version(options.sql_connection)
+
+    def upgrade(self, options, version):
+        """Upgrade the database to the specified version"""
+        print "Current Version = %s" \
+                    % migration.db_upgrade(options.sql_connection, version)
+
+    def downgrade(self, options, version):
+        """Downgrade the database to the specified version"""
+        print "Current Version = %s" \
+                    % migration.db_downgrade(options.sql_connection, version)
+
+
+def methods_of(obj):
+    """Get all callable methods of an object that don't start with underscore
+    returns a list of tuples of the form (method_name, method)"""
+    result = {}
+    for i in dir(obj):
+        if callable(getattr(obj, i)) and not i.startswith('_'):
+            result[i] = getattr(obj, i)
+    return result
+
+
+def config_options(oparser):
+    oparser.add_option("-s", "--sql_connection",
+                        help="Specifies the SQL Connection to use")
+
+
+def print_actions(oparser, cmd, actions):
+    """Print help for the command with list of options and description"""
+    oparser.print_usage()
+    print ("Available actions for '%s' cmd:") % cmd
+    for k, v in actions.iteritems():
+        print "\t%s\t\t%s" % (k, v.__doc__)
+    sys.exit(2)
+
+
+def print_commands(oparser):
+    """Print the list of available commands and description"""
+    oparser.print_help()
+    print "Available commands"
+    for k, v in COMMANDS.iteritems():
+        print "\t%s\t\t%s" % (k, v.__doc__)
+    sys.exit(2)
+
+
+COMMANDS = {'db': DbCommands}
+
+
+def main():
+    # Parse arguments
+    oparser = optparse.OptionParser("%prog [options] <cmd> <action> <args>",
+                                    version=version.version_string)
+    config_options(oparser)
+    (options, args) = oparser.parse_args()
+
+    if not args:
+        print_commands(oparser)
+
+    # Check that the sql connection is provided
+    if not options.sql_connection:
+        print ("%s needs to be specified" % oparser.get_option("-s"))
+        sys.exit(1)
+    else:
+        # Pop the command and check if it's in the know commands
+        cmd = args.pop(0)
+        if cmd in COMMANDS:
+            fn = COMMANDS.get(cmd)
+            command_object = fn()
+
+            # Get a list of supported actions for the command
+            actions = methods_of(command_object)
+
+            if len(args) < 1:
+                print_actions(oparser, cmd, actions)
+
+            # Check for a valid action and perform that action
+            action = args.pop(0)
+            if action in actions:
+                fn = actions.get(action)
+
+                try:
+                    fn(options, *args)
+                    sys.exit(0)
+                except TypeError as err:
+                    print "Possible wrong number of arguments supplied"
+                    print "%s %s: %s" % (cmd, action, fn.__doc__)
+                    print "\t\t%s" % str(fn.func_code.co_varnames)
+                    print "ERROR: %s" % err
+                except Exception:
+                    print "Command failed, please check log for more info"
+                    raise
+            else:
+                print_actions(oparser, cmd, actions)
+        else:
+            print_commands(oparser)
+
+if __name__ == '__main__':
+    main()

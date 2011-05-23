@@ -63,8 +63,14 @@ class GuestManager(manager.Manager):
         pass
 
     def periodic_tasks(self, context=None):
-        """Method for running any periodic tasks"""
-        pass
+        """Method for running any periodic tasks.
+
+           Right now does the status updates"""
+        status_method = "update_status"
+        try:
+            getattr(self.driver, status_method)()
+        except AttributeError:
+            LOG.error("Method %s not found for driver %s", status_method, self.driver)
 
     def upgrade(self, context):
         """Upgrade the guest agent and restart the agent"""
