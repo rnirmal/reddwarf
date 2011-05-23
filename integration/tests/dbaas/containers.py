@@ -197,6 +197,34 @@ class TestGuestProcess(unittest.TestCase):
                     break
 
 
+@test(depends_on_classes=[TestGuestProcess], groups=[GROUP, GROUP_START])
+class TestContainListing(unittest.TestCase):
+    """ Test the listing of the container information """
+
+    def test_index_list(self):
+        index=dbaas.dbcontainers.index()
+        print index
+        self.assertTrue(self._key_exist(index))
+
+    def test_detail_list(self):
+        index=dbaas.dbcontainers.details()
+        print index
+        self.assertTrue(self._key_exist(index))
+
+    def test_show_container(self):
+        """ tests the list of a single container by id with full information """
+        index=dbaas.dbcontainers.show(container_info.id)
+        print index
+        self.assertTrue(self._key_exist(index))
+
+    def _key_exist(self, index):
+        found = False
+        for container in index['dbcontainers']:
+            if container.has_key('id'):
+                found = True
+        return found
+
+
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
 class DeleteContainer(unittest.TestCase):
     """ Delete the created container """
