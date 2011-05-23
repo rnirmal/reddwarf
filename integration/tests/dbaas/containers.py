@@ -215,28 +215,23 @@ class TestGuestProcess(unittest.TestCase):
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
 
-    def test_index_list(self):
-        index=dbaas.dbcontainers.index()
-        print index
-        self.assertTrue(self._key_exist(index))
-
     def test_detail_list(self):
-        index=dbaas.dbcontainers.details()
-        print index
-        self.assertTrue(self._key_exist(index))
+        container_info.result = dbaas.dbcontainers.details()
+        self.assertTrue(self._dbcontainers_exist())
+
+    def test_index_list(self):
+        container_info.result = dbaas.dbcontainers.index()
+        self.assertTrue(self._dbcontainers_exist())
 
     def test_show_container(self):
-        """ tests the list of a single container by id with full information """
-        index=dbaas.dbcontainers.show(container_info.id)
-        print index
-        self.assertTrue(self._key_exist(index))
+        container_info.result = dbaas.dbcontainers.get(container_info.id)
+        self.assertTrue(self._dbcontainers_exist())
 
-    def _key_exist(self, index):
-        found = False
-        for container in index['dbcontainers']:
-            if container.has_key('id'):
-                found = True
-        return found
+    def _dbcontainers_exist(self):
+        if container_info.result:
+            return True
+        else:
+            return False
 
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
@@ -264,3 +259,9 @@ class DeleteContainer(unittest.TestCase):
                 state = result.state
         except exception.InstanceNotFound:
             self.assertTrue(True)
+
+def dumb_log(msg):
+    # TODO(cp16net) remove this function before commit
+    import sys
+    sys.__stdout__.write(str(msg) + "\n")
+

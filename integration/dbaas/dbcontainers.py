@@ -66,14 +66,6 @@ class DbContainers(base.ManagerWithFind):
         """
         return self._list("/dbcontainers/detail", "dbcontainers")
 
-    def show(self, id):
-        """
-        Get a list of all dbcontainers.
-
-        :rtype: list of :class:`DbContainer`.
-        """
-        return self._list("/dbcontainers/show/%s" % id, "dbcontainer")
-
     def index(self):
         """
         Get a list of all dbcontainers.
