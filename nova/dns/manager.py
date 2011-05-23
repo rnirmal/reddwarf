@@ -42,9 +42,8 @@ class DnsManager(Manager):
             dns_driver = FLAGS.dns_driver
         self.driver = utils.import_object(dns_driver)
         if not dns_instance_entry_factory:
-            dns_instance_entry_mapper = FLAGS.dns_instance_entry_factory
-        self.entry_factory = utils.import_object(
-            FLAGS.dns_instance_entry_factory)
+            dns_instance_entry_factory = FLAGS.dns_instance_entry_factory
+        self.entry_factory = utils.import_object(dns_instance_entry_factory)
         super(DnsManager, self).__init__(*args, **kwargs)
 
     def create_instance_entry(self, instance, content):

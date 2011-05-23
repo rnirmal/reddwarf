@@ -100,11 +100,14 @@ if __name__ == '__main__':
     import proboscis
     from tests import initialize
     from tests.dbaas import dbaas_ovz
+    from tests.dbaas import dns
+
     from tests.guest import dbaas_tests
     from tests.guest import pkg_tests
 
     proboscis.register(groups=["host.ovz"], depends_on_groups=[
-        "dbaas.guest"
+        "dbaas.guest",
+        "dbaas.guest.dns"
         ])
     proboscis.register(groups=["guest"], depends_on_groups=[
         pkg_tests.GROUP,

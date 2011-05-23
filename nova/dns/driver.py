@@ -69,15 +69,14 @@ class DnsInstanceEntryFactory(object):
 
     """
 
-    def create_entry(self, instance, dns_driver):
-        #TODO(tim.simpson): dns_driver may not be necessary. Consider removing.
+    def create_entry(self, instance):
         return None
 
 
 class DnsSimpleInstanceEntryFactory(object):
     """Creates a CNAME with the name being the instance name."""
 
-    def create_entry(self, instance, dns_driver):
+    def create_entry(self, instance):
         return DnsEntry(name=instance.name, content=None, type="CNAME")
 
 

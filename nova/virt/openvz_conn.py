@@ -175,7 +175,6 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_nameserver(instance)
         self._start(instance)
         self._initial_secure_host(instance)
-        
         # Begin making our looping async call
         timer = utils.LoopingCall(f=None)
 

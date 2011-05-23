@@ -60,7 +60,7 @@ dbaas_pkg_install_nova() {
     dbaas_pkg_create_tmpbuild
 
     echo Building Nova packages...
-    sudo -E bash /vagrant-common/nova_builddeb.sh
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/nova_builddeb.sh
     if [ $? -ne 0 ]
     then
         echo "Failure to build Nova package."

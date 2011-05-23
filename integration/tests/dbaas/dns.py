@@ -1,44 +1,45 @@
-import gettext
-import os
-import subprocess
-import sys
-import time
-import re
 import unittest
 
-from sqlalchemy import create_engine
-from sqlalchemy.sql.expression import text
-
-#from dbaas import Dbaas
 from dbaas import Dbaas
-from novaclient.exceptions import NotFound
+from nova import flags
+from nova import utils
 from proboscis import test
 from tests.dbaas.containers import container_info
 from tests.dbaas.containers import GROUP_START as CONTAINER_START
 from tests.dbaas.containers import GROUP_TEST
 
-dbaas = None
 dns_driver = None
 FLAGS = flags.FLAGS
-success_statuses = ["build", "active"]
+FLAGS = flags.FLAGS
+flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
+                    'Driver to use for DNS work')
 
 GROUP = "dbaas.guest.dns"
 
-@test(groups=[GROUP])
+IGNORE = False
+try:
+    import rsdns
+except Exception:
+    IGNORE = True
+
+
+@test(groups=[GROUP, GROUP_TEST], ignore=IGNORE)
 class Setup(unittest.TestCase):
     """Creates the client."""
 
-    def test_create_dbaas_client(self):
-        """Sets up the client."""
-        global dbaas
-        dbaas = util.create_dbaas_client(container_info.user)
-
     def test_create_rs_dns_driver(self):
         global dns_driver
-        dns_driver = FLAGS.dns_driver
+        dns_driver = utils.import_object(FLAGS.dns_driver)
 
-@test(depends_on_classes=[Setup, CONTAINER_START], groups=[GROUP])
+
+@test(depends_on_classes=[Setup],
+      depends_on_groups=[CONTAINER_START],
+      groups=[GROUP, GROUP_TEST],
+      ignore=IGNORE)
 class ConfirmDns(unittest.TestCase):
 
-    def test_dns_entry_exists(self, err):
-       #TODO(tim.simpson): Check for the name somehow
+    def test_dns_entry_exists(self):
+        global dns_driver
+        name = container_info.user.auth_user + str(container_info.id)
+        entries = dns_driver.get_entries_by_name(name)
+        self.assertTrue(len(entries) > 0)

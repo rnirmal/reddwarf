@@ -62,14 +62,20 @@ nova_manage () {
     /src/bin/nova-manage --flagfile=/home/vagrant/nova.conf $@
 }
 
+reddwarf_manage () {
+    echo reddwarf-manage $@
+    /src/bin/reddwarf-manage --sql_connection=mysql://nova:novapass@localhost/nova $@
+}
+
 cd ~/
 glance_manage version_control
 glance_manage db_sync
 
-cd ~/
 nova_manage db sync
 nova_manage user admin admin admin admin
 nova_manage project create dbaas admin
+
+reddwarf_manage db sync
 
 exclaim Creating Nova certs.
 

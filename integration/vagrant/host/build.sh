@@ -21,6 +21,7 @@ if [ -f ~/dependencies_are_installed ]
 then
     rm -rf /tmp/build
     mkdir /tmp/build
+    http_proxy=$http_proxy dbaas_pkg_install_nova
     dbaas_pkg_install_glance
     if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_nova
@@ -29,8 +30,11 @@ then
     if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_firstboot
     if [ $? -ne 0 ]; then exit 1; fi
-    dbaas_pkg_install_rsdns
-    if [ $? -ne 0 ]; then exit 1; fi
+    if [ -d /rsdns ]
+    then
+        dbaas_pkg_install_rsdns
+        if [ $? -ne 0 ]; then exit 1; fi
+    fi
 else
     echo Dependencies are not installed.
     exit 1

@@ -24,7 +24,7 @@ mkdir /tmp/build
 cd /tmp/build
 cp -R /src /tmp/build/dbaas
 rm -rf /tmp/build/dbaas/.bzr
-bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/nova/ubuntu dbaas
+http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/nova/ubuntu dbaas
 cd dbaas
 
 #get the git rev # to put in for the revision
