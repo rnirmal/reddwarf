@@ -59,8 +59,8 @@ class APIRouter(wsgi.Router):
                             member={'upgrade': 'POST'})
 
             mapper.resource("image", "images",
-                        controller=images.ControllerV11(),
-                        collection={'detail': 'GET'})
+                            controller=images.ControllerV11(),
+                            collection={'detail': 'GET'})
 
             #TODO(rnirmal): Right now any user can access these
             # functions as long as the allow_admin_api flag is set.
