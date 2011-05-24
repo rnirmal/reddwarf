@@ -307,10 +307,6 @@ class DeleteContainer(unittest.TestCase):
         except NotFound:
             pass
 
-    def test_get_container_status(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self.assertEquals('SHUTDOWN', container_info.myresult['dbcontainer']['status'])
-
     @time_out(60)
     def test_guest_status_db_shutdown(self):
         try:
