@@ -115,9 +115,12 @@ class Controller(common.DBaaSController):
             return response  # Just return the exception to throw it
         resp = {'dbcontainer': response['server']}
         self._remove_excess_fields(resp['dbcontainer'])
-        result = dbapi.guest_status_get(instance_id=id)
-        state = result.state
-        resp['dbcontainer']['status'] = _dbaas_mapping[state]
+        try:
+            result = dbapi.guest_status_get(instance_id=id)
+            state = result.state
+            resp['dbcontainer']['status'] = _dbaas_mapping[state]
+        except InstanceNotFound:
+            pass
         return resp
 
     def delete(self, req, id):
