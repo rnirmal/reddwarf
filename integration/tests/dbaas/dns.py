@@ -10,7 +10,6 @@ from tests.dbaas.containers import GROUP_TEST
 
 dns_driver = None
 FLAGS = flags.FLAGS
-FLAGS = flags.FLAGS
 flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
                     'Driver to use for DNS work')
 

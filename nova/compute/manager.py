@@ -231,6 +231,7 @@ class ComputeManager(manager.SchedulerDependentManager):
                                    instance_id,
                                    power_state.NOSTATE,
                                    'networking')
+        
         is_vpn = instance_ref['image_id'] == str(FLAGS.vpn_image_id)
         # NOTE(vish): This could be a cast because we don't do anything
         #             with the address currently, but I'm leaving it as
