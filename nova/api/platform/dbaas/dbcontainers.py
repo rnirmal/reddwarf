@@ -24,6 +24,8 @@ from nova import utils
 from nova.api.openstack import servers
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
+from nova.compute import power_state
+from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
 from reddwarf.db import api as dbapi
 
@@ -35,6 +37,14 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
+
+_dbaas_mapping = {
+    None: 'BUILD',
+    power_state.NOSTATE: 'BUILD',
+    power_state.RUNNING: 'ACTIVE',
+    power_state.SHUTDOWN: 'SHUTDOWN',
+    power_state.BUILDING: 'BUILD',
+}
 
 
 class Controller(common.DBaaSController):
@@ -63,6 +73,16 @@ class Controller(common.DBaaSController):
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
         for t in resp['dbcontainers']:
             self._remove_excess_fields(t)
+            # TODO(cp16net)
+            # make a guest status get function that allows you
+            # to pass a list of container ids
+            try:
+                result = dbapi.guest_status_get(t['id'])
+                state = result.state
+                t['status'] = _dbaas_mapping[state]
+            except InstanceNotFound:
+                # should we set the state to build/shutdown here?
+                pass
         return resp
 
     def detail(self, req):
@@ -72,6 +92,18 @@ class Controller(common.DBaaSController):
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
         for t in resp['dbcontainers']:
             self._remove_excess_fields(t)
+            # TODO(cp16net)
+            # make a guest status get function that allows you
+            # to pass a list of container ids
+            try:
+                # if i delete a container and then list details right after i kept getting
+                # a instance not found exception when trying to get the guest status.
+                result = dbapi.guest_status_get(t['id'])
+                state = result.state
+                t['status'] = _dbaas_mapping[state]
+            except InstanceNotFound:
+                # should we set the state to build/shutdown here?
+                pass
         return resp
 
     def show(self, req, id):
@@ -83,6 +115,9 @@ class Controller(common.DBaaSController):
             return response  # Just return the exception to throw it
         resp = {'dbcontainer': response['server']}
         self._remove_excess_fields(resp['dbcontainer'])
+        result = dbapi.guest_status_get(instance_id=id)
+        state = result.state
+        resp['dbcontainer']['status'] = _dbaas_mapping[state]
         return resp
 
     def delete(self, req, id):

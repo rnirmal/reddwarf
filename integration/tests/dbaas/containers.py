@@ -1,5 +1,6 @@
 import gettext
 import os
+import json
 import re
 import sys
 import time
@@ -117,6 +118,10 @@ class CreateContainer(unittest.TestCase):
                                             databases)
         container_info.id = container_info.result.id
 
+    def test_get_container(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        self.assertEquals('BUILD', container_info.myresult['dbcontainer']['status'])
+
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START])
 class VerifyGuestStarted(unittest.TestCase):
@@ -152,6 +157,10 @@ class VerifyGuestStarted(unittest.TestCase):
     def test_guest_status_db_building(self):
         result = dbapi.guest_status_get(container_info.id)
         self.assertEqual(result.state, power_state.BUILDING)
+
+    def test_guest_started_get_container(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        self.assertEquals('BUILD', container_info.myresult['dbcontainer']['status'])
 
 
 @test(depends_on_classes=[VerifyGuestStarted], groups=[GROUP, GROUP_START])
@@ -211,27 +220,76 @@ class TestGuestProcess(unittest.TestCase):
         self.assertEqual(state, power_state.RUNNING)
 
 
-@test(depends_on_classes=[TestGuestProcess], groups=[GROUP, GROUP_START])
+    def test_guest_status_get_container(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        self.assertEquals('ACTIVE', container_info.myresult['dbcontainer']['status'])
+
+
+@test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
 
     def test_detail_list(self):
-        container_info.result = dbaas.dbcontainers.details()
-        self.assertTrue(self._dbcontainers_exist())
+        container_info.myresult = dbaas.dbcontainers.details()
+        #container_info.myresult = json.loads(container_info.myresult)
+        #dumb_log(container_info.myresult)
+        self.assertTrue(self._detail_dbcontainers_exist())
 
     def test_index_list(self):
-        container_info.result = dbaas.dbcontainers.index()
-        self.assertTrue(self._dbcontainers_exist())
+        container_info.myresult = dbaas.dbcontainers.index()
+        #container_info.myresult = json.loads(container_info.myresult)
+        #dumb_log(container_info.myresult)
+        self.assertTrue(self._index_dbcontainers_exist())
 
-    def test_show_container(self):
-        container_info.result = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(self._dbcontainers_exist())
+    def test_get_container(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        #container_info.myresult = json.loads(container_info.myresult)
+        #dumb_log(container_info.myresult)
+        self.assertTrue(self._get_dbcontainers_exist())
 
-    def _dbcontainers_exist(self):
-        if container_info.result:
-            return True
-        else:
+    def test_get_container_status(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        self.assertEquals('ACTIVE', container_info.myresult['dbcontainer']['status'])
+
+    def _detail_dbcontainers_exist(self):
+        #TODO(cp16net) check for the container id in the list
+        for container in container_info.myresult['dbcontainers']:
+            #dumb_log(container)
+            if not container['status']:
+                return False
+            if not container['id']:
+                return False
+            if not container['name']:
+                return False
+            if not container['addresses']:
+                return False
+            if not container['links']:
+                return False
+        return True
+
+    def _index_dbcontainers_exist(self):
+        #TODO(cp16net) check for the container id in the list
+        for container in container_info.myresult['dbcontainers']:
+            #dumb_log(container)
+            if not container['id']:
+                return False
+            if not container['name']:
+                return False
+            if not container['links']:
+                return False
+        return True
+
+    def _get_dbcontainers_exist(self):
+        #TODO(cp16net) check for the container id int he result
+        container = container_info.myresult['dbcontainer']
+        #dumb_log(container)
+        if not container['id']:
             return False
+        if not container['name']:
+            return False
+        if not container['links']:
+            return False
+        return True
 
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
@@ -245,9 +303,13 @@ class DeleteContainer(unittest.TestCase):
         dbaas.dbcontainers.delete(container_info.result)
         try:
             while container_info.result:
-                container_info.result = dbaas.dbcontainers.get(container_info.result)
+                container_info.result = dbaas.dbcontainers.old_get(container_info.result)
         except NotFound:
             pass
+
+    def test_get_container_status(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        self.assertEquals('SHUTDOWN', container_info.myresult['dbcontainer']['status'])
 
     @time_out(60)
     def test_guest_status_db_shutdown(self):
@@ -263,5 +325,5 @@ class DeleteContainer(unittest.TestCase):
 def dumb_log(msg):
     # TODO(cp16net) remove this function before commit
     import sys
-    sys.__stdout__.write(str(msg) + "\n")
+    sys.__stdout__.write("dumb_log from containers --- " + str(msg) + "\n")
 
