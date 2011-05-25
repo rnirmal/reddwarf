@@ -208,6 +208,7 @@ class TestGuestProcess(unittest.TestCase):
             time.sleep(10)
             result = dbapi.guest_status_get(container_info.id)
             state = result.state
+        time.sleep(1)
         self.assertEqual(state, power_state.RUNNING)
 
 
@@ -221,6 +222,7 @@ class DeleteContainer(unittest.TestCase):
 
         dbaas.dbcontainers.delete(container_info.result)
         try:
+            time.sleep(1)
             while container_info.result:
                 container_info.result = dbaas.dbcontainers.get(container_info.result)
         except NotFound:

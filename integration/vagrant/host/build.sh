@@ -30,6 +30,11 @@ then
     if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_firstboot
     if [ $? -ne 0 ]; then exit 1; fi
+    if [ -d /rsdns ]
+    then
+        dbaas_pkg_install_rsdns
+        if [ $? -ne 0 ]; then exit 1; fi
+    fi
 else
     echo Dependencies are not installed.
     exit 1

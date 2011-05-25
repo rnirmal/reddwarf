@@ -47,15 +47,19 @@ sudo -E service mysql restart
 exclaim Initializing Nova database.
 
 cat /vagrant-common/nova.conf.template > /home/vagrant/nova.conf
-
-nova_manage () {
-    echo nova-manage $@
-    /src/bin/nova-manage --flagfile=/home/vagrant/nova.conf $@
-}
+if [ -d /rsdns ]
+then
+    cat /rsdns/nova.conf >> /home/vagrant/nova.conf
+fi
 
 glance_manage () {
     echo glance-manage $@
     /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+}
+
+nova_manage () {
+    echo nova-manage $@
+    /src/bin/nova-manage --flagfile=/home/vagrant/nova.conf $@
 }
 
 reddwarf_manage () {
@@ -64,12 +68,12 @@ reddwarf_manage () {
 }
 
 cd ~/
+glance_manage version_control
+glance_manage db_sync
+
 nova_manage db sync
 nova_manage user admin admin admin admin
 nova_manage project create dbaas admin
-
-glance_manage version_control
-glance_manage db_sync
 
 reddwarf_manage db sync
 
@@ -148,5 +152,5 @@ done
 
 
 # TODO: It may be necessary to delete all other instances of this.
-    
+
 # TODO: Add the fake LVM stuff so nova volumes doesnt complain (see baz' wiki article)

@@ -38,6 +38,7 @@ dbaas_pkg_install_firstboot() {
 
 dbaas_pkg_install_glance() {
     # TODO(tim.simpson) Make this package it up for real and run that like above.
+    sudo rm -rf ~/glance
     sudo cp -rf /glance ~/glance
     if [ $? -ne 0 ]
     then
@@ -87,4 +88,30 @@ dbaas_pkg_install_nova() {
     echo Installing Nova packages into the local repo.
     cd /tmp/build
     sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid nova_`echo $gitversion`_amd64.changes
+}
+
+dbaas_pkg_install_rsdns() {
+    if [ -d /rsdns ]
+    then
+        echo Installing RS DNS.
+        sudo rm -rf ~/rsdns
+        echo Creating temporary copy.
+        sudo cp -rf /rsdns ~/rsdns
+        if [ $? -ne 0 ]
+        then
+            echo "Could not copy RSDNS directory to temporary local location."
+            exit 1
+        fi
+        echo Installing RSDNS.
+        cd /home/vagrant/rsdns
+        sudo python setup.py install
+        if [ $? -ne 0 ]
+        then
+            echo "Failure to install RSDNS."
+            exit 1
+        fi
+        echo Installed successfully.
+    else
+        echo "Not installing RS DNS because it wasn't found."
+    fi
 }

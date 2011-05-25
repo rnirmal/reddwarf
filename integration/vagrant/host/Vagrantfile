@@ -19,6 +19,12 @@ Vagrant::Config.run do |config|
   config.vm.share_folder "glance", "/glance", ENV['GLANCESRC']
   config.vm.share_folder "glance_images", "/glance_images", ENV['GLANCEIMAGES']
   config.vm.share_folder "nova", "/src", "../../../"
+  if ENV['RSDNS']
+    rsdns_dir = ENV['RSDNS']
+    if File.directory?(rsdns_dir)
+        config.vm.share_folder "rsdns", "/rsdns", ENV['RSDNS']
+    end
+  end
 #  config.vm.share_folder "firstboot", "/src/firstboot", "../../../firstboot"
 #  config.vm.share_folder "dbaas-mycnf", "/src/dbaas-mycnf",  "../../../dbaas-mycnf"
   config.vm.share_folder "vagrant-common", "/vagrant-common", "./../common"
