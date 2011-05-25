@@ -149,7 +149,9 @@ class Controller(common.DBaaSController):
         ctxt = req.environ['nova.context']
         dbapi.guest_status_create(server_id)
         self.guest_api.prepare(ctxt, server_id, databases)
-        return {'dbcontainer': server['server']}
+        resp = {'dbcontainer': server['server']}
+        self._remove_excess_fields(resp['dbcontainer'])
+        return resp
 
     def _remove_excess_fields(self, response):
         """ Removes the excess fields from the parent dbcontainer call.
@@ -159,7 +161,7 @@ class Controller(common.DBaaSController):
         raise a key error exception.
         """
         LOG.debug("Removing the excess information from the containers.")
-        for attr in ["hostId","imageRef","metadata"]:
+        for attr in ["hostId","imageRef","metadata","adminPass"]:
             if response.has_key(attr):
                 del response[attr]
         return response
