@@ -57,10 +57,6 @@ def import_class(import_str):
     mod_str, _sep, class_str = import_str.rpartition('.')
     try:
         __import__(mod_str)
-    except (ImportError, ValueError, AttributeError), exc:
-        LOG.debug(_('Inner Exception: %s'), exc)
-        raise exception.ModuleNotFound(module_name=mod_str)
-    try:
         return getattr(sys.modules[mod_str], class_str)
     except (ImportError, ValueError, AttributeError), exc:
         LOG.debug(_('Inner Exception: %s'), exc)

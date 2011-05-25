@@ -353,7 +353,7 @@ DEFINE_string('compute_manager', 'nova.compute.manager.ComputeManager',
 DEFINE_string('console_manager', 'nova.console.manager.ConsoleProxyManager',
               'Manager for console proxy')
 DEFINE_string('dns_manager', 'nova.dns.manager.DnsManager',
-              'Manager for DNS.')
+              'Manager for dns')
 DEFINE_string('network_manager', 'nova.network.manager.VlanManager',
               'Manager for network')
 DEFINE_string('volume_manager', 'nova.volume.manager.VolumeManager',

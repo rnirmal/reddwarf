@@ -503,8 +503,6 @@ class NetworkAdapterNotFound(NotFound):
 class ClassNotFound(NotFound):
     message = _("Class %(class_name)s could not be found")
 
-class ModuleNotFound(NotFound):
-    message = _("Module %(module_name)s could not be found")
 
 class NotAllowed(NovaException):
     message = _("Action not allowed.")

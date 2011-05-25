@@ -227,11 +227,12 @@ class ComputeManager(manager.SchedulerDependentManager):
         self.db.instance_update(context,
                                 instance_id,
                                 {'host': self.host, 'launched_on': self.host})
+
         self.db.instance_set_state(context,
                                    instance_id,
                                    power_state.NOSTATE,
                                    'networking')
-        
+
         is_vpn = instance_ref['image_id'] == str(FLAGS.vpn_image_id)
         # NOTE(vish): This could be a cast because we don't do anything
         #             with the address currently, but I'm leaving it as
