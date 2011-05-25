@@ -103,15 +103,6 @@ class DbContainers(base.ManagerWithFind):
             raise Exception("Call to /dbcontainers/%s did not return a body." % base.getid(dbcontainer))
         return body
 
-    def old_get(self, dbcontainer):
-        """
-        Get a specific containers.
-
-        :rtype: :class:`DbContainer`
-        """
-        return self._get("/dbcontainers/%s" % base.getid(dbcontainer),
-                        "dbcontainer")
-
     def delete(self, dbcontainer):
         """
         Delete the specified container.

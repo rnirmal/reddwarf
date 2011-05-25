@@ -117,6 +117,18 @@ class CreateContainer(unittest.TestCase):
                                             container_info.dbaas_flavor_href,
                                             databases)
         container_info.id = container_info.result.id
+        
+        # checks to be sure these are not found in the result
+        result_dict = container_info.result.__dict__
+        for attr in ["hostId","imageRef","metadata","adminPass"]:
+            self.assertTrue(result_dict.get(attr) == None,
+                            "Create response should not contain %s = %s" %
+                            (attr, result_dict.get(attr)))
+        # checks to be sure these are found in the result
+        for attr in ["flavorRef","id","name","status","addresses","links"]:
+            self.assertTrue(result_dict.get(attr) != None,
+                            "Create response should contain %s = %s attribute." %
+                            (attr, result_dict.get(attr)))
 
     def test_get_container(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id)
@@ -231,33 +243,41 @@ class TestContainListing(unittest.TestCase):
 
     def test_detail_list(self):
         container_info.myresult = dbaas.dbcontainers.details()
-        #container_info.myresult = json.loads(container_info.myresult)
-        #dumb_log(container_info.myresult)
         self.assertTrue(self._detail_dbcontainers_exist())
 
     def test_index_list(self):
         container_info.myresult = dbaas.dbcontainers.index()
-        #container_info.myresult = json.loads(container_info.myresult)
-        #dumb_log(container_info.myresult)
         self.assertTrue(self._index_dbcontainers_exist())
 
     def test_get_container(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        #container_info.myresult = json.loads(container_info.myresult)
-        #dumb_log(container_info.myresult)
         self.assertTrue(self._get_dbcontainers_exist())
 
     def test_get_container_status(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id)
         self.assertEquals('ACTIVE', container_info.myresult['dbcontainer']['status'])
 
+    def test_get_legacy_status(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        if len(container_info.myresult)>0:
+            self.assertTrue(True)
+        else:
+            self.assertTrue(False)
+
+    def test_get_legacy_status_notfound(self):
+        try:
+            if dbaas.dbcontainers.get(-2):
+                self.assertTrue(True)
+            else:
+                self.assertTrue(False)
+        except NotFound:
+            pass
+
     def _detail_dbcontainers_exist(self):
-        #TODO(cp16net) check for the container id in the list
         for container in container_info.myresult['dbcontainers']:
-            #dumb_log(container)
             if not container['status']:
                 return False
-            if not container['id']:
+            if not container['id'] and container['id'] != container_info.id:
                 return False
             if not container['name']:
                 return False
@@ -268,10 +288,8 @@ class TestContainListing(unittest.TestCase):
         return True
 
     def _index_dbcontainers_exist(self):
-        #TODO(cp16net) check for the container id in the list
         for container in container_info.myresult['dbcontainers']:
-            #dumb_log(container)
-            if not container['id']:
+            if not container['id'] and container['id'] != container_info.id:
                 return False
             if not container['name']:
                 return False
@@ -280,10 +298,8 @@ class TestContainListing(unittest.TestCase):
         return True
 
     def _get_dbcontainers_exist(self):
-        #TODO(cp16net) check for the container id int he result
         container = container_info.myresult['dbcontainer']
-        #dumb_log(container)
-        if not container['id']:
+        if not container['id'] and container['id'] != container_info.id:
             return False
         if not container['name']:
             return False
@@ -303,7 +319,7 @@ class DeleteContainer(unittest.TestCase):
         dbaas.dbcontainers.delete(container_info.result)
         try:
             while container_info.result:
-                container_info.result = dbaas.dbcontainers.old_get(container_info.result)
+                container_info.result = dbaas.dbcontainers.get(container_info.id)
         except NotFound:
             pass
 
@@ -317,9 +333,3 @@ class DeleteContainer(unittest.TestCase):
                 state = result.state
         except exception.InstanceNotFound:
             self.assertTrue(True)
-
-def dumb_log(msg):
-    # TODO(cp16net) remove this function before commit
-    import sys
-    sys.__stdout__.write("dumb_log from containers --- " + str(msg) + "\n")
-
