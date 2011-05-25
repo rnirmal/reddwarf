@@ -9,5 +9,5 @@
 --verbose
 --connection_type=openvz
 --ovz_ve_private_dir=/var/lib/vz/private/
---allow_admin_api=False
+--allow_admin_api=True
 --flat_network_bridge=br100
