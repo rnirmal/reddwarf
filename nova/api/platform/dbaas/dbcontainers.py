@@ -81,7 +81,7 @@ class Controller(common.DBaaSController):
                 container['status'] = _dbaas_mapping[result.state]
             except InstanceNotFound:
                 # we set the state to shutdown if not found
-                container['status'] = 'SHUTDOWN'
+                container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
         return resp
 
     def detail(self, req):
@@ -99,7 +99,7 @@ class Controller(common.DBaaSController):
                 container['status'] = _dbaas_mapping[result.state]
             except InstanceNotFound:
                 # we set the state to shutdown if not found
-                container['status'] = 'SHUTDOWN'
+                container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
         return resp
 
     def show(self, req, id):
@@ -116,7 +116,7 @@ class Controller(common.DBaaSController):
             resp['dbcontainer']['status'] = _dbaas_mapping[result.state]
         except InstanceNotFound:
             # we set the state to shutdown if not found
-            resp['dbcontainer']['status']  = 'SHUTDOWN'
+            resp['dbcontainer']['status']  = _dbaas_mapping[power_state.SHUTDOWN]
         return resp
 
     def delete(self, req, id):
