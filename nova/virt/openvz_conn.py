@@ -47,6 +47,7 @@ def get_connection(read_only):
 class OpenVzConnection(driver.ComputeDriver):
     def __init__(self, read_only):
         self.read_only = read_only
+        self._get_cpuunits()
 
     @classmethod
     def instance(cls):
@@ -573,6 +574,77 @@ class OpenVzConnection(driver.ComputeDriver):
                                   instance['id'])
         return True
 
+    def _set_cpuunits(self, instance, units=None):
+        """
+        Set the cpuunits setting for the container.  This is an integer
+        representing the number of cpu fair scheduling counters that the
+        container has access to during one complete cycle.
+        """
+        if not units:
+            inst_typ = instance_types.get_instance_type(
+                instance['instance_type_id'])
+            cpuunits = int(inst_typ['vcpus'])
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--cpuunits', cpuunits)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Cannot set cpuunits for %s' %
+                                  (instance['id'],))
+        return True
+
+    def _set_cpulimit(self, instance, cpulimit=None):
+        """
+        This is a number in % equal to the amount of cpu processing power
+        the container gets.  NOTE: 100% is 1 logical cpu so if you have 12
+        cores with hyperthreading enabled then 100% of the whole host machine
+        would be 2400% or --cpulimit 2400.
+        """
+
+        if not cpulimit:
+            inst_typ = instance_types.get_instance_type(
+                instance['instance_type_id']
+            )
+            cpulimit = int(inst_typ['vcpus']) * 100
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--cpulimit', cpulimit)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Unable to set cpulimit for %s' %
+                                  (instance['id'],))
+        return True
+
+    def _set_cpus(self, instance, cpus=None):
+        """
+        The number of logical cpus that are made available to the container.
+        """
+
+        if not cpus:
+            inst_typ = instance_types.get_instance_type(
+                instance['instance_type_id']
+            )
+            cpus = inst_typ['vcpus']
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--cpus', cpus)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Unable to set cpus for %s' %
+                                  (instance['id'],))
+        return True
+
+            
+
     def snapshot(self, instance, name):
         """
         Snapshots the specified instance.
@@ -876,3 +948,35 @@ class OpenVzConnection(driver.ComputeDriver):
         instance_type = instance_types.get_instance_type(
             instance['instance_type_id'])
         return (((int(instance_type['memory_mb']) * 1024) * 1024) / block_size)
+
+    def _get_cpuunits(self):
+        """
+        Getting usage and overall cpu processing power from host node
+        """
+
+        if not self.utility:
+            self.utility = {
+                'CTIDS': {},
+                'TOTAL': 0,
+                'UNITS': 0
+            }
+
+        try:
+            out, err = utils.execute('sudo', 'vzcpucheck')
+            if err:
+                LOG.error(err)
+
+            for line in out.splitlines():
+                line = line.split()
+                if line[0] == 'Power of the node:':
+                    self.utility['UNITS'] = int(line[1])
+                elif line[0] == 'Current CPU utilization:':
+                    self.utility['TOTAL'] = int(line[1])
+                elif line[0].isdigit():
+                    self.utility['CTIDS'][line[0]] = line[1]
+                
+
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            exception.Error('Problem getting cpuunits for host')
+
