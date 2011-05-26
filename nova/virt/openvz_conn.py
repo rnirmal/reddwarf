@@ -975,7 +975,6 @@ class OpenVzConnection(driver.ComputeDriver):
                 elif line[0].isdigit():
                     self.utility['CTIDS'][line[0]] = line[1]
                 
-
         except ProcessExecutionError as err:
             LOG.error(err)
             exception.Error('Problem getting cpuunits for host')
