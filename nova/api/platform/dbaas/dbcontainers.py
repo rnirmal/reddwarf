@@ -24,6 +24,8 @@ from nova import utils
 from nova.api.openstack import servers
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
+from nova.compute import power_state
+from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
 from reddwarf.db import api as dbapi
 
@@ -35,6 +37,14 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
+
+_dbaas_mapping = {
+    None: 'BUILD',
+    power_state.NOSTATE: 'BUILD',
+    power_state.RUNNING: 'ACTIVE',
+    power_state.SHUTDOWN: 'SHUTDOWN',
+    power_state.BUILDING: 'BUILD',
+}
 
 
 class Controller(common.DBaaSController):
@@ -60,13 +70,37 @@ class Controller(common.DBaaSController):
         """ Returns a list of dbcontainer names and ids for a given user """
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
-        return {'dbcontainers': self.server_controller.index(req)['servers']}
+        resp = {'dbcontainers': self.server_controller.index(req)['servers']}
+        for container in resp['dbcontainers']:
+            self._remove_excess_fields(container)
+            # TODO(cp16net)
+            # make a guest status get function that allows you
+            # to pass a list of container ids
+            try:
+                result = dbapi.guest_status_get(container['id'])
+                container['status'] = _dbaas_mapping[result.state]
+            except InstanceNotFound:
+                # we set the state to shutdown if not found
+                container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
+        return resp
 
     def detail(self, req):
         """ Returns a list of dbcontainer details for a given user """
         LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
-        return {'dbcontainers': self.server_controller.detail(req)['servers']}
+        resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
+        for container in resp['dbcontainers']:
+            self._remove_excess_fields(container)
+            # TODO(cp16net)
+            # make a guest status get function that allows you
+            # to pass a list of container ids
+            try:
+                result = dbapi.guest_status_get(container['id'])
+                container['status'] = _dbaas_mapping[result.state]
+            except InstanceNotFound:
+                # we set the state to shutdown if not found
+                container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
+        return resp
 
     def show(self, req, id):
         """ Returns dbcontainer details by container id """
@@ -75,7 +109,15 @@ class Controller(common.DBaaSController):
         response = self.server_controller.show(req, id)
         if isinstance(response, Exception):
             return response  # Just return the exception to throw it
-        return {'dbcontainer': response['server']}
+        resp = {'dbcontainer': response['server']}
+        self._remove_excess_fields(resp['dbcontainer'])
+        try:
+            result = dbapi.guest_status_get(instance_id=id)
+            resp['dbcontainer']['status'] = _dbaas_mapping[result.state]
+        except InstanceNotFound:
+            # we set the state to shutdown if not found
+            resp['dbcontainer']['status']  = _dbaas_mapping[power_state.SHUTDOWN]
+        return resp
 
     def delete(self, req, id):
         """ Destroys a dbcontainer """
@@ -97,17 +139,31 @@ class Controller(common.DBaaSController):
                                     env['dbcontainer'].get('databases', ''))
 
         server = self.server_controller.create(req)
-
         server_id = str(server['server']['id'])
-        # Send the prepare call to Guest
-        ctxt = req.environ['nova.context']
         dbapi.guest_status_create(server_id)
-        self.guest_api.prepare(ctxt, server_id, databases)
-        return {'dbcontainer': server['server']}
+
+        # Send the prepare call to Guest
+        self.guest_api.prepare(req.environ['nova.context'],
+                               server_id, databases)
+        resp = {'dbcontainer': server['server']}
+        self._remove_excess_fields(resp['dbcontainer'])
+        return resp
+
+    def _remove_excess_fields(self, response):
+        """ Removes the excess fields from the parent dbcontainer call.
+
+        We delete elements but if the call came from the index function
+        the response will not have all the fields and we expect some to
+        raise a key error exception.
+        """
+        LOG.debug("Removing the excess information from the containers.")
+        for attr in ["hostId","imageRef","metadata","adminPass"]:
+            if response.has_key(attr):
+                del response[attr]
+        return response
 
     def _deserialize_create(self, request):
-        """
-        Deserialize a create request
+        """ Deserialize a create request
 
         Overrides normal behavior in the case of xml content
         """
