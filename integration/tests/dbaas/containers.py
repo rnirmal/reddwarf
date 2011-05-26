@@ -17,6 +17,7 @@ from datetime import datetime
 from nose.plugins.skip import SkipTest
 from novaclient.exceptions import NotFound
 from nova import exception
+from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
@@ -131,8 +132,8 @@ class CreateContainer(unittest.TestCase):
                             (attr, result_dict.get(attr)))
 
     def test_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self.assertEquals('BUILD', container_info.myresult['dbcontainer']['status'])
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
+        self.assertEquals(_dbaas_mapping[power_state.BUILDING], container_info.myresult['status'])
 
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START])
@@ -171,8 +172,8 @@ class VerifyGuestStarted(unittest.TestCase):
         self.assertEqual(result.state, power_state.BUILDING)
 
     def test_guest_started_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self.assertEquals('BUILD', container_info.myresult['dbcontainer']['status'])
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
+        self.assertEquals(_dbaas_mapping[power_state.BUILDING], container_info.myresult['status'])
 
 
 @test(depends_on_classes=[VerifyGuestStarted], groups=[GROUP, GROUP_START])
@@ -233,14 +234,14 @@ class TestGuestProcess(unittest.TestCase):
 
 
     def test_guest_status_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self.assertEquals('ACTIVE', container_info.myresult['dbcontainer']['status'])
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
+        self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
 
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
-
+    
     def test_detail_list(self):
         container_info.myresult = dbaas.dbcontainers.details()
         self.assertTrue(self._detail_dbcontainers_exist())
@@ -254,11 +255,11 @@ class TestContainListing(unittest.TestCase):
         self.assertTrue(self._get_dbcontainers_exist())
 
     def test_get_container_status(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self.assertEquals('ACTIVE', container_info.myresult['dbcontainer']['status'])
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
+        self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
 
     def test_get_legacy_status(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
         if len(container_info.myresult)>0:
             self.assertTrue(True)
         else:
@@ -274,36 +275,36 @@ class TestContainListing(unittest.TestCase):
             pass
 
     def _detail_dbcontainers_exist(self):
-        for container in container_info.myresult['dbcontainers']:
-            if not container['status']:
+        for container in container_info.myresult:
+            if not container.__dict__['status']:
                 return False
-            if not container['id'] and container['id'] != container_info.id:
+            if not container.__dict__['id'] and container.__dict__['id'] != container_info.id:
                 return False
-            if not container['name']:
+            if not container.__dict__['name']:
                 return False
-            if not container['addresses']:
+            if not container.__dict__['addresses']:
                 return False
-            if not container['links']:
+            if not container.__dict__['links']:
                 return False
         return True
 
     def _index_dbcontainers_exist(self):
-        for container in container_info.myresult['dbcontainers']:
-            if not container['id'] and container['id'] != container_info.id:
+        for container in container_info.myresult:
+            if not container.__dict__['id'] and container.__dict__['id'] != container_info.id:
                 return False
-            if not container['name']:
+            if not container.__dict__['name']:
                 return False
-            if not container['links']:
+            if not container.__dict__['links']:
                 return False
         return True
 
     def _get_dbcontainers_exist(self):
-        container = container_info.myresult['dbcontainer']
-        if not container['id'] and container['id'] != container_info.id:
+        container = container_info.myresult
+        if not container.__dict__['id'] and container.__dict__['id'] != container_info.id:
             return False
-        if not container['name']:
+        if not container.__dict__['name']:
             return False
-        if not container['links']:
+        if not container.__dict__['links']:
             return False
         return True
 
@@ -317,19 +318,10 @@ class DeleteContainer(unittest.TestCase):
         global dbaas
 
         dbaas.dbcontainers.delete(container_info.result)
+
         try:
             while container_info.result:
                 container_info.result = dbaas.dbcontainers.get(container_info.id)
+                self.assertEquals(_dbaas_mapping[power_state.SHUTDOWN], container_info.result.__dict__['status'])
         except NotFound:
             pass
-
-    @time_out(60)
-    def test_guest_status_db_shutdown(self):
-        try:
-            state = power_state.RUNNING
-            while state == power_state.RUNNING:
-                time.sleep(5)
-                result = dbapi.guest_status_get(container_info.id)
-                state = result.state
-        except exception.InstanceNotFound:
-            self.assertTrue(True)

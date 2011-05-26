@@ -72,11 +72,7 @@ class DbContainers(base.ManagerWithFind):
 
         :rtype: list of :class:`DbContainer`.
         """
-        #return self._list("/dbcontainers", "dbcontainers")
-        resp, body = self.api.client.get("/dbcontainers")
-        if not body:
-            raise Exception("Call to /dbcontainers did not return a body.")
-        return body
+        return self._list("/dbcontainers", "dbcontainers")
 
     def details(self):
         """
@@ -84,11 +80,7 @@ class DbContainers(base.ManagerWithFind):
 
         :rtype: list of :class:`DbContainer`.
         """
-        #return self._list("/dbcontainers/detail", "dbcontainers")
-        resp, body = self.api.client.get("/dbcontainers/detail")
-        if not body:
-            raise Exception("Call to /dbcontainers/detail did not return a body.")
-        return body
+        return self._list("/dbcontainers/detail", "dbcontainers")
 
     def get(self, dbcontainer):
         """
@@ -96,12 +88,8 @@ class DbContainers(base.ManagerWithFind):
 
         :rtype: :class:`DbContainer`
         """
-        #return self._get("/dbcontainers/%s" % base.getid(dbcontainer),
-        #                "dbcontainer")
-        resp, body = self.api.client.get("/dbcontainers/%s" % base.getid(dbcontainer))
-        if not body:
-            raise Exception("Call to /dbcontainers/%s did not return a body." % base.getid(dbcontainer))
-        return body
+        return self._get("/dbcontainers/%s" % base.getid(dbcontainer),
+                        "dbcontainer")
 
     def delete(self, dbcontainer):
         """
@@ -110,8 +98,3 @@ class DbContainers(base.ManagerWithFind):
         :param dbcontainer_id: The container id to delete
         """
         self._delete("/dbcontainers/%s" % base.getid(dbcontainer))
-
-def dumb_log(msg):
-    # TODO(cp16net) remove this function before commit
-    import sys
-    sys.__stdout__.write("dumb_log from dbcontainers --- " + str(msg) + "\n")

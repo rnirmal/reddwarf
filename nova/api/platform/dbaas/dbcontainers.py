@@ -71,18 +71,17 @@ class Controller(common.DBaaSController):
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
-        for t in resp['dbcontainers']:
-            self._remove_excess_fields(t)
+        for container in resp['dbcontainers']:
+            self._remove_excess_fields(container)
             # TODO(cp16net)
             # make a guest status get function that allows you
             # to pass a list of container ids
             try:
-                result = dbapi.guest_status_get(t['id'])
-                state = result.state
-                t['status'] = _dbaas_mapping[state]
+                result = dbapi.guest_status_get(container['id'])
+                container['status'] = _dbaas_mapping[result.state]
             except InstanceNotFound:
-                # should we set the state to build/shutdown here?
-                pass
+                # we set the state to shutdown if not found
+                container['status'] = 'SHUTDOWN'
         return resp
 
     def detail(self, req):
@@ -90,20 +89,17 @@ class Controller(common.DBaaSController):
         LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
-        for t in resp['dbcontainers']:
-            self._remove_excess_fields(t)
+        for container in resp['dbcontainers']:
+            self._remove_excess_fields(container)
             # TODO(cp16net)
             # make a guest status get function that allows you
             # to pass a list of container ids
             try:
-                # if i delete a container and then list details right after i kept getting
-                # a instance not found exception when trying to get the guest status.
-                result = dbapi.guest_status_get(t['id'])
-                state = result.state
-                t['status'] = _dbaas_mapping[state]
+                result = dbapi.guest_status_get(container['id'])
+                container['status'] = _dbaas_mapping[result.state]
             except InstanceNotFound:
-                # should we set the state to build/shutdown here?
-                pass
+                # we set the state to shutdown if not found
+                container['status'] = 'SHUTDOWN'
         return resp
 
     def show(self, req, id):
@@ -117,10 +113,10 @@ class Controller(common.DBaaSController):
         self._remove_excess_fields(resp['dbcontainer'])
         try:
             result = dbapi.guest_status_get(instance_id=id)
-            state = result.state
-            resp['dbcontainer']['status'] = _dbaas_mapping[state]
+            resp['dbcontainer']['status'] = _dbaas_mapping[result.state]
         except InstanceNotFound:
-            pass
+            # we set the state to shutdown if not found
+            resp['dbcontainer']['status']  = 'SHUTDOWN'
         return resp
 
     def delete(self, req, id):
@@ -143,12 +139,12 @@ class Controller(common.DBaaSController):
                                     env['dbcontainer'].get('databases', ''))
 
         server = self.server_controller.create(req)
-
         server_id = str(server['server']['id'])
-        # Send the prepare call to Guest
-        ctxt = req.environ['nova.context']
         dbapi.guest_status_create(server_id)
-        self.guest_api.prepare(ctxt, server_id, databases)
+
+        # Send the prepare call to Guest
+        self.guest_api.prepare(req.environ['nova.context'],
+                               server_id, databases)
         resp = {'dbcontainer': server['server']}
         self._remove_excess_fields(resp['dbcontainer'])
         return resp
@@ -161,9 +157,9 @@ class Controller(common.DBaaSController):
         raise a key error exception.
         """
         LOG.debug("Removing the excess information from the containers.")
-        for attr in ["hostId","imageRef","metadata","adminPass"]:
-            if response.has_key(attr):
-                del response[attr]
+        [response.__delitem__(attr) for attr in
+            ["hostId","imageRef","metadata","adminPass"]
+                if response.has_key(attr)]
         return response
 
     def _deserialize_create(self, request):
