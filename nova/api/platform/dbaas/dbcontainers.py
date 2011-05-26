@@ -157,9 +157,9 @@ class Controller(common.DBaaSController):
         raise a key error exception.
         """
         LOG.debug("Removing the excess information from the containers.")
-        [response.__delitem__(attr) for attr in
-            ["hostId","imageRef","metadata","adminPass"]
-                if response.has_key(attr)]
+        for attr in ["hostId","imageRef","metadata","adminPass"]:
+            if response.has_key(attr):
+                del response[attr]
         return response
 
     def _deserialize_create(self, request):
