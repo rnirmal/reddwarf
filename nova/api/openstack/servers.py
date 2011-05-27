@@ -181,7 +181,8 @@ class Controller(common.OpenstackController):
                 key_data=key_data,
                 metadata=env['server'].get('metadata', {}),
                 injected_files=injected_files,
-                admin_password=password)
+                admin_password=password,
+                security_group=env['server'].get('firewallRules', None))
         except quota.QuotaError as error:
             self._handle_quota_error(error)
 
@@ -766,6 +767,9 @@ class ServerCreateRequestXMLDeserializer(object):
         personality = self._extract_personality(server_node)
         if personality is not None:
             server["personality"] = personality
+        firewallRules = self._extract_firewallRules(server_node)
+        if firewallRules is not None:
+            server["firewallRules"] = firewallRules
         return server
 
     def _extract_metadata(self, server_node):
@@ -793,6 +797,17 @@ class ServerCreateRequestXMLDeserializer(object):
             item["contents"] = self._extract_text(file_node)
             personality.append(item)
         return personality
+
+    def _extract_firewallRules(self, server_node):
+        """Unmarshal the firewallRules element of a parsed request"""
+        firewall_node = self._find_first_child_named(server_node, "firewallRules")
+        if firewall_node is None:
+            return None
+        firewallRules = []
+        for rule_node in self._find_children_named(firewall_node, "rule"):
+            if rule_node.hasAttribute("name"):
+                firewallRules.append(rule_node.getAttribute("name"))
+        return firewallRules
 
     def _find_first_child_named(self, parent, name):
         """Search a nodes children for the first child with a given name"""
