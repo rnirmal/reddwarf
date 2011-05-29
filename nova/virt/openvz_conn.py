@@ -38,6 +38,15 @@ flags.DEFINE_string('ovz_bridge_device',
 flags.DEFINE_string('ovz_network_template',
                     utils.abspath('virt/openvz_interfaces.template'),
                     'OpenVz network interface template file')
+flags.DEFINE_string('ovz_use_cpuunit',
+                    True,
+                    'Use OpenVz cpuunits for guaranteed minimums')
+flags.DEFINE_string('ovz_use_cpulimit',
+                    True,
+                    'Use OpenVz cpulimit for maximum cpu limits')
+flags.DEFINE_string('ovz_use_cpus',
+                    True,
+                    'Use OpenVz cpus for maximum cpus available to the container')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -174,6 +183,16 @@ class OpenVzConnection(driver.ComputeDriver):
         self._add_ip(instance)
         self._set_hostname(instance)
         self._set_nameserver(instance)
+        self._set_vmguarpages(instance)
+        self._set_privvmpages(instance)
+        
+        if FLAGS.ovz_use_cpuunit:
+            self._set_cpuunits(instance)
+        if FLAGS.ovz_use_cpulimit:
+            self._set_cpulimit(instance)
+        if FLAGS.ovz_use_cpu:
+            self._set_cpus(instance)
+        
         self._start(instance)
         self._initial_secure_host(instance)
         
