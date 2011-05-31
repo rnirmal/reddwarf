@@ -1,0 +1,298 @@
+#!/usr/bin/env python
+
+#    Copyright 2011 OpenStack LLC
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+"""
+Reddwarf Command line tool
+"""
+
+import json
+import pickle
+import optparse
+import os
+import sys
+
+
+# If ../reddwarf/__init__.py exists, add ../ to Python search path, so that
+# it will override what happens to be installed in /usr/(local/)lib/python...
+possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
+                                   os.pardir,
+                                   os.pardir))
+if os.path.exists(os.path.join(possible_topdir, 'reddwarfclient', '__init__.py')):
+    sys.path.insert(0, possible_topdir)
+if os.path.exists(os.path.join(possible_topdir, 'nova', '__init__.py')):
+    sys.path.insert(0, possible_topdir)
+
+
+from nova import version
+from reddwarfclient import Dbaas
+
+
+oparser = None
+APITOKEN = ".apitoken"
+
+
+def _get_client(options):
+    """Load an existing apitoken if available"""
+    try:
+        with open(APITOKEN, 'rb') as token:
+            apitoken = pickle.load(token)
+            dbaas = Dbaas(apitoken._user, apitoken._apikey, options.url)
+            dbaas.client.auth_token = apitoken._token
+            return dbaas
+    except IOError:
+        print "ERROR: You need to login first and get an auth token\n"
+        print_commands()
+        sys.exit(1)
+    except:
+        print "ERROR: There was an error using your existing auth token, please login again.\n"
+        sys.exit(1)
+
+
+def _pretty_print(info):
+    print json.dumps(info, sort_keys=True, indent=4)
+
+
+class APIToken(object):
+    """A token object containing the user, apikey and token which
+       is pickleable."""
+
+    def __init__(self, user, apikey, token):
+        self._user = user
+        self._apikey = apikey
+        self._token = token
+
+
+class Auth(object):
+    """Authenticate with your usename and api key to get the auth token for future requests"""
+
+    def __init__(self):
+        pass
+
+    def login(self, options, user, apikey):
+        """Login to retrieve an auth token to use for other api calls"""
+        try:
+            dbaas = Dbaas(user, apikey, options.url)
+            dbaas.authenticate()
+            apitoken = APIToken(user, apikey, dbaas.client.auth_token)
+
+            with open(APITOKEN, 'wb') as token:
+                pickle.dump(apitoken, token, protocol=2)
+            print apitoken._token
+        except:
+            print sys.exc_info()[1]
+
+
+class ListCommands(object):
+    """List details of DBContainers, Databases, Users, Flavors and Images"""
+
+    def __init__(self):
+        pass
+
+    def dbcontainers(self, options):
+        """List all DBContainers for account"""
+        dbaas = _get_client(options)
+        try:
+            for dbcontainer in dbaas.dbcontainers.list():
+                _pretty_print(dbcontainer._info)
+        except:
+            print sys.exc_info()[1]
+
+    def dbcontainer(self, options, id):
+        """List details for the specified DBContainer"""
+        dbaas = _get_client(options)
+        try:
+            _pretty_print(dbaas.dbcontainers.get(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+    def flavors(self, options):
+        """\tList the available flavors"""
+        dbaas = _get_client(options)
+        try:
+            for flavor in dbaas.flavors.list():
+                _pretty_print(flavor._info)
+        except:
+            print sys.exc_info()[1]
+
+    def images(self, options):
+        """\tList the available images"""
+        dbaas = _get_client(options)
+        try:
+            for image in dbaas.images.list():
+                _pretty_print(image._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class CreateCommands(object):
+    """Create DBContainers, Databases and Users"""
+
+    def __init__(self):
+        pass
+
+    def dbcontainer(self, options, name, flavorRef="http://localhost:8775/v1.0/flavors/1"):
+        """Create a new dbcontainer"""
+        dbaas = _get_client(options)
+        try:
+            result = dbaas.dbcontainers.create(name, flavorRef)
+            _pretty_print(result._info)
+        except:
+            print sys.exc_info()[1]
+
+    def database(self, options, id, dbname):
+        """Create a database within the specified dbcontainer"""
+        dbaas = _get_client(options)
+        try:
+            databases = [{'name': dbname}]
+            dbaas.databases.create(id, databases)
+        except:
+            print sys.exc_info()[1]
+
+    def user(self, options, id, username, password, dbname, *args):
+        """\tCreate a user within the specified dbcontainer.
+        \t\t\tSpecify one or more databases to which the user should be granted permissions"""
+        dbaas = _get_client(options)
+        try:
+            databases = [{'name': dbname}]
+            [databases.append({"name": db}) for db in args]
+            users = [{'name': username, 'password': password,
+                     'databases': databases}]
+            dbaas.users.create(id, users)
+        except:
+            print sys.exc_info()[1]
+
+
+class DeleteCommands(object):
+    """Delete DBContainers, Databases and Users"""
+
+    def __init__(self):
+        pass
+
+    def dbcontainer(self, options, id):
+        """Delete the specified dbcontainer"""
+        dbaas = _get_client(options)
+        try:
+            dbaas.dbcontainers.delete(id)
+        except:
+            print sys.exc_info()[1]
+
+    def database(self, options, id, dbname):
+        """Delete the specified database in the dbcontainer"""
+        dbaas = _get_client(options)
+        try:
+            dbaas.databases.delete(id, dbname)
+        except:
+            print sys.exc_info()[1]
+
+    def user(self, options, id, user):
+        """\tDelete the specified user in the dbcontainer"""
+        dbaas = _get_client(options)
+        try:
+            dbaas.users.delete(id, user)
+        except:
+            print sys.exc_info()[1]
+
+
+def methods_of(obj):
+    """Get all callable methods of an object that don't start with underscore
+    returns a list of tuples of the form (method_name, method)"""
+    result = {}
+    for i in dir(obj):
+        if callable(getattr(obj, i)) and not i.startswith('_'):
+            result[i] = getattr(obj, i)
+    return result
+
+
+def config_options():
+    global oparser
+    oparser.add_option("-u", "--url", default="http://localhost:8775/v1.0",
+                       help="API endpoint URL with port and version. \
+                            Default: http://localhost:8775/v1.0")
+
+
+def print_actions(cmd, actions):
+    """Print help for the command with list of options and description"""
+    global oparser
+    oparser.print_usage()
+    print ("Available actions for '%s' cmd:") % cmd
+    for k, v in actions.iteritems():
+        print "\t%s\t\t%s" % (k, v.__doc__)
+    sys.exit(2)
+
+
+def print_commands():
+    """Print the list of available commands and description"""
+    global oparser
+    oparser.print_help()
+    print "Available commands"
+    for k, v in COMMANDS.iteritems():
+        print "\t%s\t\t%s" % (k, v.__doc__)
+    sys.exit(2)
+
+
+COMMANDS = {'auth': Auth,
+            'list': ListCommands,
+            'create': CreateCommands,
+            'delete': DeleteCommands}
+
+
+def main():
+    # Parse arguments
+    global oparser
+    oparser = optparse.OptionParser("%prog [options] <cmd> <action> <args>",
+                                    version=version.version_string)
+    config_options()
+    (options, args) = oparser.parse_args()
+
+    if not args:
+        print_commands()
+
+    # Pop the command and check if it's in the know commands
+    cmd = args.pop(0)
+    if cmd in COMMANDS:
+        fn = COMMANDS.get(cmd)
+        command_object = fn()
+
+        # Get a list of supported actions for the command
+        actions = methods_of(command_object)
+
+        if len(args) < 1:
+            print_actions(cmd, actions)
+
+        # Check for a valid action and perform that action
+        action = args.pop(0)
+        if action in actions:
+            fn = actions.get(action)
+
+            try:
+                fn(options, *args)
+                sys.exit(0)
+            except TypeError as err:
+                print "Possible wrong number of arguments supplied"
+                print "%s %s: %s" % (cmd, action, fn.__doc__)
+                print "\t\t", [fn.func_code.co_varnames[i] for i in
+                                            range(fn.func_code.co_argcount)]
+                print "ERROR: %s" % err
+            except Exception:
+                print "Command failed, please check log for more info"
+                raise
+        else:
+            print_actions(cmd, actions)
+    else:
+        print_commands()
+
+if __name__ == '__main__':
+    main()
