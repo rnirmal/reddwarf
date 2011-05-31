@@ -35,6 +35,12 @@ from nova.api.platform.dbaas import users
 LOG = logging.getLogger('nova.api.platform.dbaas')
 FLAGS = flags.FLAGS
 
+flags.DEFINE_integer('default_guest_mysql_port', 3306,
+                     'Default port used for guest mysql instance')
+flags.DEFINE_string('default_firewall_rule_name',
+                    'tcp_%s' %  FLAGS.default_guest_mysql_port,
+                    'Default firewall rule name used for guest instances')
+
 
 class APIRouter(wsgi.Router):
     """

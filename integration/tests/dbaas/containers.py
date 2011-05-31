@@ -16,6 +16,8 @@ GROUP_STOP="dbaas.guest.shutdown"
 from datetime import datetime
 from nose.plugins.skip import SkipTest
 from novaclient.exceptions import NotFound
+from nova import context
+from nova import db
 from nova import exception
 from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
@@ -134,6 +136,10 @@ class CreateContainer(unittest.TestCase):
     def test_get_container(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
         self.assertEquals(_dbaas_mapping[power_state.BUILDING], container_info.myresult['status'])
+
+    def test_security_groups_created(self):
+        if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
+            self.assertFalse(True, "Security groups did not get created")
 
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START])
