@@ -107,16 +107,27 @@
  <!-- Database -->
   <method name="POST" id="createDatabase">
     <request>
-      <representation mediaType="application/xml" element="dbaas:Database" />
-      <representation mediaType="application/json"/>
+      <representation mediaType="application/xml" element="dbaas:Database"/>
+      <representation mediaType="application/json" element="dbaas:Database"/>
     </request>
     <response status="201">
       <representation mediaType="application/xml" element="dbaas:Database">
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
-      <representation mediaType="application/json">
+      <representation mediaType="application/json" element="dbaas:Database">
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
+    </response>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+
+  <method name="GET" id="getDatabase">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Database"/>
+      <representation mediaType="application/json" element="dbaas:Database"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -164,7 +175,18 @@
   </method>
 
   <method name="GET" id="getUser">
-    <response status="202"/>
+    <response status="200"/>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml" element="dbaas:User"/>
+      <representation mediaType="application/json" element="dbaas:User"/>
+    </response>
+  </method>
+
+  <method name="GET" id="getUsers">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Users"/>
+      <representation mediaType="application/json" element="dbaas:Users"/>
+    </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
       <representation mediaType="application/json"/>
@@ -189,7 +211,7 @@
       <representation mediaType="application/xml" element="dbaas:User">
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
-      <representation mediaType="application/json">
+      <representation mediaType="application/json" element="dbaas:User">
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
     </response>
