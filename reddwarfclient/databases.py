@@ -1,5 +1,5 @@
 from novaclient import base
-from dbaas.dbcontainers import DbContainer
+from reddwarfclient.dbcontainers import DbContainer
 
 
 class Database(base.Resource):

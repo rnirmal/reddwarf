@@ -9,8 +9,7 @@ import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 
-#from dbaas import Dbaas
-from dbaas import Dbaas
+from reddwarfclient import Dbaas
 from nova.guest.dbaas import LocalSqlClient
 from novaclient.exceptions import NotFound
 from proboscis import test

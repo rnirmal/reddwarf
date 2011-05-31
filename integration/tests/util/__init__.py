@@ -33,9 +33,7 @@ import subprocess
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 
-from dbaas import Dbaas
-
-from nova.guest.dbaas import LocalSqlClient
+from reddwarfclient import Dbaas
 
 
 def check_database(container_id, dbname):
