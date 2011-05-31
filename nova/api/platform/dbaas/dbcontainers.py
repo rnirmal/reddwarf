@@ -168,6 +168,17 @@ class Controller(common.DBaaSController):
         return response
 
     def _setup_security_groups(self, req, group_name, port):
+        """ Setup a default firewall rule for reddwarf.
+
+        We are using the existing infrastructure of security groups in nova
+        used by the ec2 api and piggy back on it. Reddwarf by default will have
+        one rule which will allow access to the specified tcp port, the default
+        being 3306 from anywhere. For this the group_id and parent_id are the
+        same, we are not doing any hierarchical rules yet.
+        Here's how it would look in iptables.
+
+        -A nova-compute-inst-<id> -p tcp -m tcp --dport 3306 -j ACCEPT
+        """
         context = req.environ['nova.context']
         self.compute_api.ensure_default_security_group(context)
 
