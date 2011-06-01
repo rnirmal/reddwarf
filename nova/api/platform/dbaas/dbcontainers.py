@@ -19,6 +19,7 @@ from webob import exc
 
 from nova import compute
 from nova import db
+from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import utils
@@ -207,8 +208,14 @@ class Controller(common.DBaaSController):
         """
         if request.content_type == "application/xml":
             deser = deserializer.RequestXMLDeserializer()
-            return deser.deserialize_create(request.body)
+            env, body = deser.deserialize_create(request.body)
         else:
             deser = deserializer.RequestJSONDeserializer()
             env = self._deserialize(request.body, request.get_content_type())
-            return env, deser.deserialize_create(request.body)
+            body = deser.deserialize_create(request.body)
+
+        # Add any checks for required elements/attributes/keys
+        if not env['dbcontainer'].get('flavorRef', ''):
+            raise exception.ApiError("Required attribute/key 'flavorRef' " \
+                                     "was not specified")
+        return env, body

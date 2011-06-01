@@ -18,6 +18,7 @@
 from webob import exc
 
 from nova import compute
+from nova import exception
 from nova import log as logging
 from nova.api.openstack import faults
 from nova.api.platform.dbaas import common
@@ -88,6 +89,16 @@ class Controller(common.DBaaSController):
         """
         if request.content_type == "application/xml":
             deser = deserializer.RequestXMLDeserializer()
-            return deser.deserialize_databases(request.body)
+            body = deser.deserialize_databases(request.body)
         else:
-            return self._deserialize(request.body, request.get_content_type())
+            body = self._deserialize(request.body, request.get_content_type())
+
+        # Add any checks for required elements/attributes/keys
+        if not body.get('databases', ''):
+            raise exception.ApiError("Required element/key 'databases' " \
+                                         "was not specified")
+        for database in body.get('databases'):
+            if not database.get('name', ''):
+                raise exception.ApiError("Required attribute/key 'name' " \
+                                         "was not specified")
+        return body

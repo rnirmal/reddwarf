@@ -18,6 +18,7 @@
 from webob import exc
 
 from nova import compute
+from nova import exception
 from nova import log as logging
 from nova.api.openstack import faults
 from nova.api.platform.dbaas import common
@@ -86,6 +87,19 @@ class Controller(common.DBaaSController):
         """
         if request.content_type == "application/xml":
             deser = deserializer.RequestXMLDeserializer()
-            return deser.deserialize_users(request.body)
+            body = deser.deserialize_users(request.body)
         else:
-            return self._deserialize(request.body, request.get_content_type())
+            body = self._deserialize(request.body, request.get_content_type())
+
+         # Add any checks for required elements/attributes/keys
+        if not body.get('users', ''):
+            raise exception.ApiError("Required element/key 'users' " \
+                                         "was not specified")
+        for user in body.get('users'):
+            if not user.get('name'):
+                raise exception.ApiError("Required attribute/key 'name' " \
+                                         "was not specified")
+            if not user.get('password'):
+                raise exception.ApiError("Required attribute/key 'password' " \
+                                         "was not specified")
+        return body
