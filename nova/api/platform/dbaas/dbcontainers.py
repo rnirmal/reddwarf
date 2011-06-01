@@ -78,7 +78,7 @@ class Controller(common.DBaaSController):
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
         for container in resp['dbcontainers']:
-            self._modify_fields(container)
+            self._modify_fields(req, container)
             # TODO(cp16net)
             # make a guest status get function that allows you
             # to pass a list of container ids
@@ -96,7 +96,7 @@ class Controller(common.DBaaSController):
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
         for container in resp['dbcontainers']:
-            self._modify_fields(container)
+            self._modify_fields(req, container)
             # TODO(cp16net)
             # make a guest status get function that allows you
             # to pass a list of container ids
@@ -116,7 +116,7 @@ class Controller(common.DBaaSController):
         if isinstance(response, Exception):
             return response  # Just return the exception to throw it
         resp = {'dbcontainer': response['server']}
-        self._modify_fields(resp['dbcontainer'])
+        self._modify_fields(req, resp['dbcontainer'])
         try:
             result = dbapi.guest_status_get(instance_id=id)
             resp['dbcontainer']['status'] = _dbaas_mapping[result.state]
@@ -156,17 +156,18 @@ class Controller(common.DBaaSController):
         self.guest_api.prepare(req.environ['nova.context'],
                                server_id, databases)
         resp = {'dbcontainer': server['server']}
-        self._modify_fields(resp['dbcontainer'])
+        self._modify_fields(req, resp['dbcontainer'])
         return resp
 
-    def _modify_fields(self, response):
+    def _modify_fields(self, req, response):
         """ Adds and removes the fields from the parent dbcontainer call.
 
         We delete elements but if the call came from the index function
         the response will not have all the fields and we expect some to
         raise a key error exception.
         """
-        user_id="arggo"
+        context = req.environ['nova.context']
+        user_id=context.user_id
         instance_info = {"id": response["id"], "user_id": user_id}
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
         hostname = dns_entry.name
