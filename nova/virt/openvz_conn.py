@@ -507,11 +507,12 @@ class OpenVzConnection(driver.ComputeDriver):
         Lock down the host in it's default state
         """
 
-        # TODO(tim.simpson) This code hangs forever as it waits to apply the
-        #                   rules, causing integration test failures.  We'll
-        #                   need to fix it before putting it back.
-        return
+        # TODO(tim.simpson) This hangs if the "lock_path" FLAG value refers to
+        #                   a directory which can't be locked.  It'd be nice
+        #                   if we could somehow detect that and raise an error
+        #                   instead.
 
+        #
         # Get the ip and network information
         ctxt = context.get_admin_context()
         ip = db.instance_get_fixed_address(ctxt, instance['id'])
