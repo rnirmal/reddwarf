@@ -28,8 +28,8 @@ class MySQLDatabaseTest(test.TestCase):
         mydb = MySQLDatabase()
         try:
             mydb.name = self.dbname
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
 
         self.assertEqual(mydb.name, self.dbname)
         self.assertEqual(mydb.character_set, MySQLDatabase.__charset__)
@@ -62,8 +62,8 @@ class MySQLDatabaseTest(test.TestCase):
             json = mydb.serialize()
 
             der_mydb.deserialize(json)
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
         self.assertEqual(mydb.name, der_mydb.name)
         self.assertEqual(mydb.character_set, der_mydb.character_set)
         self.assertEqual(mydb.collate, der_mydb.collate)
@@ -75,8 +75,8 @@ class MySQLDatabaseTest(test.TestCase):
         try:
             mydb.name = self.dbname
             mydb.character_set = char
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
 
         self.assertEquals(mydb.character_set, char)
         self.assertEquals(mydb.collate, coll)
@@ -88,8 +88,8 @@ class MySQLDatabaseTest(test.TestCase):
         try:
             mydb.name = self.dbname
             mydb.collate = coll
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
 
         self.assertEquals(mydb.character_set, char)
         self.assertEquals(mydb.collate, coll)
@@ -118,6 +118,9 @@ class MySQLDatabaseTest(test.TestCase):
 
     def test_invalid_dbname(self):
         self._test_invalid_name("te!@#%'$3")
+
+    def test_dbname_with_backslash(self):
+        self._test_invalid_name("db\name")
 
     def test_name_with_starting_space(self):
         self._test_invalid_name(" testdb")

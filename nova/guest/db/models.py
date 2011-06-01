@@ -16,6 +16,7 @@
 #    under the License.
 
 import re
+import string
 
 
 class Base(object):
@@ -32,7 +33,7 @@ class MySQLDatabase(Base):
     # Defaults
     __charset__ = "utf8"
     __collation__ = "utf8_general_ci"
-    dbname = re.compile("^[A-Za-z0-9_\-]+[\s\?\#\@]*[A-Za-z0-9_\-]+$")
+    dbname = re.compile("^[A-Za-z0-9_-]+[\s\?\#\@]*[A-Za-z0-9_-]+$")
 
     # Complete list of acceptable values
     charset = { "big5": ["big5_chinese_ci", "big5_bin",],
@@ -275,7 +276,8 @@ class MySQLDatabase(Base):
 
     @name.setter
     def name(self, value):
-        if not value or not self.dbname.match(value):
+        if not value or not self.dbname.match(value) or \
+                        string.find("%r" % value, "\\") != -1:
             raise ValueError("%s is not a valid database name" % value)
         elif len(value) > 64:
             raise ValueError("Database name %s is too long. Max length = 64"
