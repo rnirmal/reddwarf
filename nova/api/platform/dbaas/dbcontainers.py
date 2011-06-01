@@ -22,7 +22,7 @@ from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
-from nova import utils
+from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
@@ -144,7 +144,8 @@ class Controller(common.DBaaSController):
         databases = common.populate_databases(
                                     env['dbcontainer'].get('databases', ''))
 
-        server = self.server_controller.create(req)
+        server = self._try_create_server(req)
+
         server_id = str(server['server']['id'])
         dbapi.guest_status_create(server_id)
 
@@ -154,6 +155,26 @@ class Controller(common.DBaaSController):
         resp = {'dbcontainer': server['server']}
         self._remove_excess_fields(resp['dbcontainer'])
         return resp
+
+    def _try_create_server(self, req):
+        """Handle the call to create a server through the openstack servers api.
+
+        Separating this so we could do retries in the future and other processing of
+        the result etc.
+        """
+        try:
+            server = self.server_controller.create(req)
+            if not server or isinstance(server, faults.Fault):
+                if isinstance(server, faults.Fault):
+                    LOG.error("%s: %s", server.wrapped_exc,
+                              server.wrapped_exc.detail)
+                raise exception.Error("Could not complete the request. " \
+                                      "Please try again later or contact " \
+                                      "Customer Support")
+            return server
+        except (TypeError, AttributeError, KeyError) as e:
+            LOG.error(e)
+            raise exception.Error(exc.HTTPUnprocessableEntity())
 
     def _remove_excess_fields(self, response):
         """ Removes the excess fields from the parent dbcontainer call.
