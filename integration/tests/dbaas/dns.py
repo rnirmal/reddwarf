@@ -9,7 +9,7 @@ from tests.dbaas.containers import GROUP_START as CONTAINER_START
 from tests.dbaas.containers import GROUP_TEST
 
 dns_driver = None
-entry_factory = None
+
 FLAGS = flags.FLAGS
 flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
                     'Driver to use for DNS work')
@@ -30,12 +30,6 @@ class Setup(unittest.TestCase):
     def test_create_rs_dns_driver(self):
         global dns_driver
         dns_driver = utils.import_object(FLAGS.dns_driver)
-        global entry_factory
-        entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
-#        from collections import namedtuple
-#        AuthUser = namedtuple("AuthUser", "auth_user")
-#        container_info.user = AuthUser("admin")
-#        container_info.id = 2
 
 
 @test(depends_on_classes=[Setup],
@@ -52,9 +46,7 @@ class ConfirmDns(unittest.TestCase):
 
     def test_dns_entry_exists(self):
         global dns_driver
-        instance = {'user_id':container_info.user.auth_user,
-                    'id':str(container_info.id)}
-        entry = entry_factory.create_entry(instance)
+        entry = container_info.expected_dns_entry()
         entries = dns_driver.get_entries_by_name(entry.name)
         if len(entries) < 1:
             self.fail("Did not find name " + entry.name + \

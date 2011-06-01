@@ -27,9 +27,6 @@ from nova.manager import Manager
 FLAGS = flags.FLAGS
 flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
                     'Driver to use for DNS work')
-flags.DEFINE_string('dns_instance_entry_factory',
-                    'nova.dns.driver.DnsInstanceEntryFactory',
-                    'Method used to create entries for instances')
 
 LOG = logging.getLogger('nova.dns.manager')
 

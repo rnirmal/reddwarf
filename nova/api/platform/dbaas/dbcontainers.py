@@ -38,9 +38,6 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
-flags.DEFINE_string('dns_instance_entry_factory',
-                    'nova.dns.driver.DnsInstanceEntryFactory',
-                    'Method used to create entries for instances')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -171,10 +168,6 @@ class Controller(common.DBaaSController):
         instance_info = {"id": response["id"], "user_id": user_id}
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
         hostname = dns_entry.name
-        if not dns_entry.dns_zone:
-            hostname += "." + self.base_domain_name
-        else:
-            hostname += "." + dns_entry.dns_zone.name
         response["hostname"] = hostname
 
         LOG.debug("Removing the excess information from the containers.")

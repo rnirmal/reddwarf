@@ -28,9 +28,18 @@ from tests.util import test_config
 from proboscis.decorators import time_out
 from proboscis import test
 from tests.util import check_database
+from tests.util import create_dns_entry
 from tests.util import process
 from tests.util.users import Requirements
 from tests.util import string_in_list
+
+
+OMIT_DNS_TESTS = False
+try:
+    import rsdns
+except Exception:
+    OMIT_DNS_TESTS = True
+
 
 class ContainerTestInfo(object):
     """Stores new container information used by dependent tests."""
@@ -47,6 +56,16 @@ class ContainerTestInfo(object):
 
     def check_database(self, dbname):
         return check_database(self.id, dbname)
+
+    def expected_dns_entry(self):
+        """Returns expected DNS entry for this container.
+
+        :rtype: Instance of :class:`DnsEntry`.
+
+        """
+        return create_dns_entry(container_info.user.auth_user,
+                                container_info.id)
+
 
 # The two variables are used below by tests which depend on a container
 # existing.
@@ -259,7 +278,7 @@ class TestContainListing(unittest.TestCase):
 
     def test_get_container(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(self._get_dbcontainers_exist())
+        self._assert_dbcontainers_exist()
 
     def test_get_container_status(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
@@ -305,15 +324,14 @@ class TestContainListing(unittest.TestCase):
                 return False
         return True
 
-    def _get_dbcontainers_exist(self):
+    def _assert_dbcontainers_exist(self):
         container = container_info.myresult
-        if not container.__dict__['id'] and container.__dict__['id'] != container_info.id:
-            return False
-        if not container.__dict__['name']:
-            return False
-        if not container.__dict__['links']:
-            return False
-        return True
+        self.assertEqual(container_info.id, container.id)        
+        self.assertTrue(container.name is not None)
+        self.assertTrue(container.links is not None)
+        if not OMIT_DNS_TESTS:
+            dns_entry = container_info.expected_dns_entry()
+            self.assertEqual(dns_entry.name, container.hostname)
 
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
