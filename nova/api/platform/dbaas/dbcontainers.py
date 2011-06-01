@@ -167,8 +167,9 @@ class Controller(common.DBaaSController):
         user_id=context.user_id
         instance_info = {"id": response["id"], "user_id": user_id}
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
-        hostname = dns_entry.name
-        response["hostname"] = hostname
+        if dns_entry:
+            hostname = dns_entry.name
+            response["hostname"] = hostname
 
         LOG.debug("Removing the excess information from the containers.")
         for attr in ["hostId","imageRef","metadata","adminPass"]:
