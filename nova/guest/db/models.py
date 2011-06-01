@@ -278,9 +278,9 @@ class MySQLDatabase(Base):
     def name(self, value):
         if not value or not self.dbname.match(value) or \
                         string.find("%r" % value, "\\") != -1:
-            raise ValueError("%s is not a valid database name" % value)
+            raise ValueError("'%s' is not a valid database name" % value)
         elif len(value) > 64:
-            raise ValueError("Database name %s is too long. Max length = 64"
+            raise ValueError("Database name '%s' is too long. Max length = 64"
                         % value)
         else:
             self._name = value
@@ -302,12 +302,12 @@ class MySQLDatabase(Base):
             pass
         elif self._character_set:
             if not value in self.charset[self._character_set]:
-                raise ValueError("%s not a valid collation for charset %s"
+                raise ValueError("'%s' not a valid collation for charset '%s'"
                                 % (value, self._character_set))
             self._collate = value
         else:
             if not value in self.collation:
-                raise ValueError("%s not a valid collation" % value)
+                raise ValueError("'%s' not a valid collation" % value)
             self._collate = value
             self._character_set = self.collation[value]
 
@@ -325,7 +325,7 @@ class MySQLDatabase(Base):
         if not value:
             pass
         elif not value in self.charset:
-            raise ValueError("%s not a valid character set" % value)
+            raise ValueError("'%s' not a valid character set" % value)
         else:
             self._character_set = value
 
@@ -354,9 +354,9 @@ class MySQLUser(Base):
     @name.setter
     def name(self, value):
         if not self._check_valid(value):
-            raise ValueError("%s is not a valid user name" % value)
+            raise ValueError("'%s' is not a valid user name" % value)
         elif len(value) > 16:
-            raise ValueError("User name %s is too long. Max length = 16"
+            raise ValueError("User name '%s' is too long. Max length = 16"
                         % value)
         else:
             self._name = value
@@ -368,7 +368,7 @@ class MySQLUser(Base):
     @password.setter
     def password(self, value):
         if not self._check_valid(value):
-            raise ValueError("%s is not a valid password" % value)
+            raise ValueError("'%s' is not a valid password" % value)
         else:
             self._password = value
 
