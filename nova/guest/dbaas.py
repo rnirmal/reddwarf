@@ -93,6 +93,7 @@ class DBaaSAgent(object):
             for item in users:
                 user = models.MySQLUser()
                 user.deserialize(item)
+                #TODO(cp16net):Should users be allowed to create users 'os_admin' or 'debian-sys-maint'
                 t = text("""CREATE USER `%s`@:host IDENTIFIED BY '%s';"""
                          % (user.name, user.password))
                 client.execute(t, host=host)
@@ -103,6 +104,21 @@ class DBaaSAgent(object):
                             GRANT ALL PRIVILEGES ON `%s`.* TO `%s`@:host;"""
                             % (mydb.name, user.name))
                     client.execute(t, host=host)
+
+    def list_users(self):
+        """List users that have access to the database"""
+        users = []
+        if not ENGINE:
+            self.init_engine()
+        client = LocalSqlClient(ENGINE)
+        with client:
+            mysql_user = models.MySQLUser()
+            t = text("""select User from mysql.user where host != 'localhost';""")
+            result = client.execute(t)
+            for row in result:
+                mysql_user = models.MySQLUser()
+                mysql_user.name = row['User']
+            return users
 
     def delete_user(self, user):
         """Delete the specified users"""
@@ -128,6 +144,19 @@ class DBaaSAgent(object):
                             `%s` CHARACTER SET = %s COLLATE = %s;"""
                          % (mydb.name, mydb.character_set, mydb.collate))
                 client.execute(t)
+
+    def list_databases(self):
+        """List users that have access to the database"""
+        if not ENGINE:
+            self.init_engine()
+        client = LocalSqlClient(ENGINE)
+        with client:
+            mysql_user = models.MySQLUser()
+            t = text("""show databases where `Database` not in ('mysql', 'information_schema');""")
+            result = client.execute(t)
+            for row in result:
+                LOG.debug(row)
+
 
     def delete_database(self, database):
         """Delete the specified database"""
@@ -164,7 +193,7 @@ class DBaaSAgent(object):
             t = text("""GRANT ALL PRIVILEGES ON *.* TO :user@:host
                         WITH GRANT OPTION;""")
             client.execute(t, user=user.name, host=host)
-        return user.serialize()
+            return user.serialize()
 
     def disable_root(self):
         """Disable root access apart from localhost"""
