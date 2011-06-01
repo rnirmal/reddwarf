@@ -110,7 +110,7 @@ class FlagValues(gflags.FlagValues):
         return name in self.__dict__['__dirty']
 
     def ClearDirty(self):
-        self.__dict__['__is_dirty'] = []
+        self.__dict__['__dirty'] = []
 
     def WasAlreadyParsed(self):
         return self.__dict__['__was_already_parsed']
@@ -119,11 +119,12 @@ class FlagValues(gflags.FlagValues):
         if '__stored_argv' not in self.__dict__:
             return
         new_flags = FlagValues(self)
-        for k in self.__dict__['__dirty']:
+        for k in self.FlagDict().iterkeys():
             new_flags[k] = gflags.FlagValues.__getitem__(self, k)
 
+        new_flags.Reset()
         new_flags(self.__dict__['__stored_argv'])
-        for k in self.__dict__['__dirty']:
+        for k in new_flags.FlagDict().iterkeys():
             setattr(self, k, getattr(new_flags, k))
         self.ClearDirty()
 
@@ -352,6 +353,8 @@ DEFINE_string('compute_manager', 'nova.compute.manager.ComputeManager',
               'Manager for compute')
 DEFINE_string('console_manager', 'nova.console.manager.ConsoleProxyManager',
               'Manager for console proxy')
+DEFINE_string('dns_manager', 'nova.dns.manager.DnsManager',
+              'Manager for dns')
 DEFINE_string('network_manager', 'nova.network.manager.VlanManager',
               'Manager for network')
 DEFINE_string('volume_manager', 'nova.volume.manager.VolumeManager',
@@ -371,6 +374,9 @@ DEFINE_string('host', socket.gethostname(),
 DEFINE_string('node_availability_zone', 'nova',
               'availability zone of this node')
 
+DEFINE_string('notification_driver',
+              'nova.notifier.no_op_notifier',
+              'Default driver for sending notifications')
 DEFINE_list('memcached_servers', None,
             'Memcached servers or None for in process cache.')
 
@@ -378,3 +384,7 @@ DEFINE_string('zone_name', 'nova', 'name of this zone')
 DEFINE_list('zone_capabilities',
                 ['hypervisor=xenserver;kvm', 'os=linux;windows'],
                  'Key/Multi-value list representng capabilities of this zone')
+
+DEFINE_string('dns_instance_entry_factory',
+              'nova.dns.driver.DnsInstanceEntryFactory',
+              'Method used to create entries for instances')
