@@ -74,7 +74,6 @@ class ViewBuilder(object):
             'id': int(inst['id']),
             'name': inst['display_name'],
             'addresses': self.addresses_builder.build(inst),
-            'hostname': inst['hostname'],
             'status': power_mapping[inst.get('state')]}
 
         ctxt = nova.context.get_admin_context()
