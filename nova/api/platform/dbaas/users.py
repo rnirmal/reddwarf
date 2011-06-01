@@ -48,7 +48,17 @@ class Controller(common.DBaaSController):
         """ Returns a list database users for the db container """
         LOG.info("Call to Users index - %s", dbcontainer_id)
         LOG.debug("%s - %s", req.environ, req.body)
-        return exc.HTTPNotImplemented()
+        ctxt = req.environ['nova.context']
+        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        result = self.guest_api.list_users(ctxt, dbcontainer_id)
+        users = []
+        for user in result:
+            mysql_user = models.MySQLUser()
+            mysql_user.deserialize(user)
+            users.append({'user': {'name': mysql_user.name, 'password': mysql_user.password}})
+        return users
+        
+        #return exc.HTTPNotImplemented()
 
     def delete(self, req, dbcontainer_id, id):
         """ Deletes a user in the db container """
