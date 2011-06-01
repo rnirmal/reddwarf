@@ -41,6 +41,7 @@ flags.DEFINE_string('ovz_network_template',
 
 LOG = logging.getLogger('nova.virt.openvz')
 
+
 def get_connection(read_only):
     return OpenVzConnection(read_only)
 
@@ -175,7 +176,6 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_nameserver(instance)
         self._start(instance)
         self._initial_secure_host(instance)
-        
         # Begin making our looping async call
         timer = utils.LoopingCall(f=None)
 
@@ -506,6 +506,11 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Lock down the host in it's default state
         """
+
+        # TODO(tim.simpson) This code hangs forever as it waits to apply the
+        #                   rules, causing integration test failures.  We'll
+        #                   need to fix it before putting it back.
+        return
 
         # Get the ip and network information
         ctxt = context.get_admin_context()

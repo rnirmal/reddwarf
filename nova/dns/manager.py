@@ -58,6 +58,7 @@ class DnsManager(Manager):
         print("create instance entry " + str(entry))
         if entry:
             entry.content = content
+            LOG.debug("Modified entry address %s." % str(entry))
             self.driver.create_entry(entry)
 
     def delete_instance_entry(self, instance, content):

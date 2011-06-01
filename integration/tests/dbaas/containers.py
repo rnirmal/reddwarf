@@ -316,7 +316,8 @@ class TestContainListing(unittest.TestCase):
         return True
 
 
-@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
+@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
+      never_skip=True)
 class DeleteContainer(unittest.TestCase):
     """ Delete the created container """
 
