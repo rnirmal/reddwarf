@@ -1,6 +1,6 @@
 import unittest
 
-from dbaas import Dbaas
+from reddwarfclient import Dbaas
 from nova import flags
 from nova import utils
 from proboscis import test

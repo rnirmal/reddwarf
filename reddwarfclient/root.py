@@ -15,7 +15,7 @@
 
 from novaclient import base
 
-from dbaas import users
+from reddwarfclient import users
 
 class Root(base.ManagerWithFind):
     """

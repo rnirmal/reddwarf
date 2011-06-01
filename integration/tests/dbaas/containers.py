@@ -23,7 +23,7 @@ from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
-from dbaas import Dbaas
+from reddwarfclient import Dbaas
 from tests.util import test_config
 from proboscis.decorators import time_out
 from proboscis import test

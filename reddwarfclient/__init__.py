@@ -15,10 +15,10 @@
 
 from novaclient import OpenStack
 
-from dbaas.dbcontainers import DbContainers
-from dbaas.databases import Databases
-from dbaas.users import Users
-from dbaas.root import Root
+from reddwarfclient.dbcontainers import DbContainers
+from reddwarfclient.databases import Databases
+from reddwarfclient.users import Users
+from reddwarfclient.root import Root
 
 # To write this test from an end user perspective, we have to create a client
 # similar to the CloudServers one.
