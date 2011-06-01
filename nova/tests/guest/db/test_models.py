@@ -184,7 +184,7 @@ class MySQLUserTest(test.TestCase):
 
     invalid_list = [" te!$3", "te!$3 ", "t'e!$3", "\"te!$3",
                     ";te!$3", "t`e!$3", "te,!$3", "t/e!$3",
-                    "t\e!$3"]
+                    "t\n!$3", "t\\n!$3", "t\e!$3"]
 
     def test_valid_name_pwd(self):
         name = "test02"
