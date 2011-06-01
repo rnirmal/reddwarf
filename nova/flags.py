@@ -384,3 +384,7 @@ DEFINE_string('zone_name', 'nova', 'name of this zone')
 DEFINE_list('zone_capabilities',
                 ['hypervisor=xenserver;kvm', 'os=linux;windows'],
                  'Key/Multi-value list representng capabilities of this zone')
+
+DEFINE_string('dns_instance_entry_factory',
+              'nova.dns.driver.DnsInstanceEntryFactory',
+              'Method used to create entries for instances')

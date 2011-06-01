@@ -507,6 +507,11 @@ class OpenVzConnection(driver.ComputeDriver):
         Lock down the host in it's default state
         """
 
+        # TODO(tim.simpson) This code hangs forever as it waits to apply the
+        #                   rules, causing integration test failures.  We'll
+        #                   need to fix it before putting it back.
+        return
+
         # Get the ip and network information
         ctxt = context.get_admin_context()
         ip = db.instance_get_fixed_address(ctxt, instance['id'])
