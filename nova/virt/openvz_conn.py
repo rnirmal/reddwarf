@@ -1004,3 +1004,4 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             exception.Error('Problem getting cpuunits for host')
 
+        return True

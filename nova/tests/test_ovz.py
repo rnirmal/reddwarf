@@ -429,6 +429,23 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._set_cpus, test_instance)
 
+    def test_calc_pages_success(self):
+        # this test is a little sketchy because it is testing the default
+        # values of memory for instance type id 1.  if this value changes then
+        # we will have a mismatch.
+
+        # TODO(imsplitbit): make this work better.
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertEqual(conn._calc_pages(test_instance), 1048576)
+
+    def test_get_cpuunits_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertTrue(conn._get_cpuunits())
+
 #    def test_set_nameserver_success(self):
 #        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
 #        openvz_conn.context.get_admin_context().AndReturn(True)
