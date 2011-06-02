@@ -92,6 +92,11 @@ class DnsEntry(object):
         self.dns_zone = dns_zone
         self.ttl = ttl
 
+    def __repr__(self):
+        return 'DnsEntry(name="%s", content="%s", type="%s", ' \
+               'ttl=%s, priority=%s, dns_zone=%s)' % (self.name, self.content,
+                self.type, self.ttl, self.priority, self.dns_zone);
+
     def __str__(self):
         return "{ name:%s, content:%s, type:%s, zone:%s }" % \
                (self.name, self.content, self.type, self.dns_zone)
