@@ -32,6 +32,9 @@ class RequestJSONDeserializer(object):
     def deserialize_create(self, body):
         """Just load the request body as json"""
         body = utils.loads(body)
+        if not body.get('dbcontainer', ''):
+            raise exception.ApiError("Required element/key 'dbcontainer' " \
+                                     "was not specified")
         self._add_image_ref(body)
         self._add_mysql_security_group(body)
         return utils.dumps({'server': body['dbcontainer']})
@@ -102,6 +105,9 @@ class RequestXMLDeserializer(object):
         """Marshal the dbcontainer attributes of a parsed request"""
         dbcontainer = {}
         dbcontainer_node = self._find_first_child_named(node, "dbcontainer")
+        if not dbcontainer_node:
+            raise exception.ApiError("Required element/key 'dbcontainer' " \
+                                     "was not specified")
         for attr in ["name", "port", "imageRef", "flavorRef"]:
             dbcontainer[attr] = dbcontainer_node.getAttribute(attr)
         #dbtype = self._extract_dbtype(dbcontainer_node)

@@ -28,8 +28,8 @@ class MySQLDatabaseTest(test.TestCase):
         mydb = MySQLDatabase()
         try:
             mydb.name = self.dbname
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
 
         self.assertEqual(mydb.name, self.dbname)
         self.assertEqual(mydb.character_set, MySQLDatabase.__charset__)
@@ -49,7 +49,7 @@ class MySQLDatabaseTest(test.TestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                              "Database name %s is too long. Max length = 64"
+                              "Database name '%s' is too long. Max length = 64"
                               % long_dbname)
 
     def test_ser_der(self):
@@ -62,8 +62,8 @@ class MySQLDatabaseTest(test.TestCase):
             json = mydb.serialize()
 
             der_mydb.deserialize(json)
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
         self.assertEqual(mydb.name, der_mydb.name)
         self.assertEqual(mydb.character_set, der_mydb.character_set)
         self.assertEqual(mydb.collate, der_mydb.collate)
@@ -75,8 +75,8 @@ class MySQLDatabaseTest(test.TestCase):
         try:
             mydb.name = self.dbname
             mydb.character_set = char
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
 
         self.assertEquals(mydb.character_set, char)
         self.assertEquals(mydb.collate, coll)
@@ -88,8 +88,8 @@ class MySQLDatabaseTest(test.TestCase):
         try:
             mydb.name = self.dbname
             mydb.collate = coll
-        except ValueError:
-            self.assertFalse(True)
+        except ValueError as e:
+            self.assertFalse(True, msg=e)
 
         self.assertEquals(mydb.character_set, char)
         self.assertEquals(mydb.collate, coll)
@@ -103,7 +103,7 @@ class MySQLDatabaseTest(test.TestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                        "%s not a valid character set" % invalid_char)
+                        "'%s' not a valid character set" % invalid_char)
 
     def test_invalid_collate(self):
         invalid_coll = "greek"
@@ -114,10 +114,13 @@ class MySQLDatabaseTest(test.TestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                              "%s not a valid collation" % invalid_coll)
+                              "'%s' not a valid collation" % invalid_coll)
 
     def test_invalid_dbname(self):
         self._test_invalid_name("te!@#%'$3")
+
+    def test_dbname_with_backslash(self):
+        self._test_invalid_name("db\name")
 
     def test_name_with_starting_space(self):
         self._test_invalid_name(" testdb")
@@ -150,7 +153,7 @@ class MySQLDatabaseTest(test.TestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                    "%s is not a valid database name" % name)
+                    "'%s' is not a valid database name" % name)
 
     def test_not_matching_charset_collate(self):
         char = "latin1"
@@ -163,7 +166,7 @@ class MySQLDatabaseTest(test.TestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                "%s not a valid collation for charset %s" % (coll, char))
+                "'%s' not a valid collation for charset '%s'" % (coll, char))
 
     def test_all_valid_charset_collate_pairs(self):
         mydb = MySQLDatabase()
@@ -181,7 +184,7 @@ class MySQLUserTest(test.TestCase):
 
     invalid_list = [" te!$3", "te!$3 ", "t'e!$3", "\"te!$3",
                     ";te!$3", "t`e!$3", "te,!$3", "t/e!$3",
-                    "t\e!$3"]
+                    "t\n!$3", "t\\n!$3", "t\e!$3"]
 
     def test_valid_name_pwd(self):
         name = "test02"
@@ -215,7 +218,7 @@ class MySQLUserTest(test.TestCase):
             self.assertFalse(True)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                              "User name %s is too long. Max length = 16"
+                              "User name '%s' is too long. Max length = 16"
                               % longname)
 
     def test_ser_der(self):
@@ -245,7 +248,7 @@ class MySQLUserTest(test.TestCase):
             self.assertFalse(True, name)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                    "%s is not a valid user name" % name)
+                    "'%s' is not a valid user name" % name)
 
     def test_invalid_password(self):
         for password in self.invalid_list:
@@ -258,4 +261,4 @@ class MySQLUserTest(test.TestCase):
             self.assertFalse(True, password)
         except ValueError as e:
             self.assertEquals(e.args[0],
-                    "%s is not a valid password" % password)
+                    "'%s' is not a valid password" % password)
