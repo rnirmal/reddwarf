@@ -48,11 +48,11 @@ else
 fi
 
 pkg_install () {
-    sudo -E http_proxy= https_proxy= DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install $@
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install $@
 }
 
 if [ "$CMD" == "branch" ]; then
-    sudo -E http_proxy= https_proxy= apt-get install -y bzr
+    sudo apt-get install -y bzr
     if [ ! -e "$DIR/.bzr" ]; then
         bzr init-repo $DIR
     fi
@@ -67,18 +67,18 @@ fi
 # You should only have to run this once
 if [ "$CMD" == "install" ]; then
     pkg_install python-software-properties
-    sudo -E http_proxy= https_proxy= add-apt-repository ppa:nova-core/trunk
-    sudo -E http_proxy= https_proxy= apt-get update
+    sudo add-apt-repository ppa:nova-core/trunk
+    sudo apt-get update
     pkg_install dnsmasq-base kpartx kvm gawk iptables ebtables
     pkg_install user-mode-linux kvm libvirt-bin
     pkg_install screen euca2ools vlan curl rabbitmq-server
     pkg_install lvm2 iscsitarget open-iscsi
     pkg_install socat unzip
-    echo "ISCSITARGET_ENABLE=true" | sudo -E http_proxy= https_proxy= tee /etc/default/iscsitarget
-    sudo -E http_proxy= https_proxy= /etc/init.d/iscsitarget restart
-    sudo -E http_proxy= https_proxy= modprobe kvm
-    sudo -E http_proxy= https_proxy= /etc/init.d/libvirt-bin restart
-    sudo -E http_proxy= https_proxy= modprobe nbd
+    echo "ISCSITARGET_ENABLE=true" | sudo tee /etc/default/iscsitarget
+    sudo /etc/init.d/iscsitarget restart
+    sudo modprobe kvm
+    sudo /etc/init.d/libvirt-bin restart
+    sudo modprobe nbd
     pkg_install python-twisted python-mox python-ipy python-paste
     pkg_install python-migrate python-gflags python-greenlet
     pkg_install python-libvirt python-libxml2 python-routes
@@ -90,8 +90,8 @@ if [ "$CMD" == "install" ]; then
 
     if [ "$USE_IPV6" == 1 ]; then
         pkg_install radvd
-        sudo -E http_proxy= https_proxy= bash -c "echo 1 > /proc/sys/net/ipv6/conf/all/forwarding"
-        sudo -E http_proxy= https_proxy= bash -c "echo 0 > /proc/sys/net/ipv6/conf/all/accept_ra"
+        sudo bash -c "echo 1 > /proc/sys/net/ipv6/conf/all/forwarding"
+        sudo bash -c "echo 0 > /proc/sys/net/ipv6/conf/all/accept_ra"
     fi
 
     if [ "$USE_MYSQL" == 1 ]; then
@@ -103,7 +103,7 @@ MYSQL_PRESEED
         pkg_install mysql-server python-mysqldb
     fi
     mkdir -p $DIR/images
-    http_proxy= https_proxy= wget -c http://images.ansolabs.com/tty.tgz
+    wget -c http://images.ansolabs.com/tty.tgz
     tar -C $DIR/images -zxf tty.tgz
     exit
 fi
@@ -154,9 +154,9 @@ NOVA_CONF_EOF
         if [ "$USE_OPENDJ" == 1 ]; then
             echo '--ldap_user_dn=cn=Directory Manager' >> \
                 /etc/nova/nova-manage.conf
-            sudo -E http_proxy= https_proxy= $NOVA_DIR/nova/auth/opendj.sh
+            sudo $NOVA_DIR/nova/auth/opendj.sh
         else
-            sudo -E http_proxy= https_proxy= $NOVA_DIR/nova/auth/slap.sh
+            sudo $NOVA_DIR/nova/auth/slap.sh
         fi
     fi
     rm -rf $NOVA_DIR/instances
