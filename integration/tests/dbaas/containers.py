@@ -34,11 +34,10 @@ from tests.util.users import Requirements
 from tests.util import string_in_list
 
 
-OMIT_DNS_TESTS = False
 try:
     import rsdns
 except Exception:
-    OMIT_DNS_TESTS = True
+    rsdns = None
 
 
 class ContainerTestInfo(object):
@@ -329,7 +328,7 @@ class TestContainListing(unittest.TestCase):
         self.assertEqual(container_info.id, container.id)        
         self.assertTrue(container.name is not None)
         self.assertTrue(container.links is not None)
-        if not OMIT_DNS_TESTS:
+        if rsdns:
             dns_entry = container_info.expected_dns_entry()
             self.assertEqual(dns_entry.name, container.hostname)
 
