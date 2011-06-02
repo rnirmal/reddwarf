@@ -1,6 +1,6 @@
 # Runs the host tests.
 cd /src
-sudo find -name "*.pyc" -delete
+# sudo find -name "*.pyc" -delete
 
 # Won't be necessary soon as Proboscis moves to its own package...
 # nosetests /src/integration/proboscis/proboscis_test.py --verbose
