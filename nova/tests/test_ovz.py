@@ -1,30 +1,31 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-import eventlet
+#import eventlet
 import mox
-import os
-import re
-import sys
+#import os
+#import re
+#import sys
 
-from nova import context
-from nova import db
+#from nova import context
+#from nova import db
 from nova import exception
 from nova import flags
 from nova import test
-from nova import utils
-from nova.api.ec2 import cloud
-from nova.auth import manager
-from nova.compute import manager as compute_manager
+#from nova import utils
+#from nova.api.ec2 import cloud
+#from nova.auth import manager
+#from nova.compute import manager as compute_manager
 from nova.compute import power_state
-from nova.db.sqlalchemy import models
+#from nova.db.sqlalchemy import models
 from nova.virt import openvz_conn
-from nose.tools import raises
+#from nose.tools import raises
 
 FLAGS = flags.FLAGS
 
 test_instance = {
     "image_id": 1,
     "name": "instance-0000001",
+    "instance_type_id": 1,
     "id": 1002
 }
 
@@ -73,7 +74,7 @@ class OpenVzConnTestCase(test.TestCase):
                                    mox.IgnoreArg(),
                                    mox.IgnoreArg(),
                                    mox.IgnoreArg(),
-                                   mox.IgnoreArg()).AndReturn((vz_names, None))
+                                   mox.IgnoreArg()).AndRaise(exception.ProcessExecutionError)
         conn = openvz_conn.OpenVzConnection(False)
 
         self.mox.ReplayAll()
@@ -111,7 +112,7 @@ class OpenVzConnTestCase(test.TestCase):
 
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._start, test_instance)
-        
+
 
     def test_list_instances_success(self):
         # Testing happy path of OpenVzConnection.list_instances()
@@ -198,7 +199,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._set_vz_os_hint, test_instance)
-    
+
     def test_configure_vz_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute(mox.IgnoreArg(),
@@ -260,7 +261,8 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
         openvz_conn.db.instance_set_state(mox.IgnoreArg(),
                                           mox.IgnoreArg(),
-                                          mox.IgnoreArg()).AndRaise(exception.DBError)
+                                          mox.IgnoreArg()).AndRaise(
+            exception.DBError('FAIL'))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._stop, test_instance)
@@ -291,6 +293,60 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._add_netif, test_instance)
+
+    def test_set_vmguarpages_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertTrue(conn._set_vmguarpages(test_instance))
+
+    def test_set_vmguarpages_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_vmguarpages, test_instance)
+
+    def test_set_privvmpages_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertTrue(conn._set_privvmpages(test_instance))
+
+    def test_set_privvmpages_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_privvmpages, test_instance)
 
 #    def test_set_nameserver_success(self):
 #        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')

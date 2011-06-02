@@ -18,7 +18,9 @@ from nova.network import linux_net
 from nova.compute import power_state
 from nova.compute import instance_types
 from nova.exception import ProcessExecutionError
-from nova.virt import disk
+# Commenting out as we aren't using this yet and I don't want to pollute
+# namespace.  This is being left in because we *will* at some point use it.
+#from nova.virt import disk
 from nova.virt import images
 from nova.virt import driver
 
@@ -55,8 +57,12 @@ def get_connection(read_only):
 
 class OpenVzConnection(driver.ComputeDriver):
     def __init__(self, read_only):
+        self.utility = {
+                'CTIDS': {},
+                'TOTAL': 0,
+                'UNITS': 0
+            }
         self.read_only = read_only
-        self._get_cpuunits()
 
     @classmethod
     def instance(cls):
@@ -339,9 +345,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Update instance state
         try:
-            db.instance_set_state(context.get_admin_context(),
-                                  instance['id'],
-                                  power_state.SHUTDOWN)
+            db.instance_set_state(context.get_admin_context(), instance['id'], power_state.SHUTDOWN)
         except exception.DBError as err:
             LOG.error(err)
             raise exception.Error('Failed to update db for %s' % instance['id'])
@@ -378,6 +382,8 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error(
                     'Error adding network device to container %s' %
                     instance['id'])
+
+        return True
 
     def _add_ip(self, instance, netif='eth0',
                 if_file='etc/network/interfaces'):
@@ -570,7 +576,7 @@ class OpenVzConnection(driver.ComputeDriver):
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error("Cannot set vmguarpages for %s" %
-                                  instance[id])
+                                  instance['id'])
         return True
 
     def _set_privvmpages(self, instance):
