@@ -158,10 +158,6 @@ class Controller(common.DBaaSController):
         self._modify_fields(req, resp['dbcontainer'])
         return resp
 
-<<<<<<< HEAD
-    def _modify_fields(self, req, response):
-        """ Adds and removes the fields from the parent dbcontainer call.
-=======
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.
 
@@ -182,13 +178,13 @@ class Controller(common.DBaaSController):
             LOG.error(e)
             raise exception.Error(exc.HTTPUnprocessableEntity())
 
-    def _remove_excess_fields(self, response):
-        """ Removes the excess fields from the parent dbcontainer call.
->>>>>>> fdfe41a889d123acc2f264475b87983bae716031
+    def _modify_fields(self, req, response):
+        """ Adds and removes the fields from the parent dbcontainer call.
 
         We delete elements but if the call came from the index function
         the response will not have all the fields and we expect some to
         raise a key error exception.
+
         """
         context = req.environ['nova.context']
         user_id=context.user_id
