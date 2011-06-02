@@ -159,7 +159,7 @@
        </xsd:documentation>
      </annotation>
    </attribute>
-   <attribute name="hostname" type="xsd:string" use="required">
+   <attribute name="hostname" type="xsd:string" use="optional">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
          <p>The hostname attached to the container.</p>
