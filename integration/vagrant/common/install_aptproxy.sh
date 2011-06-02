@@ -20,7 +20,7 @@ pkg_install apt-proxy
 cp /vagrant-common/apt-proxy.conf /etc/apt-proxy/
 #UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
 # check to see if http_proxy is set http_proxy=$http_proxy bash hack
-if [ -n "${http_proxy+x}" ]; then
+if [ ! "${http_proxy}" = '' ]; then
   sed -i.bak 's/;http_proxy/http_proxy/g' /etc/apt-proxy/apt-proxy.conf
 fi
 
