@@ -18,7 +18,7 @@ if [ "$USE_VENV" == "True" ]; then
     if [ -f .nemesis-venv/bin/nosetests ]
     then
     #        $VENV_DIR/bin/nosetests --verbose --with-id $arg
-        $VENV_DIR/bin/python run_tests.py --verbose --verbose --with-id $*
+        $VENV_DIR/bin/python -B run_tests.py --verbose --verbose --with-id $*
     else
         echo Initialize venv for Nemesis by running "sudo python tools/install_venv.py"
     fi
