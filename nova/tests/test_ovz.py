@@ -348,6 +348,87 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._set_privvmpages, test_instance)
 
+    def test_set_cpuunits_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertTrue(conn._set_cpuunits(test_instance))
+
+    def test_set_cpuunits_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_cpuunits, test_instance)
+
+    def test_set_cpulimit_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertTrue(conn._set_cpulimit(test_instance))
+
+    def test_set_cpulimit_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_cpulimit, test_instance)
+
+    def test_set_cpus_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertTrue(conn._set_cpus(test_instance))
+
+    def test_set_cpus_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_cpus, test_instance)
+
 #    def test_set_nameserver_success(self):
 #        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
 #        openvz_conn.context.get_admin_context().AndReturn(True)
