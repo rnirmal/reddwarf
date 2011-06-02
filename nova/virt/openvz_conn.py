@@ -41,13 +41,13 @@ flags.DEFINE_string('ovz_network_template',
                     utils.abspath('virt/openvz_interfaces.template'),
                     'OpenVz network interface template file')
 flags.DEFINE_string('ovz_use_cpuunit',
-                    True,
+                    False,
                     'Use OpenVz cpuunits for guaranteed minimums')
 flags.DEFINE_string('ovz_use_cpulimit',
-                    True,
+                    False,
                     'Use OpenVz cpulimit for maximum cpu limits')
 flags.DEFINE_string('ovz_use_cpus',
-                    True,
+                    False,
                     'Use OpenVz cpus for maximum cpus available to the container')
 
 LOG = logging.getLogger('nova.virt.openvz')
