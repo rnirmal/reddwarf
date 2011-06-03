@@ -21,6 +21,8 @@ Unit tests for the Dns Manager.
 
 
 import unittest
+
+from nova import context
 from nova.dns.driver import DnsEntry
 from nova.dns.driver import DnsEntryNotFound
 from nova.dns.manager import DnsManager
@@ -58,7 +60,8 @@ class TestWhenEntryCreatorReturnsEntryForInstance(BaseCase):
         self.content = "255.1.1.1"
         initial_entries = self.driver.get_entries_by_content(self.content)
         self.assertEquals(0, len(list(initial_entries)))
-        self.manager.create_instance_entry(None, self.instance, self.content)
+        self.manager.create_instance_entry(context.get_admin_context(),
+                                           self.instance, self.content)
         self.entries = list(self.driver.get_entries_by_content(self.content))
 
     def test_new_entry_should_exist(self):
@@ -70,7 +73,8 @@ class TestWhenEntryCreatorReturnsEntryForInstance(BaseCase):
         self.assertEquals(expected_name, actual_name)
 
     def test_on_delete_should_remove_entry(self):
-        self.manager.delete_instance_entry(None, self.instance, self.content)
+        self.manager.delete_instance_entry(context.get_admin_context(),
+                                           self.instance, self.content)
         final_entries = list(self.driver.get_entries_by_content(self.content))
         self.assertEquals(0, len(final_entries))
 
@@ -78,7 +82,8 @@ class TestWhenEntryCreatorReturnsEntryForInstance(BaseCase):
         expected_name = self.entry_factory.create_entry(self.instance).name
 
         self.entry_factory.make_entry = False
-        self.manager.delete_instance_entry(None, self.instance, self.content)
+        self.manager.delete_instance_entry(context.get_admin_context(),
+                                           self.instance, self.content)
 
         final_entries = list(self.driver.get_entries_by_content(self.content))
         self.assertEqual(1, len(final_entries))
@@ -95,18 +100,21 @@ class TestWhenEntryCreatorReturnsNoneForInstance(BaseCase):
         self.content = "255.1.1.1"
         initial_entries = self.driver.get_entries_by_content(self.content)
         self.assertEquals(0, len(list(initial_entries)))
-        self.manager.create_instance_entry(None, self.instance, self.content)
+        self.manager.create_instance_entry(context.get_admin_context(),
+                                           self.instance, self.content)
         self.entries = list(self.driver.get_entries_by_content(self.content))
 
     def test_no_entry_is_added(self):
         self.assertEqual(0, len(self.entries))
 
     def test_on_delete_should_do_nothing(self):
-        self.manager.delete_instance_entry(None, self.instance, self.content)
+        self.manager.delete_instance_entry(context.get_admin_context(),
+                                           self.instance, self.content)
         final_entries = list(self.driver.get_entries_by_content(self.content))
         self.assertEquals(0, len(final_entries))
 
     def test_on_delete_should_fail_if_entry_returned(self):
         self.entry_factory.make_entry = True
         self.assertRaises(DnsEntryNotFound, self.manager.delete_instance_entry,
-                          None, self.instance, self.content)
+                          context.get_admin_context(), self.instance,
+                          self.content)
