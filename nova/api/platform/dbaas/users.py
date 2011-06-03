@@ -37,8 +37,8 @@ class Controller(common.DBaaSController):
     _serialization_metadata = {
         'application/xml': {
             'attributes': {
-                'user': ['name', 'password']},
-            'plurals': ['user']}}
+                'user': ['name', 'password']}
+        }}
 
     def __init__(self):
         self.guest_api = guest_api.API()
@@ -53,11 +53,11 @@ class Controller(common.DBaaSController):
         common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
         result = self.guest_api.list_users(ctxt, dbcontainer_id)
         LOG.debug("LIST USERS RESULT - %s", str(result))
-        users = []
+        users = {'users':[]}
         for user in result:
             mysql_user = models.MySQLUser()
             mysql_user.deserialize(user)
-            users.append({'user': {'name': mysql_user.name, 'password': mysql_user.password}})
+            users['users'].append({'user': {'name': mysql_user.name, 'password': mysql_user.password}})
         LOG.debug("LIST USERS RETURN - %s", users)
         return users
         
