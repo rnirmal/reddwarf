@@ -74,7 +74,8 @@ class API(base.Base):
                  {"method": "create_database",
                   "args": {"databases": databases}
                  })
-    def list_database(self, context, id):
+        
+    def list_databases(self, context, id):
         """Make an asynchronous call to list database users"""
         LOG.debug("Listing Users for DBContainer %s", id)
         return rpc.call(context, self._get_routing_key(id),

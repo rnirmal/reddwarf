@@ -165,7 +165,7 @@ class DBaaSAgent(object):
             for row in result:
                 LOG.debug("database = " + str(row))
                 mysql_db = models.MySQLDatabase()
-                mysql_db.dbname(row['Database'])
+                mysql_db.name = row[0]
                 databases.append(mysql_db.serialize())
         LOG.debug("databases = " + str(databases))
         return databases
