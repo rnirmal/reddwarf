@@ -62,10 +62,10 @@ class WhenContainerIsCreated(unittest.TestCase):
       groups=[GROUP],
       ignore=IGNORE)
 class AfterContainerIsDestroyed(unittest.TestCase):
-    """Make sure the DNS name was provisioned.
+    """Make sure the DNS name is removed along with a container.
 
-    This class actually calls the DNS driver to confirm the entry that should
-    exist for the given container does exist.
+    Because the compute manager calls the DNS manager with RPC cast, it can
+    take awhile.  So we wait for 30 seconds for it to disappear.
 
     """
 
