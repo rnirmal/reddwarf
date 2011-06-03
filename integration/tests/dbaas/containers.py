@@ -46,9 +46,11 @@ class ContainerTestInfo(object):
     def __init__(self):
         self.dbaas = None  # The rich client instance used by these tests.
         self.dbaas_flavor_href = None  # The flavor of the container.
-        self.dbaas_image_href = None  # The image used to create the container.
+        self.dbaas_image = None  # The image used to create the container.
+        self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
         self.ip = None  # The IP of the instance.
+        self.myresult = None  # The container info returned by the API
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the container.
@@ -70,6 +72,7 @@ class ContainerTestInfo(object):
 # existing.
 container_info = ContainerTestInfo()
 dbaas = None  # Rich client used throughout this test.
+
 
 @test(groups=[GROUP, GROUP_START], depends_on_groups=["services.initialize"])
 class Setup(unittest.TestCase):
@@ -97,7 +100,7 @@ class Setup(unittest.TestCase):
                 if not container_info.dbaas_image_href:
                     raise Exception("Found image with ID %s, but it had no " 
                                     "self href!" % str(test_config.dbaas_image))
-        self.assertNotEqual(None, container_info.dbaas_image)
+        self.assertNotEqual(None, container_info.dbaas_image_href)
 
     def test_find_flavor(self):
         self.assertNotEqual(None, test_config.dbaas_image)
