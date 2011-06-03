@@ -109,6 +109,20 @@ class Network(unittest.TestCase):
 
 
 @test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
+class Dns(unittest.TestCase):
+    """Starts the network service."""
+
+    def setUp(self):
+        self.service = Service(python_cmd_list() +
+                               ["%s/bin/nova-dns" % nova_code_root(),
+                                "--flagfile=%s" % nova_conf() ])
+
+    def test_start(self):
+        if not either_web_service_is_up():
+            self.service.start()
+
+
+@test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
 class Scheduler(unittest.TestCase):
     """Starts the scheduler service."""
 

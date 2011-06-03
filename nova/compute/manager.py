@@ -45,6 +45,7 @@ import functools
 
 from eventlet import greenthread
 
+from nova import dns
 from nova import exception
 from nova import flags
 from nova import log as logging
@@ -129,7 +130,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             LOG.error(_("Unable to load the virtualization driver: %s") % (e))
             sys.exit(1)
 
-        self.dns_manager = utils.import_object(FLAGS.dns_manager)
+        self.dns_api = dns.API()
         self.network_manager = utils.import_object(FLAGS.network_manager)
         self.volume_manager = utils.import_object(FLAGS.volume_manager)
         self.network_api = network.API()
@@ -263,7 +264,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             LOG.exception(msg)
 
         if not FLAGS.stub_network:
-            self.dns_manager.create_instance_entry(instance_ref, address)
+            self.dns_api.create_instance_entry(context, instance_ref, address)
 
         if not FLAGS.stub_network and FLAGS.auto_assign_floating_ip:
             public_ip = self.network_api.allocate_floating_ip(context)
@@ -312,7 +313,7 @@ class ComputeManager(manager.SchedulerDependentManager):
                                                          True)
 
             address = fixed_ip['address']
-            self.dns_manager.delete_instance_entry(instance_ref, address)
+            self.dns_api.delete_instance_entry(context, instance_ref, address)
             if address:
                 LOG.debug(_("Deallocating address %s"), address,
                           context=context)
