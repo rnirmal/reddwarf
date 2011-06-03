@@ -107,6 +107,7 @@ class DBaaSAgent(object):
 
     def list_users(self):
         """List users that have access to the database"""
+        LOG.debug("---Listing Users---")
         users = []
         if not ENGINE:
             self.init_engine()
@@ -115,10 +116,14 @@ class DBaaSAgent(object):
             mysql_user = models.MySQLUser()
             t = text("""select User from mysql.user where host != 'localhost';""")
             result = client.execute(t)
+            LOG.debug("result = " + str(result))
             for row in result:
+                LOG.debug("user = " + str(row))
                 mysql_user = models.MySQLUser()
                 mysql_user.name = row['User']
-            return users
+                users.append(mysql_user.serialize())
+        LOG.debug("users = " + str(users))
+        return users
 
     def delete_user(self, user):
         """Delete the specified users"""
@@ -147,6 +152,7 @@ class DBaaSAgent(object):
 
     def list_databases(self):
         """List users that have access to the database"""
+        LOG.debug("---Listing Databases---")
         if not ENGINE:
             self.init_engine()
         client = LocalSqlClient(ENGINE)
@@ -154,8 +160,9 @@ class DBaaSAgent(object):
             mysql_user = models.MySQLUser()
             t = text("""show databases where `Database` not in ('mysql', 'information_schema');""")
             result = client.execute(t)
+            LOG.debug("result = " + result)
             for row in result:
-                LOG.debug(row)
+                LOG.debug("row = " + row)
 
 
     def delete_database(self, database):

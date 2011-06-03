@@ -51,9 +51,11 @@ class API(base.Base):
     def list_users(self, context, id):
         """Make an asynchronous call to list database users"""
         LOG.debug("Listing Users for DBContainer %s", id)
-        return rpc.cast(context, self._get_routing_key(id),
+        resp = rpc.call(context, self._get_routing_key(id),
                  {"method": "list_users"
                  })
+        LOG.debug("Listing Users respsonse: %s", resp)
+        return resp
 
     def delete_user(self, context, id, user):
         """Make an asynchronous call to delete an existing database user"""
