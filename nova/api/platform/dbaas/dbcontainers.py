@@ -19,9 +19,10 @@ from webob import exc
 
 from nova import compute
 from nova import db
+from nova import exception
 from nova import flags
 from nova import log as logging
-from nova import utils
+from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
@@ -63,6 +64,8 @@ class Controller(common.DBaaSController):
 
     def __init__(self):
         self.compute_api = compute.API()
+        self.dns_entry_factory = \
+            utils.import_object(FLAGS.dns_instance_entry_factory)
         self.guest_api = guest_api.API()
         self.server_controller = servers.ControllerV11()
         super(Controller, self).__init__()
@@ -73,7 +76,7 @@ class Controller(common.DBaaSController):
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
         for container in resp['dbcontainers']:
-            self._remove_excess_fields(container)
+            self._modify_fields(req, container)
             # TODO(cp16net)
             # make a guest status get function that allows you
             # to pass a list of container ids
@@ -91,7 +94,7 @@ class Controller(common.DBaaSController):
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
         for container in resp['dbcontainers']:
-            self._remove_excess_fields(container)
+            self._modify_fields(req, container)
             # TODO(cp16net)
             # make a guest status get function that allows you
             # to pass a list of container ids
@@ -111,7 +114,7 @@ class Controller(common.DBaaSController):
         if isinstance(response, Exception):
             return response  # Just return the exception to throw it
         resp = {'dbcontainer': response['server']}
-        self._remove_excess_fields(resp['dbcontainer'])
+        self._modify_fields(req, resp['dbcontainer'])
         try:
             result = dbapi.guest_status_get(instance_id=id)
             resp['dbcontainer']['status'] = _dbaas_mapping[result.state]
@@ -143,7 +146,8 @@ class Controller(common.DBaaSController):
         databases = common.populate_databases(
                                     env['dbcontainer'].get('databases', ''))
 
-        server = self.server_controller.create(req)
+        server = self._try_create_server(req)
+
         server_id = str(server['server']['id'])
         dbapi.guest_status_create(server_id)
 
@@ -151,16 +155,45 @@ class Controller(common.DBaaSController):
         self.guest_api.prepare(req.environ['nova.context'],
                                server_id, databases)
         resp = {'dbcontainer': server['server']}
-        self._remove_excess_fields(resp['dbcontainer'])
+        self._modify_fields(req, resp['dbcontainer'])
         return resp
 
-    def _remove_excess_fields(self, response):
-        """ Removes the excess fields from the parent dbcontainer call.
+    def _try_create_server(self, req):
+        """Handle the call to create a server through the openstack servers api.
+
+        Separating this so we could do retries in the future and other processing of
+        the result etc.
+        """
+        try:
+            server = self.server_controller.create(req)
+            if not server or isinstance(server, faults.Fault):
+                if isinstance(server, faults.Fault):
+                    LOG.error("%s: %s", server.wrapped_exc,
+                              server.wrapped_exc.detail)
+                raise exception.Error("Could not complete the request. " \
+                                      "Please try again later or contact " \
+                                      "Customer Support")
+            return server
+        except (TypeError, AttributeError, KeyError) as e:
+            LOG.error(e)
+            raise exception.Error(exc.HTTPUnprocessableEntity())
+
+    def _modify_fields(self, req, response):
+        """ Adds and removes the fields from the parent dbcontainer call.
 
         We delete elements but if the call came from the index function
         the response will not have all the fields and we expect some to
         raise a key error exception.
+
         """
+        context = req.environ['nova.context']
+        user_id=context.user_id
+        instance_info = {"id": response["id"], "user_id": user_id}
+        dns_entry = self.dns_entry_factory.create_entry(instance_info)
+        if dns_entry:
+            hostname = dns_entry.name
+            response["hostname"] = hostname
+
         LOG.debug("Removing the excess information from the containers.")
         for attr in ["hostId","imageRef","metadata","adminPass"]:
             if response.has_key(attr):
@@ -207,8 +240,14 @@ class Controller(common.DBaaSController):
         """
         if request.content_type == "application/xml":
             deser = deserializer.RequestXMLDeserializer()
-            return deser.deserialize_create(request.body)
+            env, body = deser.deserialize_create(request.body)
         else:
             deser = deserializer.RequestJSONDeserializer()
             env = self._deserialize(request.body, request.get_content_type())
-            return env, deser.deserialize_create(request.body)
+            body = deser.deserialize_create(request.body)
+
+        # Add any checks for required elements/attributes/keys
+        if not env['dbcontainer'].get('flavorRef', ''):
+            raise exception.ApiError("Required attribute/key 'flavorRef' " \
+                                     "was not specified")
+        return env, body

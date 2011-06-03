@@ -33,7 +33,23 @@ import subprocess
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 
+from nova import flags
+from nova import utils
 from reddwarfclient import Dbaas
+
+FLAGS = flags.FLAGS
+
+
+_dns_entry_factory = None
+def get_dns_entry_factory():
+    """Returns a DNS entry factory."""
+    global _dns_entry_factory
+    if not _dns_entry_factory:
+        class_name = FLAGS.dns_instance_entry_factory
+        _dns_entry_factory = utils.import_object(class_name)
+    return _dns_entry_factory
+
+entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
 
 
 def check_database(container_id, dbname):
@@ -50,10 +66,19 @@ def check_database(container_id, dbname):
 
 
 def create_dbaas_client(user):
+    """Creates a rich client for the RedDwarf API using the test config."""
     test_config.nova.ensure_started()
     dbaas = Dbaas(user.auth_user, user.auth_key, test_config.dbaas.url)
     dbaas.authenticate()
     return dbaas
+
+def create_dns_entry(user_name, container_id):
+    """Given the container_Id and it's owner returns the DNS entry."""
+    instance = {'user_id':user_name,
+                    'id':str(container_id)}
+    entry_factory = get_dns_entry_factory()
+    return entry_factory.create_entry(instance)
+
 
 def init_engine(user, password, host):
     return create_engine("mysql://%s:%s@%s:3306" %

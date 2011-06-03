@@ -27,9 +27,6 @@ from nova.manager import Manager
 FLAGS = flags.FLAGS
 flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
                     'Driver to use for DNS work')
-flags.DEFINE_string('dns_instance_entry_factory',
-                    'nova.dns.driver.DnsInstanceEntryFactory',
-                    'Method used to create entries for instances')
 
 LOG = logging.getLogger('nova.dns.manager')
 
@@ -46,7 +43,7 @@ class DnsManager(Manager):
         self.entry_factory = utils.import_object(dns_instance_entry_factory)
         super(DnsManager, self).__init__(*args, **kwargs)
 
-    def create_instance_entry(self, instance, content):
+    def create_instance_entry(self, context, instance, content):
         """Connects a new instance with a DNS entry.
 
         :param instance: The compute instance to associate.
@@ -58,9 +55,10 @@ class DnsManager(Manager):
         print("create instance entry " + str(entry))
         if entry:
             entry.content = content
+            LOG.debug("Modified entry address %s." % str(entry))
             self.driver.create_entry(entry)
 
-    def delete_instance_entry(self, instance, content):
+    def delete_instance_entry(self, context, instance, content):
         """Removes a DNS entry associated to an instance."""
         entry = self.entry_factory.create_entry(instance)
         LOG.debug("Deleting instance entry with %s" % str(entry))

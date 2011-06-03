@@ -31,7 +31,7 @@ exclaim Installing Nova dependencies.
 cd /src/contrib
 #UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
 # check to see if http_proxy is set http_proxy=$http_proxy bash hack
-if [ -n "${http_proxy+x}" ]; then
+if [ ! "${http_proxy}" = '' ]; then
     exclaim Setting up proxy hotfix.
     PROXY_STR="http_proxy=$http_proxy https_proxy=$https_proxy"
     #escape out the /. chars that are present for the sed strin
@@ -42,7 +42,7 @@ if [ -n "${http_proxy+x}" ]; then
     sed -i.bak.delete -e "$SED_STR" ./nova.sh
 fi
 sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash ./nova.sh install
-if [ -n "${http_proxy+x}" ]; then
+if [ ! "${http_proxy}" = '' ]; then
     exclaim Reverting proxy hotfix.
     mv ./nova.sh.bak ./nova.sh
     rm ./nova.sh.bak.delete

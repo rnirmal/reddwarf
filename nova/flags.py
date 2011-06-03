@@ -282,6 +282,7 @@ DEFINE_string('scheduler_topic', 'scheduler',
               'the topic scheduler nodes listen on')
 DEFINE_string('volume_topic', 'volume', 'the topic volume nodes listen on')
 DEFINE_string('network_topic', 'network', 'the topic network nodes listen on')
+DEFINE_string('dns_topic', 'dns', 'the topic dns nodes listen on')
 DEFINE_string('ajax_console_proxy_topic', 'ajax_proxy',
               'the topic ajax proxy nodes listen on')
 DEFINE_string('ajax_console_proxy_url',
@@ -384,3 +385,7 @@ DEFINE_string('zone_name', 'nova', 'name of this zone')
 DEFINE_list('zone_capabilities',
                 ['hypervisor=xenserver;kvm', 'os=linux;windows'],
                  'Key/Multi-value list representng capabilities of this zone')
+
+DEFINE_string('dns_instance_entry_factory',
+              'nova.dns.driver.DnsInstanceEntryFactory',
+              'Method used to create entries for instances')

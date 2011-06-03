@@ -16,6 +16,7 @@
 #    under the License.
 
 import re
+import string
 
 
 class Base(object):
@@ -32,7 +33,7 @@ class MySQLDatabase(Base):
     # Defaults
     __charset__ = "utf8"
     __collation__ = "utf8_general_ci"
-    dbname = re.compile("^[A-Za-z0-9_\-]+[\s\?\#\@]*[A-Za-z0-9_\-]+$")
+    dbname = re.compile("^[A-Za-z0-9_-]+[\s\?\#\@]*[A-Za-z0-9_-]+$")
 
     # Complete list of acceptable values
     charset = { "big5": ["big5_chinese_ci", "big5_bin",],
@@ -275,10 +276,11 @@ class MySQLDatabase(Base):
 
     @name.setter
     def name(self, value):
-        if not value or not self.dbname.match(value):
-            raise ValueError("%s is not a valid database name" % value)
+        if not value or not self.dbname.match(value) or \
+                        string.find("%r" % value, "\\") != -1:
+            raise ValueError("'%s' is not a valid database name" % value)
         elif len(value) > 64:
-            raise ValueError("Database name %s is too long. Max length = 64"
+            raise ValueError("Database name '%s' is too long. Max length = 64"
                         % value)
         else:
             self._name = value
@@ -300,12 +302,12 @@ class MySQLDatabase(Base):
             pass
         elif self._character_set:
             if not value in self.charset[self._character_set]:
-                raise ValueError("%s not a valid collation for charset %s"
+                raise ValueError("'%s' not a valid collation for charset '%s'"
                                 % (value, self._character_set))
             self._collate = value
         else:
             if not value in self.collation:
-                raise ValueError("%s not a valid collation" % value)
+                raise ValueError("'%s' not a valid collation" % value)
             self._collate = value
             self._character_set = self.collation[value]
 
@@ -323,7 +325,7 @@ class MySQLDatabase(Base):
         if not value:
             pass
         elif not value in self.charset:
-            raise ValueError("%s not a valid character set" % value)
+            raise ValueError("'%s' not a valid character set" % value)
         else:
             self._character_set = value
 
@@ -338,16 +340,23 @@ class MySQLUser(Base):
         self._password = None
         self._databases = []
 
+    def _check_valid(self, value):
+        if not value or self.not_supported_chars.search(value) or \
+                                string.find("%r" % value, "\\") != -1:
+            return False
+        else:
+            return True
+
     @property
     def name(self):
         return self._name
 
     @name.setter
     def name(self, value):
-        if not value or self.not_supported_chars.search(value):
-            raise ValueError("%s is not a valid user name" % value)
+        if not self._check_valid(value):
+            raise ValueError("'%s' is not a valid user name" % value)
         elif len(value) > 16:
-            raise ValueError("User name %s is too long. Max length = 16"
+            raise ValueError("User name '%s' is too long. Max length = 16"
                         % value)
         else:
             self._name = value
@@ -358,8 +367,8 @@ class MySQLUser(Base):
 
     @password.setter
     def password(self, value):
-        if not value or self.not_supported_chars.search(value):
-            raise ValueError("%s is not a valid password" % value)
+        if not self._check_valid(value):
+            raise ValueError("'%s' is not a valid password" % value)
         else:
             self._password = value
 
