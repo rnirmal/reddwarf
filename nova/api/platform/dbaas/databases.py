@@ -54,7 +54,7 @@ class Controller(common.DBaaSController):
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
         result = self.guest_api.list_databases(ctxt, dbcontainer_id)
-        LOG.debug("LIST USERS RESULT - %s", str(result))
+        LOG.debug("LIST DATABASES RESULT - %s", str(result))
         databases = {'databases':[]}
         for database in result:
             mysql_database = models.MySQLDatabase()
