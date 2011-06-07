@@ -38,7 +38,8 @@ class Controller(common.DBaaSController):
         'application/xml': {
             'attributes': {
                 'user': ['name', 'password']}
-        }}
+        },
+    }
 
     def __init__(self):
         self.guest_api = guest_api.API()
@@ -57,7 +58,7 @@ class Controller(common.DBaaSController):
         for user in result:
             mysql_user = models.MySQLUser()
             mysql_user.deserialize(user)
-            users['users'].append({'user': {'name': mysql_user.name, 'password': mysql_user.password}})
+            users['users'].append({'name': mysql_user.name})
         LOG.debug("LIST USERS RETURN - %s", users)
         return users
         
