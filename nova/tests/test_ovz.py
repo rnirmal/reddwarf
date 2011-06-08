@@ -44,6 +44,49 @@ good_status = {
     'cpu_time': 0
 }
 
+meminfo = """MemTotal:         506128 kB
+MemFree:          291992 kB
+Buffers:           44512 kB
+Cached:            64708 kB
+SwapCached:            0 kB
+Active:           106496 kB
+Inactive:          62948 kB
+Active(anon):      62108 kB
+Inactive(anon):      496 kB
+Active(file):      44388 kB
+Inactive(file):    62452 kB
+Unevictable:        2648 kB
+Mlocked:            2648 kB
+SwapTotal:       1477624 kB
+SwapFree:        1477624 kB
+Dirty:                 0 kB
+Writeback:             0 kB
+AnonPages:         62908 kB
+Mapped:            14832 kB
+Shmem:               552 kB
+Slab:              27988 kB
+SReclaimable:      17280 kB
+SUnreclaim:        10708 kB
+KernelStack:        1448 kB
+PageTables:         3092 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:     1730688 kB
+Committed_AS:     654760 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:       24124 kB
+VmallocChunk:   34359711220 kB
+HardwareCorrupted:     0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:        8128 kB
+DirectMap2M:      516096 kB
+"""
+
 class OpenVzConnTestCase(test.TestCase):
     def setUp(self):
         super(OpenVzConnTestCase, self).setUp()
@@ -357,8 +400,15 @@ class OpenVzConnTestCase(test.TestCase):
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg()).AndReturn(('',''))
-        self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, 'utility')
+        conn.utility = {
+            'UNITS': 50000,
+            'TOTAL': 30000,
+            'CTIDS': {},
+            'MEMORY_MB': 32768
+        }
+        self.mox.ReplayAll()
         self.assertTrue(conn._set_cpuunits(test_instance))
 
     def test_set_cpuunits_failure(self):
@@ -371,8 +421,15 @@ class OpenVzConnTestCase(test.TestCase):
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg()).AndRaise(
             exception.ProcessExecutionError)
-        self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, 'utility')
+        conn.utility = {
+            'UNITS': 50000,
+            'TOTAL': 30000,
+            'CTIDS': {},
+            'MEMORY_MB': 32768
+        }
+        self.mox.ReplayAll()
         self.assertRaises(exception.Error, conn._set_cpuunits, test_instance)
 
     def test_set_cpulimit_success(self):
@@ -446,6 +503,39 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertTrue(conn._get_cpuunits())
 
+    def test_percent_of_resource(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, 'utility')
+        conn.utility = {
+            'UNITS': 50000,
+            'TOTAL': 30000,
+            'CTIDS': {},
+            'MEMORY_MB': 32768
+        }
+        self.mox.ReplayAll()
+        self.assertEqual(float, type(conn._percent_of_resource(test_instance)))
+
+    def test_get_memory_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndReturn((meminfo, ''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._get_memory()
+        self.assertEquals(int, type(conn.utility['MEMORY_MB']))
+        self.assertGreater(conn.utility['MEMORY_MB'], 0)
+
+    def test_get_memory_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg(),
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._get_memory)
+        
 #    def test_set_nameserver_success(self):
 #        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
 #        openvz_conn.context.get_admin_context().AndReturn(True)
