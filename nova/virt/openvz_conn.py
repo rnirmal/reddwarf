@@ -178,13 +178,15 @@ class OpenVzConnection(driver.ComputeDriver):
                               'launching')
         LOG.debug('instance %s: is launching' % instance['name'])
 
+        # Get current usages and resource availablity.
+        self._get_cpuunits()
+        self._get_cpulimit()
+        self._get_memory()
+
         # Go through the steps of creating a container
         # TODO(imsplitbit): Need to add conditionals around this stuff to make
         # it more durable during failure. And roll back changes made leading
         # up to the error.
-        self._get_cpuunits()
-        self._get_cpulimit()
-        self._get_memory()
         self._cache_image(instance)
         self._create_vz(instance)
         self._set_vz_os_hint(instance)
@@ -736,25 +738,25 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Pause the specified instance.
         """
-        pass
+        self._stop(instance)
 
     def unpause(self, instance, callback):
         """
         Unpause the specified instance.
         """
-        pass
+        self._start(instance)
 
     def suspend(self, instance, callback):
         """
         suspend the specified instance
         """
-        pass
+        self._stop(instance)
 
     def resume(self, instance, callback):
         """
         resume the specified instance
         """
-        self._start(instance['id'])
+        self._start(instance)
 
     def destroy(self, instance):
         """
