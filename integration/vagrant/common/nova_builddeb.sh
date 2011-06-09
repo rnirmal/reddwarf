@@ -42,13 +42,18 @@ echo 'Package: nova-guest
 Architecture: all
 Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
 Description: OpenStack Platform - Nova - Guest agent' >> debian/control
+echo '' >> debian/control
+echo 'Package: nova-dns
+Architecture: all
+Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Description: OpenStack Platform - Nova - DNS' >> debian/control
 
 echo "nova ($gitversion) lucid; urgency=low
 
   [aut-gen]
   * generated version from the integration build.
 
- -- Auto Gen <dbaas-dev@rackspace.com>  `date +'%a, %d %b %Y %I:%M:%S %z'`
+ -- Apt Repo <dbaas-dev@rackspace.com>  `date +'%a, %d %b %Y %I:%M:%S %z'`
 
 " | cat - debian/changelog >> debian/changelog.tmp
 mv debian/changelog.tmp debian/changelog
@@ -61,9 +66,11 @@ for file in `ls debian/ |grep nova-api`
 do
    cp debian/$file "debian/nova-guest."`echo $file|cut -d'.' -f2`
    cp debian/$file "debian/platform-api."`echo $file|cut -d'.' -f2`
+   cp debian/$file "debian/nova-dns."`echo $file|cut -d'.' -f2`
 done
 sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
 sed -i.bak -e 's/nova-api/platform-api/g' debian/platform-api.*
+sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
 
 #hack up the rules file thats broken
 echo '--sql_connection=mysql://nova:novapass@10.0.2.15/nova' >> debian/nova.conf

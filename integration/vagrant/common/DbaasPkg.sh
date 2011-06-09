@@ -115,3 +115,16 @@ dbaas_pkg_install_rsdns() {
         echo "Not installing RS DNS because it wasn't found."
     fi
 }
+
+dbaas_pkg_upload_release() {
+    # Installs the release. Assumes the /tmp/build stuff is already done and exists
+    cd /tmp/build/dbaas
+    gitversion=`cat /tmp/build/dbaas/_version.txt`
+    output=`grep 'BEGIN PGP SIGNED MESSAGE' /tmp/build/nova_${gitversion}_amd64.changes|wc -l`
+    if [ $output == 0 ]
+    then
+      echo "signing packages"
+      sudo -E debsign /tmp/build/nova_`echo $gitversion`_amd64.changes
+    fi
+    sudo -E dupload -f --to nova /tmp/build/nova_`echo $gitversion`_amd64.changes
+}
