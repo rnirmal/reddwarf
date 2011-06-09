@@ -270,10 +270,8 @@ class TestUsers(unittest.TestCase):
         self._root()
 
     def test_reset_root_user_enabled(self):
-        global created_users
-        global system_users
-        created_users.append('root')
-        system_users.remove('root')
+        created_users= ['root']
+        self.system_users.remove('root')
         users = dbaas.users.list(container_info.id)
         found = False
         for user in created_users:
@@ -284,7 +282,7 @@ class TestUsers(unittest.TestCase):
             found = False
 
         found = False
-        for user in system_users:
+        for user in self.system_users:
             for result in users:
                 if user == result.name:
                     found = True
