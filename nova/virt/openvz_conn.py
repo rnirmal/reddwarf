@@ -1007,13 +1007,12 @@ class OpenVzConnection(driver.ComputeDriver):
                 line = line.split()
                 if line[0] == 'MemTotal:':
                     self.utility['MEMORY_MB'] = int(line[1]) / 1024
-
+            return True
+        
         except ProcessExecutionError as err:
             LOG.error('Cannot get memory info for host')
             LOG.error(err)
             raise exception.Error('Cannot get memory info for host')
-
-        return True
 
     def _get_cpulimit(self):
         """
@@ -1047,7 +1046,6 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Getting usage and overall cpu processing power from host node
         """
-
         try:
             out, err = utils.execute('sudo', 'vzcpucheck')
             if err:

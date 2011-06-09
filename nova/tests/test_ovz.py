@@ -535,13 +535,5 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._get_memory)
+
         
-#    def test_set_nameserver_success(self):
-#        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
-#        openvz_conn.context.get_admin_context().AndReturn(True)
-#
-#        self.mox.StubOutWithMock(openvz_conn.db, 'instance_get_fixed_address')
-#        openvz_conn.db.instance_get_fixed_address(mox.IgnoreArg(),
-#                                                  mox.IgnoreArg()).AndReturn(
-#            '1.1.1.1'
-#        )
