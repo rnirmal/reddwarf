@@ -1032,9 +1032,9 @@ class OpenVzConnection(driver.ComputeDriver):
 
             for line in out.splitlines():
                 line = line.split()
-                
-                if line[0] == 'processor':
-                    proc_count += 1
+                if len(line) > 0:
+                    if line[0] == 'processor':
+                        proc_count += 1
 
             self.utility['CPULIMIT'] = proc_count * 100
             return True
@@ -1055,12 +1055,13 @@ class OpenVzConnection(driver.ComputeDriver):
 
             for line in out.splitlines():
                 line = line.split()
-                if line[0] == 'Power of the node:':
-                    self.utility['UNITS'] = int(line[1])
-                elif line[0] == 'Current CPU utilization:':
-                    self.utility['TOTAL'] = int(line[1])
-                elif line[0].isdigit():
-                    self.utility['CTIDS'][line[0]] = line[1]
+                if len(line) > 0:
+                    if line[0] == 'Power of the node:':
+                        self.utility['UNITS'] = int(line[1])
+                    elif line[0] == 'Current CPU utilization:':
+                        self.utility['TOTAL'] = int(line[1])
+                    elif line[0].isdigit():
+                        self.utility['CTIDS'][line[0]] = line[1]
                 
         except ProcessExecutionError as err:
             LOG.error(err)
