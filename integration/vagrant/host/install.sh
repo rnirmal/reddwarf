@@ -1,18 +1,6 @@
 #!/bin/bash
 # Builds packages.
 
-self="${0#./}"
-base="${self%/*}"
-current=`pwd`
-if [ "$base" = "$self" ] ; then
-    home=$current
-elif [[ $base =~ ^/ ]]; then
-    home="$base"
-else
-    home="$current/$base"
-fi
-cd $home
-
 source /vagrant-common/DbaasPkg.sh
 source /vagrant-common/Utils.sh
 
