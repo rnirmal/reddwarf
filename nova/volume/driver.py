@@ -358,6 +358,12 @@ class ISCSIDriver(VolumeDriver):
                       '--tid=%s' % iscsi_target)
 
     def _do_iscsi_discovery(self, volume):
+        #TODO(tim.simpson) This looks for the first line containing
+        #                  iscsi_ip_prefix & returns it. In testing there have
+        #                  been multiple lines with the same ip, but what we
+        #                  use to identify the volume is not the host but the
+        #                  volume ID.  So I'm not sure if this will work...
+
         #TODO(justinsb): Deprecate discovery and use stored info
         #NOTE(justinsb): Discovery won't work with CHAP-secured targets (?)
         LOG.warn(_("ISCSI provider_location not stored, using discovery"))

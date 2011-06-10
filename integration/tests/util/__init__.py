@@ -29,6 +29,7 @@
 
 import re
 import subprocess
+import time
 
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
@@ -95,3 +96,8 @@ def process(cmd):
 def string_in_list(str, substr_list):
     """Returns True if the string appears in the list."""
     return any([str.find(x) >=0 for x in substr_list])
+
+def wait_for_condition(condition, sleep_time=1):
+    """Runs code to check for the condition until time_out."""
+    while condition:
+        time.sleep(sleep_time)

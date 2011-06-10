@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2011 Justin Santa Barbara
+# Copyright 2011 OpenStack, LLC
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -22,13 +22,17 @@ controller on the SAN hardware.  We expect to access it over SSH or some API.
 """
 
 import os
+from collections import namedtuple
+import re
 import paramiko
+import pexpect
 
 from xml.etree import ElementTree
 
 from nova import exception
 from nova import flags
 from nova import log as logging
+from nova.exception import VolumeNotFound
 from nova.utils import ssh_execute
 from nova.volume.driver import ISCSIDriver
 
@@ -42,12 +46,22 @@ flags.DEFINE_string('san_login', 'admin',
                     'Username for SAN controller')
 flags.DEFINE_string('san_password', '',
                     'Password for SAN controller')
+flags.DEFINE_string('san_port', '3260',
+                    'Port of SAN controller')
 flags.DEFINE_string('san_privatekey', '',
                     'Filename of private key to use for SSH authentication')
 flags.DEFINE_string('san_clustername', '',
                     'Cluster name to use for creating volumes')
 flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
+
+
+DiscoveryInfo = namedtuple('DiscoveryInfo', ['portal', 'target', 'id'])
+
+
+class InitiatorLoginError(exception.Error):
+    """Occurs when the initiator fails to login for some reason."""
+    pass
 
 
 class SanISCSIDriver(ISCSIDriver):
@@ -305,7 +319,8 @@ class SolarisISCSIDriver(SanISCSIDriver):
 
         #TODO(justinsb): Is this always 1? Does it matter?
         iscsi_portal_interface = '1'
-        iscsi_portal = FLAGS.san_ip + ":3260," + iscsi_portal_interface
+        iscsi_portal = FLAGS.san_ip + ":" + FLAGS.san_port + "," + \
+                       iscsi_portal_interface
 
         db_update = {}
         db_update['provider_location'] = ("%s %s" %
@@ -584,9 +599,70 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
         self._cliq_run_xml("unassignVolume", cliq_args)
 
+    @staticmethod
+    def _get_discovery_info():
+        """Given a volume ID, returns list of matching DiscoveryInfo items.
+
+        The cmd:
+        iscsiadm -m discovery -t st -p {ip}
+
+          returns stuff like this:
+        10.0.2.15:3260,1 iqn.2011-06.reddwarf.com:target1
+
+        This method returns a list of named tuples with the portal, the target,
+        and the volume ID.
+
+        """
+
+        child = pexpect.spawn("iscsiadm -m discovery -t st -p %s"
+                          % FLAGS.san_ip)
+        list = []
+        id_in_target = re.compile('.+?:target([0-9]+)')
+        while True:
+            try:
+                #child.expect('([0-9\\.]+:[0-9]+\\,[0-9])+(.+?):target([0-9])\\r')
+                child.expect('([0-9\\.]+:[0-9]+\\,[0-9])+(.+?:target[0-9]+)\\r')
+                info = DiscoveryInfo(*child.match.groups(), id=None)
+                info.id = id_in_target.search(info.target).group(0)
+                list.append(info)
+            except pexpect.EOF:
+                break
+        return list
+
+    @staticmethod
+    def _login_to_target(discovery_info, time_out):
+        """Logins to target using DiscoveryInfo.
+
+        Fails if the operation times out or the command line returns suspect
+        output.
+
+        """
+        cmd = 'iscsiadm -m node --target "%(target)s" --portal "%(portal)s" ' \
+              '--login' % discovery_info
+        child = pexpect.spawn(cmd)
+        possible_errors = ['Could not login', 'initiator reported error']
+        possible_success = ['successful']
+        try:
+            i = child.expect(itertools.chain(possible_errors, possible_success),
+                             time_out)
+            if i < len(possible_errors):
+                raise InitiatorLoginError()
+            child.expect(pexpect.EOF, timeout=time_out)
+            child.close()
+        except pexpect.TIMEOUT:
+            child.delayafterclose = 1
+            child.delayafterterminate = 1
+            child.close(force=True)
+        
+
     def discover_volume(self, context, volume):
         """Discover and attach a remote volume as a local device"""
-        pass
+
+        volume_id = str(volume["id"])
+        for info in self._get_discovery_info():
+            if info.id == volume_id:
+                _login_to_target(info, 30)
+        raise VolumeNotFound()
 
     def undiscover_volume(self, volume):
         """Detach the volume and local device"""

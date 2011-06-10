@@ -12,9 +12,11 @@ from nova.exception import VolumeNotFound
 
 from proboscis import test
 from proboscis.decorators import expect_exception
+from proboscis.decorators import time_out
 from tests import initialize
 from tests.volumes import VOLUMES_DIRECT
 from tests.util import test_config
+from tests.util import wait_for_condition
 
 # Add volume
 # Check for volume by connecting to it
@@ -46,6 +48,7 @@ story = None
 
 LOCAL_MOUNT_PATH = "/testsmnt"
 
+
 class VolumeTest(unittest.TestCase):
     """This test tells the story of a volume, from cradle to grave."""
 
@@ -60,6 +63,10 @@ class VolumeTest(unittest.TestCase):
         self.assertTrue(isinstance(volume["id"], Number))
         self.assertTrue(volume["display_name"], self.story.volume_name)
         self.assertTrue(volume["display_description"], self.story.volume_desc)
+        self.assertTrue(volume["size"], 1)
+        self.assertTrue(volume["user_id"], context.get_admin_context().user_id)
+        self.assertTrue(volume["project_id"], context.get_admin_context().project_id)
+
 
 @test(groups=VOLUMES_DIRECT, depends_on_classes=[initialize.Volume])
 class SetUp(VolumeTest):
@@ -86,6 +93,8 @@ class AddVolume(VolumeTest):
         volume = self.story.api.create(context.get_admin_context(), size = 1,
                                        name=name, description=desc)
         self.assert_volume_as_expected(volume)
+        self.assertTrue(volume["status"], "creating")
+        self.assertTrue(volume["attach_status"], "detached")
         self.story.volume = volume
         self.story.volume_id = volume["id"]
 
@@ -98,11 +107,18 @@ class AfterVolumeIsAdded(VolumeTest):
 
     """
 
+    @time_out(60)
     def test_api_get(self):
-        volume = self.story.api.get(self.story.volume_id)
+        def create_finished():
+            volume = self.story.api.get(self.story.volume_id)
+            creating = volume["status"] == "creating"
+        wait_for(create_finished())
+        self.assertTrue(volume["status"], "available")
         self.assert_volume_as_expected(volume)
+        self.assertTrue(volume["attach_status"], "detached")
 
-    def test_check(self):
+
+    def test_setup_volume(self):
         self.assertNotEqual(None, self.story.volume_id)
         device = self.story.client.setup_volume(context.get_admin_context(),
                                                 self.story.volume_id)
