@@ -73,7 +73,7 @@ sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
 sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
 
 #Fix the api paste config
-sed -i.bak -e 's/api-paste\.ini/platform-api-paste\.ini/g' debian/reddwarf-api.install
+sed -i.bak -e 's/api-paste\.ini/reddwarf-api-paste\.ini/g' debian/reddwarf-api.install
 echo 'usr/bin/reddwarf-cli' >> debian/reddwarf-api.install
 echo 'usr/bin/reddwarf-manage' >> debian/reddwarf-api.install
 

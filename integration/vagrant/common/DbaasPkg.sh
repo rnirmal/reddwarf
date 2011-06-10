@@ -75,6 +75,7 @@ dbaas_pkg_install_nova() {
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-common
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-compute
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-doc
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-dns
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-guest
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-instancemonitor
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-network
