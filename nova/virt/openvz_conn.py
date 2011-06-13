@@ -617,6 +617,9 @@ class OpenVzConnection(driver.ComputeDriver):
         container has access to during one complete cycle.
         """
         if not units:
+            LOG.debug("Reported cpuunits %s" % self.utility['UNITS'])
+            LOG.debug("Reported percent of resource: %s" %
+                      self._percent_of_resource(instance))
             units = int(self.utility['UNITS'] *
                         self._percent_of_resource(instance))
 
@@ -1059,6 +1062,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
             for line in out.splitlines():
                 line = line.split()
+                LOG.debug(str(line))
                 if len(line) > 0:
                     if line[0] == 'Power of the node:':
                         self.utility['UNITS'] = int(line[1])
@@ -1072,3 +1076,4 @@ class OpenVzConnection(driver.ComputeDriver):
             exception.Error('Problem getting cpuunits for host')
 
         return True
+    
