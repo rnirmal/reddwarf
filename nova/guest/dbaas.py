@@ -61,16 +61,14 @@ MYSQL_RUNNING = re.compile("[\w\n]*mysql start/running. process [0-9]*[\w\n]*")
 def generate_random_password():
     return str(uuid.uuid4())
 
-
-class DBaaSAgent(object):
-    """ Database as a Service Agent Controller """
-
-    def init_engine(self):
+def get_engine():
         """Create the default engine with the updated admin user"""
         #TODO(rnirmal):Based on permissions issues being resolved we may revert
         #url = URL(drivername='mysql', host='localhost',
         #          query={'read_default_file': '/etc/mysql/my.cnf'})
         global ENGINE
+        if ENGINE:
+            return ENGINE
         #ENGINE = create_engine(name_or_url=url)
         pwd, err = utils.execute("sudo", "awk", "/password\\t=/{print $3}",
                                  "/etc/mysql/my.cnf")
@@ -81,14 +79,16 @@ class DBaaSAgent(object):
                                    listeners=[KeepAliveConnection()])
         else:
             LOG.error(_(err))
+        return ENGINE
+
+class DBaaSAgent(object):
+    """ Database as a Service Agent Controller """
 
     def create_user(self, users):
         """Create users and grant them privileges for the
            specified databases"""
         host = "%"
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             for item in users:
                 user = models.MySQLUser()
@@ -109,9 +109,7 @@ class DBaaSAgent(object):
         """List users that have access to the database"""
         LOG.debug("---Listing Users---")
         users = []
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             mysql_user = models.MySQLUser()
             t = text("""select User from mysql.user where host != 'localhost';""")
@@ -127,9 +125,7 @@ class DBaaSAgent(object):
 
     def delete_user(self, user):
         """Delete the specified users"""
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             mysql_user = models.MySQLUser()
             mysql_user.deserialize(user)
@@ -138,9 +134,7 @@ class DBaaSAgent(object):
 
     def create_database(self, databases):
         """Create the list of specified databases"""
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             for item in databases:
                 mydb = models.MySQLDatabase()
@@ -154,9 +148,7 @@ class DBaaSAgent(object):
         """List users that have access to the database"""
         LOG.debug("---Listing Databases---")
         databases = []
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             mysql_user = models.MySQLUser()
             t = text("""show databases where `Database` not in ('mysql', 'information_schema');""")
@@ -172,9 +164,7 @@ class DBaaSAgent(object):
 
     def delete_database(self, database):
         """Delete the specified database"""
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             mydb = models.MySQLDatabase()
             mydb.deserialize(database)
@@ -187,9 +177,7 @@ class DBaaSAgent(object):
         user = models.MySQLUser()
         user.name = "root"
         user.password = generate_random_password()
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             try:
                 t = text("""CREATE USER :user@:host;""")
@@ -212,9 +200,7 @@ class DBaaSAgent(object):
         host = "localhost"
         pwd = generate_random_password()
         user = "root"
-        if not ENGINE:
-            self.init_engine()
-        client = LocalSqlClient(ENGINE)
+        client = LocalSqlClient(get_engine())
         with client:
             t = text("""DELETE FROM mysql.user where User=:user
                         and Host!=:host""")
