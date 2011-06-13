@@ -195,7 +195,6 @@ class TestUsers(unittest.TestCase):
                                     [self.db1, self.db2])
 
     def test_create_users_list(self):
-        #TODO(cp16net): finish this test case
         #tests for users that should be listed
         users = dbaas.users.list(container_info.id)
         found = False
@@ -207,7 +206,6 @@ class TestUsers(unittest.TestCase):
             found = False
 
     def test_create_users_list_system(self):
-        #TODO(cp16net): finish this test case
         #tests for users that should not be listed
         users = dbaas.users.list(container_info.id)
         found = False
