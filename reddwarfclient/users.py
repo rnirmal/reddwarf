@@ -57,5 +57,5 @@ class Users(base.ManagerWithFind):
 
         :rtype: list of :class:`User`.
         """
-        return self._list("/dbcontainers/%s/users" % dbcontainer,
+        return self._list("/dbcontainers/%s/users" % base.getid(dbcontainer),
                           "users")

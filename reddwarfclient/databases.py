@@ -43,7 +43,7 @@ class Databases(base.ManagerWithFind):
 
         :rtype: list of :class:`Database`.
         """
-        return self._list("/dbcontainers/%s/databases" % dbcontainer,
+        return self._list("/dbcontainers/%s/databases" % base.getid(dbcontainer),
                           "databases")
 
 #    def get(self, dbcontainer, database):

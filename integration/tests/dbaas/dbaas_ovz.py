@@ -131,9 +131,7 @@ class TestDatabases(unittest.TestCase):
         databases = dbaas.databases.list(container_info.id)
         found = False
         for db in self.system_dbs:
-            for result in databases:
-                if result.name == db:
-                    found = True
+            found = any(result.name == db for result in databases)
             self.assertFalse(found, "Database '%s' SHOULD NOT be found in result" %db)
             found = False
             
@@ -210,9 +208,7 @@ class TestUsers(unittest.TestCase):
         users = dbaas.users.list(container_info.id)
         found = False
         for user in self.system_users:
-            for result in users:
-                if user == result.name:
-                    found = True
+            found = any(result.name == user for result in users)
             self.assertFalse(found, "User '%s' SHOULD NOT BE found in result" %user)
             found = False
 
@@ -273,17 +269,13 @@ class TestUsers(unittest.TestCase):
         users = dbaas.users.list(container_info.id)
         found = False
         for user in created_users:
-            for result in users:
-                if user == result.name:
-                    found = True
+            found = any(result.name == user for result in users)
             self.assertTrue(found, "User '%s' not found in result" %user)
             found = False
 
         found = False
         for user in self.system_users:
-            for result in users:
-                if user == result.name:
-                    found = True
+            found = any(result.name == user for result in users)
             self.assertFalse(found, "User '%s' SHOULD NOT BE found in result" %user)
             found = False
 
