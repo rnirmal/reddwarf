@@ -65,6 +65,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 'CPULIMIT': 0
             }
         self.read_only = read_only
+        LOG.debug("__init__ complete in OpenVzConnection")
 
     @classmethod
     def instance(cls):
@@ -98,6 +99,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
             if state != power_state.RUNNING:
                 continue
+
+        LOG.debug("init_host complete in OpenVzConnection")
 
     def list_instances(self):
         """
@@ -352,7 +355,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Update instance state
         try:
-            db.instance_set_state(context.get_admin_context(), instance['id'], power_state.SHUTDOWN)
+            db.instance_set_state(context.get_admin_context(), instance['id'],
+                                  power_state.SHUTDOWN)
         except exception.DBError as err:
             LOG.error(err)
             raise exception.Error('Failed to update db for %s' % instance['id'])
