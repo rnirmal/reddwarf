@@ -61,8 +61,6 @@ class Controller(common.DBaaSController):
             users['users'].append({'name': mysql_user.name})
         LOG.debug("LIST USERS RETURN - %s", users)
         return users
-        
-        #return exc.HTTPNotImplemented()
 
     def delete(self, req, dbcontainer_id, id):
         """ Deletes a user in the db container """
