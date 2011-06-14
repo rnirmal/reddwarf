@@ -664,6 +664,17 @@ class HpSanISCSIDriver(SanISCSIDriver):
                 _login_to_target(info, 30)
         raise VolumeNotFound()
 
+    def get_iscsi_properties_for_volume(self, context, volume):
+        tid = self.db.volume_get_iscsi_target_num(context, volume['id'])
+        for info in self._get_discovery_info():
+            if info.tid == tid and FLAGS.san_ip in info.portal:
+                return { "target_iqn": info.target,
+                         "target_portal": info.portal };
+                #return self._login_to_target(info, 30)
+                break
+        else:
+            raise ISCSITargetNotDiscoverable(target_id=tid, volume_id=volume['id'])
+
     def undiscover_volume(self, volume):
         """Detach the volume and local device"""
         pass
