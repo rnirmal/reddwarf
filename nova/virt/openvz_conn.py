@@ -206,7 +206,7 @@ class OpenVzConnection(driver.ComputeDriver):
             self._set_cpuunits(instance)
         if FLAGS.ovz_use_cpulimit:
             self._set_cpulimit(instance)
-        if FLAGS.ovz_use_cpu:
+        if FLAGS.ovz_use_cpus:
             self._set_cpus(instance)
         
         self._start(instance)
