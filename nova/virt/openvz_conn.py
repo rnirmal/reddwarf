@@ -1015,6 +1015,7 @@ class OpenVzConnection(driver.ComputeDriver):
             for line in out.splitlines():
                 line = line.split()
                 if line[0] == 'MemTotal:':
+                    LOG.debug('Total memory for host %s MB' % (line[1],))
                     self.utility['MEMORY_MB'] = int(line[1]) / 1024
             return True
         
@@ -1062,13 +1063,15 @@ class OpenVzConnection(driver.ComputeDriver):
 
             for line in out.splitlines():
                 line = line.split()
-                LOG.debug(str(line))
                 if len(line) > 0:
-                    if line[0] == 'Power of the node:':
-                        self.utility['UNITS'] = int(line[1])
-                    elif line[0] == 'Current CPU utilization:':
-                        self.utility['TOTAL'] = int(line[1])
+                    if line[0] == 'Power':
+                        LOG.debug('Power of host: %s' % (line[4],))
+                        self.utility['UNITS'] = int(line[4])
+                    elif line[0] == 'Current':
+                        LOG.debug('Current usage of host: %s' % (line[3],))
+                        self.utility['TOTAL'] = int(line[3])
                     elif line[0].isdigit():
+                        LOG.debug('Usage for CTID %s: %s' % (line[0], line[1]))
                         self.utility['CTIDS'][line[0]] = line[1]
                 
         except ProcessExecutionError as err:
