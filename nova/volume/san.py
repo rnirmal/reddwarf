@@ -56,7 +56,15 @@ flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
 
 
-DiscoveryInfo = namedtuple('DiscoveryInfo', ['portal', 'target', 'id'])
+class DiscoveryInfo(object):
+
+    id_in_target = re.compile('.+?:([0-9]+)')
+
+    def __init__(self, portal, target):
+        self.portal = portal
+        self.target = target
+        match = DiscoveryInfo.id_in_target.search(target)
+        self.volume_id = long(match.group(1))
 
 
 class InitiatorLoginError(exception.Error):
@@ -665,9 +673,9 @@ class HpSanISCSIDriver(SanISCSIDriver):
         raise VolumeNotFound()
 
     def get_iscsi_properties_for_volume(self, context, volume):
-        tid = self.db.volume_get_iscsi_target_num(context, volume['id'])
+        volume_id = long(volume['id'])
         for info in self._get_discovery_info():
-            if info.tid == tid and FLAGS.san_ip in info.portal:
+            if info.volume_id == volume_id and FLAGS.san_ip in info.portal:
                 return { "target_iqn": info.target,
                          "target_portal": info.portal };
                 #return self._login_to_target(info, 30)
