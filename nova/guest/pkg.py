@@ -72,7 +72,7 @@ class PkgAgent(object):
     def _fix(self, time_out):
         """Sometimes you have to run this command before a pkg will install."""
         #sudo dpkg --configure -a
-        child = pexpect.spawn("sudo dpkg --configure -a")
+        child = pexpect.spawn("sudo -E dpkg --configure -a")
         wait_and_close_proc(child, time_out)
 
     def _install(self, package_name, time_out):
@@ -83,7 +83,7 @@ class PkgAgent(object):
         Raises an exception if a non-recoverable error or time out occurs.
 
         """
-        child = pexpect.spawn("sudo DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install %s" \
+        child = pexpect.spawn("sudo -E DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install %s" \
                               % package_name)
         try:
             i = child.expect(['.*password*',
@@ -116,7 +116,7 @@ class PkgAgent(object):
         Raises an exception if a non-recoverable error or time out occurs.
 
         """
-        child = pexpect.spawn("sudo apt-get -y --allow-unauthenticated remove %s" \
+        child = pexpect.spawn("sudo -E apt-get -y --allow-unauthenticated remove %s" \
                               % package_name)
         try:
             i = child.expect(['.*password*',
