@@ -622,6 +622,12 @@ class OpenVzConnection(driver.ComputeDriver):
                       self._percent_of_resource(instance))
             units = int(self.utility['UNITS'] *
                         self._percent_of_resource(instance))
+            # TODO(imsplitbit): This needs to be adjusted to not allow
+            # subscription of more than available cpuunits.  For now we
+            # won't let the obvious case of a container getting more than
+            # the maximum cpuunits for the host.
+            if units > self.utility['UNITS']:
+                units = self.utility['UNITS']
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
@@ -645,6 +651,13 @@ class OpenVzConnection(driver.ComputeDriver):
         if not cpulimit:
             cpulimit = int(self.utility['CPULIMIT'] *
                            self._percent_of_resource(instance))
+            # TODO(imsplitbit): Need to fix this so that we don't alocate
+            # more than the current available resource limits.  This shouldn't
+            # happen except in test cases but we should still protect
+            # ourselves from it.  For now we just won't let it go higher
+            # than the maximum cpulimit for the host on any one container.
+            if cpulimit > self.utility['CPULIMIT']:
+                cpulimit = self.utility['CPULIMIT']
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
@@ -667,6 +680,10 @@ class OpenVzConnection(driver.ComputeDriver):
                 instance['instance_type_id']
             )
             cpus = int(inst_typ['vcpus']) * multiplier
+            # TODO(imsplitbit): We need to fix this to not allow allocation of
+            # more than the maximum allowed cpus on the host.
+            if cpus > (self.utility['CPULIMIT'] / 100):
+                cpus = self.utility['CPULIMIT'] / 100
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
