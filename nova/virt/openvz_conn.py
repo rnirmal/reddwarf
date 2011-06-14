@@ -166,6 +166,9 @@ class OpenVzConnection(driver.ComputeDriver):
 
         return infos
 
+    def get_host_stats(self, refresh=False):
+        pass
+
     @exception.wrap_exception
     def spawn(self, instance):
         """

@@ -260,6 +260,9 @@ class ComputeManager(manager.SchedulerDependentManager):
 
         # Adding the volume creation and attachment before spawning
         # TODO(rnirmal): populate size, name and description somehow
+        size = 1 #  For now, so the tests will work.
+        name = "Volume"
+        description = "A volume used for computing things."
         volume = self.volume_api.create(context, size, name, description)
         # TODO(rnirmal): change mount point if needed
         self.attach_volume(context, instance_id, volume.id, "/")
