@@ -33,3 +33,4 @@ contrib/tty.tgz
 *.sqlite
 vagrantup.*
 .apitoken
+integration/vagrant/common/ssh/id_rsa*
