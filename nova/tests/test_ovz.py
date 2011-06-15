@@ -1,24 +1,12 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#import eventlet
 import mox
-#import os
-#import re
-#import sys
 
-#from nova import context
-#from nova import db
 from nova import exception
 from nova import flags
 from nova import test
-#from nova import utils
-#from nova.api.ec2 import cloud
-#from nova.auth import manager
-#from nova.compute import manager as compute_manager
 from nova.compute import power_state
-#from nova.db.sqlalchemy import models
 from nova.virt import openvz_conn
-#from nose.tools import raises
 
 FLAGS = flags.FLAGS
 
@@ -86,6 +74,19 @@ Hugepagesize:       2048 kB
 DirectMap4k:        8128 kB
 DirectMap2M:      516096 kB
 """
+
+utility = {
+    'CTIDS': {
+        1: {
+
+        }
+    },
+    'UTILITY': 10000,
+    'TOTAL': 1000,
+    'UNITS': 100000,
+    'MEMORY_MB': 512000,
+    'CPULIMIT': 2400
+}
 
 class OpenVzConnTestCase(test.TestCase):
     def setUp(self):
@@ -401,13 +402,10 @@ class OpenVzConnTestCase(test.TestCase):
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg()).AndReturn(('',''))
         conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(mox.IgnoreArg()).MultipleTimes().AndReturn(.5)
         self.mox.StubOutWithMock(conn, 'utility')
-        conn.utility = {
-            'UNITS': 50000,
-            'TOTAL': 30000,
-            'CTIDS': {},
-            'MEMORY_MB': 32768
-        }
+        conn.utility = utility
         self.mox.ReplayAll()
         self.assertTrue(conn._set_cpuunits(test_instance))
 
@@ -422,13 +420,10 @@ class OpenVzConnTestCase(test.TestCase):
                                   mox.IgnoreArg()).AndRaise(
             exception.ProcessExecutionError)
         conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(mox.IgnoreArg()).MultipleTimes().AndReturn(.5)
         self.mox.StubOutWithMock(conn, 'utility')
-        conn.utility = {
-            'UNITS': 50000,
-            'TOTAL': 30000,
-            'CTIDS': {},
-            'MEMORY_MB': 32768
-        }
+        conn.utility = utility
         self.mox.ReplayAll()
         self.assertRaises(exception.Error, conn._set_cpuunits, test_instance)
 
@@ -441,8 +436,12 @@ class OpenVzConnTestCase(test.TestCase):
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg()).AndReturn(('',''))
-        self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(mox.IgnoreArg()).AndReturn(.5)
+        self.mox.StubOutWithMock(conn, 'utility')
+        conn.utility = utility
+        self.mox.ReplayAll()
         self.assertTrue(conn._set_cpulimit(test_instance))
 
     def test_set_cpulimit_failure(self):
@@ -455,8 +454,12 @@ class OpenVzConnTestCase(test.TestCase):
                                   mox.IgnoreArg(),
                                   mox.IgnoreArg()).AndRaise(
             exception.ProcessExecutionError)
-        self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(mox.IgnoreArg()).AndReturn(.5)
+        self.mox.StubOutWithMock(conn, 'utility')
+        conn.utility = utility
+        self.mox.ReplayAll()
         self.assertRaises(exception.Error, conn._set_cpulimit, test_instance)
 
     def test_set_cpus_success(self):
@@ -506,12 +509,7 @@ class OpenVzConnTestCase(test.TestCase):
     def test_percent_of_resource(self):
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, 'utility')
-        conn.utility = {
-            'UNITS': 50000,
-            'TOTAL': 30000,
-            'CTIDS': {},
-            'MEMORY_MB': 32768
-        }
+        conn.utility = utility
         self.mox.ReplayAll()
         self.assertEqual(float, type(conn._percent_of_resource(test_instance)))
 
