@@ -264,6 +264,10 @@ class ComputeManager(manager.SchedulerDependentManager):
         name = "Volume"
         description = "A volume used for computing things."
         volume = self.volume_api.create(context, size, name, description)
+        #TODO(tim.simpson): This may not be able to be the self.host name.
+        # Needs to be something that can identify the compute node.
+        self.volume_api.add_to_compute(context, volume["id"], self.host)
+
         # TODO(rnirmal): change mount point if needed
         self.attach_volume(context, instance_id, volume.id, "/")
 

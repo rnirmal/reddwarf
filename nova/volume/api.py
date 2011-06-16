@@ -39,6 +39,14 @@ LOG = logging.getLogger('nova.volume')
 class API(base.Base):
     """API for interacting with the volume manager."""
 
+    def add_to_compute(self, context, volume_id, host):
+        rpc.cast(context,
+                 FLAGS.scheduler_topic,
+                 {"method": "assign_volume",
+                  "args": {"topic": FLAGS.volume_topic,
+                           "volume_id": volume_id,
+                           "host": host}})
+
     def create(self, context, size, name, description):
         if quota.allowed_volumes(context, 1, size) < 1:
             pid = context.project_id

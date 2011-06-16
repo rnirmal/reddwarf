@@ -90,6 +90,10 @@ class VolumeManager(manager.SchedulerDependentManager):
             else:
                 LOG.info(_("volume %s: skipping export"), volume['name'])
 
+    def assign_volume(self, context, volume_id, host):
+        """Assigns a created volume to a host (usually a compute node)."""
+        pass
+
     def create_volume(self, context, volume_id):
         """Creates and exports the volume."""
         context = context.elevated()
