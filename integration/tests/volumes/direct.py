@@ -17,12 +17,8 @@ from proboscis.decorators import time_out
 from tests import initialize
 from tests.volumes import VOLUMES_DIRECT
 from tests.util import test_config
-from tests.util import wait_for_condition
-
-# Add volume
-# Check for volume by connecting to it
-# delete volume
-# check its gone
+from tests.util import poll_until
+from nova.volume.san import ISCSILiteDriver
 
 
 class StoryDetails(object):
@@ -130,7 +126,18 @@ class AfterVolumeIsAdded(VolumeTest):
 @test(groups=VOLUMES_DIRECT, depends_on_classes=[AfterVolumeIsAdded])
 class FormatVolume(VolumeTest):
 
-    def test_format(self):
+    @expect_exception(IOError)
+    def test_10_should_raise_IOError_if_format_fails(self):
+        class BadFormatter(ISCSILiteDriver):
+
+            def _format(self, device_path):
+                pass
+
+        bad_client = volume.Client(volume_driver=BadFormatter())
+        bad_client.format(self.story.device_path)
+
+
+    def test_20_format(self):
         self.assertNotEqual(None, self.story.device_path)
         self.story.client.format(self.story.device_path)
 

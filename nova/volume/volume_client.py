@@ -21,6 +21,7 @@ from nova import flags
 from nova import log as logging
 from nova import utils
 
+
 LOG = logging.getLogger("nova.volume.volume_client")
 FLAGS = flags.FLAGS
 flags.DEFINE_string('volume_option', 'raw',
@@ -39,7 +40,11 @@ class VolumeClient(object):
 
     def __init__(self, volume_driver=FLAGS.volume_driver):
         # Add a driver
-        self.driver = utils.import_object(volume_driver)
+        if isinstance(volume_driver, basestring):
+            self.driver = utils.import_object(volume_driver)
+        else:
+            self.driver = volume_driver
+        self.driver.db = self.db
         if FLAGS.volume_option not in VOLUME_OPTIONS:
             raise ValueError("'%s' is not a valid volume_option"
                                     % FLAGS.volume_type)

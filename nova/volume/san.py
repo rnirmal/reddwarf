@@ -544,14 +544,26 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
         self._cliq_run_xml("deleteVolume", cliq_args)
 
+    def _check_format(self, device_path):
+        """Checks that an unmounted volume is formatted."""
+        child = pexpect.spawn("sudo e2fsck %s" % device_path)
+        try:
+            child.expect(""": clean, [0-9]+/[0-9]+ files, [0-9]+/[0-9]+ blocks""")
+        except pexpect.EOF:
+            raise IOError("Volume was not formatted.")
+        child.expect(pexpect.EOF)
 
-    def format(self, dev_path):
-        child = pexpect.spawn("sudo mkfs -t ext3 %s" % dev_path)
-        #child.expect(".+?is entire device, not just one partition!")
+    def _format(self, device_path):
+        """Calls mkfs to format the device path as ext3."""
+        child = pexpect.spawn("sudo mkfs -t ext3 %s" % device_path)
         child.expect("(y,n)")
         child.sendline('y')
         child.expect(pexpect.EOF)
-        #TODO(tim.simpson): Add call to e2fsck to assert success. 
+
+    def format(self, device_path):
+        """Formats the device_path to ext3 and checks the filesystem."""
+        self._format(device_path)
+        self._check_format(device_path)
 
     def mount(self, dev_path, mount_point):
         if not os.path.exists(mount_point):
