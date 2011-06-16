@@ -544,6 +544,22 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
         self._cliq_run_xml("deleteVolume", cliq_args)
 
+
+    def format(self, dev_path):
+        child = pexpect.spawn("sudo mkfs -t ext3 %s" % dev_path)
+        #child.expect(".+?is entire device, not just one partition!")
+        child.expect("(y,n)")
+        child.sendline('y')
+        child.expect(pexpect.EOF)
+        #TODO(tim.simpson): Add call to e2fsck to assert success. 
+
+    def mount(self, dev_path, mount_point):
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+        cmd = "sudo mount -t ext3 %s %s" % (dev_path, mount_point)
+        child = pexpect.spawn(cmd)
+        child.expect(pexpect.EOF)
+
     def local_path(self, volume):
         # TODO(justinsb): Is this needed here?
         raise exception.Error(_("local_path not supported"))

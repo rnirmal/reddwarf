@@ -61,11 +61,11 @@ class VolumeClient(object):
 
     def format(self, device_path):
         """Format the specified device"""
-        pass
+        self.driver.format(device_path)
 
     def mount(self, device_path, mount_point):
         """Mount the specified device at the mount point"""
-        pass
+        self.driver.mount(device_path, mount_point)
 
     def unmount(self, mount_point):
         """Unmount the filesystem at the mount point."""

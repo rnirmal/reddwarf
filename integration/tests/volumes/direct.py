@@ -1,6 +1,7 @@
 
 from numbers import Number
 import os
+import shutil
 import time
 import unittest
 
@@ -75,7 +76,7 @@ class SetUp(VolumeTest):
         global story
         story = StoryDetails()
         if os.path.exists(LOCAL_MOUNT_PATH):
-            os.rmdir(LOCAL_MOUNT_PATH)
+            shutil.rmtree(LOCAL_MOUNT_PATH)
         os.mkdir(LOCAL_MOUNT_PATH)
         # Give some time for the services to startup
         time.sleep(10)
