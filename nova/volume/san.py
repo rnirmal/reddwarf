@@ -546,9 +546,12 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
     def _check_format(self, device_path):
         """Checks that an unmounted volume is formatted."""
-        child = pexpect.spawn("sudo e2fsck %s" % device_path)
+        child = pexpect.spawn("sudo dumpe2fs %s" % device_path)
         try:
-            child.expect(""": clean, [0-9]+/[0-9]+ files, [0-9]+/[0-9]+ blocks""")
+            i = child.expect(['has_journal', 'Wrong magic number'])
+            if i == 0:
+                return
+            raise IOError('The formatted device did not seem to be an ext3 fs.')
         except pexpect.EOF:
             raise IOError("Volume was not formatted.")
         child.expect(pexpect.EOF)
