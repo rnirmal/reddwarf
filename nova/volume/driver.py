@@ -82,6 +82,11 @@ class VolumeDriver(object):
                                 "Try number %s"), tries)
                 time.sleep(tries ** 2)
 
+    def check_for_client_setup_error(self):
+        """Returns and error if the client is not setup properly to
+         talk to the specific volume management service."""
+        pass
+
     def check_for_setup_error(self):
         """Returns an error if prerequisites aren't met"""
         out, err = self._execute('sudo', 'vgs', '--noheadings', '-o', 'name')
@@ -280,6 +285,16 @@ class ISCSIDriver(VolumeDriver):
                        '<auth method> <auth username> <auth password>'.
                        `CHAP` is the only auth_method in use at the moment.
     """
+
+    def check_for_client_setup_error(self):
+        """Returns an error if the client is not setup properly to
+         talk to the iscsi target server."""
+        try:
+            self._execute("sudo", "iscsiadm", "-m", "discovery",
+                          "-t", "st", "-p", FLAGS.san_ip)
+        except exception.ProcessExecutionError as err:
+            LOG.fatal("Error initializing the volume client: %s" % err)
+            raise exception.VolumeServiceUnavailable()
 
     def ensure_export(self, context, volume):
         """Synchronously recreates an export for a logical volume."""
@@ -528,6 +543,10 @@ class FakeISCSIDriver(ISCSIDriver):
         super(FakeISCSIDriver, self).__init__(execute=self.fake_execute,
                                               sync_exec=self.fake_execute,
                                               *args, **kwargs)
+
+    def check_for_client_setup_error(self):
+        """No client check necessary """
+        pass
 
     def check_for_setup_error(self):
         """No setup necessary in fake mode."""

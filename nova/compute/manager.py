@@ -56,7 +56,6 @@ from nova import utils
 from nova import volume
 from nova.compute import power_state
 from nova.virt import driver
-from nova.volume import volume_client
 
 
 FLAGS = flags.FLAGS
@@ -136,7 +135,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         self.volume_manager = utils.import_object(FLAGS.volume_manager)
         self.network_api = network.API()
         self.volume_api = volume.API()
-        self.volume_client = utils.import_object(FLAGS.volume_driver)
+        self.volume_client = volume.Client()
         self._last_host_check = 0
         super(ComputeManager, self).__init__(service_name="compute",
                                              *args, **kwargs)

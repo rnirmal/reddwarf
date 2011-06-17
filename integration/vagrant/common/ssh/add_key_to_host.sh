@@ -6,5 +6,6 @@ then
 fi
 cp /vagrant-common/ssh/id_rsa.pub /home/vagrant/.ssh/id_rsa.pub
 cp /vagrant-common/ssh/id_rsa /home/vagrant/.ssh/id_rsa
+sudo mkdir /root/.ssh
 sudo cp /vagrant-common/ssh/id_rsa.pub /root/.ssh/id_rsa.pub
 sudo cp /vagrant-common/ssh/id_rsa.pub /root/.ssh/id_rsa

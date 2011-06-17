@@ -49,6 +49,7 @@ class VolumeClient(object):
             raise ValueError("'%s' is not a valid volume_option"
                                     % FLAGS.volume_type)
         self.option = VOLUME_OPTIONS[FLAGS.volume_option]
+        self.driver.check_for_client_setup_error()
 
     def setup_volume(self, context, volume_id):
         """Setup remote volume on compute host.
