@@ -100,6 +100,12 @@ class OpenVzConnection(driver.ComputeDriver):
             if state != power_state.RUNNING:
                 continue
 
+        LOG.debug("Determining the computing power of the host")
+
+        self._get_cpuunits_capability()
+        self._get_cpulimit()
+        self._get_memory()
+
         LOG.debug("init_host complete in OpenVzConnection")
 
     def list_instances(self):
@@ -182,9 +188,7 @@ class OpenVzConnection(driver.ComputeDriver):
         LOG.debug('instance %s: is launching' % instance['name'])
 
         # Get current usages and resource availablity.
-        self._get_cpuunits()
-        self._get_cpulimit()
-        self._get_memory()
+        self._get_cpuunits_usage()
 
         # Go through the steps of creating a container
         # TODO(imsplitbit): Need to add conditionals around this stuff to make
@@ -1068,10 +1072,11 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error('Cannot get host node cpulimit')
             LOG.error(err)
             raise exception.Error(err)
-
-    def _get_cpuunits(self):
+    
+    def _get_cpuunits_capability(self):
         """
-        Getting usage and overall cpu processing power from host node
+        Use openvz tools to discover the total processing capability of the
+        host node.  This is done using the vzcpucheck utility.
         """
         try:
             out, err = utils.execute('sudo', 'vzcpucheck')
@@ -1084,16 +1089,35 @@ class OpenVzConnection(driver.ComputeDriver):
                     if line[0] == 'Power':
                         LOG.debug('Power of host: %s' % (line[4],))
                         self.utility['UNITS'] = int(line[4])
-                    elif line[0] == 'Current':
+
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Problem getting cpuunits for host')
+
+        return True
+
+    def _get_cpuunits_usage(self):
+        """
+        Use openvz tools to discover the total used processing power. This is
+        done using the vzcpucheck -v command.
+        """
+        try:
+            out, err = utils.execute('sudo', 'vzcpucheck', '-v')
+            if err:
+                LOG.error(err)
+
+            for line in out.splitlines():
+                line = line.split()
+                if len(line) > 0:
+                    if line[0] == 'Current':
                         LOG.debug('Current usage of host: %s' % (line[3],))
                         self.utility['TOTAL'] = int(line[3])
                     elif line[0].isdigit():
                         LOG.debug('Usage for CTID %s: %s' % (line[0], line[1]))
                         self.utility['CTIDS'][line[0]] = line[1]
-                
+
         except ProcessExecutionError as err:
             LOG.error(err)
-            exception.Error('Problem getting cpuunits for host')
+            raise exception.Error('Problem getting cpuunits for host')
 
         return True
-    

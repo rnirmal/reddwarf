@@ -498,13 +498,13 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertEqual(conn._calc_pages(test_instance), 1048576)
 
-    def test_get_cpuunits_success(self):
+    def test_get_cpuunits_capability_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute(mox.IgnoreArg(),
                                   mox.IgnoreArg()).AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._get_cpuunits())
+        self.assertTrue(conn._get_cpuunits_capability())
 
     def test_percent_of_resource(self):
         conn = openvz_conn.OpenVzConnection(False)
