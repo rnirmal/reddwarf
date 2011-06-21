@@ -56,7 +56,7 @@ class Controller(common.DBaaSController):
     _serialization_metadata = {
         'application/xml': {
             "attributes": {
-                "dbcontainer": ["id", "name", "status", "flavorRef"],
+                "dbcontainer": ["id", "name", "status", "flavorRef", "rootEnabled"],
                 "dbtype": ["name", "version"],
                 "link": ["rel", "type", "href"],
             },
@@ -105,6 +105,17 @@ class Controller(common.DBaaSController):
             except InstanceNotFound:
                 # we set the state to shutdown if not found
                 container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
+            # If we can't determine if root is enabled for whatever reason,
+            # including if the container isn't ACTIVE, rootEnabled isn't
+            # available.
+            running = _dbaas_mapping[power_state.RUNNING]
+            if container['status'] == running:
+                try:
+                    ctxt = req.environ['nova.context']
+                    result = self.guest_api.is_root_enabled(ctxt, container['id'])
+                    container['rootEnabled'] = result
+                except Exception, e:
+                    raise e
         return resp
 
     def show(self, req, id):
@@ -122,6 +133,19 @@ class Controller(common.DBaaSController):
         except InstanceNotFound:
             # we set the state to shutdown if not found
             resp['dbcontainer']['status']  = _dbaas_mapping[power_state.SHUTDOWN]
+        # If we can't determine if root is enabled for whatever reason,
+        # including if the container isn't ACTIVE, rootEnabled isn't
+        # available.
+        LOG.debug("DBcont status: %s" % power_state.RUNNING)
+        running = _dbaas_mapping[power_state.RUNNING]
+        if resp['dbcontainer']['status'] == running:
+            try:
+                ctxt = req.environ['nova.context']
+                result = self.guest_api.is_root_enabled(ctxt, id)
+                LOG.debug("DBcont root: %s" % result)
+                resp['dbcontainer']['rootEnabled'] = result
+            except Exception, e:
+                raise e
         return resp
 
     def delete(self, req, id):

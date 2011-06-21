@@ -82,7 +82,6 @@ class Controller(common.DBaaSController):
 
         try:
             result = self.guest_api.is_root_enabled(ctxt, dbcontainer_id)
-            LOG.debug("ZED: result is %s" % result)
             return {'root_enabled': result}
         except Exception as err:
             LOG.error(err)
