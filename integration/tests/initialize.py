@@ -36,8 +36,11 @@ success_statuses = ["build", "active"]
 def dbaas_url():
     return str(test_config.values.get("dbaas_url"))
 
-def glance_conf():
-    return str(test_config.values.get("glance_conf"))
+def glance_api_conf():
+    return str(test_config.values.get("glance_api_conf"))
+
+def glance_reg_conf():
+    return str(test_config.values.get("glance_reg_conf"))
 
 def nova_conf():
     return str(test_config.values.get("nova_conf"))
@@ -58,7 +61,7 @@ class GlanceRegistry(unittest.TestCase):
     def setUp(self):
         self.service = Service(python_cmd_list() +
                                ["%s/bin/glance-registry" % glance_code_root(),
-                                glance_conf() ])
+                                glance_reg_conf() ])
 
     def test_start(self):
         if not either_web_service_is_up():
@@ -72,7 +75,7 @@ class GlanceApi(unittest.TestCase):
     def setUp(self):
         self.service = Service(python_cmd_list() +
                                ["%s/bin/glance-api" % glance_code_root(),
-                                glance_conf() ])
+                                glance_api_conf() ])
 
     def test_start(self):
         if not either_web_service_is_up():
