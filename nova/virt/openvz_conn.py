@@ -18,7 +18,9 @@ from nova.network import linux_net
 from nova.compute import power_state
 from nova.compute import instance_types
 from nova.exception import ProcessExecutionError
-from nova.virt import disk
+# Commenting out as we aren't using this yet and I don't want to pollute
+# namespace.  This is being left in because we *will* at some point use it.
+#from nova.virt import disk
 from nova.virt import images
 from nova.virt import driver
 
@@ -38,6 +40,15 @@ flags.DEFINE_string('ovz_bridge_device',
 flags.DEFINE_string('ovz_network_template',
                     utils.abspath('virt/openvz_interfaces.template'),
                     'OpenVz network interface template file')
+flags.DEFINE_string('ovz_use_cpuunit',
+                    True,
+                    'Use OpenVz cpuunits for guaranteed minimums')
+flags.DEFINE_string('ovz_use_cpulimit',
+                    True,
+                    'Use OpenVz cpulimit for maximum cpu limits')
+flags.DEFINE_string('ovz_use_cpus',
+                    True,
+                    'Use OpenVz cpus for maximum cpus available to the container')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -46,7 +57,15 @@ def get_connection(read_only):
 
 class OpenVzConnection(driver.ComputeDriver):
     def __init__(self, read_only):
+        self.utility = {
+                'CTIDS': {},
+                'TOTAL': 0,
+                'UNITS': 0,
+                'MEMORY_MB': 0,
+                'CPULIMIT': 0
+            }
         self.read_only = read_only
+        LOG.debug("__init__ complete in OpenVzConnection")
 
     @classmethod
     def instance(cls):
@@ -80,6 +99,14 @@ class OpenVzConnection(driver.ComputeDriver):
 
             if state != power_state.RUNNING:
                 continue
+
+        LOG.debug("Determining the computing power of the host")
+
+        self._get_cpuunits_capability()
+        self._get_cpulimit()
+        self._get_memory()
+
+        LOG.debug("init_host complete in OpenVzConnection")
 
     def list_instances(self):
         """
@@ -160,6 +187,9 @@ class OpenVzConnection(driver.ComputeDriver):
                               'launching')
         LOG.debug('instance %s: is launching' % instance['name'])
 
+        # Get current usages and resource availablity.
+        self._get_cpuunits_usage()
+
         # Go through the steps of creating a container
         # TODO(imsplitbit): Need to add conditionals around this stuff to make
         # it more durable during failure. And roll back changes made leading
@@ -173,6 +203,16 @@ class OpenVzConnection(driver.ComputeDriver):
         self._add_ip(instance)
         self._set_hostname(instance)
         self._set_nameserver(instance)
+        self._set_vmguarpages(instance)
+        self._set_privvmpages(instance)
+        
+        if FLAGS.ovz_use_cpuunit:
+            self._set_cpuunits(instance)
+        if FLAGS.ovz_use_cpulimit:
+            self._set_cpulimit(instance)
+        if FLAGS.ovz_use_cpus:
+            self._set_cpus(instance)
+        
         self._start(instance)
         self._initial_secure_host(instance)
         
@@ -319,8 +359,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Update instance state
         try:
-            db.instance_set_state(context.get_admin_context(),
-                                  instance['id'],
+            db.instance_set_state(context.get_admin_context(), instance['id'],
                                   power_state.SHUTDOWN)
         except exception.DBError as err:
             LOG.error(err)
@@ -358,6 +397,8 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error(
                     'Error adding network device to container %s' %
                     instance['id'])
+
+        return True
 
     def _add_ip(self, instance, netif='eth0',
                 if_file='etc/network/interfaces'):
@@ -550,7 +591,7 @@ class OpenVzConnection(driver.ComputeDriver):
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error("Cannot set vmguarpages for %s" %
-                                  instance[id])
+                                  instance['id'])
         return True
 
     def _set_privvmpages(self, instance):
@@ -572,6 +613,94 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error("Cannot set privvmpages for %s" %
                                   instance['id'])
         return True
+
+    def _set_cpuunits(self, instance, units=None):
+        """
+        Set the cpuunits setting for the container.  This is an integer
+        representing the number of cpu fair scheduling counters that the
+        container has access to during one complete cycle.
+        """
+        if not units:
+            LOG.debug("Reported cpuunits %s" % self.utility['UNITS'])
+            LOG.debug("Reported percent of resource: %s" %
+                      self._percent_of_resource(instance))
+            units = int(self.utility['UNITS'] *
+                        self._percent_of_resource(instance))
+            # TODO(imsplitbit): This needs to be adjusted to not allow
+            # subscription of more than available cpuunits.  For now we
+            # won't let the obvious case of a container getting more than
+            # the maximum cpuunits for the host.
+            if units > self.utility['UNITS']:
+                units = self.utility['UNITS']
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--cpuunits', units)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Cannot set cpuunits for %s' %
+                                  (instance['id'],))
+        return True
+
+    def _set_cpulimit(self, instance, cpulimit=None):
+        """
+        This is a number in % equal to the amount of cpu processing power
+        the container gets.  NOTE: 100% is 1 logical cpu so if you have 12
+        cores with hyperthreading enabled then 100% of the whole host machine
+        would be 2400% or --cpulimit 2400.
+        """
+
+        if not cpulimit:
+            cpulimit = int(self.utility['CPULIMIT'] *
+                           self._percent_of_resource(instance))
+            # TODO(imsplitbit): Need to fix this so that we don't alocate
+            # more than the current available resource limits.  This shouldn't
+            # happen except in test cases but we should still protect
+            # ourselves from it.  For now we just won't let it go higher
+            # than the maximum cpulimit for the host on any one container.
+            if cpulimit > self.utility['CPULIMIT']:
+                cpulimit = self.utility['CPULIMIT']
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--cpulimit', cpulimit)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Unable to set cpulimit for %s' %
+                                  (instance['id'],))
+        return True
+
+    def _set_cpus(self, instance, cpus=None, multiplier=2):
+        """
+        The number of logical cpus that are made available to the container.
+        """
+
+        if not cpus:
+            inst_typ = instance_types.get_instance_type(
+                instance['instance_type_id']
+            )
+            cpus = int(inst_typ['vcpus']) * multiplier
+            # TODO(imsplitbit): We need to fix this to not allow allocation of
+            # more than the maximum allowed cpus on the host.
+            if cpus > (self.utility['CPULIMIT'] / 100):
+                cpus = self.utility['CPULIMIT'] / 100
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--cpus', cpus)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Unable to set cpus for %s' %
+                                  (instance['id'],))
+        return True
+
+            
 
     def snapshot(self, instance, name):
         """
@@ -637,25 +766,25 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Pause the specified instance.
         """
-        pass
+        self._stop(instance)
 
     def unpause(self, instance, callback):
         """
         Unpause the specified instance.
         """
-        pass
+        self._start(instance)
 
     def suspend(self, instance, callback):
         """
         suspend the specified instance
         """
-        pass
+        self._stop(instance)
 
     def resume(self, instance, callback):
         """
         resume the specified instance
         """
-        self._start(instance['id'])
+        self._start(instance)
 
     def destroy(self, instance):
         """
@@ -875,4 +1004,120 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         instance_type = instance_types.get_instance_type(
             instance['instance_type_id'])
-        return (((int(instance_type['memory_mb']) * 1024) * 1024) / block_size)
+        return ((int(instance_type['memory_mb']) * 1024) * 1024) / block_size
+
+    def _percent_of_resource(self, instance):
+        """
+        In order to evenly distribute resources this method will calculate a
+        multiplier based on memory consumption for the allocated container and
+        the overall host memory. This can then be applied to the cpuunits in
+        self.utility to be passed as an argument to the self._set_cpuunits
+        method to limit cpu usage of the container to an accurate percentage of
+        the host.  This is only done on self.spawn so that later, should someone
+        choose to do so, they can adjust the container's cpu usage up or down.
+        """
+        instance_type = instance_types.get_instance_type(
+            instance['instance_type_id'])
+        cont_mem_mb = float(instance_type['memory_mb']) / \
+                      float(self.utility['MEMORY_MB'])
+        return cont_mem_mb
+    
+    def _get_memory(self):
+        """
+        Gets the overall memory capacity of the host machine to be able to
+        accurately compute how many cpuunits a container should get.  This is
+        Linux specific code but because OpenVz only runs on linux this really
+        isn't a problem.
+        """
+        try:
+            out, err = utils.execute('sudo', 'cat', '/proc/meminfo')
+            if err:
+                LOG.error(err)
+            for line in out.splitlines():
+                line = line.split()
+                if line[0] == 'MemTotal:':
+                    LOG.debug('Total memory for host %s MB' % (line[1],))
+                    self.utility['MEMORY_MB'] = int(line[1]) / 1024
+            return True
+        
+        except ProcessExecutionError as err:
+            LOG.error('Cannot get memory info for host')
+            LOG.error(err)
+            raise exception.Error('Cannot get memory info for host')
+
+    def _get_cpulimit(self):
+        """
+        Fetch the total possible cpu processing limit in percentage to be
+        divided up across all containers.  This is expressed in percentage
+        being added up by logical processor.  If there are 24 logical
+        processors then the total cpulimit for the host node will be
+        2400.
+        """
+        proc_count = 0
+        try:
+            out, err = utils.execute('sudo', 'cat', '/proc/cpuinfo')
+            if err:
+                LOG.error(err)
+
+            for line in out.splitlines():
+                line = line.split()
+                if len(line) > 0:
+                    if line[0] == 'processor':
+                        proc_count += 1
+
+            self.utility['CPULIMIT'] = proc_count * 100
+            return True
+
+        except ProcessExecutionError as err:
+            LOG.error('Cannot get host node cpulimit')
+            LOG.error(err)
+            raise exception.Error(err)
+    
+    def _get_cpuunits_capability(self):
+        """
+        Use openvz tools to discover the total processing capability of the
+        host node.  This is done using the vzcpucheck utility.
+        """
+        try:
+            out, err = utils.execute('sudo', 'vzcpucheck')
+            if err:
+                LOG.error(err)
+
+            for line in out.splitlines():
+                line = line.split()
+                if len(line) > 0:
+                    if line[0] == 'Power':
+                        LOG.debug('Power of host: %s' % (line[4],))
+                        self.utility['UNITS'] = int(line[4])
+
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Problem getting cpuunits for host')
+
+        return True
+
+    def _get_cpuunits_usage(self):
+        """
+        Use openvz tools to discover the total used processing power. This is
+        done using the vzcpucheck -v command.
+        """
+        try:
+            out, err = utils.execute('sudo', 'vzcpucheck', '-v')
+            if err:
+                LOG.error(err)
+
+            for line in out.splitlines():
+                line = line.split()
+                if len(line) > 0:
+                    if line[0] == 'Current':
+                        LOG.debug('Current usage of host: %s' % (line[3],))
+                        self.utility['TOTAL'] = int(line[3])
+                    elif line[0].isdigit():
+                        LOG.debug('Usage for CTID %s: %s' % (line[0], line[1]))
+                        self.utility['CTIDS'][line[0]] = line[1]
+
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Problem getting cpuunits for host')
+
+        return True

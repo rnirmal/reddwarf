@@ -46,6 +46,9 @@ class Controller(common.DBaaSController):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
+    def show(self, req, dbcontainer_id, id):
+        return faults.Fault(exc.HTTPNotImplemented())
+    
     def index(self, req, dbcontainer_id):
         """ Returns a list database users for the db container """
         LOG.info("Call to Users index - %s", dbcontainer_id)
