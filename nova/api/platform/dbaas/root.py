@@ -71,3 +71,19 @@ class Controller(common.DBaaSController):
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error enabling the root password")
+
+    def is_root_enabled(self, req, dbcontainer_id):
+        """ Returns True if root is enabled for the given container;
+            False otherwise. """
+        LOG.info("Call to is_root_enabled for container %s", dbcontainer_id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        ctxt = req.environ['nova.context']
+        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+
+        try:
+            result = self.guest_api.is_root_enabled(ctxt, dbcontainer_id)
+            LOG.debug("ZED: result is %s" % result)
+            return {'root_enabled': result}
+        except Exception as err:
+            LOG.error(err)
+            return exc.HTTPError("Error determining root access")

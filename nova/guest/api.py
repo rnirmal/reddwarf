@@ -102,6 +102,13 @@ class API(base.Base):
         return rpc.call(context, self._get_routing_key(id),
                  {"method": "disable_root"})
 
+    def is_root_enabled(self, context, id):
+        """Make an asynchronous call to check if root access is
+           available for the container"""
+        LOG.debug("Check root access for DBContainer %s", id)
+        return rpc.call(context, self._get_routing_key(id),
+                 {"method": "is_root_enabled"})
+
     def prepare(self, context, id, databases):
         """Make an asynchronous call to prepare the guest
            as a database container"""

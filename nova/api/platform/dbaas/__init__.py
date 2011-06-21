@@ -100,5 +100,8 @@ class APIRouter(wsgi.Router):
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
                        controller=root.Controller(),
                        action="delete", conditions=dict(method=["DELETE"]))
+        mapper.connect("/dbcontainers/{dbcontainer_id}/root",
+                       controller=root.Controller(),
+                       action="is_root_enabled", conditions=dict(method=["GET"]))
 
         super(APIRouter, self).__init__(mapper)

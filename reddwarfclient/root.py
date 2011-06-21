@@ -33,6 +33,13 @@ class Root(base.ManagerWithFind):
         return body['user']['name'], body['user']['password']
 
     def delete(self, dbcontainer_id):
-        """Disable the root user for the sepcified db container"""
+        """Disable the root user for the specified db container"""
         url = "/dbcontainers/%s/root" % dbcontainer_id
         self._delete(url)
+
+    def is_root_enabled(self, dbcontainer_id):
+        """ Return True if root is enabled for the container;
+            False otherwise""" 
+        url = "/dbcontainers/%s/root" % dbcontainer_id
+        resp, body = self.api.client.get(url)
+        return body['root_enabled']

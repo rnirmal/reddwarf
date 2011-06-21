@@ -14,6 +14,7 @@ from nova.guest.dbaas import LocalSqlClient
 from novaclient.exceptions import NotFound
 from proboscis import test
 from proboscis.decorators import expect_exception
+from proboscis.decorators import time_out
 from tests.dbaas.containers import container_info
 from tests.dbaas.containers import GROUP_START
 from tests.dbaas.containers import GROUP_TEST
@@ -64,6 +65,7 @@ class TestMysqlAccess(unittest.TestCase):
         else:
             raise RuntimeError(err)
 
+    @time_out(60 * 2)
     def test_mysql_admin(self):
         while True:
             mysqld, err = process("pstree -a %s | grep mysqld" % container_info.pid)
@@ -257,11 +259,29 @@ class TestUsers(unittest.TestCase):
                 self.assertEquals(host, row['Host'])
         root_password = password
 
+    def test_disabled_root(self):
+        """Test that root is disabled"""
+        global dbaas
+        enabled = dbaas.root.is_root_enabled(container_info.id)
+        self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
+
     def test_enable_root(self):
         self._root()
 
+    def test_enable_root_post(self):
+        """Test that root is now enabled."""
+        global dbaas
+        enabled = dbaas.root.is_root_enabled(container_info.id)
+        self.assertTrue(enabled, "Root SHOULD be enabled.")
+
     def test_reset_root(self):
         self._root()
+
+    def test_reset_root_still_enabled(self):
+        """Test that after root was reset it's still enabled."""
+        global dbaas
+        enabled = dbaas.root.is_root_enabled(container_info.id)
+        self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_reset_root_user_enabled(self):
         created_users= ['root']
@@ -279,7 +299,6 @@ class TestUsers(unittest.TestCase):
             self.assertFalse(found, "User '%s' SHOULD NOT BE found in result" %user)
             found = False
 
-
     def test_zdisable_root(self):
         global dbaas
         global root_password
@@ -296,3 +315,9 @@ class TestUsers(unittest.TestCase):
             self.fail("Should have raised exception.")
         except:
             pass
+
+    def test_zdisabled_root(self):
+        """Test that after root is disabled, it is now disabled."""
+        global dbaas
+        enabled = dbaas.root.is_root_enabled(container_info.id)
+        self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
