@@ -31,6 +31,7 @@ class StoryDetails(object):
         self.volume_id = None
         self.volume_name = None
         self.volume = None
+        self.host = "vagrant-host"
 
     @property
     def mount_point(self):
@@ -72,6 +73,7 @@ class SetUp(VolumeTest):
         global story
         story = StoryDetails()
         if os.path.exists(LOCAL_MOUNT_PATH):
+            #TODO(rnirmal): Also need to remove any existing mounts.
             shutil.rmtree(LOCAL_MOUNT_PATH)
         os.mkdir(LOCAL_MOUNT_PATH)
         # Give some time for the services to startup
@@ -115,6 +117,16 @@ class AfterVolumeIsAdded(VolumeTest):
         self.assertTrue(volume["attach_status"], "detached")
 
 
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[AfterVolumeIsAdded])
+class SetupVolume(VolumeTest):
+
+    def test_assign_volume(self):
+        self.assertNotEqual(None, self.story.volume_id)
+        self.story.api.add_to_compute(self.story.context, self.story.volume_id,
+                                      self.story.host)
+        # TODO(rnirmal): remove once we fix discover retries
+        time.sleep(5)
+
     def test_setup_volume(self):
         self.assertNotEqual(None, self.story.volume_id)
         device = self.story.client.setup_volume(context.get_admin_context(),
@@ -152,24 +164,28 @@ class MountVolume(VolumeTest):
         self.assertTrue(os.path.exists(self.story.test_mount_file_path))
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[MountVolume])
-class Unmount(VolumeTest):
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[MountVolume])
+class UnmountVolume(VolumeTest):
 
     def test_unmount(self):
         self.story.client.unmount(self.story.mount_point)
-        child = pexpect.spawn("mount %s" % self.story.mount_point)
+        child = pexpect.spawn("sudo mount %s" % self.story.mount_point)
         child.expect("mount: can't find %s in" % self.story.mount_point)
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[Unmount])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[UnmountVolume])
 class RemoveVolume(VolumeTest):
 
     def test_remove(self):
-        self.story.client.remove(context.get_admin_context(),
+        self.story.client.remove_volume(self.story.context,
                                  self.story.volume_id)
         self.assertRaises(Exception,
                           self.story.client.format, self.story.device_path)
 
+    def test_unassign_volume(self):
+        self.assertNotEqual(None, self.story.volume_id)
+        self.story.client.driver.unassign_volume(self.story.volume_id,
+                                      self.story.host)
 
 @test(groups=VOLUMES_DIRECT, depends_on_classes=[RemoveVolume])
 class DeleteVolume(VolumeTest):
@@ -181,14 +197,17 @@ class DeleteVolume(VolumeTest):
 @test(groups=VOLUMES_DIRECT, depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
-    @expect_exception(VolumeNotFound)
-    def test_get_missing_volume(self):
-        self.story.api.get(self.story.volume_id)
-
     @expect_exception(Exception)
-    def test_setup_missing_volume(self):
-        self.story.client.setup_volume(context.get_admin_context(),
-                                       self.story.volume_id)
-
     def test_discover_should_fail(self):
-        self.fail("TODO: Add code to call the driver discover_volume method.")
+        self.story.client.driver.discover_volume(self.story.context,
+                                                self.story.volume)
+
+    @time_out(60)
+    def test_get_missing_volume(self):
+        try:
+            volume = poll_until(lambda : self.story.api.get(self.story.context,
+                                                        self.story.volume_id),
+                            lambda volume : volume["status"] != "deleted")
+            self.assertEqual(volume["deleted"], False)
+        except VolumeNotFound:
+            pass
