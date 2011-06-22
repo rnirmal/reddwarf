@@ -266,7 +266,7 @@ class TestGuestProcess(unittest.TestCase):
         self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
 
 
-@test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START, "dbaas.listing"])
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
     

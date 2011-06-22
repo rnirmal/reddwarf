@@ -55,6 +55,16 @@ def _clean_up():
         sys.stderr.write("Stopping service " + str(service.cmd) + "...\n\r")
         service.stop()
 
+def _log_test_start():
+    from nova import log as logging
+    LOG = logging.getLogger('nova.api.platform.dbaas.dbcontainers')
+    LOG.setLevel(logging.DEBUG)
+    LOG.info("")
+    LOG.info("*" * 80)
+    LOG.info("" * 10 + "Starting test run at ")
+    LOG.info("*" * 80)
+    LOG.info("")
+
 if __name__ == '__main__':
 
     add_support_for_localization()
@@ -89,10 +99,12 @@ if __name__ == '__main__':
 
     from nova import utils
     utils.default_flagfile(str(nova_conf))
-
+    
     from nova import flags
     FLAGS = flags.FLAGS
     FLAGS(sys.argv)
+
+    _log_test_start()
 
     # Now that the FlagFiles and other args have been parsed, time to import
     # everything.

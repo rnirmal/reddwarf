@@ -22,6 +22,7 @@ from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
+from nova import volume
 from nova import utils
 from nova.api.openstack import faults
 from nova.api.openstack import servers
@@ -69,6 +70,7 @@ class Controller(common.DBaaSController):
             utils.import_object(FLAGS.dns_instance_entry_factory)
         self.guest_api = guest_api.API()
         self.server_controller = servers.ControllerV11()
+        self.volume_api = volume.API()
         super(Controller, self).__init__()
 
     def index(self, req):
@@ -144,7 +146,14 @@ class Controller(common.DBaaSController):
         LOG.info("Create Container")
         LOG.debug("%s - %s", req.environ, req.body)
         env, body = self._deserialize_create(req)
-        req.body = str(body)
+
+
+        #TODO(tim.simpson) Check "env" to get volume options specified before
+        #                  modifying the 'body' object with the volume_id.
+        volume = self.create_volume(req);
+        body.add_volume_id(volume['id'])
+
+        req.body = body.serialize_for_create()
 
         self._setup_security_groups(req,
                                     FLAGS.default_firewall_rule_name,
@@ -165,25 +174,34 @@ class Controller(common.DBaaSController):
         self._modify_fields(req, resp['dbcontainer'])
         return resp
 
+    def create_volume(self, req):
+        """Creates the volume for the container and returns its ID."""
+        #TODO(tim.simpson) Make volume create options configurable.
+        context = req.environ['nova.context']
+        return self.volume_api.create(context, size = 1,
+                                      name="Volume",
+                                      description="Stores database files.")
+
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.
 
         Separating this so we could do retries in the future and other processing of
         the result etc.
         """
-        try:
-            server = self.server_controller.create(req)
-            if not server or isinstance(server, faults.Fault):
-                if isinstance(server, faults.Fault):
-                    LOG.error("%s: %s", server.wrapped_exc,
-                              server.wrapped_exc.detail)
-                raise exception.Error("Could not complete the request. " \
-                                      "Please try again later or contact " \
-                                      "Customer Support")
-            return server
-        except (TypeError, AttributeError, KeyError) as e:
-            LOG.error(e)
-            raise exception.Error(exc.HTTPUnprocessableEntity())
+        #try:
+        server = self.server_controller.create(req)
+        if not server or isinstance(server, faults.Fault):
+            if isinstance(server, faults.Fault):
+                LOG.error("%s: %s", server.wrapped_exc,
+                          server.wrapped_exc.detail)
+            raise exception.Error("Could not complete the request. " \
+                                  "Please try again later or contact " \
+                                  "Customer Support")
+        return server
+        #except (TypeError, AttributeError, KeyError) as e:
+         #   raise e
+            #LOG.error(e)
+            #raise exception.Error(exc.HTTPUnprocessableEntity())
 
     def _modify_fields(self, req, response):
         """ Adds and removes the fields from the parent dbcontainer call.
@@ -244,6 +262,10 @@ class Controller(common.DBaaSController):
         """ Deserialize a create request
 
         Overrides normal behavior in the case of xml content
+
+        :retval A dictionary object representing the original request, followed
+                by a SerializableMutableRequest representing 
+                string representing the request deserialized with values changed.
         """
         if request.content_type == "application/xml":
             deser = deserializer.RequestXMLDeserializer()

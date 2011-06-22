@@ -199,7 +199,7 @@ class WaitForTopics(unittest.TestCase):
     """Waits until needed services are up."""
 
     def test_start(self):
-        topics = ["compute"]
+        topics = ["compute", "volume"]
         from tests.util.topics import hosts_up
         while not all(hosts_up(topic) for topic in topics):
             pass

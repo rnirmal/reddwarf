@@ -267,6 +267,10 @@ class VolumeNotFound(NotFound):
     message = _("Volume %(volume_id)s could not be found.")
 
 
+class VolumeProvisioningError(NotFound):
+    message = _("An error occured provisioning volume %(volume_id)s.")
+
+
 class VolumeNotFoundForInstance(VolumeNotFound):
     message = _("Volume not found for instance %(instance_id)s.")
 

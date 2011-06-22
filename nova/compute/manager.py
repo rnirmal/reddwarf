@@ -219,6 +219,29 @@ class ComputeManager(manager.SchedulerDependentManager):
         """
         return self.driver.refresh_security_group_members(security_group_id)
 
+    def get_volume_for_instance_id(self, context, instance_id):
+        """Returns volume for this instance if present or None.
+
+        We're using this to pass volumes.
+
+        """
+        metadata = self.db.instance_metadata_get(context, instance_id)
+        volume_id = metadata['volume_id']
+        volume = None
+        try:
+            return self.db.volume_get(context, volume_id)
+        except exception.VolumeNotFound:
+            return None
+
+    def wait_until_volume_is_ready(self, context, volume):
+        """Sleeps until the given volume has finished provisioning."""
+        while volume.status == "creating":
+            time.sleep(3)
+            LOG.debug("Compute manager is waiting for volume to be ready...")
+            volume = self.db.volume_get(context, volume['id'])
+        if volume['status'] != 'available':
+            raise exception.VolumeProvisioningError(volume_id=volume['id'])
+
     @exception.wrap_exception
     def run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options."""
@@ -257,18 +280,15 @@ class ComputeManager(manager.SchedulerDependentManager):
         # TODO(vish) check to make sure the availability zone matches
         self._update_state(context, instance_id, power_state.BUILDING)
 
-        # Adding the volume creation and attachment before spawning
-        # TODO(rnirmal): populate size, name and description somehow
-        size = 1 #  For now, so the tests will work.
-        name = "Volume"
-        description = "A volume used for computing things."
-        volume = self.volume_api.create(context, size, name, description)
-        #TODO(tim.simpson): This may not be able to be the self.host name.
-        # Needs to be something that can identify the compute node.
-        self.volume_api.add_to_compute(context, volume["id"], self.host)
+        volume = self.get_volume_for_instance_id(context, instance_id)
 
-        # TODO(rnirmal): change mount point if needed
-        self.attach_volume(context, instance_id, volume.id, "/")
+        if volume:
+            self.wait_until_volume_is_ready(context, volume)
+            #TODO(tim.simpson): This may not be able to be the self.host name.
+            # Needs to be something that can identify the compute node.
+            self.volume_api.add_to_compute(context, volume["id"], self.host)
+            # TODO(rnirmal): change mount point if needed
+            self.attach_volume(context, instance_id, volume.id, "/")
 
         try:
             self.driver.spawn(instance_ref)
