@@ -54,8 +54,14 @@ class GuestManager(manager.Manager):
         for guest_driver in guest_drivers:
             driver = utils.import_class(guest_driver)
             classes.append(driver)
-        cls = type("GuestDriver", tuple(classes), {})
-        self.driver = cls()
+        try:
+            cls = type("GuestDriver", tuple(set(classes)), {})
+            self.driver = cls()
+        except TypeError as te:
+            msg = "An issue occurred instantiating the GuestDriver as the " \
+                  "following classes: " + str(classes) + \
+                  " Exception=" + str(te)
+            raise TypeError(msg)
         super(GuestManager, self).__init__(*args, **kwargs)
 
     def init_host(self):

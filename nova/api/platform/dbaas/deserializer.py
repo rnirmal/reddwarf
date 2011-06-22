@@ -63,14 +63,6 @@ class SerializableMutableXmlRequest(SerializableMutableRequest):
         metadata.appendChild(meta)
         self.server_node.appendChild(metadata)
 
-    def _add_image_ref(self, node):
-        """Add the configured imageRef, it replaces any user specified
-           image"""
-        imageRef = minidom.Attr("imageRef")
-        imageRef.value = FLAGS.reddwarf_imageRef
-        node.setAttributeNode(imageRef)
-        return node
-
     def serialize_for_create(self):
         return self.server_node.toxml()
 
@@ -100,15 +92,6 @@ class RequestJSONDeserializer(object):
         """Add mysql default security group rule"""
         body['dbcontainer']['firewallRules'] = [FLAGS.default_firewall_rule_name]
         return body
-
-    def _add_volume_id_metadata(self, body):
-        """Add the configured imageRef, it replaces any user specified
-           image"""
-        metadata = body['dbcontainer'].get('metadata', {})
-        metadata = FLAGS.reddwarf_imageRef
-        body['dbcontainer']['metadata'] = metadata
-        return body
-
 
 
 class RequestXMLDeserializer(object):

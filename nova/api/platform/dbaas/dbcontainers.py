@@ -188,20 +188,19 @@ class Controller(common.DBaaSController):
         Separating this so we could do retries in the future and other processing of
         the result etc.
         """
-        #try:
-        server = self.server_controller.create(req)
-        if not server or isinstance(server, faults.Fault):
-            if isinstance(server, faults.Fault):
-                LOG.error("%s: %s", server.wrapped_exc,
-                          server.wrapped_exc.detail)
-            raise exception.Error("Could not complete the request. " \
-                                  "Please try again later or contact " \
-                                  "Customer Support")
-        return server
-        #except (TypeError, AttributeError, KeyError) as e:
-         #   raise e
-            #LOG.error(e)
-            #raise exception.Error(exc.HTTPUnprocessableEntity())
+        try:
+            server = self.server_controller.create(req)
+            if not server or isinstance(server, faults.Fault):
+                if isinstance(server, faults.Fault):
+                    LOG.error("%s: %s", server.wrapped_exc,
+                              server.wrapped_exc.detail)
+                raise exception.Error("Could not complete the request. " \
+                                      "Please try again later or contact " \
+                                      "Customer Support")
+            return server
+        except (TypeError, AttributeError, KeyError) as e:
+            LOG.error(e)
+            raise exception.Error(exc.HTTPUnprocessableEntity())
 
     def _modify_fields(self, req, response):
         """ Adds and removes the fields from the parent dbcontainer call.
