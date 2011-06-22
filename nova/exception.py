@@ -279,6 +279,10 @@ class ISCSITargetNotFoundForVolume(NotFound):
     message = _("No target id found for volume %(volume_id)s.")
 
 
+class ISCSITargetNotDiscoverable(NotFound):
+    message = _("Target for volume %(volume_id)s not found.")
+
+
 class DiskNotFound(NotFound):
     message = _("No disk at %(location)s")
 

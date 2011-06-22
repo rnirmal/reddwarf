@@ -54,11 +54,13 @@ flags.DEFINE_string('san_clustername', '',
                     'Cluster name to use for creating volumes')
 flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
+flags.DEFINE_string('san_default_volume_size', '1GB',
+                    'Default volume size for a san')
 
 
 class DiscoveryInfo(object):
 
-    id_in_target = re.compile('.+?:([0-9]+)')
+    id_in_target = re.compile('.+?:([0-9]+)$')
 
     def __init__(self, portal, target):
         self.portal = portal
@@ -425,123 +427,142 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
         return result_xml
 
-    def _cliq_get_cluster_info(self, cluster_name):
-        """Queries for info about the cluster (including IP)"""
-        cliq_args = {}
-        cliq_args['clusterName'] = cluster_name
-        cliq_args['searchDepth'] = '1'
-        cliq_args['verbose'] = '0'
+#    def _cliq_get_cluster_info(self, cluster_name):
+#        """Queries for info about the cluster (including IP)"""
+#        cliq_args = {}
+#        cliq_args['clusterName'] = cluster_name
+#        cliq_args['searchDepth'] = '1'
+#        cliq_args['verbose'] = '0'
+#
+#        result_xml = self._cliq_run_xml("getClusterInfo", cliq_args)
+#
+#        return result_xml
 
-        result_xml = self._cliq_run_xml("getClusterInfo", cliq_args)
+#    def _cliq_get_cluster_vip(self, cluster_name):
+#        """Gets the IP on which a cluster shares iSCSI volumes"""
+#        cluster_xml = self._cliq_get_cluster_info(cluster_name)
+#
+#        vips = []
+#        for vip in cluster_xml.findall("response/cluster/vip"):
+#            vips.append(vip.attrib.get('ipAddress'))
+#
+#        if len(vips) == 1:
+#            return vips[0]
+#
+#        _xml = ElementTree.tostring(cluster_xml)
+#        msg = (_("Unexpected number of virtual ips for cluster "
+#                 " %(cluster_name)s. Result=%(_xml)s") %
+#               locals())
+#        raise exception.Error(msg)
 
-        return result_xml
+#    def _cliq_get_volume_info(self, volume_name):
+#        """Gets the volume info, including IQN"""
+#        cliq_args = {}
+#        cliq_args['volumeName'] = volume_name
+#        result_xml = self._cliq_run_xml("getVolumeInfo", cliq_args)
+#
+#        # Result looks like this:
+#        #<gauche version="1.0">
+#        #  <response description="Operation succeeded." name="CliqSuccess"
+#        #            processingTime="87" result="0">
+#        #    <volume autogrowPages="4" availability="online" blockSize="1024"
+#        #       bytesWritten="0" checkSum="false" clusterName="Cluster01"
+#        #       created="2011-02-08T19:56:53Z" deleting="false" description=""
+#        #       groupName="Group01" initialQuota="536870912" isPrimary="true"
+#        #       iscsiIqn="iqn.2003-10.com.lefthandnetworks:group01:25366:vol-b"
+#        #       maxSize="6865387257856" md5="9fa5c8b2cca54b2948a63d833097e1ca"
+#        #       minReplication="1" name="vol-b" parity="0" replication="2"
+#        #       reserveQuota="536870912" scratchQuota="4194304"
+#        #       serialNumber="9fa5c8b2cca54b2948a63d833097e1ca0000000000006316"
+#        #       size="1073741824" stridePages="32" thinProvision="true">
+#        #      <status description="OK" value="2"/>
+#        #      <permission access="rw"
+#        #            authGroup="api-34281B815713B78-(trimmed)51ADD4B7030853AA7"
+#        #            chapName="chapusername" chapRequired="true" id="25369"
+#        #            initiatorSecret="" iqn="" iscsiEnabled="true"
+#        #            loadBalance="true" targetSecret="supersecret"/>
+#        #    </volume>
+#        #  </response>
+#        #</gauche>
+#
+#        # Flatten the nodes into a dictionary; use prefixes to avoid collisions
+#        volume_attributes = {}
+#
+#        volume_node = result_xml.find("response/volume")
+#        for k, v in volume_node.attrib.items():
+#            volume_attributes["volume." + k] = v
+#
+#        status_node = volume_node.find("status")
+#        if not status_node is None:
+#            for k, v in status_node.attrib.items():
+#                volume_attributes["status." + k] = v
+#
+#        # We only consider the first permission node
+#        permission_node = volume_node.find("permission")
+#        if not permission_node is None:
+#            for k, v in status_node.attrib.items():
+#                volume_attributes["permission." + k] = v
+#
+#        LOG.debug(_("Volume info: %(volume_name)s => %(volume_attributes)s") %
+#                  locals())
+#        return volume_attributes
 
-    def _cliq_get_cluster_vip(self, cluster_name):
-        """Gets the IP on which a cluster shares iSCSI volumes"""
-        cluster_xml = self._cliq_get_cluster_info(cluster_name)
-
-        vips = []
-        for vip in cluster_xml.findall("response/cluster/vip"):
-            vips.append(vip.attrib.get('ipAddress'))
-
-        if len(vips) == 1:
-            return vips[0]
-
-        _xml = ElementTree.tostring(cluster_xml)
-        msg = (_("Unexpected number of virtual ips for cluster "
-                 " %(cluster_name)s. Result=%(_xml)s") %
-               locals())
-        raise exception.Error(msg)
-
-    def _cliq_get_volume_info(self, volume_name):
-        """Gets the volume info, including IQN"""
-        cliq_args = {}
-        cliq_args['volumeName'] = volume_name
-        result_xml = self._cliq_run_xml("getVolumeInfo", cliq_args)
-
-        # Result looks like this:
-        #<gauche version="1.0">
-        #  <response description="Operation succeeded." name="CliqSuccess"
-        #            processingTime="87" result="0">
-        #    <volume autogrowPages="4" availability="online" blockSize="1024"
-        #       bytesWritten="0" checkSum="false" clusterName="Cluster01"
-        #       created="2011-02-08T19:56:53Z" deleting="false" description=""
-        #       groupName="Group01" initialQuota="536870912" isPrimary="true"
-        #       iscsiIqn="iqn.2003-10.com.lefthandnetworks:group01:25366:vol-b"
-        #       maxSize="6865387257856" md5="9fa5c8b2cca54b2948a63d833097e1ca"
-        #       minReplication="1" name="vol-b" parity="0" replication="2"
-        #       reserveQuota="536870912" scratchQuota="4194304"
-        #       serialNumber="9fa5c8b2cca54b2948a63d833097e1ca0000000000006316"
-        #       size="1073741824" stridePages="32" thinProvision="true">
-        #      <status description="OK" value="2"/>
-        #      <permission access="rw"
-        #            authGroup="api-34281B815713B78-(trimmed)51ADD4B7030853AA7"
-        #            chapName="chapusername" chapRequired="true" id="25369"
-        #            initiatorSecret="" iqn="" iscsiEnabled="true"
-        #            loadBalance="true" targetSecret="supersecret"/>
-        #    </volume>
-        #  </response>
-        #</gauche>
-
-        # Flatten the nodes into a dictionary; use prefixes to avoid collisions
-        volume_attributes = {}
-
-        volume_node = result_xml.find("response/volume")
-        for k, v in volume_node.attrib.items():
-            volume_attributes["volume." + k] = v
-
-        status_node = volume_node.find("status")
-        if not status_node is None:
-            for k, v in status_node.attrib.items():
-                volume_attributes["status." + k] = v
-
-        # We only consider the first permission node
-        permission_node = volume_node.find("permission")
-        if not permission_node is None:
-            for k, v in status_node.attrib.items():
-                volume_attributes["permission." + k] = v
-
-        LOG.debug(_("Volume info: %(volume_name)s => %(volume_attributes)s") %
-                  locals())
-        return volume_attributes
+    def assign_volume(self, volume_id, host):
+        """
+        Assign any created volume to a compute node/host so that it can be
+        used from that host. HP VSA requires a volume to be assigned to a server
+        """
+        cliq_args = dict()
+        cliq_args['volumeName'] = volume_id
+        cliq_args['serverName'] = host
+        self._cliq_run_xml("assignVolumeToServer", cliq_args)
 
     def create_volume(self, volume):
         """Creates a volume."""
-        cliq_args = {}
+        cliq_args = dict()
         cliq_args['clusterName'] = FLAGS.san_clustername
         #TODO(justinsb): Should we default to inheriting thinProvision?
         cliq_args['thinProvision'] = '1' if FLAGS.san_thin_provision else '0'
-        cliq_args['volumeName'] = volume['name']
-        if int(volume['size']) == 0:
-            cliq_args['size'] = '100MB'
+        # Using volume id for name to guarantee uniqueness
+        cliq_args['volumeName'] = volume['id']
+        if not volume['size'] or int(volume['size']) == 0:
+            cliq_args['size'] = FLAGS.san_default_volume_size
         else:
             cliq_args['size'] = '%sGB' % volume['size']
+        cliq_args['description'] = '"Volume ID:%s assigned to Instance:%s"' \
+                                    % (volume['id'], volume['instance_id'])
 
         self._cliq_run_xml("createVolume", cliq_args)
 
-        volume_info = self._cliq_get_volume_info(volume['name'])
-        cluster_name = volume_info['volume.clusterName']
-        iscsi_iqn = volume_info['volume.iscsiIqn']
+#        volume_info = self._cliq_get_volume_info(volume['name'])
+#        cluster_name = volume_info['volume.clusterName']
+#        iscsi_iqn = volume_info['volume.iscsiIqn']
+#
+#        #TODO(justinsb): Is this always 1? Does it matter?
+#        cluster_interface = '1'
+#
+#        cluster_vip = self._cliq_get_cluster_vip(cluster_name)
+#        iscsi_portal = cluster_vip + ":3260," + cluster_interface
+#
+#        model_update = {}
+#        model_update['provider_location'] = ("%s %s" %
+#                                             (iscsi_portal,
+#                                              iscsi_iqn))
+#
+#        return model_update
 
-        #TODO(justinsb): Is this always 1? Does it matter?
-        cluster_interface = '1'
-
-        cluster_vip = self._cliq_get_cluster_vip(cluster_name)
-        iscsi_portal = cluster_vip + ":3260," + cluster_interface
-
-        model_update = {}
-        model_update['provider_location'] = ("%s %s" %
-                                             (iscsi_portal,
-                                              iscsi_iqn))
-
-        return model_update
+    def unassign_volume(self, volume_id, host):
+        """Unassign a volume that's associated with a server."""
+        cliq_args = dict()
+        cliq_args['volumeName'] = volume_id
+        cliq_args['serverName'] = host
+        self._cliq_run_xml("unassignVolumeToServer", cliq_args)
 
     def delete_volume(self, volume):
         """Deletes a volume."""
-        cliq_args = {}
-        cliq_args['volumeName'] = volume['name']
+        cliq_args = dict()
+        cliq_args['volumeName'] = volume['id']
         cliq_args['prompt'] = 'false'  # Don't confirm
-
         self._cliq_run_xml("deleteVolume", cliq_args)
 
     def _check_format(self, device_path):
@@ -558,7 +579,8 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
     def _format(self, device_path):
         """Calls mkfs to format the device path as ext3."""
-        child = pexpect.spawn("sudo mkfs -t ext3 %s" % device_path)
+        child = pexpect.spawn("sudo mkfs -t ext3 %s" % device_path,
+                              timeout=FLAGS.volume_format_timeout)
         child.expect("(y,n)")
         child.sendline('y')
         child.expect(pexpect.EOF)
@@ -575,6 +597,12 @@ class HpSanISCSIDriver(SanISCSIDriver):
         child = pexpect.spawn(cmd)
         child.expect(pexpect.EOF)
 
+    def unmount(self, mount_point):
+        if os.path.exists(mount_point):
+            cmd = "sudo umount %s" % mount_point
+            child = pexpect.spawn(cmd)
+            child.expect(pexpect.EOF)
+
     def local_path(self, volume):
         # TODO(justinsb): Is this needed here?
         raise exception.Error(_("local_path not supported"))
@@ -588,55 +616,57 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
     def _do_export(self, context, volume, force_create):
         """Supports ensure_export and create_export"""
-        volume_info = self._cliq_get_volume_info(volume['name'])
-
-        is_shared = 'permission.authGroup' in volume_info
-
-        model_update = {}
-
-        should_export = False
-
-        if force_create or not is_shared:
-            should_export = True
-            # Check that we have a project_id
-            project_id = volume['project_id']
-            if not project_id:
-                project_id = context.project_id
-
-            if project_id:
-                #TODO(justinsb): Use a real per-project password here
-                chap_username = 'proj_' + project_id
-                # HP/Lefthand requires that the password be >= 12 characters
-                chap_password = 'project_secret_' + project_id
-            else:
-                msg = (_("Could not determine project for volume %s, "
-                         "can't export") %
-                         (volume['name']))
-                if force_create:
-                    raise exception.Error(msg)
-                else:
-                    LOG.warn(msg)
-                    should_export = False
-
-        if should_export:
-            cliq_args = {}
-            cliq_args['volumeName'] = volume['name']
-            cliq_args['chapName'] = chap_username
-            cliq_args['targetSecret'] = chap_password
-
-            self._cliq_run_xml("assignVolumeChap", cliq_args)
-
-            model_update['provider_auth'] = ("CHAP %s %s" %
-                                             (chap_username, chap_password))
-
-        return model_update
+#        volume_info = self._cliq_get_volume_info(volume['name'])
+#
+#        is_shared = 'permission.authGroup' in volume_info
+#
+#        model_update = {}
+#
+#        should_export = False
+#
+#        if force_create or not is_shared:
+#            should_export = True
+#            # Check that we have a project_id
+#            project_id = volume['project_id']
+#            if not project_id:
+#                project_id = context.project_id
+#
+#            if project_id:
+#                #TODO(justinsb): Use a real per-project password here
+#                chap_username = 'proj_' + project_id
+#                # HP/Lefthand requires that the password be >= 12 characters
+#                chap_password = 'project_secret_' + project_id
+#            else:
+#                msg = (_("Could not determine project for volume %s, "
+#                         "can't export") %
+#                         (volume['name']))
+#                if force_create:
+#                    raise exception.Error(msg)
+#                else:
+#                    LOG.warn(msg)
+#                    should_export = False
+#
+#        if should_export:
+#            cliq_args = {}
+#            cliq_args['volumeName'] = volume['name']
+#            cliq_args['chapName'] = chap_username
+#            cliq_args['targetSecret'] = chap_password
+#
+#            self._cliq_run_xml("assignVolumeChap", cliq_args)
+#
+#            model_update['provider_auth'] = ("CHAP %s %s" %
+#                                             (chap_username, chap_password))
+#
+#        return model_update
+        pass
 
     def remove_export(self, context, volume):
         """Removes an export for a logical volume."""
-        cliq_args = {}
-        cliq_args['volumeName'] = volume['name']
-
-        self._cliq_run_xml("unassignVolume", cliq_args)
+#        cliq_args = {}
+#        cliq_args['volumeName'] = volume['name']
+#
+#        self._cliq_run_xml("unassignVolume", cliq_args)
+        pass
 
     @staticmethod
     def _get_discovery_info():
@@ -708,15 +738,9 @@ class HpSanISCSIDriver(SanISCSIDriver):
         for info in self._get_discovery_info():
             if info.volume_id == volume_id and FLAGS.san_ip in info.portal:
                 return { "target_iqn": info.target,
-                         "target_portal": info.portal };
-                #return self._login_to_target(info, 30)
-                break
+                         "target_portal": info.portal }
         else:
-            raise ISCSITargetNotDiscoverable(target_id=tid, volume_id=volume['id'])
-
-    def undiscover_volume(self, volume):
-        """Detach the volume and local device"""
-        pass
+            raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
 
 
 class ISCSILiteDriver(HpSanISCSIDriver):
@@ -726,6 +750,10 @@ class ISCSILiteDriver(HpSanISCSIDriver):
     within the HPSAN ISCSI driver but replaces the server side with calls
     to a software iscsitarget over ssh.
     """
+
+    def assign_volume(self, volume_id, host):
+        """Nothing to assign here."""
+        pass
 
     def check_for_setup_error(self):
         """Check for any errors at setup for fast fail"""
@@ -770,7 +798,7 @@ class ISCSILiteDriver(HpSanISCSIDriver):
                           % (iscsi_target, volume['id']))
             # Update CHAP user info for the target
             self._run_ssh("sudo ietadm --op new --tid=1%s --user --params" \
-                          " IncomingUser=username,Password=password"
+                          " IncomingUser=username,Password=password1234"
                           % iscsi_target)
         except exception.ProcessExecutionError as err:
             LOG.error(err)
@@ -788,4 +816,8 @@ class ISCSILiteDriver(HpSanISCSIDriver):
 
     def ensure_export(self, context, volume):
         """Make sure existing volumes are exported"""
+        pass
+
+    def unassign_volume(self, volume_id, host):
+        """Nothing to un-assign here."""
         pass

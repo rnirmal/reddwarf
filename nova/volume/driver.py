@@ -54,6 +54,7 @@ flags.DEFINE_string('iscsi_ip_prefix', '$my_ip',
                     'discover volumes on the ip that starts with this prefix')
 flags.DEFINE_string('rbd_pool', 'rbd',
                     'the rbd pool in which volumes are stored')
+flags.DEFINE_integer('volume_format_timeout', 120, 'timeout for formatting volumes')
 
 
 class VolumeDriver(object):
@@ -82,9 +83,18 @@ class VolumeDriver(object):
                                 "Try number %s"), tries)
                 time.sleep(tries ** 2)
 
+    def assign_volume(self, volume_id, host):
+        """
+        Assign the volume to the specified compute host so that it could
+        be potentially used in discovery in certain drivers
+        """
+        pass
+
     def check_for_client_setup_error(self):
-        """Returns and error if the client is not setup properly to
-         talk to the specific volume management service."""
+        """
+        Returns and error if the client is not setup properly to
+        talk to the specific volume management service.
+        """
         pass
 
     def check_for_setup_error(self):
@@ -287,8 +297,10 @@ class ISCSIDriver(VolumeDriver):
     """
 
     def check_for_client_setup_error(self):
-        """Returns an error if the client is not setup properly to
-         talk to the iscsi target server."""
+        """
+        Returns an error if the client is not setup properly to
+        talk to the iscsi target server.
+        """
         try:
             self._execute("sudo", "iscsiadm", "-m", "discovery",
                           "-t", "st", "-p", FLAGS.san_ip)
@@ -516,10 +528,10 @@ class ISCSIDriver(VolumeDriver):
 
     def undiscover_volume(self, volume):
         """Undiscover volume on a remote host."""
-        iscsi_properties = self._get_iscsi_properties(volume)
+        iscsi_properties = self.get_iscsi_properties_for_volume(None, volume)
         self._iscsiadm_update(iscsi_properties, "node.startup", "manual")
         self._run_iscsiadm(iscsi_properties, "--logout")
-        self._run_iscsiadm(iscsi_properties, ('--op', 'delete'))
+        #self._run_iscsiadm(iscsi_properties, ('--op', 'delete'))
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""

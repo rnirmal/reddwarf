@@ -75,4 +75,4 @@ class VolumeClient(object):
 
     def unmount(self, mount_point):
         """Unmount the filesystem at the mount point."""
-        pass
+        self.driver.unmount(mount_point)

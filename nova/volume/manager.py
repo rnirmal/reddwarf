@@ -92,7 +92,7 @@ class VolumeManager(manager.SchedulerDependentManager):
 
     def assign_volume(self, context, volume_id, host):
         """Assigns a created volume to a host (usually a compute node)."""
-        pass
+        self.driver.assign_volume(volume_id, host)
 
     def create_volume(self, context, volume_id):
         """Creates and exports the volume."""
