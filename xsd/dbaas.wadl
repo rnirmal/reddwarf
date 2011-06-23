@@ -232,10 +232,10 @@
 
   <method name="GET" id="isRootEnabled">
     <response status="200">
-      <representation mediaType="application/xml"/>
+      <representation mediaType="application/xml">
         <param name="rootEnabled" type="xsd:boolean"/>
       </representation>
-      <representation mediaType="application/json"/>
+      <representation mediaType="application/json">
         <param name="rootEnabled" type="xsd:boolean"/>
       </representation>
     </response>

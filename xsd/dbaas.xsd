@@ -229,6 +229,13 @@
        </xsd:documentation>
      </annotation>
    </attribute>
+   <attribute name="rootEnabled" type="xsd:boolean" use="optional">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>Whether or not root is enabled for the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
  </complexType>
 
 
