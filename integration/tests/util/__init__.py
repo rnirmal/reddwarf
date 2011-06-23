@@ -36,6 +36,7 @@ from sqlalchemy.sql.expression import text
 
 from nova import flags
 from nova import utils
+from nova.utils import LoopingCall
 from reddwarfclient import Dbaas
 
 FLAGS = flags.FLAGS
@@ -97,7 +98,11 @@ def string_in_list(str, substr_list):
     """Returns True if the string appears in the list."""
     return any([str.find(x) >=0 for x in substr_list])
 
-def wait_for_condition(condition, sleep_time=1):
-    """Runs code to check for the condition until time_out."""
-    while condition:
-        time.sleep(sleep_time)
+def poll_until(retriever, condition, sleep_time=1):
+    """Retrieves object until it passes condition, then returns it."""
+    def poll_and_check():
+        obj = retriever()
+        if condition(obj):
+            raise LoopingCall(retvalue=obj)
+    lc = LoopingCall(f=poll_and_check()).start(sleep_time, True)
+    return lc.wait().retvalue

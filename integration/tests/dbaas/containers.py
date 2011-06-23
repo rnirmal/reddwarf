@@ -91,6 +91,7 @@ class Setup(unittest.TestCase):
     def test_find_image(self):
         self.assertNotEqual(None, test_config.dbaas_image)
         images = dbaas.images.list()
+        self.assertTrue(len(images) > 0, "No images are loaded!")
         for image in images:
             if int(image.id) == test_config.dbaas_image:
                 container_info.dbaas_image = image
@@ -100,7 +101,8 @@ class Setup(unittest.TestCase):
                 if not container_info.dbaas_image_href:
                     raise Exception("Found image with ID %s, but it had no " 
                                     "self href!" % str(test_config.dbaas_image))
-        self.assertNotEqual(None, container_info.dbaas_image_href)
+        self.assertNotEqual(None, container_info.dbaas_image_href,
+                            "Image not found.")
 
     def test_find_flavor(self):
         self.assertNotEqual(None, test_config.dbaas_image)
