@@ -222,18 +222,18 @@ class ComputeManager(manager.SchedulerDependentManager):
         return self.driver.refresh_security_group_members(security_group_id)
 
     def get_volume_for_instance_id(self, context, instance_id):
-        """Returns volume for this instance if present or None.
+        """Returns the volume for this instance with its mount_point, or None.
 
         We're using this to pass volumes.
 
         """
         metadata = self.db.instance_metadata_get(context, instance_id)
-        volume_id = metadata['volume_id']
-        volume = None
         try:
-            return self.db.volume_get(context, volume_id)
-        except exception.VolumeNotFound:
-            return None
+            volume_id = metadata['volume_id']
+            return self.db.volume_get(context, volume_id), \
+                   metadata.get('mount_point', "/volume" + str(volume_id))
+        except KeyError, exception.VolumeNotFound:
+            return None, None
 
     def wait_until_volume_is_ready(self, context, volume):
         """Sleeps until the given volume has finished provisioning."""
@@ -286,7 +286,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         # TODO(vish) check to make sure the availability zone matches
         self._update_state(context, instance_id, power_state.BUILDING)
 
-        volume = self.get_volume_for_instance_id(context, instance_id)
+        volume, mnt_pnt = self.get_volume_for_instance_id(context, instance_id)
 
         if volume:
             self.wait_until_volume_is_ready(context, volume)
@@ -294,7 +294,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             # Needs to be something that can identify the compute node.
             self.volume_api.add_to_compute(context, volume["id"], self.host)
             # TODO(rnirmal): change mount point if needed
-            self.attach_volume(context, instance_id, volume.id, "/")
+            self.attach_volume(context, instance_id, volume.id, mnt_pnt)
 
         try:
             self.driver.spawn(instance_ref)
