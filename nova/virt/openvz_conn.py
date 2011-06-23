@@ -52,6 +52,9 @@ flags.DEFINE_string('ovz_use_cpus',
 flags.DEFINE_string('ovz_use_ioprio',
                     True,
                     'Use IO fair scheduling')
+flags.DEFINE_string('ovz_ioprio_limit',
+                    7,
+                    'Limit for IO priority weighting')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -713,7 +716,8 @@ class OpenVzConnection(driver.ComputeDriver):
         for the container.
         """
         if not ioprio:
-            ioprio = int(self._percent_of_resource(instance) * float(7))
+            ioprio = int(self._percent_of_resource(instance) * float(
+                FLAGS.ovz_ioprio_limit))
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
