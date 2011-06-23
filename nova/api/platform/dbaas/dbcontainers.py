@@ -152,7 +152,7 @@ class Controller(common.DBaaSController):
         #                  modifying the 'body' object with the volume_id.
         volume = self.create_volume(req);
         body.add_volume_id(volume['id'])
-        body.add_mount_point("/")
+        body.add_mount_point("/mnt" + str(volume['id']))
 
         req.body = body.serialize_for_create()
 
