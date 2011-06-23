@@ -55,6 +55,8 @@ from nova import rpc
 from nova import utils
 from nova import volume
 from nova.compute import power_state
+from nova.utils import LoopingCall
+from nova.utils import LoopingCallDone
 from nova.virt import driver
 
 
@@ -235,12 +237,16 @@ class ComputeManager(manager.SchedulerDependentManager):
 
     def wait_until_volume_is_ready(self, context, volume):
         """Sleeps until the given volume has finished provisioning."""
-        while volume.status == "creating":
-            time.sleep(3)
-            LOG.debug("Compute manager is waiting for volume to be ready...")
-            volume = self.db.volume_get(context, volume['id'])
-        if volume['status'] != 'available':
-            raise exception.VolumeProvisioningError(volume_id=volume['id'])
+        def get_status(volume_id):
+            volume = self.db.volume_get(context, volume_id)
+            status = volume['status']
+            if status == 'creating':
+                return
+            elif status == 'available':
+                raise LoopingCallDone(retvalue=volume)
+            elif status != 'available':
+                raise exception.VolumeProvisioningError(volume_id=volume['id'])
+        return LoopingCall(get_status, volume['id']).start(3).wait()
 
     @exception.wrap_exception
     def run_instance(self, context, instance_id, **kwargs):
