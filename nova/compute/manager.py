@@ -221,7 +221,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         """
         return self.driver.refresh_security_group_members(security_group_id)
 
-    def get_volume_for_instance_id(self, context, instance_id):
+    def get_volume_info_for_instance_id(self, context, instance_id):
         """Returns the volume for this instance with its mount_point, or None.
 
         We're using this to pass volumes.
@@ -231,7 +231,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         try:
             volume_id = metadata['volume_id']
             return self.db.volume_get(context, volume_id), \
-                   metadata.get('mount_point', "/volume" + str(volume_id))
+                   metadata.get('mount_point', "/mnt/" + str(volume_id))
         except KeyError, exception.VolumeNotFound:
             return None, None
 
@@ -286,8 +286,8 @@ class ComputeManager(manager.SchedulerDependentManager):
         # TODO(vish) check to make sure the availability zone matches
         self._update_state(context, instance_id, power_state.BUILDING)
 
-        volume, mnt_pnt = self.get_volume_for_instance_id(context, instance_id)
-
+        volume, mnt_pnt = self.get_volume_info_for_instance_id(context,
+                                                               instance_id)
         if volume:
             self.wait_until_volume_is_ready(context, volume)
             #TODO(tim.simpson): This may not be able to be the self.host name.
