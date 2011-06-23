@@ -266,8 +266,7 @@ class TestUsers(unittest.TestCase):
 
     def test_disabled_root_from_details(self):
         """Test that root is disabled, via container details."""
-        details = dbaas.dbcontainers.get(container_info.id).__dict__
-        enabled = details['rootEnabled']
+        enabled = dbaas.dbcontainers.get(container_info.id).rootEnabled
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
 
     def test_enable_root(self):
@@ -280,8 +279,7 @@ class TestUsers(unittest.TestCase):
 
     def test_enable_root_post_from_details(self):
         """Test that root is now enabled, via container details."""
-        details = dbaas.dbcontainers.get(container_info.id).__dict__
-        enabled = details['rootEnabled']
+        enabled = dbaas.dbcontainers.get(container_info.id).rootEnabled
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_reset_root(self):
@@ -292,10 +290,9 @@ class TestUsers(unittest.TestCase):
         enabled = dbaas.root.is_root_enabled(container_info.id)
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
-    def test_reset_root_still_enabled_via_details(self):
+    def test_reset_root_still_enabled_from_details(self):
         """Test that after root was reset it's still enabled, via container details."""
-        details = dbaas.dbcontainers.get(container_info.id).__dict__
-        enabled = details['rootEnabled']
+        enabled = dbaas.dbcontainers.get(container_info.id).rootEnabled
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_reset_root_user_enabled(self):
@@ -336,8 +333,7 @@ class TestUsers(unittest.TestCase):
         enabled = dbaas.root.is_root_enabled(container_info.id)
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
     
-    def test_zdisabled_root(self):
+    def test_zdisabled_root_from_details(self):
         """Test that after root is disabled, it is now disabled, by checking container details."""
-        details = dbaas.dbcontainers.get(container_info.id).__dict__
-        enabled = details['rootEnabled']
+        enabled = dbaas.dbcontainers.get(container_info.id).rootEnabled
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")

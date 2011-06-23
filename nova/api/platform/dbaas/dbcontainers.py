@@ -105,17 +105,9 @@ class Controller(common.DBaaSController):
             except InstanceNotFound:
                 # we set the state to shutdown if not found
                 container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
-            # If we can't determine if root is enabled for whatever reason,
-            # including if the container isn't ACTIVE, rootEnabled isn't
-            # available.
-            running = _dbaas_mapping[power_state.RUNNING]
-            if container['status'] == running:
-                try:
-                    ctxt = req.environ['nova.context']
-                    result = self.guest_api.is_root_enabled(ctxt, container['id'])
-                    container['rootEnabled'] = result
-                except Exception, e:
-                    raise e
+            enabled = self._determine_root(req, container, container['id'])
+            if enabled is not None:
+                container['rootEnabled'] = enabled
         return resp
 
     def show(self, req, id):
@@ -133,19 +125,9 @@ class Controller(common.DBaaSController):
         except InstanceNotFound:
             # we set the state to shutdown if not found
             resp['dbcontainer']['status']  = _dbaas_mapping[power_state.SHUTDOWN]
-        # If we can't determine if root is enabled for whatever reason,
-        # including if the container isn't ACTIVE, rootEnabled isn't
-        # available.
-        LOG.debug("DBcont status: %s" % power_state.RUNNING)
-        running = _dbaas_mapping[power_state.RUNNING]
-        if resp['dbcontainer']['status'] == running:
-            try:
-                ctxt = req.environ['nova.context']
-                result = self.guest_api.is_root_enabled(ctxt, id)
-                LOG.debug("DBcont root: %s" % result)
-                resp['dbcontainer']['rootEnabled'] = result
-            except Exception, e:
-                raise e
+        enabled = self._determine_root(req, resp['dbcontainer'], id)
+        if enabled is not None:
+            resp['dbcontainer']['rootEnabled'] = enabled
         return resp
 
     def delete(self, req, id):
@@ -276,3 +258,20 @@ class Controller(common.DBaaSController):
             raise exception.ApiError("Required attribute/key 'flavorRef' " \
                                      "was not specified")
         return env, body
+
+    def _determine_root(self, req, container, id):
+        """ Determine if root is enabled for a given container. """
+        # If we can't determine if root is enabled for whatever reason,
+        # including if the container isn't ACTIVE, rootEnabled isn't
+        # available.
+        enabled = None
+        running = _dbaas_mapping[power_state.RUNNING]
+        if container['status'] == running:
+            try:
+                ctxt = req.environ['nova.context']
+                result = self.guest_api.is_root_enabled(ctxt, id)
+                enabled = result
+            except Exception as err:
+                LOG.error(err)
+                LOG.error("rootEnabled for % could not be determined." % id)
+        return enabled

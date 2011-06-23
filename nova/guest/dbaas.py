@@ -219,9 +219,7 @@ class DBaaSAgent(object):
                         and host != 'localhost';""")
             result = client.execute(t)
             LOG.debug("result = " + str(result))
-            if result.rowcount == 0:
-                return False
-            return True
+            return result.rowcount != 0
 
     def prepare(self, databases):
         """Makes ready DBAAS on a Guest container."""
