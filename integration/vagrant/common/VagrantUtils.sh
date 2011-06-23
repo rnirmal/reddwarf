@@ -1,3 +1,4 @@
+#!/bin/bash
 vagrant_init_ssh_info() {
      # If the SSH info isn't defined, figure it out here.
     if [ -z "${vcmd_port}" ]

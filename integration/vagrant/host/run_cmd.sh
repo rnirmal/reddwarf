@@ -1,3 +1,5 @@
+#!/bin/bash
+
 self="${0#./}"
 base="${self%/*}"
 current=`pwd`

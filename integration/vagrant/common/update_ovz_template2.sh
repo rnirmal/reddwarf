@@ -1,3 +1,4 @@
+#!/bin/bash
 # Initialize directories
 echo Creating OVZ template work directories...
 rm -rf ~/temp_ovz
