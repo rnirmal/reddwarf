@@ -27,6 +27,10 @@ FLAGS = flags.FLAGS
 class SerializableMutableRequest(object):
     __metaclass__ = ABCMeta
 
+    def add_mount_point(self):
+        """Adds the volume mount point to the mutated request."""
+        pass
+
     def add_volume_id(self):
         """Adds the volume id to the mutated request."""
         pass
@@ -41,6 +45,9 @@ class SerializableMutableJsonRequest(SerializableMutableRequest):
     def __init__(self, body):
         self.body = body
 
+    def add_mount_point(self, mount_point):
+        self.body['dbcontainer']['metadata'] = {'mount_point':str(mount_point) }
+
     def add_volume_id(self, volume_id):
         self.body['dbcontainer']['metadata'] = {'volume_id':str(volume_id) }
 
@@ -53,15 +60,21 @@ class SerializableMutableXmlRequest(SerializableMutableRequest):
     def __init__(self, server_node):
         self.server_node = server_node
 
-    def add_volume_id(self, volume_id):
+    def add_meta_data(self, key, value):
         metadata = minidom.Element("metadata")
         meta = minidom.Element('meta')
-        meta.setAttribute("key", "volume_id")
+        meta.setAttribute("key", key)
         text = minidom.Text()
-        text.data = str(volume_id)
+        text.data = str(value)
         meta.appendChild(text)
         metadata.appendChild(meta)
         self.server_node.appendChild(metadata)
+
+    def add_mount_point(self, mount_point):
+        self.add_meta_data("mount_point", mount_point)
+
+    def add_volume_id(self, volume_id):
+        self.add_meta_data("volume_id", volume_id)
 
     def serialize_for_create(self):
         return self.server_node.toxml()
