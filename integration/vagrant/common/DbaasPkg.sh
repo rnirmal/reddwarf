@@ -1,3 +1,4 @@
+#!/bin/bash
 # Handles building and installing our packages.
 
 #on the container, in /etc/apt/sources.list

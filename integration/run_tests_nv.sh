@@ -1,3 +1,5 @@
+#!/bin/bash
+
 self="${0#./}"
 base="${self%/*}"
 current=`pwd`
@@ -9,7 +11,6 @@ else
     home="$current/$base"
 fi
 cd $home
-
 if [ -d $NOVASRC ]
 then
     export PYTHONPATH=$PYTHONPATH:$NOVASRC

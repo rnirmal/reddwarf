@@ -1,3 +1,4 @@
+#!/bin/bash
 # Host Environment Initializer - Nova Initializer
 # This file is meant to be run in a VM or otherwise disposable environment.
 

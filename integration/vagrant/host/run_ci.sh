@@ -1,4 +1,4 @@
-
+#!/bin/bash
 #export ROOT=$WORKSPACE/../..
 #export GLANCESRC=$ROOT/glance
 #export GLANCEIMAGES=/home/nova/glance_images

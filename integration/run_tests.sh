@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ $1 == "-v" ]
 then
     USE_VENV=true

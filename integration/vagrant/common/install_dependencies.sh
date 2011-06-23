@@ -1,3 +1,4 @@
+#!/bin/bash
 # Host Environment Initializer - Dependency Installer
 # This file is meant to be run in a VM or otherwise disposable environment.
 # It installs all the dependencies needed by Nova.
