@@ -18,8 +18,10 @@ from webob import exc
 from nova import compute
 from nova import log as logging
 from nova.api.platform.dbaas import common
+from nova.compute import power_state
 from nova.guest import api as guest_api
 from nova.guest.db import models
+from reddwarf.db import api as dbapi
 
 
 LOG = logging.getLogger('nova.api.platform.dbaas.root')
@@ -79,10 +81,14 @@ class Controller(common.DBaaSController):
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
-
+        running = power_state.RUNNING
+        status = dbapi.guest_status_get(dbcontainer_id).state
+        if status != running:
+            LOG.debug("Container %s is not running." % dbcontainer_id)
+            return exc.HTTPError("DBContainer %s is not running." % dbcontainer_id)
         try:
             result = self.guest_api.is_root_enabled(ctxt, dbcontainer_id)
-            return {'root_enabled': result}
+            return {'rootEnabled': result}
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error determining root access")

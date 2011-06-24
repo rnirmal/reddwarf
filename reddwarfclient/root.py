@@ -40,4 +40,4 @@ class Root(base.ManagerWithFind):
         """ Return True if root is enabled for the container;
             False otherwise""" 
         resp, body = self.api.client.get(self.url % dbcontainer_id)
-        return body['root_enabled']
+        return body['rootEnabled']

@@ -264,14 +264,12 @@ class Controller(common.DBaaSController):
         # If we can't determine if root is enabled for whatever reason,
         # including if the container isn't ACTIVE, rootEnabled isn't
         # available.
-        enabled = None
         running = _dbaas_mapping[power_state.RUNNING]
         if container['status'] == running:
             try:
                 ctxt = req.environ['nova.context']
-                result = self.guest_api.is_root_enabled(ctxt, id)
-                enabled = result
+                return self.guest_api.is_root_enabled(ctxt, id)
             except Exception as err:
                 LOG.error(err)
-                LOG.error("rootEnabled for % could not be determined." % id)
-        return enabled
+                LOG.error("rootEnabled for %s could not be determined." % id)
+        return
