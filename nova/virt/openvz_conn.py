@@ -729,8 +729,6 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Unable to set IO priority for %s' % (
                 instance['id'],))
 
-        return True
-
     def snapshot(self, instance, name):
         """
         Snapshots the specified instance.
