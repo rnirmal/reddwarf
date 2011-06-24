@@ -1025,6 +1025,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # reason we do, lets limit it to 1 to make all of the other calculations
         # come out clean.
         if cont_mem_mb > 1:
+            LOG.error('_percent_of_resource came up with more than 100%')
             return 1
         else:
             return cont_mem_mb
