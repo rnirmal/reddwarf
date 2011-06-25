@@ -1,21 +1,22 @@
 #!/bin/bash
+# Builds packages.
+
+self="${0#./}"
+base="${self%/*}"
+current=`pwd`
+if [ "$base" = "$self" ] ; then
+    home=$current
+elif [[ $base =~ ^/ ]]; then
+    home="$base"
+else
+    home="$current/$base"
+fi
+cd $home
+
 # Host Environment Initializer - Nova Initializer
 # This file is meant to be run in a VM or otherwise disposable environment.
 
-fail_if_exists () {
-    if [ -d $1 ] || [ -f $1 ]
-    then
-        echo The Nova cert file or directory $1 already exists. Aborting.
-        exit 1
-    fi
-}
-
-exclaim () {
-    echo "*******************************************************************************"
-    echo "$@"
-    echo "*******************************************************************************"
-}
-
+source /vagrant-common/Utils.sh
 
 exclaim Setting up SQL.
 
@@ -149,6 +150,15 @@ for (( x=0; x <= `ip_chunk 4`; x += 1))
 do
     delete_fixed_ip $x
 done
+
+# Delete all of the volumes on the Volumes VM since the DB will now
+# be out of sync.
+# Not sure if I should add this yet, but to remove all devices from the host VM:
+# sudo iscsiadm -m node --target "iqn.2011-06.reddwarf.com:$i" -u
+# where "i" is the same number you tell the volume to delete.
+
+ssh_unsafe vagrant@33.33.33.10 -p 22 -i /vagrant-common/ssh/id_rsa -o NoHostAuthenticationForLocalhost=yes "sudo bash /vagrant-common/delete_volumes.sh"
+
 
 
 # TODO: It may be necessary to delete all other instances of this.
