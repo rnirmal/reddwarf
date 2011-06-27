@@ -152,8 +152,8 @@ class VolumeDriver(object):
 
         """
         child = pexpect.spawn("sudo blkid " + device_path)
-        i = child.expect(['UUID="([0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
-                         '[0-9a-f]{4,4}-[0-9a-f]{12,12})"', pexpect.EOF])
+        i = child.expect(['UUID="([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
+                          '[0-9a-f]{4}-[0-9a-f]{12})"', pexpect.EOF])
         if i > 0:
             raise exception.DevicePathInvalidForUuid(device_path=device_path)
         return child.match.groups()[0]

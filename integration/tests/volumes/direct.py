@@ -182,8 +182,8 @@ class GrabUuid(VolumeTest):
         client = self.story.client # volume.Client()
         device_path = self.story.device_path # '/dev/sda5'
         uuid = client.get_uuid(device_path)
-        pattern = re.compile('^[0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
-                             '[0-9a-f]{4,4}-[0-9a-f]{12,12}$')
+        pattern = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
+                             '[0-9a-f]{4}-[0-9a-f]{12}$')
         self.assertTrue(pattern.search(uuid) != None, "uuid must match regex")
 
     def test_get_invalid_uuid(self):
