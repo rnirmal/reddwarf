@@ -184,7 +184,8 @@ class GrabUuid(VolumeTest):
         uuid = client.get_uuid(device_path)
         pattern = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
                              '[0-9a-f]{4}-[0-9a-f]{12}$')
-        self.assertTrue(pattern.search(uuid) != None, "uuid must match regex")
+        self.assertTrue(pattern.search(uuid) is not None,
+                        "uuid must match regex")
 
     def test_get_invalid_uuid(self):
         """DevicePathInvalidForUuid is raised if device_path is wrong."""
