@@ -18,8 +18,10 @@ from webob import exc
 from nova import compute
 from nova import log as logging
 from nova.api.platform.dbaas import common
+from nova.compute import power_state
 from nova.guest import api as guest_api
 from nova.guest.db import models
+from reddwarf.db import api as dbapi
 
 
 LOG = logging.getLogger('nova.api.platform.dbaas.root')
@@ -71,3 +73,22 @@ class Controller(common.DBaaSController):
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error enabling the root password")
+
+    def is_root_enabled(self, req, dbcontainer_id):
+        """ Returns True if root is enabled for the given container;
+            False otherwise. """
+        LOG.info("Call to is_root_enabled for container %s", dbcontainer_id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        ctxt = req.environ['nova.context']
+        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        running = power_state.RUNNING
+        status = dbapi.guest_status_get(dbcontainer_id).state
+        if status != running:
+            LOG.debug("Container %s is not running." % dbcontainer_id)
+            return exc.HTTPError("DBContainer %s is not running." % dbcontainer_id)
+        try:
+            result = self.guest_api.is_root_enabled(ctxt, dbcontainer_id)
+            return {'rootEnabled': result}
+        except Exception as err:
+            LOG.error(err)
+            return exc.HTTPError("Error determining root access")

@@ -210,6 +210,17 @@ class DBaaSAgent(object):
             client.execute(t, pwd=pwd, user=user)
         return True
 
+    def is_root_enabled(self):
+        """Return True if root access is enabled; False otherwise."""
+        client = LocalSqlClient(get_engine())
+        with client:
+            mysql_user = models.MySQLUser()
+            t = text("""SELECT User FROM mysql.user where User = 'root'
+                        and host != 'localhost';""")
+            result = client.execute(t)
+            LOG.debug("result = " + str(result))
+            return result.rowcount != 0
+
     def prepare(self, databases):
         """Makes ready DBAAS on a Guest container."""
         from nova.guest.pkg import PkgAgent
