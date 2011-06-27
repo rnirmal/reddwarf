@@ -49,6 +49,12 @@ flags.DEFINE_string('ovz_use_cpulimit',
 flags.DEFINE_string('ovz_use_cpus',
                     True,
                     'Use OpenVz cpus for maximum cpus available to the container')
+flags.DEFINE_string('ovz_use_ioprio',
+                    True,
+                    'Use IO fair scheduling')
+flags.DEFINE_string('ovz_ioprio_limit',
+                    7,
+                    'Limit for IO priority weighting')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -212,7 +218,9 @@ class OpenVzConnection(driver.ComputeDriver):
             self._set_cpulimit(instance)
         if FLAGS.ovz_use_cpus:
             self._set_cpus(instance)
-        
+        if FLAGS.ovz_use_ioprio:
+            self._set_ioprio(instance)
+            
         self._start(instance)
         self._initial_secure_host(instance)
         
@@ -700,7 +708,26 @@ class OpenVzConnection(driver.ComputeDriver):
                                   (instance['id'],))
         return True
 
-            
+    def _set_ioprio(self, instance, ioprio=None):
+        """
+        Set the IO priority setting for a given container.  This is represented
+        by an integer between 0 and 7.  If no priority is given one will be
+        automatically calculated based on the percentage of allocated memory
+        for the container.
+        """
+        if not ioprio:
+            ioprio = int(self._percent_of_resource(instance) * float(
+                FLAGS.ovz_ioprio_limit))
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--ioprio', ioprio)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Unable to set IO priority for %s' % (
+                instance['id'],))
 
     def snapshot(self, instance, name):
         """
@@ -1020,7 +1047,15 @@ class OpenVzConnection(driver.ComputeDriver):
             instance['instance_type_id'])
         cont_mem_mb = float(instance_type['memory_mb']) / \
                       float(self.utility['MEMORY_MB'])
-        return cont_mem_mb
+
+        # We shouldn't ever have more than 100% but if for some unforseen
+        # reason we do, lets limit it to 1 to make all of the other calculations
+        # come out clean.
+        if cont_mem_mb > 1:
+            LOG.error('_percent_of_resource came up with more than 100%')
+            return 1
+        else:
+            return cont_mem_mb
     
     def _get_memory(self):
         """
