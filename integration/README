@@ -1,8 +1,8 @@
 1. Do a fresh check out.
-2. Download the virtualbox ovz_attempt_9 box from
-   http://c205047.r47.cf1.rackcdn.com/ovz_attempt_9.box
+2. Download the virtualbox lucid_ext3_openvz box from
+   http://c629296.r96.cf2.rackcdn.com/lucid_ext3_openvz.box
 3. Download the openvz glance image from
-   http://c205047.r47.cf1.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz
+   http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz
 4. Define the environment variables`
      GLANCESRC = path to launchpad trunk of glance (we are assuming you know
      how to get this)
