@@ -534,4 +534,33 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._get_memory)
 
-        
+    def test_set_ioprio_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--ioprio',
+                                  3).AndReturn(('',None))
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(test_instance).AndReturn(.50)
+        self.mox.ReplayAll()
+        conn._set_ioprio(test_instance)
+
+    def test_set_ioprio_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--ioprio',
+                                  3).AndRaise(
+            exception.ProcessExecutionError)
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(test_instance).AndReturn(.50)
+        self.mox.ReplayAll()
+        self.assertRaises(exception.Error, conn._set_ioprio, test_instance)
