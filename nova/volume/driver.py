@@ -140,10 +140,22 @@ class VolumeDriver(object):
                            volume['name']))
 
     def get_volume_uuid(self, device_path):
-        """Returns the UUID of a device given that device path."""
+        """Returns the UUID of a device given that device path.
+
+        The returned UUID is expected to be hex in five groups with the lengths
+        8,4,4,4 and 12.
+        Example:
+        fd575a25-f9d9-4e7f-aafd-9c2b92e9ec4c
+
+        If the device_path doesn't match anything, DevicePathInvalidForUuid
+        is raised.
+
+        """
         child = pexpect.spawn("sudo blkid " + device_path)
-        child.expect('UUID="([0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
-                     '[0-9a-f]{4,4}-[0-9a-f]{12,12})"')
+        i = child.expect(['UUID="([0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
+                         '[0-9a-f]{4,4}-[0-9a-f]{12,12})"', pexpect.EOF])
+        if i > 0:
+            raise exception.DevicePathInvalidForUuid(device_path=device_path)
         return child.match.groups()[0]
 
     def local_path(self, volume):

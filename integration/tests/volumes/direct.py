@@ -9,8 +9,8 @@ import unittest
 import pexpect
 
 from nova import context
+from nova import exception
 from nova import volume
-from nova.exception import VolumeNotFound
 
 from proboscis import test
 from proboscis.decorators import expect_exception
@@ -177,13 +177,21 @@ class UnmountVolume(VolumeTest):
 @test(groups=[VOLUMES_DIRECT], depends_on_classes=[UnmountVolume])
 class GrabUuid(VolumeTest):
 
-    def test_unmount(self):
+    def test_uuid_must_match_pattern(self):
+        """UUID must be hex chars in the form 8-4-4-4-12."""
         client = self.story.client # volume.Client()
         device_path = self.story.device_path # '/dev/sda5'
         uuid = client.get_uuid(device_path)
         pattern = re.compile('^[0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
                              '[0-9a-f]{4,4}-[0-9a-f]{12,12}$')
         self.assertTrue(pattern.search(uuid) != None, "uuid must match regex")
+
+    def test_get_invalid_uuid(self):
+        """DevicePathInvalidForUuid is raised if device_path is wrong."""
+        client = self.story.client
+        device_path = "gdfjghsfjkhggrsyiyerreygghdsghsdfjhf"
+        self.assertRaises(exception.DevicePathInvalidForUuid, client.get_uuid,
+                          device_path)
 
 
 @test(groups=[VOLUMES_DIRECT], depends_on_classes=[GrabUuid])
@@ -222,5 +230,5 @@ class ConfirmMissing(VolumeTest):
                                                         self.story.volume_id),
                             lambda volume : volume["status"] != "deleted")
             self.assertEqual(volume["deleted"], False)
-        except VolumeNotFound:
+        except exception.VolumeNotFound:
             pass

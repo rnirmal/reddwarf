@@ -262,10 +262,11 @@ class FlagNotSet(NotFound):
 class InstanceNotFound(NotFound):
     message = _("Instance %(instance_id)s could not be found.")
 
+class DevicePathInvalidForUuid(NotFound):
+    message = _("Could not get a UUID from device path %(device_path).")
 
 class VolumeNotFound(NotFound):
     message = _("Volume %(volume_id)s could not be found.")
-
 
 class VolumeProvisioningError(NotFound):
     message = _("An error occured provisioning volume %(volume_id)s.")

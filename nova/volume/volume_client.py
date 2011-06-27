@@ -51,9 +51,9 @@ class VolumeClient(object):
         self.option = VOLUME_OPTIONS[FLAGS.volume_option]
         self.driver.check_for_client_setup_error()
 
-    def get_uuid(self, mount_point):
+    def get_uuid(self, device_path):
         """Returns a UUID for a device given its mount point."""
-        return self.driver.get_volume_uuid(mount_point)
+        return self.driver.get_volume_uuid(device_path)
 
     def setup_volume(self, context, volume_id):
         """Setup remote volume on compute host.
