@@ -284,7 +284,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Unable to set ostemplate to \'%s\' for %s' %
                                   (ostemplate, instance['id']))
-        return True
 
     def _cache_image(self, instance):
         """
@@ -322,7 +321,6 @@ class OpenVzConnection(driver.ComputeDriver):
                                    '--save', '--applyconfig', config)
             if err:
                 LOG.error(err)
-            return True
 
         except ProcessExecutionError:
             raise exception.Error('Failed to add %s to OpenVz' % instance['id'])
@@ -372,8 +370,6 @@ class OpenVzConnection(driver.ComputeDriver):
         except exception.DBError as err:
             LOG.error(err)
             raise exception.Error('Failed to update db for %s' % instance['id'])
-        
-        return True
 
     def _add_netif(self, instance, netif_number=0,
                    host_if=False,
@@ -395,9 +391,7 @@ class OpenVzConnection(driver.ComputeDriver):
                                      '--save', '--netif_add',
                                      'eth%s,,%s,,%s' % (netif_number,
                                                         host_if, bridge))
-
             LOG.debug(out)
-
             if err:
                 LOG.error(err)
 
@@ -405,8 +399,6 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error(
                     'Error adding network device to container %s' %
                     instance['id'])
-
-        return True
 
     def _add_ip(self, instance, netif='eth0',
                 if_file='etc/network/interfaces'):
@@ -438,18 +430,6 @@ class OpenVzConnection(driver.ComputeDriver):
         except Exception as err:
             LOG.error(err)
             raise exception.Error('Error adding IP')
-
-
-        # This is how to add ips with venet.  At some point we should make this
-        # work.
-        #try:
-        #    _, err = utils.execute('sudo vzctl set %s --save --ipadd %s' %
-        #                           (instance['id'], ip))
-        #    if err:
-        #        LOG.error(err)
-        #except ProcessExecutionError:
-        #    raise exception.Error('Error adding ip %s to %s' %
-        #                          (ip, instance['id']))
 
     def _set_nameserver(self, instance):
         """
@@ -588,7 +568,6 @@ class OpenVzConnection(driver.ComputeDriver):
         Set the vmguarpages attribute for a container.  This number represents
         the number of 4k blocks that are guaranteed to the container.
         """
-
         vmguarpages = self._calc_pages(instance)
 
         try:
@@ -600,7 +579,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error("Cannot set vmguarpages for %s" %
                                   instance['id'])
-        return True
 
     def _set_privvmpages(self, instance):
         """
@@ -620,7 +598,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error("Cannot set privvmpages for %s" %
                                   instance['id'])
-        return True
 
     def _set_cpuunits(self, instance, units=None):
         """
@@ -650,7 +627,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Cannot set cpuunits for %s' %
                                   (instance['id'],))
-        return True
 
     def _set_cpulimit(self, instance, cpulimit=None):
         """
@@ -680,13 +656,11 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Unable to set cpulimit for %s' %
                                   (instance['id'],))
-        return True
 
     def _set_cpus(self, instance, cpus=None, multiplier=2):
         """
         The number of logical cpus that are made available to the container.
         """
-
         if not cpus:
             inst_typ = instance_types.get_instance_type(
                 instance['instance_type_id']
@@ -706,7 +680,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Unable to set cpus for %s' %
                                   (instance['id'],))
-        return True
 
     def _set_ioprio(self, instance, ioprio=None):
         """
@@ -1128,8 +1101,6 @@ class OpenVzConnection(driver.ComputeDriver):
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Problem getting cpuunits for host')
-
-        return True
 
     def _get_cpuunits_usage(self):
         """

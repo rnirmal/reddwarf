@@ -17,6 +17,8 @@ test_instance = {
     "id": 1002
 }
 
+percent_resource = .50
+
 vz_list = "\t1001\n\t1002\n\t1003\n\t1004\n"
 
 vz_name = """\tinstance-00001001\n"""
@@ -88,6 +90,18 @@ utility = {
     'CPULIMIT': 2400
 }
 
+vzcpucheck_return_containers = """VEID		CPUUNITS
+-------------------------
+0		1000
+26		25000
+27		25000
+Current CPU utilization: 51000
+Power of the node: 758432
+"""
+
+vzcpucheck_return_nocontainers = """Current CPU utilization: 51000
+Power of the node: 758432
+"""
 class OpenVzConnTestCase(test.TestCase):
     def setUp(self):
         super(OpenVzConnTestCase, self).setUp()
@@ -192,53 +206,51 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_create_vz_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('', ''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'create',
+                                  test_instance['id'],
+                                  '--ostemplate',
+                                  test_instance['image_id']).AndReturn(('', ''))
         self.mox.ReplayAll()
-
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._create_vz(test_instance))
+        conn._create_vz(test_instance)
 
     def test_create_vz_fail(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'create',
+                                  test_instance['id'],
+                                  '--ostemplate',
+                                  test_instance['image_id']).AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
-
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._create_vz, test_instance)
 
     def test_set_vz_os_hint_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--ostemplate',
+                                  'ubuntu').AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._set_vz_os_hint(test_instance))
+        conn._set_vz_os_hint(test_instance)
 
     def test_set_vz_os_hint_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--ostemplate',
+                                  'ubuntu').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -246,26 +258,26 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_configure_vz_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--applyconfig',
+                                  'basic').AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._configure_vz(test_instance))
+        conn._configure_vz(test_instance)
 
     def test_configure_vz_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--applyconfig',
+                                  'basic').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -273,24 +285,24 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_stop_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'stop',
+                                  test_instance['id']).AndReturn(('',''))
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
         openvz_conn.db.instance_set_state(mox.IgnoreArg(),
-                                          mox.IgnoreArg(),
-                                          mox.IgnoreArg())
+                                          test_instance['id'],
+                                          power_state.SHUTDOWN)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._stop(test_instance))
+        conn._stop(test_instance)
 
     def test_stop_failure_on_exec(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'stop',
+                                  test_instance['id']).AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -298,14 +310,14 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_stop_failure_on_db_access(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'stop',
+                                  test_instance['id']).AndReturn(('',''))
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
         openvz_conn.db.instance_set_state(mox.IgnoreArg(),
-                                          mox.IgnoreArg(),
-                                          mox.IgnoreArg()).AndRaise(
+                                          test_instance['id'],
+                                          power_state.SHUTDOWN).AndRaise(
             exception.DBError('FAIL'))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -313,26 +325,26 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_add_netif_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--netif_add',
+                                  'eth0,,veth1002.0,,br100').AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._add_netif(test_instance))
+        conn._add_netif(test_instance)
 
     def test_add_netif_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--netif_add',
+                                  'eth0,,veth1002.0,,br100').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -340,25 +352,25 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_set_vmguarpages_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--vmguarpages',
                                   mox.IgnoreArg()).AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._set_vmguarpages(test_instance))
+        conn._set_vmguarpages(test_instance)
 
     def test_set_vmguarpages_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--vmguarpages',
                                   mox.IgnoreArg()).AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
@@ -367,25 +379,25 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_set_privvmpages_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--privvmpages',
                                   mox.IgnoreArg()).AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._set_privvmpages(test_instance))
+        conn._set_privvmpages(test_instance)
 
     def test_set_privvmpages_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--privvmpages',
                                   mox.IgnoreArg()).AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
@@ -394,34 +406,39 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_set_cpuunits_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--cpuunits',
+                                  utility['UNITS'] *
+                                  percent_resource).AndReturn(('',''))
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_percent_of_resource')
-        conn._percent_of_resource(mox.IgnoreArg()).MultipleTimes().AndReturn(.5)
+        conn._percent_of_resource(mox.IgnoreArg()).MultipleTimes().AndReturn(
+            percent_resource
+        )
         self.mox.StubOutWithMock(conn, 'utility')
         conn.utility = utility
         self.mox.ReplayAll()
-        self.assertTrue(conn._set_cpuunits(test_instance))
+        conn._set_cpuunits(test_instance)
 
     def test_set_cpuunits_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--cpuunits',
+                                  utility['UNITS'] * percent_resource).AndRaise(
             exception.ProcessExecutionError)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_percent_of_resource')
-        conn._percent_of_resource(mox.IgnoreArg()).MultipleTimes().AndReturn(.5)
+        conn._percent_of_resource(mox.IgnoreArg()).MultipleTimes().AndReturn(
+            percent_resource
+        )
         self.mox.StubOutWithMock(conn, 'utility')
         conn.utility = utility
         self.mox.ReplayAll()
@@ -429,34 +446,38 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_set_cpulimit_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--cpulimit',
+                                  utility['CPULIMIT'] *
+                                  percent_resource).AndReturn(('',''))
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_percent_of_resource')
-        conn._percent_of_resource(mox.IgnoreArg()).AndReturn(.5)
+        conn._percent_of_resource(mox.IgnoreArg()).AndReturn(
+            percent_resource
+        )
         self.mox.StubOutWithMock(conn, 'utility')
         conn.utility = utility
         self.mox.ReplayAll()
-        self.assertTrue(conn._set_cpulimit(test_instance))
+        conn._set_cpulimit(test_instance)
 
     def test_set_cpulimit_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--cpulimit',
+                                  utility['CPULIMIT'] *
+                                  percent_resource).AndRaise(
             exception.ProcessExecutionError)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_percent_of_resource')
-        conn._percent_of_resource(mox.IgnoreArg()).AndReturn(.5)
+        conn._percent_of_resource(mox.IgnoreArg()).AndReturn(percent_resource)
         self.mox.StubOutWithMock(conn, 'utility')
         conn.utility = utility
         self.mox.ReplayAll()
@@ -464,25 +485,25 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_set_cpus_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--cpus',
                                   mox.IgnoreArg()).AndReturn(('',''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._set_cpus(test_instance))
+        conn._set_cpus(test_instance)
 
     def test_set_cpus_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
+        openvz_conn.utils.execute('sudo',
+                                  'vzctl',
+                                  'set',
+                                  test_instance['id'],
+                                  '--save',
+                                  '--cpus',
                                   mox.IgnoreArg()).AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
@@ -494,17 +515,49 @@ class OpenVzConnTestCase(test.TestCase):
         # values of memory for instance type id 1.  if this value changes then
         # we will have a mismatch.
 
-        # TODO(imsplitbit): make this work better.
+        # TODO(imsplitbit): make this work better.  This test is very brittle
+        # because it relies on the default memory size for flavor 1 never
+        # changing.  Need to fix this.
         conn = openvz_conn.OpenVzConnection(False)
         self.assertEqual(conn._calc_pages(test_instance), 1048576)
 
     def test_get_cpuunits_capability_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn(('',''))
+        openvz_conn.utils.execute('sudo',
+                                  'vzcpucheck').AndReturn(
+                (vzcpucheck_return_nocontainers,''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertTrue(conn._get_cpuunits_capability())
+        conn._get_cpuunits_capability()
+
+    def test_get_cpuunits_capability_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo',
+                                  'vzcpucheck').AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error,conn._get_cpuunits_capability)
+
+    def test_get_cpuunits_usage_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo',
+                                  'vzcpucheck',
+                                  '-v').AndReturn(
+            (vzcpucheck_return_containers,''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._get_cpuunits_usage()
+
+    def test_get_cpuunits_usage_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo',
+                                  'vzcpucheck',
+                                  '-v').AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._get_cpuunits_usage)
 
     def test_percent_of_resource(self):
         conn = openvz_conn.OpenVzConnection(False)
@@ -515,9 +568,9 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_get_memory_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndReturn((meminfo, ''))
+        openvz_conn.utils.execute('sudo',
+                                  'cat',
+                                  '/proc/meminfo').AndReturn((meminfo, ''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         conn._get_memory()
@@ -526,9 +579,9 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_get_memory_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg(),
-                                  mox.IgnoreArg()).AndRaise(
+        openvz_conn.utils.execute('sudo',
+                                  'cat',
+                                  '/proc/meminfo').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
