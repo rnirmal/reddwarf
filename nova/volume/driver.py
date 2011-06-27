@@ -23,6 +23,8 @@ Drivers for volumes.
 import time
 import os
 
+import pexpect
+
 from nova import exception
 from nova import flags
 from nova import log as logging
@@ -136,6 +138,13 @@ class VolumeDriver(object):
         self._try_execute('sudo', 'lvremove', '-f', "%s/%s" %
                           (FLAGS.volume_group,
                            volume['name']))
+
+    def get_volume_uuid(self, device_path):
+        """Returns the UUID of a device given that device path."""
+        child = pexpect.spawn("sudo blkid " + device_path)
+        child.expect('UUID="([0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
+                     '[0-9a-f]{4,4}-[0-9a-f]{12,12})"')
+        return child.match.groups()[0]
 
     def local_path(self, volume):
         # NOTE(vish): stops deprecation warning

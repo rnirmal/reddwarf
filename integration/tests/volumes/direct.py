@@ -1,6 +1,7 @@
 
 from numbers import Number
 import os
+import re
 import shutil
 import time
 import unittest
@@ -174,6 +175,18 @@ class UnmountVolume(VolumeTest):
 
 
 @test(groups=[VOLUMES_DIRECT], depends_on_classes=[UnmountVolume])
+class GrabUuid(VolumeTest):
+
+    def test_unmount(self):
+        client = self.story.client # volume.Client()
+        device_path = self.story.device_path # '/dev/sda5'
+        uuid = client.get_uuid(device_path)
+        pattern = re.compile('^[0-9a-f]{8,8}-[0-9a-f]{4,4}-[0-9a-f]{4,4}-' \
+                             '[0-9a-f]{4,4}-[0-9a-f]{12,12}$')
+        self.assertTrue(pattern.search(uuid) != None, "uuid must match regex")
+
+
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[GrabUuid])
 class RemoveVolume(VolumeTest):
 
     def test_remove(self):
