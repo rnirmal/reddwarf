@@ -23,6 +23,7 @@ nova*.conf
 glance.log
 v.sh
 nova.log
+glance*.log
 .bzr*
 /CA*
 /nova/CA/crl.pem
