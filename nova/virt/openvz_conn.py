@@ -702,6 +702,35 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Unable to set IO priority for %s' % (
                 instance['id'],))
 
+    def _set_diskspace(self, instance, limit=()):
+        """
+        Implement OpenVz disk quotas for local disk space usage.  Takes a tuple
+        as an argument the first element being the soft limit and the second
+        is the hard limit.  If only one argument is given it will set it as
+        the soft limit. If no argument is given then one will be calculated
+        based on the output of _percent_of_resource and the total disk space on
+        the compute node.
+        """
+        if not type(limit) == tuple:
+            LOG.error('_set_diskspace takes a tuple as its argument')
+            raise exception.InvalidInput('Badly formatted diskspace limit')
+
+        if not len(limit):
+            # Do something interesting here
+            pass
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--diskspace',
+                                   '%s:%s' % (soft, hard))
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Error setting diskspace quota for %s' %
+                                  (instance['id'],))
+
+
     def snapshot(self, instance, name):
         """
         Snapshots the specified instance.
