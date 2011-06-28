@@ -40,21 +40,27 @@ flags.DEFINE_string('ovz_bridge_device',
 flags.DEFINE_string('ovz_network_template',
                     utils.abspath('virt/openvz_interfaces.template'),
                     'OpenVz network interface template file')
-flags.DEFINE_string('ovz_use_cpuunit',
-                    True,
-                    'Use OpenVz cpuunits for guaranteed minimums')
-flags.DEFINE_string('ovz_use_cpulimit',
-                    True,
-                    'Use OpenVz cpulimit for maximum cpu limits')
-flags.DEFINE_string('ovz_use_cpus',
-                    True,
-                    'Use OpenVz cpus for maximum cpus available to the container')
-flags.DEFINE_string('ovz_use_ioprio',
-                    True,
-                    'Use IO fair scheduling')
-flags.DEFINE_string('ovz_ioprio_limit',
-                    7,
-                    'Limit for IO priority weighting')
+flags.DEFINE_bool('ovz_use_cpuunit',
+                  True,
+                  'Use OpenVz cpuunits for guaranteed minimums')
+flags.DEFINE_bool('ovz_use_cpulimit',
+                  True,
+                  'Use OpenVz cpulimit for maximum cpu limits')
+flags.DEFINE_bool('ovz_use_cpus',
+                  True,
+                  'Use OpenVz cpus for maximum cpus available to the container')
+flags.DEFINE_bool('ovz_use_ioprio',
+                  True,
+                  'Use IO fair scheduling')
+flags.DEFINE_integer('ovz_ioprio_limit',
+                     7,
+                     'Limit for IO priority weighting')
+flags.DEFINE_bool('ovz_disk_space_oversub',
+                  True,
+                  'Allow over subscription of local disk')
+flags.DEFINE_float('ovz_disk_space_oversub_percent',
+                   1.10,
+                   'Local disk over subscription percentage')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -708,16 +714,18 @@ class OpenVzConnection(driver.ComputeDriver):
         as an argument the first element being the soft limit and the second
         is the hard limit.  If only one argument is given it will set it as
         the soft limit. If no argument is given then one will be calculated
-        based on the output of _percent_of_resource and the total disk space on
-        the compute node.
+        based on the values in the instance_types table within the database.
         """
         if not type(limit) == tuple:
             LOG.error('_set_diskspace takes a tuple as its argument')
             raise exception.InvalidInput('Badly formatted diskspace limit')
 
         if not len(limit):
-            # Do something interesting here
-            pass
+            instance_type = instance_types.get_instance_type(
+                instance['instance_type_id'])
+            soft = int(instance_type['local_gb'])
+            hard = int(instance_type['local_gb'] *
+                       FLAGS.ovz_disk_space_oversub_percent)
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
