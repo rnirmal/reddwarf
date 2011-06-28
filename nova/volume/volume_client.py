@@ -13,12 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from collections import namedtuple
+import time
+
 
 from nova import db
 from nova import flags
 from nova import log as logging
 from nova import utils
+from nova.volume.api import API
 from nova.db.base import Base
 
 
@@ -37,18 +39,23 @@ class VolumeClient(Base):
             self.driver = volume_driver
         self.driver.db = self.db
         self.driver.check_for_client_setup_error()
+        self.volume_api = API()
 
     def get_uuid(self, device_path):
         """Returns a UUID for a device given its mount point."""
         return self.driver.get_volume_uuid(device_path)
 
-    def initialize(self, context, volume_id):
+    def initialize(self, context, volume_id, host):
         """Discover the volume, format / mount it. Store UUID."""
+        self.volume_api.add_to_compute(context, volume_id, host)
         dev_path = self.setup_volume(context, volume_id)
         if not db.volume_get(context, volume_id)['uuid']:
+            # TODO(rnirmal): Fix the timing issue
+            time.sleep(2)
             self._format(dev_path)
             uuid = self.get_uuid(dev_path)
             self.db.volume_update(context, volume_id, {'uuid':uuid})
+        return dev_path
 
     def refresh(self, context, volume_id):
         """Discover and update volume information in database."""

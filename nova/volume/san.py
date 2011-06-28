@@ -26,6 +26,7 @@ from collections import namedtuple
 import re
 import paramiko
 import pexpect
+import time
 from xml.etree import ElementTree
 
 from nova import exception
@@ -621,14 +622,24 @@ class HpSanISCSIDriver(SanISCSIDriver):
                 break
         return list
 
-    def get_iscsi_properties_for_volume(self, context, volume):
+    def _attemp_discovery(self, context, volume):
         volume_id = long(volume['id'])
         for info in self._get_discovery_info():
             if info.volume_id == volume_id and FLAGS.san_ip in info.portal:
                 return { "target_iqn": info.target,
                          "target_portal": info.portal }
         else:
-            raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
+            return None
+
+    def get_iscsi_properties_for_volume(self, context, volume):
+        for i in range(FLAGS.num_shell_tries):
+            properties = self._attemp_discovery(context, volume)
+            if properties:
+                return properties
+            else:
+                LOG.debug(_("Attempt No: %s" % i))
+                time.sleep(3)
+        raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
 
 
 class ISCSILiteDriver(HpSanISCSIDriver):

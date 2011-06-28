@@ -411,7 +411,8 @@ class ISCSIDriver(VolumeDriver):
         volume_name = volume['name']
 
         (out, _err) = self._execute('sudo', 'iscsiadm', '-m', 'discovery',
-                                    '-t', 'sendtargets', '-p', volume['host'])
+                                    '-t', 'sendtargets', '-p', volume['host'],
+                                    attempts=FLAGS.num_shell_tries)
         for target in out.splitlines():
             if FLAGS.iscsi_ip_prefix in target and volume_name in target:
                 return target

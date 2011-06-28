@@ -257,8 +257,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         self.wait_until_volume_is_ready(context, volume)
         #TODO(tim.simpson): This may not be able to be the self.host name.
         # Needs to be something that can identify the compute node.
-        self.volume_api.add_to_compute(context, volume["id"], self.host)
-        self.volume_client.initialize(context, volume["id"])
+        self.volume_client.initialize(context, volume["id"], self.host)
         self.db.volume_attached(context, volume_id, instance_id, mount_point)
 
     @exception.wrap_exception
@@ -862,9 +861,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         
         #TODO(tim.simpson) This code will discover the volume (set it up) but
         #it also formats it. Should we be calling this here? 
-        self.volume_client.initialize(context, volume_id)
-
-        dev_path = self.volume_client.setup_volume(context, volume_id)
+        dev_path = self.volume_client.initialize(context, volume_id, self.host)
 
         try:
             self.driver.attach_volume(instance_ref['name'],
