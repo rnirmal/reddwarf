@@ -151,17 +151,12 @@ do
     delete_fixed_ip $x
 done
 
+# Remove all the devices on the Host
+sudo iscsiadm -m node --logout
+
 # Delete all of the volumes on the Volumes VM since the DB will now
 # be out of sync.
-# Log out of volumes on this VM.
-for (( x=0; x <= `ip_chunk 4`; x += 1))
-do
-    sudo iscsiadm -m node --target "iqn.2011-06.reddwarf.com:$x" -u
-done
-# Call the volume VM to delete the volumes there.
-ssh_unsafe vagrant@33.33.33.10 -p 22 -i /vagrant-common/ssh/id_rsa -o NoHostAuthenticationForLocalhost=yes "sudo bash /vagrant-common/delete_volumes.sh"
-
-
+ssh vagrant@33.33.33.10 "sudo /vagrant-common/delete_volumes.sh"
 
 # TODO: It may be necessary to delete all other instances of this.
 

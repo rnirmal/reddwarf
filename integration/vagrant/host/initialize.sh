@@ -21,7 +21,7 @@ then
     echo Dependencies are already installed.
 else
     exclaim 'Installing SSH key.'
-    sudo bash /vagrant-common/ssh/add_key_to_host.sh
+    /vagrant-common/setup_ssh_keys.sh
 
     exclaim 'Installing Dependencies...'
     sudo usermod -g root vagrant

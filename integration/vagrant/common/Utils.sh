@@ -28,8 +28,3 @@ pkg_remove () {
     echo Uninstalling $@...
     sudo -E DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated remove $@
 }
-
-ssh_unsafe () {
-    # Runs ssh allowing server to not be in known hosts
-    sudo ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $@
-}
