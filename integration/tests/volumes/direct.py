@@ -43,6 +43,7 @@ class StoryDetails(object):
         self.volume_name = None
         self.volume = None
         self.host = "vagrant-host"
+        self.original_uuid = None
 
     def get_volume(self):
         return self.api.get(self.context, self.volume_id)
@@ -213,7 +214,9 @@ class GrabUuid(VolumeTest):
         client = self.story.client # volume.Client()
         device_path = self.story.device_path # '/dev/sda5'
         uuid = client.get_uuid(device_path)
+        self.story.original_uuid = uuid
         self.assertTrue(is_uuid(uuid), "uuid must match regex")
+
 
     def test_get_invalid_uuid(self):
         """DevicePathInvalidForUuid is raised if device_path is wrong."""
@@ -242,13 +245,34 @@ class RemoveVolume(VolumeTest):
 class Initialize(VolumeTest):
 
     @time_out(60)
-    def test_initialize_will_format(self):
+    def test_10_initialize_will_format(self):
         """initialize will setup, format, and store the UUID of a volume"""
         self.assertTrue(self.story.get_volume()['uuid'] is None)
-        self.story.client.initialize(self.story.context, self.story.volume_id)
-        volume = poll_until(lambda : self.story.get_volume(),
-                            lambda volume : volume['uuid'] is not None)
+        self.story.client.initialize(self.story.context, self.story.volume_id)        
+        volume = self.story.get_volume()
         self.assertTrue(is_uuid(volume['uuid']), "uuid must match regex")
+        self.assertNotEqual(self.story.original_uuid, volume['uuid'],
+                            "Validate our assumption that the volume UUID "
+                            "will change when the volume is formatted.")
+
+    @time_out(60)
+    def test_20_initialize_the_second_time_will_not_format(self):
+        """If initialize is called but a UUID exists, it should not format."""
+        old_uuid = self.story.get_volume()['uuid']
+        self.assertTrue(old_uuid is not None)
+
+        self.story.client.remove_volume(self.story.context,
+                                        self.story.volume_id)
+        
+        class VolumeClientNoFmt(volume.Client):
+
+            def _format(self, device_path):
+                raise RuntimeError("_format should not be called!")
+
+        no_fmt_client = VolumeClientNoFmt()
+        no_fmt_client.initialize(self.story.context, self.story.volume_id)
+        self.assertEqual(old_uuid, self.story.get_volume()['uuid'],
+                         "UUID should be the same as no formatting occurred.")
 
 
 @test(groups=[VOLUMES_DIRECT], depends_on_classes=[Initialize])

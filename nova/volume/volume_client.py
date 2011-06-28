@@ -45,9 +45,10 @@ class VolumeClient(Base):
     def initialize(self, context, volume_id):
         """Discover the volume, format / mount it. Store UUID."""
         dev_path = self.setup_volume(context, volume_id)
-        self._format(dev_path)
-        uuid = self.get_uuid(dev_path)
-        self.db.volume_update(context, volume_id, {'uuid':uuid})
+        if not db.volume_get(context, volume_id)['uuid']:
+            self._format(dev_path)
+            uuid = self.get_uuid(dev_path)
+            self.db.volume_update(context, volume_id, {'uuid':uuid})
 
     def refresh(self, context, volume_id):
         """Discover and update volume information in database."""
