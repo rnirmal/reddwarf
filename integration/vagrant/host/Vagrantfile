@@ -34,5 +34,6 @@ Vagrant::Config.run do |config|
     volume_config.vm.box = "volumeserver"
     volume_config.vm.host_name = "volume"
     volume_config.vm.network "33.33.33.10"
+    volume_config.vm.share_folder "vagrant-common", "/vagrant-common", "./../common"
   end
 end

@@ -27,6 +27,7 @@ class StoryDetails(object):
     def __init__(self):
         self.api = volume.API()
         self.client = volume.Client()
+        self.context = context.get_admin_context()
         self.device_path = None
         self.volume_desc = None
         self.volume_id = None
@@ -60,19 +61,27 @@ class VolumeTest(unittest.TestCase):
 
     def assert_volume_as_expected(self, volume):
         self.assertTrue(isinstance(volume["id"], Number))
-        self.assertTrue(volume["display_name"], self.story.volume_name)
-        self.assertTrue(volume["display_description"], self.story.volume_desc)
-        self.assertTrue(volume["size"], 1)
-        self.assertTrue(volume["user_id"], context.get_admin_context().user_id)
-        self.assertTrue(volume["project_id"], context.get_admin_context().project_id)
+        self.assertEqual(self.story.volume_name, volume["display_name"])
+        self.assertEqual(self.story.volume_desc, volume["display_description"])
+        self.assertEqual(1, volume["size"])
+        self.assertEqual(self.story.context.user_id, volume["user_id"])
+        self.assertEqual(self.story.context.project_id, volume["project_id"])
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[initialize.Volume])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[initialize.Volume])
 class SetUp(VolumeTest):
 
-    def test_go(self):
+    def test_05_create_story(self):
         global story
         story = StoryDetails()
+
+    def test_10_wait_for_topics(self):
+        topics = ["volume"]
+        from tests.util.topics import hosts_up
+        while not all(hosts_up(topic) for topic in topics):
+            pass
+
+    def test_20_refresh_local_folders(self):
         if os.path.exists(LOCAL_MOUNT_PATH):
             #TODO(rnirmal): Also need to remove any existing mounts.
             shutil.rmtree(LOCAL_MOUNT_PATH)
@@ -81,7 +90,7 @@ class SetUp(VolumeTest):
         time.sleep(10)
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[SetUp])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[SetUp])
 class AddVolume(VolumeTest):
 
     def test_add(self):
@@ -90,16 +99,16 @@ class AddVolume(VolumeTest):
         desc = "A volume that was created for testing."
         self.story.volume_name = name
         self.story.volume_desc = desc
-        volume = self.story.api.create(context.get_admin_context(), size = 1,
+        volume = self.story.api.create(self.story.context, size = 1,
                                        name=name, description=desc)
         self.assert_volume_as_expected(volume)
-        self.assertTrue(volume["status"], "creating")
-        self.assertTrue(volume["attach_status"], "detached")
+        self.assertTrue("creating", volume["status"])
+        self.assertTrue("detached", volume["attach_status"])
         self.story.volume = volume
         self.story.volume_id = volume["id"]
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[AddVolume])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[AddVolume])
 class AfterVolumeIsAdded(VolumeTest):
     """Check that the volume can be retrieved via the API, and setup.
 
@@ -109,11 +118,10 @@ class AfterVolumeIsAdded(VolumeTest):
 
     @time_out(60)
     def test_api_get(self):
-        def create_finished():
-            volume = self.story.api.get(self.story.volume_id)
-            creating = volume["status"] == "creating"
-        wait_for(create_finished())
-        self.assertTrue(volume["status"], "available")
+        volume = poll_until(lambda : self.story.api.get(self.story.context,
+                                                        self.story.volume_id),
+                            lambda volume : volume["status"] != "creating")
+        self.assertEqual(volume["status"], "available")
         self.assert_volume_as_expected(volume)
         self.assertTrue(volume["attach_status"], "detached")
 
@@ -130,13 +138,15 @@ class SetupVolume(VolumeTest):
 
     def test_setup_volume(self):
         self.assertNotEqual(None, self.story.volume_id)
-        device = self.story.client.setup_volume(context.get_admin_context(),
+        device = self.story.client.setup_volume(self.story.context,
                                                 self.story.volume_id)
-        self.assertTrue(isinstance(device, basestring))
+        if not isinstance(device, basestring):
+            self.fail("Expected device to be a string, but instead it was " +
+                      str(type(device)) + ".")
         self.story.device_path = device
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[AfterVolumeIsAdded])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[SetupVolume])
 class FormatVolume(VolumeTest):
 
     @expect_exception(IOError)
@@ -155,7 +165,7 @@ class FormatVolume(VolumeTest):
         self.story.client.format(self.story.device_path)
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[FormatVolume])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[FormatVolume])
 class MountVolume(VolumeTest):
 
     def test_mount(self):
@@ -209,14 +219,14 @@ class RemoveVolume(VolumeTest):
         self.story.client.driver.unassign_volume(self.story.volume_id,
                                       self.story.host)
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[RemoveVolume])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[RemoveVolume])
 class DeleteVolume(VolumeTest):
 
     def test_delete(self):
-        self.story.api.delete(context.get_admin_context(), self.story.volume_id)
+        self.story.api.delete(self.story.context, self.story.volume_id)
 
 
-@test(groups=VOLUMES_DIRECT, depends_on_classes=[DeleteVolume])
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
     @expect_exception(Exception)

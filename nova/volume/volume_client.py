@@ -20,6 +20,7 @@ from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import utils
+from nova.db.base import Base
 
 
 LOG = logging.getLogger("nova.volume.volume_client")
@@ -35,10 +36,11 @@ VOLUME_OPTIONS = {"raw": VolumeOption(False, False),
                 "format_mount": VolumeOption(True, True)}
 
 
-class VolumeClient(object):
+class VolumeClient(Base):
     """A helper class to perform the volume related activities on a compute node"""
 
-    def __init__(self, volume_driver=FLAGS.volume_driver):
+    def __init__(self, volume_driver=FLAGS.volume_driver, *args, **kwargs):
+        super(VolumeClient, self).__init__(*args, **kwargs)
         # Add a driver
         if isinstance(volume_driver, basestring):
             self.driver = utils.import_object(volume_driver)

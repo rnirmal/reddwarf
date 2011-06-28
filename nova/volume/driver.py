@@ -406,12 +406,6 @@ class ISCSIDriver(VolumeDriver):
                       '--tid=%s' % iscsi_target)
 
     def _do_iscsi_discovery(self, volume):
-        #TODO(tim.simpson) This looks for the first line containing
-        #                  iscsi_ip_prefix & returns it. In testing there have
-        #                  been multiple lines with the same ip, but what we
-        #                  use to identify the volume is not the host but the
-        #                  volume ID.  So I'm not sure if this will work...
-
         #TODO(justinsb): Deprecate discovery and use stored info
         #NOTE(justinsb): Discovery won't work with CHAP-secured targets (?)
         LOG.warn(_("ISCSI provider_location not stored, using discovery"))
@@ -495,14 +489,16 @@ class ISCSIDriver(VolumeDriver):
                          '-v', property_value)
         return self._run_iscsiadm(iscsi_properties, iscsi_command)
 
-    def discover_volume(self, context, volume):
-        """Discover volume on a remote host."""
+    def get_iscsi_properties_for_volume(self, context, volume):
+        #TODO(tim.simpson) This method executes commands assuming the
+        # nova-volume is on the same node as nova-compute.
         iscsi_properties = self._get_iscsi_properties(volume)
-
         if not iscsi_properties['target_discovered']:
             self._run_iscsiadm(iscsi_properties, ('--op', 'new'))
+        return iscsi_properties
 
-        if iscsi_properties.get('auth_method'):
+    def set_iscsi_auth(self, iscsi_properties):
+        if iscsi_properties.get('auth_method', None):
             self._iscsiadm_update(iscsi_properties,
                                   "node.session.auth.authmethod",
                                   iscsi_properties['auth_method'])
@@ -512,6 +508,12 @@ class ISCSIDriver(VolumeDriver):
             self._iscsiadm_update(iscsi_properties,
                                   "node.session.auth.password",
                                   iscsi_properties['auth_password'])
+
+    def discover_volume(self, context, volume):
+        """Discover volume on a remote host."""
+
+        iscsi_properties = self.get_iscsi_properties_for_volume(context, volume)
+        self.set_iscsi_auth(iscsi_properties)
 
         self._run_iscsiadm(iscsi_properties, "--login")
 

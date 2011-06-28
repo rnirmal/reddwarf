@@ -26,13 +26,12 @@ from collections import namedtuple
 import re
 import paramiko
 import pexpect
-
 from xml.etree import ElementTree
 
 from nova import exception
 from nova import flags
 from nova import log as logging
-from nova.exception import VolumeNotFound
+from nova.exception import ISCSITargetNotDiscoverable
 from nova.utils import ssh_execute
 from nova.volume.driver import ISCSIDriver
 
@@ -72,7 +71,6 @@ class DiscoveryInfo(object):
 class InitiatorLoginError(exception.Error):
     """Occurs when the initiator fails to login for some reason."""
     pass
-
 
 class SanISCSIDriver(ISCSIDriver):
     """ Base class for SAN-style storage volumes
@@ -682,56 +680,17 @@ class HpSanISCSIDriver(SanISCSIDriver):
         and the volume ID.
 
         """
-
-        child = pexpect.spawn("iscsiadm -m discovery -t st -p %s"
-                          % FLAGS.san_ip)
+        cmd = "sudo iscsiadm -m discovery -t st -p %s" % FLAGS.san_ip
+        child = pexpect.spawn(cmd)
         list = []
-        id_in_target = re.compile('.+?:target([0-9]+)')
         while True:
             try:
-                #child.expect('([0-9\\.]+:[0-9]+\\,[0-9])+(.+?):target([0-9])\\r')
-                child.expect('([0-9\\.]+:[0-9]+\\,[0-9])+(.+?:target[0-9]+)\\r')
-                info = DiscoveryInfo(*child.match.groups(), id=None)
-                info.id = id_in_target.search(info.target).group(0)
+                child.expect('([0-9\\.]+:[0-9]+)\\,[0-9]+[ \t]*(.+?:[0-9]+)\\r')
+                info = DiscoveryInfo(*child.match.groups())
                 list.append(info)
             except pexpect.EOF:
                 break
         return list
-
-    @staticmethod
-    def _login_to_target(discovery_info, time_out):
-        """Logins to target using DiscoveryInfo.
-
-        Fails if the operation times out or the command line returns suspect
-        output.
-
-        """
-        cmd = 'iscsiadm -m node --target "%(target)s" --portal "%(portal)s" ' \
-              '--login' % discovery_info
-        child = pexpect.spawn(cmd)
-        possible_errors = ['Could not login', 'initiator reported error']
-        possible_success = ['successful']
-        try:
-            i = child.expect(itertools.chain(possible_errors, possible_success),
-                             time_out)
-            if i < len(possible_errors):
-                raise InitiatorLoginError()
-            child.expect(pexpect.EOF, timeout=time_out)
-            child.close()
-        except pexpect.TIMEOUT:
-            child.delayafterclose = 1
-            child.delayafterterminate = 1
-            child.close(force=True)
-        
-
-    def discover_volume(self, context, volume):
-        """Discover and attach a remote volume as a local device"""
-
-        volume_id = str(volume["id"])
-        for info in self._get_discovery_info():
-            if info.id == volume_id:
-                _login_to_target(info, 30)
-        raise VolumeNotFound()
 
     def get_iscsi_properties_for_volume(self, context, volume):
         volume_id = long(volume['id'])
