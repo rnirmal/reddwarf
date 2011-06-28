@@ -154,8 +154,6 @@ class SetupVolume(VolumeTest):
         self.assertNotEqual(None, self.story.volume_id)
         self.story.api.add_to_compute(self.story.context, self.story.volume_id,
                                       self.story.host)
-        # TODO(rnirmal): remove once we fix discover retries
-        time.sleep(5)
 
     def test_setup_volume(self):
         """Set up the volume on this host. AKA discovery."""
@@ -248,7 +246,8 @@ class Initialize(VolumeTest):
     def test_10_initialize_will_format(self):
         """initialize will setup, format, and store the UUID of a volume"""
         self.assertTrue(self.story.get_volume()['uuid'] is None)
-        self.story.client.initialize(self.story.context, self.story.volume_id)        
+        self.story.client.initialize(self.story.context, self.story.volume_id,
+                                     self.story.host)
         volume = self.story.get_volume()
         self.assertTrue(is_uuid(volume['uuid']), "uuid must match regex")
         self.assertNotEqual(self.story.original_uuid, volume['uuid'],
@@ -270,7 +269,8 @@ class Initialize(VolumeTest):
                 raise RuntimeError("_format should not be called!")
 
         no_fmt_client = VolumeClientNoFmt()
-        no_fmt_client.initialize(self.story.context, self.story.volume_id)
+        no_fmt_client.initialize(self.story.context, self.story.volume_id,
+                                 self.story.host)
         self.assertEqual(old_uuid, self.story.get_volume()['uuid'],
                          "UUID should be the same as no formatting occurred.")
 
