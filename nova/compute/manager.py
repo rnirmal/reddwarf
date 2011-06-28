@@ -248,9 +248,24 @@ class ComputeManager(manager.SchedulerDependentManager):
                 raise exception.VolumeProvisioningError(volume_id=volume['id'])
         return LoopingCall(get_status, volume['id']).start(3).wait()
 
+    def ensure_volume_is_ready(self, context, instance_id):
+        volume, mount_point = self.get_volume_info_for_instance_id(context,
+                                                                   instance_id)
+        if not volume:
+            return
+
+        self.wait_until_volume_is_ready(context, volume)
+        #TODO(tim.simpson): This may not be able to be the self.host name.
+        # Needs to be something that can identify the compute node.
+        self.volume_api.add_to_compute(context, volume["id"], self.host)
+        self.volume_client.initialize(context, volume["id"])
+        self.db.volume_attached(context, volume_id, instance_id, mount_point)
+
     @exception.wrap_exception
     def run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options."""
+        self.ensure_volume_is_ready(context, instance_id)
+        
         context = context.elevated()
         instance_ref = self.db.instance_get(context, instance_id)
         instance_ref.injected_files = kwargs.get('injected_files', [])
@@ -285,16 +300,6 @@ class ComputeManager(manager.SchedulerDependentManager):
 
         # TODO(vish) check to make sure the availability zone matches
         self._update_state(context, instance_id, power_state.BUILDING)
-
-        volume, mnt_pnt = self.get_volume_info_for_instance_id(context,
-                                                               instance_id)
-        if volume:
-            self.wait_until_volume_is_ready(context, volume)
-            #TODO(tim.simpson): This may not be able to be the self.host name.
-            # Needs to be something that can identify the compute node.
-            self.volume_api.add_to_compute(context, volume["id"], self.host)
-            # TODO(rnirmal): change mount point if needed
-            self.attach_volume(context, instance_id, volume.id, mnt_pnt)
 
         try:
             self.driver.spawn(instance_ref)
@@ -854,18 +859,17 @@ class ComputeManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         LOG.audit(_("instance %(instance_id)s: attaching volume %(volume_id)s"
                 " to %(mountpoint)s") % locals(), context=context)
+        
+        #TODO(tim.simpson) This code will discover the volume (set it up) but
+        #it also formats it. Should we be calling this here? 
+        self.volume_client.initialize(context, volume_id)
+
         dev_path = self.volume_client.setup_volume(context, volume_id)
 
         try:
-            if self.volume_client.option.format:
-                self.volume_client.format(dev_path)
-            if self.volume_client.option.mount:
-                self.volume_client.mount(dev_path, mountpoint)
-                self.driver.use_volume(instance_ref['name'], mountpoint)
-            else:
-                self.driver.attach_volume(instance_ref['name'],
-                                          dev_path,
-                                          mountpoint)
+            self.driver.attach_volume(instance_ref['name'],
+                                      dev_path,
+                                      mountpoint)
             self.db.volume_attached(context,
                                     volume_id,
                                     instance_id,

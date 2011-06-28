@@ -16,7 +16,6 @@
 from collections import namedtuple
 
 from nova import db
-from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import utils
@@ -25,16 +24,6 @@ from nova.db.base import Base
 
 LOG = logging.getLogger("nova.volume.volume_client")
 FLAGS = flags.FLAGS
-flags.DEFINE_string('volume_option', 'raw',
-                    'Default type of the volume to be provided to compute driver')
-
-VolumeOption = namedtuple("VolumeOption", ['format', 'mount'])
-
-VOLUME_OPTIONS = {"raw": VolumeOption(False, False),
-                "format": VolumeOption(True, False),
-                "mount": VolumeOption(False, True),
-                "format_mount": VolumeOption(True, True)}
-
 
 class VolumeClient(Base):
     """A helper class to perform the volume related activities on a compute node"""
@@ -47,15 +36,21 @@ class VolumeClient(Base):
         else:
             self.driver = volume_driver
         self.driver.db = self.db
-        if FLAGS.volume_option not in VOLUME_OPTIONS:
-            raise ValueError("'%s' is not a valid volume_option"
-                                    % FLAGS.volume_type)
-        self.option = VOLUME_OPTIONS[FLAGS.volume_option]
         self.driver.check_for_client_setup_error()
 
     def get_uuid(self, device_path):
         """Returns a UUID for a device given its mount point."""
         return self.driver.get_volume_uuid(device_path)
+
+    def initialize(self, context, volume_id):
+        """Discover the volume, format / mount it. Store UUID."""
+        dev_path = self.setup_volume(context, volume_id)
+        self._format(dev_path)
+        uuid = self.get_uuid(dev_path)
+        self.db.volume_update(context, volume_id, {'uuid':uuid})
+
+    def refresh(self, context, volume_id):
+        """Discover and update volume information in database."""
 
     def setup_volume(self, context, volume_id):
         """Setup remote volume on compute host.
@@ -71,14 +66,14 @@ class VolumeClient(Base):
         volume_ref = db.volume_get(context, volume_id)
         self.driver.undiscover_volume(volume_ref)
 
-    def format(self, device_path):
+    def _format(self, device_path):
         """Format the specified device"""
         self.driver.format(device_path)
 
-    def mount(self, device_path, mount_point):
+    def _mount(self, device_path, mount_point):
         """Mount the specified device at the mount point"""
         self.driver.mount(device_path, mount_point)
 
-    def unmount(self, mount_point):
+    def _unmount(self, mount_point):
         """Unmount the filesystem at the mount point."""
         self.driver.unmount(mount_point)

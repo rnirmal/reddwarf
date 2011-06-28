@@ -311,6 +311,7 @@ class Volume(BASE, NovaBase):
     provider_location = Column(String(255))
     provider_auth = Column(String(255))
 
+    uuid = Column(String(64))
 
 class Quota(BASE, NovaBase):
     """Represents a single quota override for a project.

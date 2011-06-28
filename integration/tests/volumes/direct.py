@@ -22,7 +22,16 @@ from tests.util import poll_until
 from nova.volume.san import ISCSILiteDriver
 
 
+UUID_PATTERN = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
+                          '[0-9a-f]{4}-[0-9a-f]{12}$')
+
+def is_uuid(text):
+    return UUID_PATTERN.search(text) is not None
+
+
 class StoryDetails(object):
+
+
 
     def __init__(self):
         self.api = volume.API()
@@ -34,6 +43,9 @@ class StoryDetails(object):
         self.volume_name = None
         self.volume = None
         self.host = "vagrant-host"
+
+    def get_volume(self):
+        return self.api.get(self.context, self.volume_id)
 
     @property
     def mount_point(self):
@@ -72,16 +84,19 @@ class VolumeTest(unittest.TestCase):
 class SetUp(VolumeTest):
 
     def test_05_create_story(self):
+        """Creating 'story' vars used by the rest of these tests."""
         global story
         story = StoryDetails()
 
     def test_10_wait_for_topics(self):
+        """Wait until the volume topic is up before proceeding."""
         topics = ["volume"]
         from tests.util.topics import hosts_up
         while not all(hosts_up(topic) for topic in topics):
             pass
 
     def test_20_refresh_local_folders(self):
+        """Delete the local folders used as mount locations if they exist."""
         if os.path.exists(LOCAL_MOUNT_PATH):
             #TODO(rnirmal): Also need to remove any existing mounts.
             shutil.rmtree(LOCAL_MOUNT_PATH)
@@ -94,6 +109,7 @@ class SetUp(VolumeTest):
 class AddVolume(VolumeTest):
 
     def test_add(self):
+        """Make call to prov. a volume and assert the return value is OK."""
         self.assertEqual(None, self.story.volume_id)
         name = "TestVolume"
         desc = "A volume that was created for testing."
@@ -118,8 +134,8 @@ class AfterVolumeIsAdded(VolumeTest):
 
     @time_out(60)
     def test_api_get(self):
-        volume = poll_until(lambda : self.story.api.get(self.story.context,
-                                                        self.story.volume_id),
+        """Wait until the volume is finished provisioning."""
+        volume = poll_until(lambda : self.story.get_volume(),
                             lambda volume : volume["status"] != "creating")
         self.assertEqual(volume["status"], "available")
         self.assert_volume_as_expected(volume)
@@ -130,6 +146,10 @@ class AfterVolumeIsAdded(VolumeTest):
 class SetupVolume(VolumeTest):
 
     def test_assign_volume(self):
+        """Tell the volume it belongs to this host node."""
+        #TODO(tim.simpson) If this is important, could we add a test to
+        #                  make sure some kind of exception is thrown if it
+        #                  isn't added to certain drivers?
         self.assertNotEqual(None, self.story.volume_id)
         self.story.api.add_to_compute(self.story.context, self.story.volume_id,
                                       self.story.host)
@@ -137,6 +157,7 @@ class SetupVolume(VolumeTest):
         time.sleep(5)
 
     def test_setup_volume(self):
+        """Set up the volume on this host. AKA discovery."""
         self.assertNotEqual(None, self.story.volume_id)
         device = self.story.client.setup_volume(self.story.context,
                                                 self.story.volume_id)
@@ -157,19 +178,19 @@ class FormatVolume(VolumeTest):
                 pass
 
         bad_client = volume.Client(volume_driver=BadFormatter())
-        bad_client.format(self.story.device_path)
+        bad_client._format(self.story.device_path)
 
 
     def test_20_format(self):
         self.assertNotEqual(None, self.story.device_path)
-        self.story.client.format(self.story.device_path)
+        self.story.client._format(self.story.device_path)
 
 
 @test(groups=[VOLUMES_DIRECT], depends_on_classes=[FormatVolume])
 class MountVolume(VolumeTest):
 
     def test_mount(self):
-        self.story.client.mount(self.story.device_path, self.story.mount_point)
+        self.story.client._mount(self.story.device_path, self.story.mount_point)
         with open(self.story.test_mount_file_path, 'w') as file:
             file.write("Yep, it's mounted alright.")
         self.assertTrue(os.path.exists(self.story.test_mount_file_path))
@@ -179,7 +200,7 @@ class MountVolume(VolumeTest):
 class UnmountVolume(VolumeTest):
 
     def test_unmount(self):
-        self.story.client.unmount(self.story.mount_point)
+        self.story.client._unmount(self.story.mount_point)
         child = pexpect.spawn("sudo mount %s" % self.story.mount_point)
         child.expect("mount: can't find %s in" % self.story.mount_point)
 
@@ -192,10 +213,7 @@ class GrabUuid(VolumeTest):
         client = self.story.client # volume.Client()
         device_path = self.story.device_path # '/dev/sda5'
         uuid = client.get_uuid(device_path)
-        pattern = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
-                             '[0-9a-f]{4}-[0-9a-f]{12}$')
-        self.assertTrue(pattern.search(uuid) is not None,
-                        "uuid must match regex")
+        self.assertTrue(is_uuid(uuid), "uuid must match regex")
 
     def test_get_invalid_uuid(self):
         """DevicePathInvalidForUuid is raised if device_path is wrong."""
@@ -212,14 +230,28 @@ class RemoveVolume(VolumeTest):
         self.story.client.remove_volume(self.story.context,
                                  self.story.volume_id)
         self.assertRaises(Exception,
-                          self.story.client.format, self.story.device_path)
+                          self.story.client._format, self.story.device_path)
 
     def test_unassign_volume(self):
         self.assertNotEqual(None, self.story.volume_id)
         self.story.client.driver.unassign_volume(self.story.volume_id,
                                       self.story.host)
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[RemoveVolume])
+
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[GrabUuid])
+class Initialize(VolumeTest):
+
+    @time_out(60)
+    def test_initialize_will_format(self):
+        """initialize will setup, format, and store the UUID of a volume"""
+        self.assertTrue(self.story.get_volume()['uuid'] is None)
+        self.story.client.initialize(self.story.context, self.story.volume_id)
+        volume = poll_until(lambda : self.story.get_volume(),
+                            lambda volume : volume['uuid'] is not None)
+        self.assertTrue(is_uuid(volume['uuid']), "uuid must match regex")
+
+
+@test(groups=[VOLUMES_DIRECT], depends_on_classes=[Initialize])
 class DeleteVolume(VolumeTest):
 
     def test_delete(self):
