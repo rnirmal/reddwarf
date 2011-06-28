@@ -575,7 +575,7 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         conn._get_memory()
         self.assertEquals(int, type(conn.utility['MEMORY_MB']))
-        self.assertGreater(conn.utility['MEMORY_MB'], 0)
+        self.assertTrue(conn.utility['MEMORY_MB'] > 0)
 
     def test_get_memory_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
