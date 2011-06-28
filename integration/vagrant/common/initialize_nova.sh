@@ -27,7 +27,7 @@ mysql_query () {
 # Drop these in case this command is being run again.
 mysql -u root -e "DROP DATABASE nova;"
 mysql -u root -e "DROP DATABASE glance;"
-rm -rf /home/vagrant/glance_repo
+rm -rf /var/lib/glance
 rm -rf /vz/template/cache/*
 # Apparently this is no longer needed... ?
 /vagrant-common/update_ovz_template2.sh
@@ -55,7 +55,8 @@ fi
 
 glance_manage () {
     echo glance-manage $@
-    /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+    # /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+    /glance/bin/glance-manage --config-file=/vagrant/glance-reg.conf $@
 }
 
 nova_manage () {
@@ -105,10 +106,8 @@ nova_manage project zipfile dbaas admin
 exclaim Starting tests...
 cd /tests
 
-mkdir /home/vagrant/glance_repo
-
 # Install glance_image if one isn't found.
-if [ ! -f ~/glance_repo/1 ]
+if [ ! -f /var/lib/glance/1 ]
 then
     echo "Installing Glance Image."
     cd /tests
