@@ -617,3 +617,40 @@ class OpenVzConnTestCase(test.TestCase):
         conn._percent_of_resource(test_instance).AndReturn(.50)
         self.mox.ReplayAll()
         self.assertRaises(exception.Error, conn._set_ioprio, test_instance)
+
+    def test_set_diskspace_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'vzctl', 'set', test_instance['id'],
+                                  '--save', '--diskspace',
+                                  mox.IgnoreArg()).AndReturn(('',None))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_diskspace(test_instance)
+
+    def test_set_diskspace_soft_manual_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'vzctl', 'set', test_instance['id'],
+                                  '--save', '--diskspace',
+                                  '40G:44G').AndReturn(('',None))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_diskspace(test_instance, (40,))
+
+    def test_set_diskspace_soft_and_hard_manual_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'vzctl', 'set', test_instance['id'],
+                                  '--save', '--diskspace',
+                                  '40G:50G').AndReturn(('',None))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_diskspace(test_instance, (40,50))
+
+    def test_set_diskspace_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'vzctl', 'set', test_instance['id'],
+                                  '--save', '--diskspace',
+                                  mox.IgnoreArg()).AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_diskspace, test_instance)

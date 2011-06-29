@@ -61,6 +61,9 @@ flags.DEFINE_bool('ovz_disk_space_oversub',
 flags.DEFINE_float('ovz_disk_space_oversub_percent',
                    1.10,
                    'Local disk over subscription percentage')
+flags.DEFINE_string('ovz_disk_space_increment',
+                    'G',
+                    'Disk subscription increment')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -726,6 +729,17 @@ class OpenVzConnection(driver.ComputeDriver):
             soft = int(instance_type['local_gb'])
             hard = int(instance_type['local_gb'] *
                        FLAGS.ovz_disk_space_oversub_percent)
+        elif len(limit) == 1:
+            soft = limit[0]
+            hard = int(limit[0] * FLAGS.ovz_disk_space_oversub_percent)
+        else:
+            soft = limit[0]
+            hard = limit[1]
+
+        # Now set the increment of the limit.  I do this here so that I don't
+        # have to do this in every line above.
+        soft = '%s%s' % (soft, FLAGS.ovz_disk_space_increment)
+        hard = '%s%s' % (hard, FLAGS.ovz_disk_space_increment)
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
