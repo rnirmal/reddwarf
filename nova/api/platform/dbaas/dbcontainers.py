@@ -139,6 +139,7 @@ class Controller(common.DBaaSController):
         result = self.server_controller.delete(req, id)
         if isinstance(result, exc.HTTPAccepted):
             dbapi.guest_status_delete(id)
+        self.delete_volume(req, id)
         return result
 
     def create(self, req):
@@ -150,7 +151,7 @@ class Controller(common.DBaaSController):
 
         #TODO(tim.simpson) Check "env" to get volume options specified before
         #                  modifying the 'body' object with the volume_id.
-        volume = self.create_volume(req);
+        volume = self.create_volume(req)
         body.add_volume_id(volume['id'])
         body.add_mount_point("/var/lib/mysql")
 
@@ -182,6 +183,13 @@ class Controller(common.DBaaSController):
         return self.volume_api.create(context, size = 1,
                                       name="Volume",
                                       description="Stores database files.")
+
+    def delete_volume(self, req, instance_id):
+        """Delete the volume associated with this instance_id."""
+        context = req.environ['nova.context']
+        volumes = db.volume_get_all_by_instance(context, instance_id)
+        for volume in volumes:
+            self.volume_api.delete(context, volume['id'])
 
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.

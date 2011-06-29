@@ -133,7 +133,7 @@ class AfterVolumeIsAdded(VolumeTest):
 
     """
 
-    @time_out(60)
+    @time_out(120)
     def test_api_get(self):
         """Wait until the volume is finished provisioning."""
         volume = poll_until(lambda : self.story.get_volume(),
@@ -152,14 +152,15 @@ class SetupVolume(VolumeTest):
         #                  make sure some kind of exception is thrown if it
         #                  isn't added to certain drivers?
         self.assertNotEqual(None, self.story.volume_id)
-        self.story.api.add_to_compute(self.story.context, self.story.volume_id,
+        self.story.api.assign_to_compute(self.story.context, self.story.volume_id,
                                       self.story.host)
 
     def test_setup_volume(self):
         """Set up the volume on this host. AKA discovery."""
         self.assertNotEqual(None, self.story.volume_id)
         device = self.story.client.setup_volume(self.story.context,
-                                                self.story.volume_id)
+                                                self.story.volume_id,
+                                                self.story.host)
         if not isinstance(device, basestring):
             self.fail("Expected device to be a string, but instead it was " +
                       str(type(device)) + ".")
@@ -229,7 +230,8 @@ class RemoveVolume(VolumeTest):
 
     def test_remove(self):
         self.story.client.remove_volume(self.story.context,
-                                 self.story.volume_id)
+                                 self.story.volume_id,
+                                 self.story.host)
         self.assertRaises(Exception,
                           self.story.client._format, self.story.device_path)
 
@@ -261,7 +263,8 @@ class Initialize(VolumeTest):
         self.assertTrue(old_uuid is not None)
 
         self.story.client.remove_volume(self.story.context,
-                                        self.story.volume_id)
+                                        self.story.volume_id,
+                                        self.story.host)
         
         class VolumeClientNoFmt(volume.Client):
 
