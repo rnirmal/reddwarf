@@ -696,7 +696,7 @@ class ISCSILiteDriver(HpSanISCSIDriver):
                           "--params Path=/san/%s.img,Type=fileio"
                           % (iscsi_target, volume['id']))
             # Update CHAP user info for the target
-            self._run_ssh("sudo ietadm --op new --tid=1%s --user --params" \
+            self._run_ssh("sudo ietadm --op new --tid=%s --user --params" \
                           " IncomingUser=username,Password=password1234"
                           % iscsi_target)
         except exception.ProcessExecutionError as err:

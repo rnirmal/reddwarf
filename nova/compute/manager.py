@@ -371,7 +371,8 @@ class ComputeManager(manager.SchedulerDependentManager):
         volumes = instance_ref.get('volumes') or []
         for volume in volumes:
             self.detach_volume(context, instance_id, volume['id'])
-            self.volume_api.delete(context, volume['id'])
+            #TODO(rnirmal): Remove after we've verified it's safe to remove
+            #self.volume_api.delete(context, volume['id'])
         if instance_ref['state'] == power_state.SHUTOFF:
             self.db.instance_destroy(context, instance_id)
             raise exception.Error(_('trying to destroy already destroyed'
@@ -858,9 +859,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         LOG.audit(_("instance %(instance_id)s: attaching volume %(volume_id)s"
                 " to %(mountpoint)s") % locals(), context=context)
-        
-        #TODO(tim.simpson) This code will discover the volume (set it up) but
-        #it also formats it. Should we be calling this here? 
+
         dev_path = self.volume_client.initialize(context, volume_id, self.host)
 
         try:
@@ -877,7 +876,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             #             ecxception below.
             LOG.exception(_("instance %(instance_id)s: attach failed"
                     " %(mountpoint)s, removing") % locals(), context=context)
-            self.volume_client.remove_volume(context, volume_id)
+            self.volume_client.remove_volume(context, volume_id, self.host)
             raise exc
 
         return True
@@ -898,17 +897,9 @@ class ComputeManager(manager.SchedulerDependentManager):
         else:
             self.driver.detach_volume(instance_ref['name'],
                                       volume_ref['mountpoint'])
-        self.volume_client.remove_volume(context, volume_id)
+        self.volume_client.remove_volume(context, volume_id, self.host)
         self.db.volume_detached(context, volume_id)
         return True
-
-    def remove_volume(self, context, volume_id):
-        """Remove volume on compute host.
-
-        :param context: security context
-        :param volume_id: volume ID
-        """
-        self.volume_manager.remove_compute_volume(context, volume_id)
 
     @exception.wrap_exception
     def compare_cpu(self, context, cpu_info):

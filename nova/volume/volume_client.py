@@ -47,8 +47,8 @@ class VolumeClient(Base):
 
     def initialize(self, context, volume_id, host):
         """Discover the volume, format / mount it. Store UUID."""
-        self.volume_api.add_to_compute(context, volume_id, host)
-        dev_path = self.setup_volume(context, volume_id)
+        self.volume_api.assign_to_compute(context, volume_id, host)
+        dev_path = self.setup_volume(context, volume_id, host)
         if not db.volume_get(context, volume_id)['uuid']:
             # TODO(rnirmal): Fix the timing issue
             time.sleep(2)
@@ -60,19 +60,27 @@ class VolumeClient(Base):
     def refresh(self, context, volume_id):
         """Discover and update volume information in database."""
 
-    def setup_volume(self, context, volume_id):
+    def setup_volume(self, context, volume_id, host):
         """Setup remote volume on compute host.
 
         Returns path to device."""
         context = context.elevated()
         volume_ref = db.volume_get(context, volume_id)
-        return self.driver.discover_volume(context, volume_ref)
+        if volume_ref['host'] == host and FLAGS.use_local_volumes:
+            path = self.driver.local_path(volume_ref)
+        else:
+            path = self.driver.discover_volume(context, volume_ref)
+        return path
 
-    def remove_volume(self, context, volume_id):
+    def remove_volume(self, context, volume_id, host):
         """Remove remote volume on compute host."""
         context = context.elevated()
         volume_ref = db.volume_get(context, volume_id)
-        self.driver.undiscover_volume(volume_ref)
+        if volume_ref['host'] == host and FLAGS.use_local_volumes:
+            return True
+        else:
+            self.driver.undiscover_volume(volume_ref)
+        self.volume_api.unassign_from_compute(context, volume_id, host)
 
     def _format(self, device_path):
         """Format the specified device"""

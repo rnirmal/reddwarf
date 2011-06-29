@@ -39,7 +39,7 @@ LOG = logging.getLogger('nova.volume')
 class API(base.Base):
     """API for interacting with the volume manager."""
 
-    def add_to_compute(self, context, volume_id, host):
+    def assign_to_compute(self, context, volume_id, host):
         rpc.cast(context,
                  FLAGS.scheduler_topic,
                  {"method": "assign_volume",
@@ -112,9 +112,10 @@ class API(base.Base):
         if volume['status'] == "available":
             raise exception.ApiError(_("Volume is already detached"))
 
-    def remove_from_compute(self, context, volume_id, host):
-        """Remove volume from specified compute host."""
-        rpc.call(context,
-                 self.db.queue_get_for(context, FLAGS.compute_topic, host),
-                 {"method": "remove_volume",
-                  "args": {'volume_id': volume_id}})
+    def unassign_from_compute(self, context, volume_id, host):
+        rpc.cast(context,
+                 FLAGS.scheduler_topic,
+                 {"method": "unassign_volume",
+                  "args": {"topic": FLAGS.volume_topic,
+                           "volume_id": volume_id,
+                           "host": host}})
