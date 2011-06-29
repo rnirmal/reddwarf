@@ -54,8 +54,6 @@ flags.DEFINE_string('san_clustername', '',
                     'Cluster name to use for creating volumes')
 flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
-flags.DEFINE_string('san_default_volume_size', '1GB',
-                    'Default volume size for a san')
 
 
 class DiscoveryInfo(object):
@@ -501,22 +499,22 @@ class HpSanISCSIDriver(SanISCSIDriver):
         Assign any created volume to a compute node/host so that it can be
         used from that host. HP VSA requires a volume to be assigned to a server
         """
-        cliq_args = dict()
+        cliq_args = {}
         cliq_args['volumeName'] = volume_id
         cliq_args['serverName'] = host
         self._cliq_run_xml("assignVolumeToServer", cliq_args)
 
     def create_volume(self, volume):
         """Creates a volume."""
-        cliq_args = dict()
+        cliq_args = {}
         cliq_args['clusterName'] = FLAGS.san_clustername
         cliq_args['thinProvision'] = '1' if FLAGS.san_thin_provision else '0'
         # Using volume id for name to guarantee uniqueness
         cliq_args['volumeName'] = volume['id']
-        if not volume['size'] or int(volume['size']) == 0:
-            cliq_args['size'] = FLAGS.san_default_volume_size
-        else:
-            cliq_args['size'] = '%sGB' % volume['size']
+        volume_size = int(volume['size'])
+        if volume_size <= 0:
+            raise ValueError("Invalid volume size.")
+        cliq_args['size'] = '%sGB' % volume_size
         cliq_args['description'] = '"Volume ID:%s assigned to Instance:%s"' \
                                     % (volume['id'], volume['instance_id'])
 
@@ -524,55 +522,17 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
     def unassign_volume(self, volume_id, host):
         """Unassign a volume that's associated with a server."""
-        cliq_args = dict()
+        cliq_args = {}
         cliq_args['volumeName'] = volume_id
         cliq_args['serverName'] = host
         self._cliq_run_xml("unassignVolumeToServer", cliq_args)
 
     def delete_volume(self, volume):
         """Deletes a volume."""
-        cliq_args = dict()
+        cliq_args = {}
         cliq_args['volumeName'] = volume['id']
         cliq_args['prompt'] = 'false'  # Don't confirm
         self._cliq_run_xml("deleteVolume", cliq_args)
-
-    def _check_format(self, device_path):
-        """Checks that an unmounted volume is formatted."""
-        child = pexpect.spawn("sudo dumpe2fs %s" % device_path)
-        try:
-            i = child.expect(['has_journal', 'Wrong magic number'])
-            if i == 0:
-                return
-            raise IOError('The formatted device did not seem to be an ext3 fs.')
-        except pexpect.EOF:
-            raise IOError("Volume was not formatted.")
-        child.expect(pexpect.EOF)
-
-    def _format(self, device_path):
-        """Calls mkfs to format the device path as ext3."""
-        child = pexpect.spawn("sudo mkfs -t ext3 %s" % device_path,
-                              timeout=FLAGS.volume_format_timeout)
-        child.expect("(y,n)")
-        child.sendline('y')
-        child.expect(pexpect.EOF)
-
-    def format(self, device_path):
-        """Formats the device_path to ext3 and checks the filesystem."""
-        self._format(device_path)
-        self._check_format(device_path)
-
-    def mount(self, dev_path, mount_point):
-        if not os.path.exists(mount_point):
-            os.makedirs(mount_point)
-        cmd = "sudo mount -t ext3 %s %s" % (dev_path, mount_point)
-        child = pexpect.spawn(cmd)
-        child.expect(pexpect.EOF)
-
-    def unmount(self, mount_point):
-        if os.path.exists(mount_point):
-            cmd = "sudo umount %s" % mount_point
-            child = pexpect.spawn(cmd)
-            child.expect(pexpect.EOF)
 
     def local_path(self, volume):
         """Local path is not applicable"""
@@ -622,7 +582,7 @@ class HpSanISCSIDriver(SanISCSIDriver):
                 break
         return list
 
-    def _attemp_discovery(self, context, volume):
+    def _attempt_discovery(self, context, volume):
         volume_id = long(volume['id'])
         for info in self._get_discovery_info():
             if info.volume_id == volume_id and FLAGS.san_ip in info.portal:
@@ -633,11 +593,12 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
     def get_iscsi_properties_for_volume(self, context, volume):
         for i in range(FLAGS.num_shell_tries):
-            properties = self._attemp_discovery(context, volume)
+            properties = self._attempt_discovery(context, volume)
             if properties:
                 return properties
             else:
                 LOG.debug(_("Attempt No: %s" % i))
+                #TODO(rnirmal): Add timeouts to LoopingCall.
                 time.sleep(3)
         raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
 
@@ -645,9 +606,10 @@ class HpSanISCSIDriver(SanISCSIDriver):
 class ISCSILiteDriver(HpSanISCSIDriver):
     """ISCSILite Driver, basic ISCSI target features
 
-    This is a Lite ISCSI driver which uses all the client functioanlity
+    This is a lite ISCSI driver which uses all the client functionality
     within the HPSAN ISCSI driver but replaces the server side with calls
     to a software iscsitarget over ssh.
+
     """
 
     def assign_volume(self, volume_id, host):
@@ -661,6 +623,8 @@ class ISCSILiteDriver(HpSanISCSIDriver):
     def create_volume(self, volume):
         """Create a volume on the iscsitarget"""
         name = volume['name']
+        # We only use this for testing, so its a hassle to make 1 GB volumes
+        # for stuff. Instead, we make it a multiple of 128 megabytes.
         size = volume['size']*128
         id = volume['id']
         LOG.debug(_("Creating volume %s of size %dMB"), name, size)

@@ -11,6 +11,7 @@ import pexpect
 from nova import context
 from nova import exception
 from nova import volume
+from nova import utils
 
 from proboscis import test
 from proboscis.decorators import expect_exception
@@ -153,12 +154,12 @@ class SetupVolume(VolumeTest):
         #                  isn't added to certain drivers?
         self.assertNotEqual(None, self.story.volume_id)
         self.story.api.assign_to_compute(self.story.context, self.story.volume_id,
-                                      self.story.host)
+                                         self.story.host)
 
     def test_setup_volume(self):
         """Set up the volume on this host. AKA discovery."""
         self.assertNotEqual(None, self.story.volume_id)
-        device = self.story.client.setup_volume(self.story.context,
+        device = self.story.client._setup_volume(self.story.context,
                                                 self.story.volume_id,
                                                 self.story.host)
         if not isinstance(device, basestring):
@@ -172,7 +173,16 @@ class FormatVolume(VolumeTest):
 
     @expect_exception(IOError)
     def test_10_should_raise_IOError_if_format_fails(self):
-        class BadFormatter(ISCSILiteDriver):
+        """
+
+        Tests that if the driver's _format method fails, its
+        public format method will perform an assertion properly, discover
+        it failed, and raise an exception.
+
+        """
+
+        volume_driver_cls = utils.import_class(FLAGS.volume_driver)
+        class BadFormatter(volume_driver_cls):
 
             def _format(self, device_path):
                 pass
@@ -298,7 +308,7 @@ class ConfirmMissing(VolumeTest):
         try:
             volume = poll_until(lambda : self.story.api.get(self.story.context,
                                                         self.story.volume_id),
-                            lambda volume : volume["status"] != "deleted")
+                                lambda volume : volume["status"] != "deleted")
             self.assertEqual(volume["deleted"], False)
         except exception.VolumeNotFound:
             pass

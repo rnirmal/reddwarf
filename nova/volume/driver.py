@@ -55,7 +55,8 @@ flags.DEFINE_string('iscsi_ip_prefix', '$my_ip',
 flags.DEFINE_string('rbd_pool', 'rbd',
                     'the rbd pool in which volumes are stored')
 flags.DEFINE_integer('volume_format_timeout', 120, 'timeout for formatting volumes')
-
+flags.DEFINE_string('volume_fstype', 'ext3',
+                    'The file system type used to format and mount volumes.')
 
 class VolumeDriver(object):
     """Executes commands relating to Volumes."""
@@ -186,6 +187,51 @@ class VolumeDriver(object):
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
         raise NotImplementedError()
+
+    def unassign_volume(self, volume_id, host):
+        """Some drivers need this to associate a volume to a host."""
+        pass
+
+    def _check_format(self, device_path):
+        """Checks that an unmounted volume is formatted."""
+        child = pexpect.spawn("sudo dumpe2fs %s" % device_path)
+        try:
+            i = child.expect(['has_journal', 'Wrong magic number'])
+            if i == 0:
+                return
+            raise IOError('Device path at %s did not seem to be %s.' %
+                          (device_path, FLAGS.volume_fstype))
+        except pexpect.EOF:
+            raise IOError("Volume was not formatted.")
+        child.expect(pexpect.EOF)
+
+    def _format(self, device_path):
+        """Calls mkfs to format the device at device_path."""
+        child = pexpect.spawn("sudo mkfs -t %s %s" % FLAGS.volume_fstype,
+                              device_path, timeout=FLAGS.volume_format_timeout)
+        child.expect("(y,n)")
+        child.sendline('y')
+        child.expect(pexpect.EOF)
+
+    def format(self, device_path):
+        """Formats the device at device_path and checks the filesystem."""
+        self._format(device_path)
+        self._check_format(device_path)
+
+    def mount(self, device_path, mount_point):
+        #TODO(tim.simpson): Allow other filesystem types.
+        if not os.path.exists(mount_point):
+            os.makedirs(mount_point)
+        cmd = "sudo mount -t %s %s %s" % (FLAGS.volume_fstype, device_path,
+                                          mount_point)
+        child = pexpect.spawn(cmd)
+        child.expect(pexpect.EOF)
+
+    def unmount(self, mount_point):
+        if os.path.exists(mount_point):
+            cmd = "sudo umount %s" % mount_point
+            child = pexpect.spawn(cmd)
+            child.expect(pexpect.EOF)
 
 
 class AOEDriver(VolumeDriver):
@@ -533,7 +579,6 @@ class ISCSIDriver(VolumeDriver):
         iscsi_properties = self.get_iscsi_properties_for_volume(None, volume)
         self._iscsiadm_update(iscsi_properties, "node.startup", "manual")
         self._run_iscsiadm(iscsi_properties, "--logout")
-        #self._run_iscsiadm(iscsi_properties, ('--op', 'delete'))
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""

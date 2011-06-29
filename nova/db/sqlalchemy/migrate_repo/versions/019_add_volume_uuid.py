@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2010 OpenStack LLC.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -30,8 +28,6 @@ def upgrade(migrate_engine):
                       autoload_with=migrate_engine)
     meta.bind = migrate_engine
     volumes_table.create_column(c_uuid)
-
-    # Leave them as None.
 
 def downgrade(migrate_engine):
     volumes_table = Table('volumes', meta, autoload=True,

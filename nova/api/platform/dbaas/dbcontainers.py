@@ -41,6 +41,8 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
+flags.DEFINE_string('reddwarf_mysql_data_dir', 'reddwarf_mysql_data_dir',
+                    'Mount point within the container for MySQL data.')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -153,7 +155,7 @@ class Controller(common.DBaaSController):
         #                  modifying the 'body' object with the volume_id.
         volume = self.create_volume(req)
         body.add_volume_id(volume['id'])
-        body.add_mount_point("/var/lib/mysql")
+        body.add_mount_point(FLAGS.reddwarf_mysql_data_dir) # "/var/lib/mysql")
 
         req.body = body.serialize_for_create()
 

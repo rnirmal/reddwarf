@@ -28,7 +28,7 @@ LOG = logging.getLogger("nova.volume.volume_client")
 FLAGS = flags.FLAGS
 
 class VolumeClient(Base):
-    """A helper class to perform the volume related activities on a compute node"""
+    """A helper class to perform the volume activities on a compute node."""
 
     def __init__(self, volume_driver=FLAGS.volume_driver, *args, **kwargs):
         super(VolumeClient, self).__init__(*args, **kwargs)
@@ -48,7 +48,7 @@ class VolumeClient(Base):
     def initialize(self, context, volume_id, host):
         """Discover the volume, format / mount it. Store UUID."""
         self.volume_api.assign_to_compute(context, volume_id, host)
-        dev_path = self.setup_volume(context, volume_id, host)
+        dev_path = self._setup_volume(context, volume_id, host)
         if not db.volume_get(context, volume_id)['uuid']:
             # TODO(rnirmal): Fix the timing issue
             time.sleep(2)

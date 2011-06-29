@@ -134,6 +134,8 @@ class ComputeManager(manager.SchedulerDependentManager):
 
         self.dns_api = dns.API()
         self.network_manager = utils.import_object(FLAGS.network_manager)
+        #TODO(tim.simpson) Anywhere volume_manager is called here is probably
+        #                  a bug. volume.API() should be used instead.
         self.volume_manager = utils.import_object(FLAGS.volume_manager)
         self.network_api = network.API()
         self.volume_api = volume.API()
@@ -229,9 +231,11 @@ class ComputeManager(manager.SchedulerDependentManager):
         """
         metadata = self.db.instance_metadata_get(context, instance_id)
         try:
-            volume_id = metadata['volume_id']
+            volume_id = int(metadata['volume_id'])
             return self.db.volume_get(context, volume_id), \
                    metadata.get('mount_point', "/mnt/" + str(volume_id))
+        except ValueError:
+            raise RuntimeError("The volume_id was in an invalid format.")
         except KeyError, exception.VolumeNotFound:
             return None, None
 

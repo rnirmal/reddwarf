@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright (c) 2011 OpenStack, LLC.
 # All Rights Reserved.
 #
@@ -24,4 +22,4 @@
 
 # Is a set of tests written directly against the VolumeManager and VolumeClient
 # classes which doesn't require standing up Nova daemons or anything.
-VOLUMES_DIRECT = "nova.volumes.direct"
+VOLUMES_DRIVER = "nova.volumes.driver"

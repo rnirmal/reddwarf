@@ -1,18 +1,6 @@
 #!/bin/bash
 # Builds packages.
 
-self="${0#./}"
-base="${self%/*}"
-current=`pwd`
-if [ "$base" = "$self" ] ; then
-    home=$current
-elif [[ $base =~ ^/ ]]; then
-    home="$base"
-else
-    home="$current/$base"
-fi
-cd $home
-
 # Host Environment Initializer - Nova Initializer
 # This file is meant to be run in a VM or otherwise disposable environment.
 

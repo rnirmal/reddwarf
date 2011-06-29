@@ -5,7 +5,7 @@ set timeout -1
 # Run the command and expect
 spawn ssh-copy-id -i [lrange $argv 0 0] vagrant@33.33.33.10
 
-# Look for passwod prompt and/or host verification
+# Look for password prompt and/or host verification
 expect {
 "*yes/no*" { send -- "yes\n"
 	     exp_continue }
