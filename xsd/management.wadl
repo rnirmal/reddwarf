@@ -9,16 +9,18 @@
     <include href="management.xsd"/>
   </grammars>
   <resources base="https://auth.api.rackspacecloud.com">
-    <resource id="guests" path="guests">
-       <resource id="guestUpgradeAll" path="upgradeall">
-          <method href="#guestUpgradeAll"/>
-       </resource>
-       <resource id="guestUpgradeContainer" path="{containerId}">
-          <param name="containerId" style="template" type="xsd:string"/>
-          <resource id="guestUpgrade" path="upgrade">
-             <method href="#guestUpgrade"/>
-          </resource>
-       </resource>
+    <resource id="mgmt" path="mgmt">
+      <resource id="guests" path="guests">
+         <resource id="guestUpgradeAll" path="upgradeall">
+            <method href="#guestUpgradeAll"/>
+         </resource>
+         <resource id="guestUpgradeContainer" path="{containerId}">
+            <param name="containerId" style="template" type="xsd:string"/>
+            <resource id="guestUpgrade" path="upgrade">
+               <method href="#guestUpgrade"/>
+            </resource>
+         </resource>
+      </resource>
     </resource>
   </resources>
   <!--Methods-->
