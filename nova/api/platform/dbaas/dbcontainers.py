@@ -139,10 +139,14 @@ class Controller(common.DBaaSController):
         """ Destroys a dbcontainer """
         LOG.info("Delete Container by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
+        context = req.environ['nova.context']
+        volumes = db.volume_get_all_by_instance(context, id)
         result = self.server_controller.delete(req, id)
         if isinstance(result, exc.HTTPAccepted):
             dbapi.guest_status_delete(id)
-        self.delete_volume(req, id)
+        for volume in volumes:
+            self.volume_api.delete_volume_when_available(context, volume['id'],
+                                                         time_out=60)
         return result
 
     def create(self, req):
@@ -186,21 +190,6 @@ class Controller(common.DBaaSController):
         return self.volume_api.create(context, size = 1,
                                       name="Volume",
                                       description="Stores database files.")
-
-    def delete_volume(self, req, instance_id):
-        """Delete the volume associated with this instance_id."""
-        #TODO(tim.simpson): Because it takes awhile for recently detached
-        # volumes to be available, we have to poll for a bit.
-        # We need to put this code somewhere else and call it with rpc.cast.
-        # The problem is I'm not sure where it should go. Anyplace is probably
-        # better than here though.
-        context = req.environ['nova.context']
-        volumes = db.volume_get_all_by_instance(context, instance_id)
-        for volume in volumes:
-            poll_until(lambda : self.volume_api.get(context, volume['id']),
-                       lambda volume : volume['status'] == 'available',
-                       sleep_time=1, time_out=60)
-            self.volume_api.delete(context, volume['id'])
 
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.

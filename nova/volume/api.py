@@ -80,11 +80,19 @@ class API(base.Base):
         now = datetime.datetime.utcnow()
         self.db.volume_update(context, volume_id, {'status': 'deleting',
                                                    'terminated_at': now})
-        host = volume['host']
+        host = volume['host'] # TODO(tim.simpson): Is this correct?
         rpc.cast(context,
                  self.db.queue_get_for(context, FLAGS.volume_topic, host),
                  {"method": "delete_volume",
                   "args": {"volume_id": volume_id}})
+
+    def delete_volume_when_available(self, context, volume_id, time_out):
+        host = self.get(context, volume_id)['host']
+        rpc.cast(context,
+                 self.db.queue_get_for(context, FLAGS.volume_topic, host),
+                 {"method": "delete_volume_when_available",
+                  "args": {"volume_id": volume_id,
+                           "time_out": time_out}})
 
     def update(self, context, volume_id, fields):
         self.db.volume_update(context, volume_id, fields)

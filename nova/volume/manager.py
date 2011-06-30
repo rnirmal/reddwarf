@@ -52,7 +52,6 @@ from nova import log as logging
 from nova import manager
 from nova import utils
 
-
 LOG = logging.getLogger('nova.volume.manager')
 FLAGS = flags.FLAGS
 flags.DEFINE_string('storage_availability_zone',
@@ -155,6 +154,13 @@ class VolumeManager(manager.SchedulerDependentManager):
         self.db.volume_destroy(context, volume_id)
         LOG.debug(_("volume %s: deleted successfully"), volume_ref['name'])
         return True
+
+    def delete_volume_when_available(self, context, volume_id, time_out):
+        """Waits until the volume is available and then deletes it."""
+        utils.poll_until(lambda : self.db.volume_get(context, volume_id),
+                         lambda volume : volume['status'] == 'available',
+                         sleep_time=1, time_out=time_out)
+        self.delete(context, volume_id)
 
     def check_for_export(self, context, instance_id):
         """Make sure whether volume is exported."""
