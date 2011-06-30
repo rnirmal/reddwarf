@@ -236,6 +236,13 @@
        </xsd:documentation>
      </annotation>
    </attribute>
+   <element name="Volume" type="dbaas:Volume">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>A volume attached to the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </element>
  </complexType>
 
 
@@ -251,7 +258,7 @@
     </sequence>
   </complexType>
 
- <complexType name="Database">
+  <complexType name="Database">
     <attribute name="character_set" type="xsd:string" use="optional">
        <annotation>
          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
@@ -284,7 +291,38 @@
        </annotation>
      </attribute>
   </complexType>
- 
+
+  <complexType name="Volume">
+    <attribute name="id" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The Database character set.</p>
+        </xsd:documentation>
+      </annotation>
+     </attribute>
+    <attribute name="name" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The name for the container.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="description" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The Collation type of the database.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="size" type="xsd:integer" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Size of the volume in GBs.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+
   <!--Simple Types-->
   <simpleType name="StatusType">
     <annotation>
