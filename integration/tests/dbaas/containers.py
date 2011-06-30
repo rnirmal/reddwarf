@@ -91,6 +91,7 @@ class Setup(unittest.TestCase):
     def test_find_image(self):
         self.assertNotEqual(None, test_config.dbaas_image)
         images = dbaas.images.list()
+        self.assertTrue(len(images) > 0, "No images are loaded!")
         for image in images:
             if int(image.id) == test_config.dbaas_image:
                 container_info.dbaas_image = image
@@ -100,7 +101,8 @@ class Setup(unittest.TestCase):
                 if not container_info.dbaas_image_href:
                     raise Exception("Found image with ID %s, but it had no " 
                                     "self href!" % str(test_config.dbaas_image))
-        self.assertNotEqual(None, container_info.dbaas_image_href)
+        self.assertNotEqual(None, container_info.dbaas_image_href,
+                            "Image not found.")
 
     def test_find_flavor(self):
         self.assertNotEqual(None, test_config.dbaas_image)
@@ -266,7 +268,17 @@ class TestGuestProcess(unittest.TestCase):
         self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
 
 
-@test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START, "dbaas.listing"])
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "nova.volumes.container"])
+class TestVolume(unittest.TestCase):
+    """Make sure the volume is attached to container correctly."""
+
+    def test_db_should_have_instance_to_volume_association(self):
+        """The compute manager should associate a volume to the instance."""
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(), 
+                                                container_info.id)
+        self.assertEquals(1, len(volumes))
+
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
     

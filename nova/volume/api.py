@@ -39,6 +39,14 @@ LOG = logging.getLogger('nova.volume')
 class API(base.Base):
     """API for interacting with the volume manager."""
 
+    def assign_to_compute(self, context, volume_id, host):
+        rpc.cast(context,
+                 FLAGS.scheduler_topic,
+                 {"method": "assign_volume",
+                  "args": {"topic": FLAGS.volume_topic,
+                           "volume_id": volume_id,
+                           "host": host}})
+
     def create(self, context, size, name, description):
         if quota.allowed_volumes(context, 1, size) < 1:
             pid = context.project_id
@@ -72,11 +80,19 @@ class API(base.Base):
         now = datetime.datetime.utcnow()
         self.db.volume_update(context, volume_id, {'status': 'deleting',
                                                    'terminated_at': now})
-        host = volume['host']
+        host = volume['host'] # TODO(tim.simpson): Is this correct?
         rpc.cast(context,
                  self.db.queue_get_for(context, FLAGS.volume_topic, host),
                  {"method": "delete_volume",
                   "args": {"volume_id": volume_id}})
+
+    def delete_volume_when_available(self, context, volume_id, time_out):
+        host = self.get(context, volume_id)['host']
+        rpc.cast(context,
+                 self.db.queue_get_for(context, FLAGS.volume_topic, host),
+                 {"method": "delete_volume_when_available",
+                  "args": {"volume_id": volume_id,
+                           "time_out": time_out}})
 
     def update(self, context, volume_id, fields):
         self.db.volume_update(context, volume_id, fields)
@@ -104,9 +120,10 @@ class API(base.Base):
         if volume['status'] == "available":
             raise exception.ApiError(_("Volume is already detached"))
 
-    def remove_from_compute(self, context, volume_id, host):
-        """Remove volume from specified compute host."""
-        rpc.call(context,
-                 self.db.queue_get_for(context, FLAGS.compute_topic, host),
-                 {"method": "remove_volume",
-                  "args": {'volume_id': volume_id}})
+    def unassign_from_compute(self, context, volume_id, host):
+        rpc.cast(context,
+                 FLAGS.scheduler_topic,
+                 {"method": "unassign_volume",
+                  "args": {"topic": FLAGS.volume_topic,
+                           "volume_id": volume_id,
+                           "host": host}})

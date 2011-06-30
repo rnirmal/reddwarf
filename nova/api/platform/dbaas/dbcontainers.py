@@ -22,6 +22,7 @@ from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
+from nova import volume
 from nova import utils
 from nova.api.openstack import faults
 from nova.api.openstack import servers
@@ -30,6 +31,7 @@ from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
+from nova.utils import poll_until
 from reddwarf.db import api as dbapi
 
 
@@ -40,6 +42,8 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
+flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
+                    'Mount point within the container for MySQL data.')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -69,6 +73,7 @@ class Controller(common.DBaaSController):
             utils.import_object(FLAGS.dns_instance_entry_factory)
         self.guest_api = guest_api.API()
         self.server_controller = servers.ControllerV11()
+        self.volume_api = volume.API()
         super(Controller, self).__init__()
 
     def index(self, req):
@@ -134,9 +139,14 @@ class Controller(common.DBaaSController):
         """ Destroys a dbcontainer """
         LOG.info("Delete Container by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
+        context = req.environ['nova.context']
+        volumes = db.volume_get_all_by_instance(context, id)
         result = self.server_controller.delete(req, id)
         if isinstance(result, exc.HTTPAccepted):
             dbapi.guest_status_delete(id)
+        for volume in volumes:
+            self.volume_api.delete_volume_when_available(context, volume['id'],
+                                                         time_out=60)
         return result
 
     def create(self, req):
@@ -144,7 +154,15 @@ class Controller(common.DBaaSController):
         LOG.info("Create Container")
         LOG.debug("%s - %s", req.environ, req.body)
         env, body = self._deserialize_create(req)
-        req.body = str(body)
+
+
+        #TODO(tim.simpson) Check "env" to get volume options specified before
+        #                  modifying the 'body' object with the volume_id.
+        volume = self.create_volume(req)
+        body.add_volume_id(volume['id'])
+        body.add_mount_point(FLAGS.reddwarf_mysql_data_dir) # "/var/lib/mysql")
+
+        req.body = body.serialize_for_create()
 
         self._setup_security_groups(req,
                                     FLAGS.default_firewall_rule_name,
@@ -164,6 +182,14 @@ class Controller(common.DBaaSController):
         resp = {'dbcontainer': server['server']}
         self._modify_fields(req, resp['dbcontainer'])
         return resp
+
+    def create_volume(self, req):
+        """Creates the volume for the container and returns its ID."""
+        #TODO(tim.simpson) Make volume create options configurable.
+        context = req.environ['nova.context']
+        return self.volume_api.create(context, size = 1,
+                                      name="Volume",
+                                      description="Stores database files.")
 
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.
@@ -244,6 +270,10 @@ class Controller(common.DBaaSController):
         """ Deserialize a create request
 
         Overrides normal behavior in the case of xml content
+
+        :retval A dictionary object representing the original request, followed
+                by a SerializableMutableRequest representing 
+                string representing the request deserialized with values changed.
         """
         if request.content_type == "application/xml":
             deser = deserializer.RequestXMLDeserializer()

@@ -55,6 +55,7 @@ def _clean_up():
         sys.stderr.write("Stopping service " + str(service.cmd) + "...\n\r")
         service.stop()
 
+
 if __name__ == '__main__':
 
     add_support_for_localization()
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
     from nova import utils
     utils.default_flagfile(str(nova_conf))
-
+    
     from nova import flags
     FLAGS = flags.FLAGS
     FLAGS(sys.argv)
@@ -104,6 +105,8 @@ if __name__ == '__main__':
 
     from tests.guest import dbaas_tests
     from tests.guest import pkg_tests
+
+    from tests.volumes import driver
 
     proboscis.register(groups=["host.ovz"], depends_on_groups=[
         "dbaas.guest",

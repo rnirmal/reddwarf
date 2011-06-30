@@ -15,15 +15,11 @@ nova.egg-info
 *.noseids
 *.idea
 nova-objectstore.pid
-twistd.log
+*.log
 experiments.py
 .vagrant
-n.log
 nova*.conf
-glance.log
 v.sh
-nova.log
-glance*.log
 .bzr*
 /CA*
 /nova/CA/crl.pem

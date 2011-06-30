@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from abc import ABCMeta
 from xml.dom import minidom
-
 
 from nova import exception
 from nova import flags
@@ -24,20 +24,78 @@ from nova import utils
 FLAGS = flags.FLAGS
 
 
+class SerializableMutableRequest(object):
+    __metaclass__ = ABCMeta
+
+    def add_mount_point(self):
+        """Adds the volume mount point to the mutated request."""
+        pass
+
+    def add_volume_id(self):
+        """Adds the volume id to the mutated request."""
+        pass
+
+    def serialize_for_create(self):
+        """Transforms the request to be used with the servers create call."""
+        pass
+
+
+class SerializableMutableJsonRequest(SerializableMutableRequest):
+
+    def __init__(self, body):
+        self.body = body
+        if not 'metadata' in self.body['dbcontainer']:
+            self.body['dbcontainer']['metadata'] = {}
+
+    def add_mount_point(self, mount_point):
+        self.body['dbcontainer']['metadata']['mount_point'] = str(mount_point)
+
+    def add_volume_id(self, volume_id):
+        self.body['dbcontainer']['metadata']['volume_id'] = str(volume_id)
+
+    def serialize_for_create(self):
+        return utils.dumps({'server': self.body['dbcontainer']})
+
+
+class SerializableMutableXmlRequest(SerializableMutableRequest):
+
+    def __init__(self, server_node):
+        self.server_node = server_node
+
+    def add_meta_data(self, key, value):
+        metadata = minidom.Element("metadata")
+        meta = minidom.Element('meta')
+        meta.setAttribute("key", key)
+        text = minidom.Text()
+        text.data = str(value)
+        meta.appendChild(text)
+        metadata.appendChild(meta)
+        self.server_node.appendChild(metadata)
+
+    def add_mount_point(self, mount_point):
+        self.add_meta_data("mount_point", mount_point)
+
+    def add_volume_id(self, volume_id):
+        self.add_meta_data("volume_id", volume_id)
+
+    def serialize_for_create(self):
+        return self.server_node.toxml()
+
+
 class RequestJSONDeserializer(object):
     """
     Deserialize Json requests
     """
 
-    def deserialize_create(self, body):
+    def deserialize_create(self, body_str):
         """Just load the request body as json"""
-        body = utils.loads(body)
+        body = utils.loads(body_str)
         if not body.get('dbcontainer', ''):
             raise exception.ApiError("Required element/key 'dbcontainer' " \
                                      "was not specified")
         self._add_image_ref(body)
         self._add_mysql_security_group(body)
-        return utils.dumps({'server': body['dbcontainer']})
+        return SerializableMutableJsonRequest(body)
 
     def _add_image_ref(self, body):
         """Add the configured imageRef, it replaces any user specified
@@ -63,7 +121,8 @@ class RequestXMLDeserializer(object):
         server_node = self._rename_to_server(dom)
         self._add_image_ref(server_node)
         self._add_mysql_security_group(dom, server_node, dbcontainer)
-        return {'dbcontainer': dbcontainer}, server_node.toxml()
+        return {'dbcontainer': dbcontainer}, \
+               SerializableMutableXmlRequest(server_node)
 
     def _add_image_ref(self, node):
         """Add the configured imageRef, it replaces any user specified

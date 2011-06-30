@@ -1,3 +1,4 @@
+#!/bin/bash
 # Runs the host tests.
 cd /src
 # sudo find -name "*.pyc" -delete

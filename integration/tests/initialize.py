@@ -125,7 +125,7 @@ class Dns(unittest.TestCase):
             self.service.start()
 
 
-@test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
+@test(groups=["services.initialize"])
 class Scheduler(unittest.TestCase):
     """Starts the scheduler service."""
 
@@ -153,7 +153,7 @@ class Compute(unittest.TestCase):
             self.service.start()
 
 
-@test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
+@test(groups=["services.initialize"], depends_on_classes=[Scheduler])
 class Volume(unittest.TestCase):
     """Starts the volume service."""
 
@@ -196,13 +196,13 @@ class PlatformApi(unittest.TestCase):
 @test(groups=["services.initialize"],
       depends_on_classes=[Compute, Network, Scheduler, Volume])
 class WaitForTopics(unittest.TestCase):
-    """Starts the compute service."""
+    """Waits until needed services are up."""
 
     def test_start(self):
+        topics = ["compute", "volume"]
         from tests.util.topics import hosts_up
-        hosts = None
-        while not hosts:
-            hosts = hosts_up("compute")
+        while not all(hosts_up(topic) for topic in topics):
+            pass
 
 
 @test(groups=["start_and_wait"],

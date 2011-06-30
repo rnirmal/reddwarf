@@ -52,7 +52,6 @@ from nova import log as logging
 from nova import manager
 from nova import utils
 
-
 LOG = logging.getLogger('nova.volume.manager')
 FLAGS = flags.FLAGS
 flags.DEFINE_string('storage_availability_zone',
@@ -60,7 +59,7 @@ flags.DEFINE_string('storage_availability_zone',
                     'availability zone of this service')
 flags.DEFINE_string('volume_driver', 'nova.volume.driver.ISCSIDriver',
                     'Driver to use for volume creation')
-flags.DEFINE_boolean('use_local_volumes', True,
+flags.DEFINE_boolean('use_local_volumes', False,
                      'if True, will not discover local volumes')
 
 
@@ -89,6 +88,10 @@ class VolumeManager(manager.SchedulerDependentManager):
                 self.driver.ensure_export(ctxt, volume)
             else:
                 LOG.info(_("volume %s: skipping export"), volume['name'])
+
+    def assign_volume(self, context, volume_id, host):
+        """Assigns a created volume to a host (usually a compute node)."""
+        self.driver.assign_volume(volume_id, host)
 
     def create_volume(self, context, volume_id):
         """Creates and exports the volume."""
@@ -152,29 +155,19 @@ class VolumeManager(manager.SchedulerDependentManager):
         LOG.debug(_("volume %s: deleted successfully"), volume_ref['name'])
         return True
 
-    def setup_compute_volume(self, context, volume_id):
-        """Setup remote volume on compute host.
-
-        Returns path to device."""
-        context = context.elevated()
-        volume_ref = self.db.volume_get(context, volume_id)
-        if volume_ref['host'] == self.host and FLAGS.use_local_volumes:
-            path = self.driver.local_path(volume_ref)
-        else:
-            path = self.driver.discover_volume(context, volume_ref)
-        return path
-
-    def remove_compute_volume(self, context, volume_id):
-        """Remove remote volume on compute host."""
-        context = context.elevated()
-        volume_ref = self.db.volume_get(context, volume_id)
-        if volume_ref['host'] == self.host and FLAGS.use_local_volumes:
-            return True
-        else:
-            self.driver.undiscover_volume(volume_ref)
+    def delete_volume_when_available(self, context, volume_id, time_out):
+        """Waits until the volume is available and then deletes it."""
+        utils.poll_until(lambda : self.db.volume_get(context, volume_id),
+                         lambda volume : volume['status'] == 'available',
+                         sleep_time=1, time_out=time_out)
+        self.delete(context, volume_id)
 
     def check_for_export(self, context, instance_id):
         """Make sure whether volume is exported."""
         instance_ref = self.db.instance_get(context, instance_id)
         for volume in instance_ref['volumes']:
             self.driver.check_for_export(context, volume['id'])
+
+    def unassign_volume(self, context, volume_id, host):
+        """Un-Assigns an existing volume from a host (usually a compute node)."""
+        self.driver.unassign_volume(volume_id, host)

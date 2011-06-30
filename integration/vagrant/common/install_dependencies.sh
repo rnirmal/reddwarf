@@ -62,4 +62,21 @@ exclaim Installing additional Nova dependencies.
 
 pkg_install mysql-server-5.1
 pkg_install python-mysqldb
+pkg_install python-paramiko
 
+# Install open-iscsi and update the config with the defaults
+pkg_install open-iscsi
+
+# Update the conf file
+ISCSID_CONF=/etc/iscsi/iscsid.conf
+sed -i 's/node.startup = manual/node.startup = automatic/' $ISCSID_CONF
+sed -i 's/#node.session.auth.authmethod = CHAP/node.session.auth.authmethod = CHAP/' $ISCSID_CONF
+sed -i 's/#node.session.auth.username = username/node.session.auth.username = username/' $ISCSID_CONF
+sed -i 's/#node.session.auth.password = password/node.session.auth.password = password1234/' $ISCSID_CONF
+sed -i 's/#discovery.sendtargets.auth.authmethod = CHAP/discovery.sendtargets.auth.authmethod = CHAP/' $ISCSID_CONF
+sed -i 's/#discovery.sendtargets.auth.username = username/discovery.sendtargets.auth.username = username/' $ISCSID_CONF
+sed -i 's/#discovery.sendtargets.auth.password = password/discovery.sendtargets.auth.password = password1234/' $ISCSID_CONF
+
+
+# Restart the iscsi initiator
+sudo /etc/init.d/open-iscsi restart

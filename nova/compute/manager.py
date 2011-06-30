@@ -55,6 +55,8 @@ from nova import rpc
 from nova import utils
 from nova import volume
 from nova.compute import power_state
+from nova.utils import LoopingCall
+from nova.utils import LoopingCallDone
 from nova.virt import driver
 
 
@@ -132,8 +134,12 @@ class ComputeManager(manager.SchedulerDependentManager):
 
         self.dns_api = dns.API()
         self.network_manager = utils.import_object(FLAGS.network_manager)
+        #TODO(tim.simpson) Anywhere volume_manager is called here is probably
+        #                  a bug. volume.API() should be used instead.
         self.volume_manager = utils.import_object(FLAGS.volume_manager)
         self.network_api = network.API()
+        self.volume_api = volume.API()
+        self.volume_client = volume.Client()
         self._last_host_check = 0
         super(ComputeManager, self).__init__(service_name="compute",
                                              *args, **kwargs)
@@ -217,9 +223,52 @@ class ComputeManager(manager.SchedulerDependentManager):
         """
         return self.driver.refresh_security_group_members(security_group_id)
 
+    def get_volume_info_for_instance_id(self, context, instance_id):
+        """Returns the volume for this instance with its mount_point, or None.
+
+        We're using this to pass volumes.
+
+        """
+        metadata = self.db.instance_metadata_get(context, instance_id)
+        try:
+            volume_id = int(metadata['volume_id'])
+            return self.db.volume_get(context, volume_id), \
+                   metadata.get('mount_point', "/mnt/" + str(volume_id))
+        except ValueError:
+            raise RuntimeError("The volume_id was in an invalid format.")
+        except KeyError, exception.VolumeNotFound:
+            return None, None
+
+    def wait_until_volume_is_ready(self, context, volume):
+        """Sleeps until the given volume has finished provisioning."""
+        def get_status(volume_id):
+            volume = self.db.volume_get(context, volume_id)
+            status = volume['status']
+            if status == 'creating':
+                return
+            elif status == 'available':
+                raise LoopingCallDone(retvalue=volume)
+            elif status != 'available':
+                raise exception.VolumeProvisioningError(volume_id=volume['id'])
+        return LoopingCall(get_status, volume['id']).start(3).wait()
+
+    def ensure_volume_is_ready(self, context, instance_id):
+        volume, mount_point = self.get_volume_info_for_instance_id(context,
+                                                                   instance_id)
+        if not volume:
+            return
+
+        self.wait_until_volume_is_ready(context, volume)
+        #TODO(tim.simpson): This may not be able to be the self.host name.
+        # Needs to be something that can identify the compute node.
+        self.volume_client.initialize(context, volume["id"], self.host)
+        self.db.volume_attached(context, volume["id"], instance_id, mount_point)
+
     @exception.wrap_exception
     def run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options."""
+        self.ensure_volume_is_ready(context, instance_id)
+        
         context = context.elevated()
         instance_ref = self.db.instance_get(context, instance_id)
         instance_ref.injected_files = kwargs.get('injected_files', [])
@@ -326,6 +375,8 @@ class ComputeManager(manager.SchedulerDependentManager):
         volumes = instance_ref.get('volumes') or []
         for volume in volumes:
             self.detach_volume(context, instance_id, volume['id'])
+            #TODO(rnirmal): Remove after we've verified it's safe to remove
+            #self.volume_api.delete(context, volume['id'])
         if instance_ref['state'] == power_state.SHUTOFF:
             self.db.instance_destroy(context, instance_id)
             raise exception.Error(_('trying to destroy already destroyed'
@@ -812,8 +863,9 @@ class ComputeManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         LOG.audit(_("instance %(instance_id)s: attaching volume %(volume_id)s"
                 " to %(mountpoint)s") % locals(), context=context)
-        dev_path = self.volume_manager.setup_compute_volume(context,
-                                                            volume_id)
+
+        dev_path = self.volume_client.initialize(context, volume_id, self.host)
+
         try:
             self.driver.attach_volume(instance_ref['name'],
                                       dev_path,
@@ -828,8 +880,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             #             ecxception below.
             LOG.exception(_("instance %(instance_id)s: attach failed"
                     " %(mountpoint)s, removing") % locals(), context=context)
-            self.volume_manager.remove_compute_volume(context,
-                                                      volume_id)
+            self.volume_client.remove_volume(context, volume_id, self.host)
             raise exc
 
         return True
@@ -850,17 +901,9 @@ class ComputeManager(manager.SchedulerDependentManager):
         else:
             self.driver.detach_volume(instance_ref['name'],
                                       volume_ref['mountpoint'])
-        self.volume_manager.remove_compute_volume(context, volume_id)
+        self.volume_client.remove_volume(context, volume_id, self.host)
         self.db.volume_detached(context, volume_id)
         return True
-
-    def remove_volume(self, context, volume_id):
-        """Remove volume on compute host.
-
-        :param context: security context
-        :param volume_id: volume ID
-        """
-        self.volume_manager.remove_compute_volume(context, volume_id)
 
     @exception.wrap_exception
     def compare_cpu(self, context, cpu_info):

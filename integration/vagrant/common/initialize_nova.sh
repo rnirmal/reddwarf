@@ -1,21 +1,10 @@
 #!/bin/bash
+# Builds packages.
+
 # Host Environment Initializer - Nova Initializer
 # This file is meant to be run in a VM or otherwise disposable environment.
 
-fail_if_exists () {
-    if [ -d $1 ] || [ -f $1 ]
-    then
-        echo The Nova cert file or directory $1 already exists. Aborting.
-        exit 1
-    fi
-}
-
-exclaim () {
-    echo "*******************************************************************************"
-    echo "$@"
-    echo "*******************************************************************************"
-}
-
+source /vagrant-common/Utils.sh
 
 exclaim Setting up SQL.
 
@@ -150,6 +139,12 @@ do
     delete_fixed_ip $x
 done
 
+# Remove all the devices on the Host
+sudo iscsiadm -m node --logout
+
+# Delete all of the volumes on the Volumes VM since the DB will now
+# be out of sync.
+ssh vagrant@33.33.33.10 "sudo /vagrant-common/delete_volumes.sh"
 
 # TODO: It may be necessary to delete all other instances of this.
 

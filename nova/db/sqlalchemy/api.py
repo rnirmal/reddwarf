@@ -1650,7 +1650,8 @@ def volume_destroy(context, volume_id):
                 filter_by(id=volume_id).\
                 update({'deleted': 1,
                         'deleted_at': datetime.datetime.utcnow(),
-                        'updated_at': literal_column('updated_at')})
+                        'updated_at': literal_column('updated_at'),
+                        'status': 'deleted'})
         session.query(models.ExportDevice).\
                 filter_by(volume_id=volume_id).\
                 update({'volume_id': None})

@@ -275,3 +275,30 @@ class GenericUtilsTestCase(test.TestCase):
         # error case
         result = utils.parse_server_string('www.exa:mple.com:8443')
         self.assertEqual(('', ''), result)
+
+
+class PollUntilTestCase(test.TestCase):
+
+    def test_when_timeout_occurs(self):
+        self.assertRaises(utils.PollTimeOut, utils.poll_until, lambda : 5,
+                          lambda n : n != 5, sleep_time=0, time_out=1)
+
+    def test_when_timeout_does_not_occur(self):
+        number = utils.poll_until(lambda : 7, lambda n : n != 5, sleep_time=0,
+                                  time_out=1)
+        self.assertNotEqual(5, number)
+
+    def test_without_timeout(self):
+        class NumberService(object):
+
+            def __init__(self):
+                self.number = 0
+
+            def get_number(self):
+                self.number += 10
+                return self.number
+
+        service = NumberService()
+        result = utils.poll_until(service.get_number, lambda n : n > 50,
+                                  sleep_time=0)
+        self.assertEqual(60, result)

@@ -1,6 +1,6 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-# Copyright 2011 Justin Santa Barbara
+# Copyright 2011 OpenStack, LLC
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -22,13 +22,17 @@ controller on the SAN hardware.  We expect to access it over SSH or some API.
 """
 
 import os
+from collections import namedtuple
+import re
 import paramiko
-
+import pexpect
 from xml.etree import ElementTree
 
 from nova import exception
 from nova import flags
 from nova import log as logging
+from nova import utils
+from nova.exception import ISCSITargetNotDiscoverable
 from nova.utils import ssh_execute
 from nova.volume.driver import ISCSIDriver
 
@@ -42,12 +46,30 @@ flags.DEFINE_string('san_login', 'admin',
                     'Username for SAN controller')
 flags.DEFINE_string('san_password', '',
                     'Password for SAN controller')
+flags.DEFINE_string('san_port', '3260',
+                    'Port of SAN controller')
 flags.DEFINE_string('san_privatekey', '',
                     'Filename of private key to use for SSH authentication')
 flags.DEFINE_string('san_clustername', '',
                     'Cluster name to use for creating volumes')
 flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
+
+
+class DiscoveryInfo(object):
+
+    id_in_target = re.compile('.+?:([0-9]+)$')
+
+    def __init__(self, portal, target):
+        self.portal = portal
+        self.target = target
+        match = DiscoveryInfo.id_in_target.search(target)
+        self.volume_id = long(match.group(1))
+
+
+class InitiatorLoginError(exception.Error):
+    """Occurs when the initiator fails to login for some reason."""
+    pass
 
 
 class SanISCSIDriver(ISCSIDriver):
@@ -113,7 +135,7 @@ class SanISCSIDriver(ISCSIDriver):
         if not (FLAGS.san_password or FLAGS.san_privatekey):
             raise exception.Error(_("Specify san_password or san_privatekey"))
 
-        if not (FLAGS.san_ip):
+        if not FLAGS.san_ip:
             raise exception.Error(_("san_ip must be set"))
 
 
@@ -305,7 +327,8 @@ class SolarisISCSIDriver(SanISCSIDriver):
 
         #TODO(justinsb): Is this always 1? Does it matter?
         iscsi_portal_interface = '1'
-        iscsi_portal = FLAGS.san_ip + ":3260," + iscsi_portal_interface
+        iscsi_portal = FLAGS.san_ip + ":" + FLAGS.san_port + "," + \
+                       iscsi_portal_interface
 
         db_update = {}
         db_update['provider_location'] = ("%s %s" %
@@ -351,12 +374,10 @@ class HpSanISCSIDriver(SanISCSIDriver):
     Rough overview of CLIQ commands used:
 
     :createVolume:    (creates the volume)
-
+    :deleteVolume:    (deletes the volume)
+    :assignVolumeToServer:  (assigns a volume to a given server)
     :getVolumeInfo:    (to discover the IQN etc)
-
     :getClusterInfo:    (to discover the iSCSI target IP address)
-
-    :assignVolumeChap:    (exports it with CHAP security)
 
     The 'trick' here is that the HP SAN enforces security by default, so
     normally a volume mount would need both to configure the SAN in the volume
@@ -411,24 +432,15 @@ class HpSanISCSIDriver(SanISCSIDriver):
 
         result_xml = self._cliq_run_xml("getClusterInfo", cliq_args)
 
-        return result_xml
-
-    def _cliq_get_cluster_vip(self, cluster_name):
-        """Gets the IP on which a cluster shares iSCSI volumes"""
-        cluster_xml = self._cliq_get_cluster_info(cluster_name)
-
-        vips = []
-        for vip in cluster_xml.findall("response/cluster/vip"):
-            vips.append(vip.attrib.get('ipAddress'))
-
-        if len(vips) == 1:
-            return vips[0]
-
-        _xml = ElementTree.tostring(cluster_xml)
-        msg = (_("Unexpected number of virtual ips for cluster "
-                 " %(cluster_name)s. Result=%(_xml)s") %
-               locals())
-        raise exception.Error(msg)
+        # Parse the result into a dictionary
+        cluster_info = {}
+        cluster_node = result_xml.find("response/cluster")
+        cluster_info['name'] = cluster_node.attrib.get("name")
+        cluster_info['spaceTotal'] = cluster_node.attrib.get("spaceTotal")
+        cluster_info['spaceAvail'] = cluster_node.attrib.get("unprovisionedSpace")
+        cluster_info['vip'] = result_xml.find("response/cluster/vip") \
+                                        .attrib.get('ipAddress')
+        return cluster_info
 
     def _cliq_get_volume_info(self, volume_name):
         """Gets the volume info, including IQN"""
@@ -482,104 +494,193 @@ class HpSanISCSIDriver(SanISCSIDriver):
                   locals())
         return volume_attributes
 
+    def assign_volume(self, volume_id, host):
+        """
+        Assign any created volume to a compute node/host so that it can be
+        used from that host. HP VSA requires a volume to be assigned to a server
+        """
+        cliq_args = {}
+        cliq_args['volumeName'] = volume_id
+        cliq_args['serverName'] = host
+        self._cliq_run_xml("assignVolumeToServer", cliq_args)
+
     def create_volume(self, volume):
         """Creates a volume."""
         cliq_args = {}
         cliq_args['clusterName'] = FLAGS.san_clustername
-        #TODO(justinsb): Should we default to inheriting thinProvision?
         cliq_args['thinProvision'] = '1' if FLAGS.san_thin_provision else '0'
-        cliq_args['volumeName'] = volume['name']
-        if int(volume['size']) == 0:
-            cliq_args['size'] = '100MB'
-        else:
-            cliq_args['size'] = '%sGB' % volume['size']
+        # Using volume id for name to guarantee uniqueness
+        cliq_args['volumeName'] = volume['id']
+        volume_size = int(volume['size'])
+        if volume_size <= 0:
+            raise ValueError("Invalid volume size.")
+        cliq_args['size'] = '%sGB' % volume_size
+        cliq_args['description'] = '"Volume ID:%s assigned to Instance:%s"' \
+                                    % (volume['id'], volume['instance_id'])
 
         self._cliq_run_xml("createVolume", cliq_args)
 
-        volume_info = self._cliq_get_volume_info(volume['name'])
-        cluster_name = volume_info['volume.clusterName']
-        iscsi_iqn = volume_info['volume.iscsiIqn']
-
-        #TODO(justinsb): Is this always 1? Does it matter?
-        cluster_interface = '1'
-
-        cluster_vip = self._cliq_get_cluster_vip(cluster_name)
-        iscsi_portal = cluster_vip + ":3260," + cluster_interface
-
-        model_update = {}
-        model_update['provider_location'] = ("%s %s" %
-                                             (iscsi_portal,
-                                              iscsi_iqn))
-
-        return model_update
+    def unassign_volume(self, volume_id, host):
+        """Unassign a volume that's associated with a server."""
+        cliq_args = {}
+        cliq_args['volumeName'] = volume_id
+        cliq_args['serverName'] = host
+        self._cliq_run_xml("unassignVolumeToServer", cliq_args)
 
     def delete_volume(self, volume):
         """Deletes a volume."""
         cliq_args = {}
-        cliq_args['volumeName'] = volume['name']
+        cliq_args['volumeName'] = volume['id']
         cliq_args['prompt'] = 'false'  # Don't confirm
-
         self._cliq_run_xml("deleteVolume", cliq_args)
 
     def local_path(self, volume):
-        # TODO(justinsb): Is this needed here?
+        """Local path is not applicable"""
         raise exception.Error(_("local_path not supported"))
 
     def ensure_export(self, context, volume):
-        """Synchronously recreates an export for a logical volume."""
-        return self._do_export(context, volume, force_create=False)
+        """Ensure export is not applicable unlike other drivers."""
+        pass
 
     def create_export(self, context, volume):
-        return self._do_export(context, volume, force_create=True)
+        """Create export is not applicable unlike other drivers.
 
-    def _do_export(self, context, volume, force_create):
-        """Supports ensure_export and create_export"""
-        volume_info = self._cliq_get_volume_info(volume['name'])
-
-        is_shared = 'permission.authGroup' in volume_info
-
-        model_update = {}
-
-        should_export = False
-
-        if force_create or not is_shared:
-            should_export = True
-            # Check that we have a project_id
-            project_id = volume['project_id']
-            if not project_id:
-                project_id = context.project_id
-
-            if project_id:
-                #TODO(justinsb): Use a real per-project password here
-                chap_username = 'proj_' + project_id
-                # HP/Lefthand requires that the password be >= 12 characters
-                chap_password = 'project_secret_' + project_id
-            else:
-                msg = (_("Could not determine project for volume %s, "
-                         "can't export") %
-                         (volume['name']))
-                if force_create:
-                    raise exception.Error(msg)
-                else:
-                    LOG.warn(msg)
-                    should_export = False
-
-        if should_export:
-            cliq_args = {}
-            cliq_args['volumeName'] = volume['name']
-            cliq_args['chapName'] = chap_username
-            cliq_args['targetSecret'] = chap_password
-
-            self._cliq_run_xml("assignVolumeChap", cliq_args)
-
-            model_update['provider_auth'] = ("CHAP %s %s" %
-                                             (chap_username, chap_password))
-
-        return model_update
+        Check assign_volume() instead
+        """
+        pass
 
     def remove_export(self, context, volume):
-        """Removes an export for a logical volume."""
-        cliq_args = {}
-        cliq_args['volumeName'] = volume['name']
+        """Remove export is not applicable unlike other drivers.
 
-        self._cliq_run_xml("unassignVolume", cliq_args)
+        Check unassign_volume() instead
+        """
+        pass
+
+    @staticmethod
+    def _get_discovery_info():
+        """Given a volume ID, returns list of matching DiscoveryInfo items.
+
+        The cmd:
+        iscsiadm -m discovery -t st -p {ip}
+
+          returns stuff like this:
+        10.0.2.15:3260,1 iqn.2011-06.reddwarf.com:target1
+
+        This method returns a list of named tuples with the portal, the target,
+        and the volume ID.
+
+        """
+        cmd = "sudo iscsiadm -m discovery -t st -p %s" % FLAGS.san_ip
+        child = pexpect.spawn(cmd)
+        list = []
+        while True:
+            try:
+                child.expect('([0-9\\.]+:[0-9]+)\\,[0-9]+[ \t]*(.+?:[0-9]+)\\r')
+                info = DiscoveryInfo(*child.match.groups())
+                list.append(info)
+            except pexpect.EOF:
+                break
+        return list
+
+    def _attempt_discovery(self, context, volume):
+        volume_id = long(volume['id'])
+        for info in self._get_discovery_info():
+            if info.volume_id == volume_id and FLAGS.san_ip in info.portal:
+                return { "target_iqn": info.target,
+                         "target_portal": info.portal }
+        else:
+            return None
+
+    def get_iscsi_properties_for_volume(self, context, volume):
+        try:
+            # Assume each discovery attempt takes roughly two seconds.
+            return utils.poll_until(lambda : self._attempt_discovery(context,
+                                                                     volume),
+                                    lambda properties : properties is not None,
+                                    sleep_time=3,
+                                    time_out=5 * FLAGS.num_shell_tries)
+        except utils.PollTimeOut:
+            raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
+
+
+class ISCSILiteDriver(HpSanISCSIDriver):
+    """ISCSILite Driver, basic ISCSI target features
+
+    This is a lite ISCSI driver which uses all the client functionality
+    within the HPSAN ISCSI driver but replaces the server side with calls
+    to a software iscsitarget over ssh.
+
+    """
+
+    def assign_volume(self, volume_id, host):
+        """Nothing to assign here."""
+        pass
+
+    def check_for_setup_error(self):
+        """Check for any errors at setup for fast fail"""
+        pass
+
+    def create_volume(self, volume):
+        """Create a volume on the iscsitarget"""
+        name = volume['name']
+        # We only use this for testing, so its a hassle to make 1 GB volumes
+        # for stuff. Instead, we make it a multiple of 128 megabytes.
+        size = volume['size']*128
+        id = volume['id']
+        LOG.debug(_("Creating volume %s of size %dMB"), name, size)
+        try:
+            self._run_ssh("sudo mkdir -p /san")
+            self._run_ssh("sudo dd if=/dev/zero of=/san/%s.img bs=1024k count=%d"
+                        % (id, size))
+        except exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise
+
+    def delete_volume(self, volume):
+        """Delete a volume on the iscsitarget"""
+        try:
+            self._run_ssh("sudo rm /san/%s.img" % volume['id'])
+        except exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise
+
+    def create_export(self, context, volume):
+        """Make the volume available on the storage server"""
+        self._ensure_iscsi_targets(context, FLAGS.san_ip)
+        iscsi_target = self.db.volume_allocate_iscsi_target(context,
+                                                      volume['id'],
+                                                      FLAGS.san_ip)
+        try:
+            # Create a target with the specified id
+            self._run_ssh("sudo ietadm --op new --tid=%s --params " \
+                          "Name=iqn.2011-06.reddwarf.com:%s"
+                          % (iscsi_target, volume['id']))
+            # Create a LUN on the target and define storage
+            self._run_ssh("sudo ietadm --op new --tid=%s --lun=0 " \
+                          "--params Path=/san/%s.img,Type=fileio"
+                          % (iscsi_target, volume['id']))
+            # Update CHAP user info for the target
+            self._run_ssh("sudo ietadm --op new --tid=%s --user --params" \
+                          " IncomingUser=username,Password=password1234"
+                          % iscsi_target)
+        except exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise
+
+    def remove_export(self, context, volume):
+        """Remove the export on the storage server"""
+        tid = self.db.volume_get_iscsi_target_num(context, volume['id'])
+        try:
+            self._run_ssh("sudo ietadm --op delete --tid=%s" % tid)
+        except exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise
+        # TODO(rnirmal): The target doesn't seem to get deleted from the db
+
+    def ensure_export(self, context, volume):
+        """Make sure existing volumes are exported"""
+        pass
+
+    def unassign_volume(self, volume_id, host):
+        """Nothing to un-assign here."""
+        pass

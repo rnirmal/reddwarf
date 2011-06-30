@@ -20,6 +20,9 @@ if [ -f ~/dependencies_are_installed ]
 then
     echo Dependencies are already installed.
 else
+    exclaim 'Installing SSH key.'
+    /vagrant-common/setup_ssh_keys.sh
+
     exclaim 'Installing Dependencies...'
     sudo usermod -g root vagrant
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/install_dependencies.sh

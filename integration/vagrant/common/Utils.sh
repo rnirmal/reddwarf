@@ -5,6 +5,14 @@ exclaim () {
     echo "*******************************************************************************"
 }
 
+fail_if_exists () {
+    if [ -d $1 ] || [ -f $1 ]
+    then
+        echo The Nova cert file or directory $1 already exists. Aborting.
+        exit 1
+    fi
+}
+
 ip_chunk() {
     # Given 1-4 returns a bit of where the ip range starts.
     # Full IP= `ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`.`ip_chunk 4`
