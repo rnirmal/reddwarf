@@ -26,12 +26,12 @@ from collections import namedtuple
 import re
 import paramiko
 import pexpect
-import time
 from xml.etree import ElementTree
 
 from nova import exception
 from nova import flags
 from nova import log as logging
+from nova import utils
 from nova.exception import ISCSITargetNotDiscoverable
 from nova.utils import ssh_execute
 from nova.volume.driver import ISCSIDriver
@@ -592,15 +592,15 @@ class HpSanISCSIDriver(SanISCSIDriver):
             return None
 
     def get_iscsi_properties_for_volume(self, context, volume):
-        for i in range(FLAGS.num_shell_tries):
-            properties = self._attempt_discovery(context, volume)
-            if properties:
-                return properties
-            else:
-                LOG.debug(_("Attempt No: %s" % i))
-                #TODO(rnirmal): Add timeouts to LoopingCall.
-                time.sleep(3)
-        raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
+        try:
+            # Assume each discovery attempt takes roughly two seconds.
+            return utils.poll_until(lambda : self._attempt_discovery(context,
+                                                                     volume),
+                                    lambda properties : properties is not None,
+                                    sleep_time=3,
+                                    time_out=5 * FLAGS.num_shell_tries)
+        except utils.PollTimeOut:
+            raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
 
 
 class ISCSILiteDriver(HpSanISCSIDriver):

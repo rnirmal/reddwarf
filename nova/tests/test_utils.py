@@ -289,12 +289,16 @@ class PollUntilTestCase(test.TestCase):
         self.assertNotEqual(5, number)
 
     def test_without_timeout(self):
-        number = 0
+        class NumberService(object):
 
-        def increment_and_return():
-            number += 10
-            return number
+            def __init__(self):
+                self.number = 0
 
-        result = utils.poll_until(increment_and_return, lambda n : n > 50,
+            def get_number(self):
+                self.number += 10
+                return self.number
+
+        service = NumberService()
+        result = utils.poll_until(service.get_number, lambda n : n > 50,
                                   sleep_time=0)
         self.assertEqual(60, result)
