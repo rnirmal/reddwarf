@@ -106,7 +106,7 @@ if __name__ == '__main__':
     from tests.guest import dbaas_tests
     from tests.guest import pkg_tests
 
-    from tests.volumes import direct
+    from tests.volumes import driver
 
     proboscis.register(groups=["host.ovz"], depends_on_groups=[
         "dbaas.guest",

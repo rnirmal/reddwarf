@@ -724,3 +724,28 @@ def parse_server_string(server_str):
     except:
         LOG.debug(_('Invalid server_string: %s' % server_str))
         return ('', '')
+
+
+class PollTimeOut(exception.NovaException):
+    message = _("Polling request timed out.")
+
+
+def poll_until(retriever, condition, sleep_time=1, time_out=None):
+    """Retrieves object until it passes condition, then returns it.
+
+    If time_out_limit is passed in, PollTimeOut will be raised once that
+    amount of time is eclipsed.
+
+    """
+    if time_out is not None:
+        time_out_at = time.time() + time_out
+    else:
+        time_out_at = None
+    def poll_and_check():
+        obj = retriever()
+        if condition(obj):
+            raise LoopingCallDone(retvalue=obj)
+        if time_out_at is not None and time_out_at <= time.time():
+            raise PollTimeOut
+    lc = LoopingCall(f=poll_and_check).start(sleep_time, True)
+    return lc.wait()

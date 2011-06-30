@@ -44,12 +44,14 @@ class SerializableMutableJsonRequest(SerializableMutableRequest):
 
     def __init__(self, body):
         self.body = body
+        if not 'metadata' in self.body['dbcontainer']:
+            self.body['dbcontainer']['metadata'] = {}
 
     def add_mount_point(self, mount_point):
-        self.body['dbcontainer']['metadata'] = {'mount_point':str(mount_point) }
+        self.body['dbcontainer']['metadata']['mount_point'] = str(mount_point)
 
     def add_volume_id(self, volume_id):
-        self.body['dbcontainer']['metadata'] = {'volume_id':str(volume_id) }
+        self.body['dbcontainer']['metadata']['volume_id'] = str(volume_id)
 
     def serialize_for_create(self):
         return utils.dumps({'server': self.body['dbcontainer']})

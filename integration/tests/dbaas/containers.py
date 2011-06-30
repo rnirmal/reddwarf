@@ -268,6 +268,16 @@ class TestGuestProcess(unittest.TestCase):
         self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
 
 
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "nova.volumes.container"])
+class TestVolume(unittest.TestCase):
+    """Make sure the volume is attached to container correctly."""
+
+    def test_db_should_have_instance_to_volume_association(self):
+        """The compute manager should associate a volume to the instance."""
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(), 
+                                                container_info.id)
+        self.assertEquals(1, len(volumes))
+
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """

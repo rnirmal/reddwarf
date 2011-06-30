@@ -262,7 +262,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         #TODO(tim.simpson): This may not be able to be the self.host name.
         # Needs to be something that can identify the compute node.
         self.volume_client.initialize(context, volume["id"], self.host)
-        self.db.volume_attached(context, volume_id, instance_id, mount_point)
+        self.db.volume_attached(context, volume["id"], instance_id, mount_point)
 
     @exception.wrap_exception
     def run_instance(self, context, instance_id, **kwargs):

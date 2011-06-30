@@ -207,8 +207,8 @@ class VolumeDriver(object):
 
     def _format(self, device_path):
         """Calls mkfs to format the device at device_path."""
-        child = pexpect.spawn("sudo mkfs -t %s %s" % FLAGS.volume_fstype,
-                              device_path, timeout=FLAGS.volume_format_timeout)
+        child = pexpect.spawn("sudo mkfs -t %s %s" % (FLAGS.volume_fstype,
+                              device_path), timeout=FLAGS.volume_format_timeout)
         child.expect("(y,n)")
         child.sendline('y')
         child.expect(pexpect.EOF)

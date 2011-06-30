@@ -29,7 +29,6 @@
 
 import re
 import subprocess
-import time
 
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
@@ -96,12 +95,3 @@ def process(cmd):
 def string_in_list(str, substr_list):
     """Returns True if the string appears in the list."""
     return any([str.find(x) >=0 for x in substr_list])
-
-def poll_until(retriever, condition, sleep_time=1):
-    """Retrieves object until it passes condition, then returns it."""
-    def poll_and_check():
-        obj = retriever()
-        if condition(obj):
-            raise utils.LoopingCallDone(retvalue=obj)
-    lc = utils.LoopingCall(f=poll_and_check).start(sleep_time, True)
-    return lc.wait()

@@ -10,6 +10,7 @@ import pexpect
 
 from nova import context
 from nova import exception
+from nova import flags
 from nova import volume
 from nova import utils
 
@@ -17,12 +18,12 @@ from proboscis import test
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from tests import initialize
-from tests.volumes import VOLUMES_DIRECT
+from tests.volumes import VOLUMES_DRIVER
 from tests.util import test_config
-from tests.util import poll_until
+from nova.utils import poll_until
 from nova.volume.san import ISCSILiteDriver
 
-
+FLAGS = flags.FLAGS
 UUID_PATTERN = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
                           '[0-9a-f]{4}-[0-9a-f]{12}$')
 
@@ -31,8 +32,6 @@ def is_uuid(text):
 
 
 class StoryDetails(object):
-
-
 
     def __init__(self):
         self.api = volume.API()
@@ -82,7 +81,7 @@ class VolumeTest(unittest.TestCase):
         self.assertEqual(self.story.context.project_id, volume["project_id"])
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[initialize.Volume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[initialize.Volume])
 class SetUp(VolumeTest):
 
     def test_05_create_story(self):
@@ -107,7 +106,7 @@ class SetUp(VolumeTest):
         time.sleep(10)
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[SetUp])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
 class AddVolume(VolumeTest):
 
     def test_add(self):
@@ -126,7 +125,7 @@ class AddVolume(VolumeTest):
         self.story.volume_id = volume["id"]
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[AddVolume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[AddVolume])
 class AfterVolumeIsAdded(VolumeTest):
     """Check that the volume can be retrieved via the API, and setup.
 
@@ -144,7 +143,7 @@ class AfterVolumeIsAdded(VolumeTest):
         self.assertTrue(volume["attach_status"], "detached")
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[AfterVolumeIsAdded])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[AfterVolumeIsAdded])
 class SetupVolume(VolumeTest):
 
     def test_assign_volume(self):
@@ -168,7 +167,7 @@ class SetupVolume(VolumeTest):
         self.story.device_path = device
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[SetupVolume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetupVolume])
 class FormatVolume(VolumeTest):
 
     @expect_exception(IOError)
@@ -196,7 +195,7 @@ class FormatVolume(VolumeTest):
         self.story.client._format(self.story.device_path)
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[FormatVolume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[FormatVolume])
 class MountVolume(VolumeTest):
 
     def test_mount(self):
@@ -206,7 +205,7 @@ class MountVolume(VolumeTest):
         self.assertTrue(os.path.exists(self.story.test_mount_file_path))
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[MountVolume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[MountVolume])
 class UnmountVolume(VolumeTest):
 
     def test_unmount(self):
@@ -215,7 +214,7 @@ class UnmountVolume(VolumeTest):
         child.expect("mount: can't find %s in" % self.story.mount_point)
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[UnmountVolume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[UnmountVolume])
 class GrabUuid(VolumeTest):
 
     def test_uuid_must_match_pattern(self):
@@ -235,7 +234,7 @@ class GrabUuid(VolumeTest):
                           device_path)
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[GrabUuid])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[GrabUuid])
 class RemoveVolume(VolumeTest):
 
     def test_remove(self):
@@ -251,7 +250,7 @@ class RemoveVolume(VolumeTest):
                                       self.story.host)
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[GrabUuid])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[GrabUuid])
 class Initialize(VolumeTest):
 
     @time_out(60)
@@ -288,14 +287,14 @@ class Initialize(VolumeTest):
                          "UUID should be the same as no formatting occurred.")
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[Initialize])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[Initialize])
 class DeleteVolume(VolumeTest):
 
     def test_delete(self):
         self.story.api.delete(self.story.context, self.story.volume_id)
 
 
-@test(groups=[VOLUMES_DIRECT], depends_on_classes=[DeleteVolume])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
     @expect_exception(Exception)

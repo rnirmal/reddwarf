@@ -31,6 +31,7 @@ from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
+from nova.utils import poll_until
 from reddwarf.db import api as dbapi
 
 
@@ -187,10 +188,18 @@ class Controller(common.DBaaSController):
                                       description="Stores database files.")
 
     def delete_volume(self, req, instance_id):
-        """Delete the volume associated with this instance_id."""
+        """Delete the volume associated with this instance_id.
+
+        Because it takes awhile for recently detached volumes to be available,
+        we have to poll for a bit.
+
+        """
         context = req.environ['nova.context']
         volumes = db.volume_get_all_by_instance(context, instance_id)
         for volume in volumes:
+            poll_until(lambda : self.volume_api.get(context, volume['id']),
+                       lambda volume : volume['status'] == 'available',
+                       sleep=1, time_out=60)
             self.volume_api.delete(context, volume['id'])
 
     def _try_create_server(self, req):
