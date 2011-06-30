@@ -42,7 +42,7 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
-flags.DEFINE_string('reddwarf_mysql_data_dir', 'reddwarf_mysql_data_dir',
+flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
                     'Mount point within the container for MySQL data.')
 
 _dbaas_mapping = {
