@@ -188,18 +188,18 @@ class Controller(common.DBaaSController):
                                       description="Stores database files.")
 
     def delete_volume(self, req, instance_id):
-        """Delete the volume associated with this instance_id.
-
-        Because it takes awhile for recently detached volumes to be available,
-        we have to poll for a bit.
-
-        """
+        """Delete the volume associated with this instance_id."""
+        #TODO(tim.simpson): Because it takes awhile for recently detached
+        # volumes to be available, we have to poll for a bit.
+        # We need to put this code somewhere else and call it with rpc.cast.
+        # The problem is I'm not sure where it should go. Anyplace is probably
+        # better than here though.
         context = req.environ['nova.context']
         volumes = db.volume_get_all_by_instance(context, instance_id)
         for volume in volumes:
             poll_until(lambda : self.volume_api.get(context, volume['id']),
                        lambda volume : volume['status'] == 'available',
-                       sleep=1, time_out=60)
+                       sleep_time=1, time_out=60)
             self.volume_api.delete(context, volume['id'])
 
     def _try_create_server(self, req):

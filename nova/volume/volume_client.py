@@ -60,7 +60,7 @@ class VolumeClient(Base):
     def refresh(self, context, volume_id):
         """Discover and update volume information in database."""
 
-    def setup_volume(self, context, volume_id, host):
+    def _setup_volume(self, context, volume_id, host):
         """Setup remote volume on compute host.
 
         Returns path to device."""
