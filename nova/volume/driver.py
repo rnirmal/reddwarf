@@ -199,8 +199,11 @@ class VolumeDriver(object):
         it's size, only then can it be available for formatting, retry
         num_shell_tries to account for the time lag.
         """
-        utils.execute('sudo', 'blockdev', '--getsize64', device_path,
-                      attempts=FLAGS.num_shell_tries)
+        try:
+            utils.execute('sudo', 'blockdev', '--getsize64', device_path,
+                          attempts=FLAGS.num_shell_tries)
+        except exception.ProcessExecutionError:
+            raise exception.InvalidDevicePath(path=device_path)
 
     def _check_format(self, device_path):
         """Checks that an unmounted volume is formatted."""
