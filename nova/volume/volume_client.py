@@ -50,8 +50,6 @@ class VolumeClient(Base):
         self.volume_api.assign_to_compute(context, volume_id, host)
         dev_path = self._setup_volume(context, volume_id, host)
         if not db.volume_get(context, volume_id)['uuid']:
-            # TODO(rnirmal): Fix the timing issue
-            time.sleep(2)
             self._format(dev_path)
             uuid = self.get_uuid(dev_path)
             self.db.volume_update(context, volume_id, {'uuid':uuid})

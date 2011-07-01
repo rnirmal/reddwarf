@@ -160,7 +160,7 @@ class VolumeManager(manager.SchedulerDependentManager):
         utils.poll_until(lambda : self.db.volume_get(context, volume_id),
                          lambda volume : volume['status'] == 'available',
                          sleep_time=1, time_out=time_out)
-        self.delete(context, volume_id)
+        self.delete_volume(context, volume_id)
 
     def check_for_export(self, context, instance_id):
         """Make sure whether volume is exported."""

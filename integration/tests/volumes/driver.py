@@ -244,11 +244,6 @@ class RemoveVolume(VolumeTest):
         self.assertRaises(Exception,
                           self.story.client._format, self.story.device_path)
 
-    def test_unassign_volume(self):
-        self.assertNotEqual(None, self.story.volume_id)
-        self.story.client.driver.unassign_volume(self.story.volume_id,
-                                      self.story.host)
-
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[GrabUuid])
 class Initialize(VolumeTest):
@@ -264,16 +259,15 @@ class Initialize(VolumeTest):
         self.assertNotEqual(self.story.original_uuid, volume['uuid'],
                             "Validate our assumption that the volume UUID "
                             "will change when the volume is formatted.")
+        self.story.client.remove_volume(self.story.context,
+                                        self.story.volume_id,
+                                        self.story.host)
 
     @time_out(60)
     def test_20_initialize_the_second_time_will_not_format(self):
         """If initialize is called but a UUID exists, it should not format."""
         old_uuid = self.story.get_volume()['uuid']
         self.assertTrue(old_uuid is not None)
-
-        self.story.client.remove_volume(self.story.context,
-                                        self.story.volume_id,
-                                        self.story.host)
         
         class VolumeClientNoFmt(volume.Client):
 
@@ -285,6 +279,13 @@ class Initialize(VolumeTest):
                                  self.story.host)
         self.assertEqual(old_uuid, self.story.get_volume()['uuid'],
                          "UUID should be the same as no formatting occurred.")
+        self.story.client.remove_volume(self.story.context,
+                                        self.story.volume_id,
+                                        self.story.host)
+
+    @expect_exception(exception.InvalidDevicePath)
+    def test_30_check_device_exists(self):
+        self.story.client._format(self.story.device_path)
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[Initialize])
