@@ -283,6 +283,10 @@ class Initialize(VolumeTest):
                                         self.story.volume_id,
                                         self.story.host)
 
+    @expect_exception(exception.InvalidDevicePath)
+    def test_30_check_device_exists(self):
+        self.story.client._format(self.story.device_path)
+
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[Initialize])
 class DeleteVolume(VolumeTest):
