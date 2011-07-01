@@ -16,8 +16,8 @@ mysql_query () {
 # Drop these in case this command is being run again.
 mysql -u root -e "DROP DATABASE nova;"
 mysql -u root -e "DROP DATABASE glance;"
-rm -rf /var/lib/glance
-rm -rf /vz/template/cache/*
+sudo rm -rf /var/lib/glance
+sudo rm -rf /vz/template/cache/*
 # Apparently this is no longer needed... ?
 /vagrant-common/update_ovz_template2.sh
 
