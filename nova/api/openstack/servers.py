@@ -51,6 +51,7 @@ class Controller(common.OpenstackController):
                            "status", "progress", "adminPass", "flavorRef",
                            "imageRef"],
                 "link": ["rel", "type", "href"],
+                "volume": ["id","name","description","size"],
             },
             "dict_collections": {
                 "metadata": {"item_name": "meta", "item_key": "key"},
