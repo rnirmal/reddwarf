@@ -63,6 +63,7 @@ class Controller(common.DBaaSController):
                 "dbcontainer": ["id", "name", "status", "flavorRef", "rootEnabled"],
                 "dbtype": ["name", "version"],
                 "link": ["rel", "type", "href"],
+                "volume": ["size", "name", "desc"],
             },
         },
     }
@@ -158,7 +159,7 @@ class Controller(common.DBaaSController):
 
         #TODO(tim.simpson) Check "env" to get volume options specified before
         #                  modifying the 'body' object with the volume_id.
-        volume = self.create_volume(req)
+        volume = self.create_volume(req, env)
         body.add_volume_id(volume['id'])
         body.add_mount_point(FLAGS.reddwarf_mysql_data_dir) # "/var/lib/mysql")
 
@@ -181,15 +182,29 @@ class Controller(common.DBaaSController):
                                server_id, databases)
         resp = {'dbcontainer': server['server']}
         self._modify_fields(req, resp['dbcontainer'])
+
+        # add the volume information to response
+        LOG.debug("adding the volume information to the response...")
+        resp['dbcontainer']['volume'] = {}
+        resp['dbcontainer']['volume']['size'] = volume['size']
+
         return resp
 
-    def create_volume(self, req):
+    def create_volume(self, req, env):
         """Creates the volume for the container and returns its ID."""
         #TODO(tim.simpson) Make volume create options configurable.
         context = req.environ['nova.context']
-        return self.volume_api.create(context, size = 1,
-                                      name="Volume",
-                                      description="Stores database files.")
+        try:
+            volume_size = env['dbcontainer']['volume']['size']
+            volume_name = env['dbcontainer']['volume'].get('name',None)
+            volume_desc = env['dbcontainer']['volume'].get('desc',None)
+        except KeyError as e:
+            LOG.error("Create Container Required field(s) - %s" % e)
+            raise exc.HTTPBadRequest("Create Container Required field(s) - %s" % e)
+
+        return self.volume_api.create(context, size = volume_size,
+                                      name=volume_name,
+                                      description=volume_desc)
 
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.
@@ -231,6 +246,15 @@ class Controller(common.DBaaSController):
         for attr in ["hostId","imageRef","metadata","adminPass"]:
             if response.has_key(attr):
                 del response[attr]
+        if response.has_key("volumes"):
+            LOG.debug("Removing the excess information from the volumes.")
+            for volume in response["volumes"]:
+                for attr in ["id", "name", "description"]:
+                    if attr in volume:
+                        del volume[attr]
+                #set the last volume to our volume information (only 1)
+                response["volume"] = volume
+            del response["volumes"]
         return response
 
     def _setup_security_groups(self, req, group_name, port):
