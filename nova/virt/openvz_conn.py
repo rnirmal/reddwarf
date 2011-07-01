@@ -64,6 +64,9 @@ flags.DEFINE_float('ovz_disk_space_oversub_percent',
 flags.DEFINE_string('ovz_disk_space_increment',
                     'G',
                     'Disk subscription increment')
+flags.DEFINE_bool('ovz_use_disk_quotas',
+                  True,
+                  'Use disk quotas to contain disk usage')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -229,6 +232,8 @@ class OpenVzConnection(driver.ComputeDriver):
             self._set_cpus(instance)
         if FLAGS.ovz_use_ioprio:
             self._set_ioprio(instance)
+        if FLAGS.ovz_use_disk_quotas:
+            self._set_diskspace(instance)
             
         self._start(instance)
         self._initial_secure_host(instance)
