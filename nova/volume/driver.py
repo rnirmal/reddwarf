@@ -192,6 +192,16 @@ class VolumeDriver(object):
         """Some drivers need this to associate a volume to a host."""
         pass
 
+    def _check_device_exists(self, device_path):
+        """Check that the device path exists.
+
+        Verify that the device path has actually been created and can report
+        it's size, only then can it be available for formatting, retry
+        num_shell_tries to account for the time lag.
+        """
+        utils.execute('sudo', 'blockdev', '--getsize64', device_path,
+                      attempts=FLAGS.num_shell_tries)
+
     def _check_format(self, device_path):
         """Checks that an unmounted volume is formatted."""
         child = pexpect.spawn("sudo dumpe2fs %s" % device_path)
@@ -215,6 +225,7 @@ class VolumeDriver(object):
 
     def format(self, device_path):
         """Formats the device at device_path and checks the filesystem."""
+        self._check_device_exists(device_path)
         self._format(device_path)
         self._check_format(device_path)
 
