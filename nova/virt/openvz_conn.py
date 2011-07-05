@@ -716,30 +716,23 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Unable to set IO priority for %s' % (
                 instance['id'],))
 
-    def _set_diskspace(self, instance, limit=()):
+    def _set_diskspace(self, instance, soft=None, hard=None):
         """
-        Implement OpenVz disk quotas for local disk space usage.  Takes a tuple
-        as an argument the first element being the soft limit and the second
-        is the hard limit.  If only one argument is given it will set it as
-        the soft limit. If no argument is given then one will be calculated
+        Implement OpenVz disk quotas for local disk space usage.
+        This method takes a soft and hard limit.  This is also the amount
+        of diskspace that is reported by system tools such as du and df inside
+        the container.  If no argument is given then one will be calculated
         based on the values in the instance_types table within the database.
         """
-        if not type(limit) == tuple:
-            LOG.error('_set_diskspace takes a tuple as its argument')
-            raise exception.InvalidInput('Badly formatted diskspace limit')
+        instance_type = instance_types.get_instance_type(
+            instance['instance_type_id'])
 
-        if not len(limit):
-            instance_type = instance_types.get_instance_type(
-                instance['instance_type_id'])
+        if not soft:
             soft = int(instance_type['local_gb'])
+
+        if not hard:
             hard = int(instance_type['local_gb'] *
                        FLAGS.ovz_disk_space_oversub_percent)
-        elif len(limit) == 1:
-            soft = limit[0]
-            hard = int(limit[0] * FLAGS.ovz_disk_space_oversub_percent)
-        else:
-            soft = limit[0]
-            hard = limit[1]
 
         # Now set the increment of the limit.  I do this here so that I don't
         # have to do this in every line above.
