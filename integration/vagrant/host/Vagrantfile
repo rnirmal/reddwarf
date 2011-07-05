@@ -15,7 +15,7 @@ Vagrant::Config.run do |global_config|
       config.vm.network "33.33.33.11"
 
       config.vm.box = "lucid_ext3_openvz"
-      config.vm.box_url = @BOX_URL + "#{config.vm.box}.box"
+      config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
       config.vm.host_name = "host"
 
       config.vm.share_folder "glance", "/glance", ENV['GLANCESRC']
@@ -34,7 +34,7 @@ Vagrant::Config.run do |global_config|
   # Volume Config
   global_config.vm.define :volume do |config|
     config.vm.box = "volumeserver"
-    config.vm.box_url = @BOX_URL + "#{config.vm.box}.box"
+    config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
     config.vm.host_name = "volume"
     config.vm.network "33.33.33.10"
     config.vm.share_folder "vagrant-common", "/vagrant-common", "./../common"
