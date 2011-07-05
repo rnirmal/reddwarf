@@ -57,6 +57,8 @@ flags.DEFINE_string('rbd_pool', 'rbd',
 flags.DEFINE_integer('volume_format_timeout', 120, 'timeout for formatting volumes')
 flags.DEFINE_string('volume_fstype', 'ext3',
                     'The file system type used to format and mount volumes.')
+flags.DEFINE_string('san_ip', '',
+                    'IP address of SAN controller')
 
 class VolumeDriver(object):
     """Executes commands relating to Volumes."""

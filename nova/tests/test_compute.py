@@ -38,6 +38,7 @@ from nova.compute import manager as compute_manager
 from nova.compute import power_state
 from nova.db.sqlalchemy import models
 from nova.image import local
+from nova import volume
 
 LOG = logging.getLogger('nova.tests.compute')
 FLAGS = flags.FLAGS
@@ -422,6 +423,7 @@ class ComputeTestCase(test.TestCase):
         self.compute.terminate_instance(self.context, instance_id)
 
     def _setup_other_managers(self):
+        self.volume_client = volume.Client()
         self.volume_manager = utils.import_object(FLAGS.volume_manager)
         self.network_manager = utils.import_object(FLAGS.network_manager)
         self.compute_driver = utils.import_object(FLAGS.compute_driver)
@@ -450,6 +452,7 @@ class ComputeTestCase(test.TestCase):
         self._setup_other_managers()
         dbmock = self.mox.CreateMock(db)
         volmock = self.mox.CreateMock(self.volume_manager)
+        volclientmock = self.mox.CreateMock(self.volume_client)
         netmock = self.mox.CreateMock(self.network_manager)
         drivermock = self.mox.CreateMock(self.compute_driver)
 
@@ -457,7 +460,8 @@ class ComputeTestCase(test.TestCase):
         dbmock.instance_get_fixed_address(c, i_ref['id']).AndReturn('dummy')
         for i in range(len(i_ref['volumes'])):
             vid = i_ref['volumes'][i]['id']
-            volmock.setup_compute_volume(c, vid).InAnyOrder('g1')
+            host = i_ref['volumes'][i]['host']
+            volclientmock.initialize(c, vid, host).InAnyOrder('g1')
         netmock.setup_compute_network(c, i_ref['id'])
         drivermock.ensure_filtering_rules_for_instance(i_ref)
 
@@ -509,12 +513,14 @@ class ComputeTestCase(test.TestCase):
         self._setup_other_managers()
         dbmock = self.mox.CreateMock(db)
         netmock = self.mox.CreateMock(self.network_manager)
+        volclientmock = self.mox.CreateMock(self.volume_client)
         volmock = self.mox.CreateMock(self.volume_manager)
 
         dbmock.instance_get(c, i_ref['id']).AndReturn(i_ref)
         dbmock.instance_get_fixed_address(c, i_ref['id']).AndReturn('dummy')
         for i in range(len(i_ref['volumes'])):
-            volmock.setup_compute_volume(c, i_ref['volumes'][i]['id'])
+            volclientmock.initialize(c, i_ref['volumes'][i]['id'],
+                                     i_ref['volumes'][i]['host'])
         for i in range(FLAGS.live_migration_retry_count):
             netmock.setup_compute_network(c, i_ref['id']).\
                 AndRaise(exception.ProcessExecutionError())
@@ -651,10 +657,10 @@ class ComputeTestCase(test.TestCase):
         i_ref = db.instance_get(c, instance_id)
 
         # Preparing mocks
-        self.mox.StubOutWithMock(self.compute.volume_manager,
-                                 'remove_compute_volume')
+        self.mox.StubOutWithMock(self.compute.volume_client,
+                                 'remove_volume')
         for v in i_ref['volumes']:
-            self.compute.volume_manager.remove_compute_volume(c, v['id'])
+            self.compute.volume_client.remove_volume(c, v['id'])
         self.mox.StubOutWithMock(self.compute.driver, 'unfilter_instance')
         self.compute.driver.unfilter_instance(i_ref)
 
