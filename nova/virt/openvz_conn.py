@@ -1,5 +1,20 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
+# Copyright 2010 OpenStack LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 """
 A driver specific to OpenVz as the support for Ovz in libvirt
 is sketchy at best.
@@ -40,21 +55,33 @@ flags.DEFINE_string('ovz_bridge_device',
 flags.DEFINE_string('ovz_network_template',
                     utils.abspath('virt/openvz_interfaces.template'),
                     'OpenVz network interface template file')
-flags.DEFINE_string('ovz_use_cpuunit',
-                    True,
-                    'Use OpenVz cpuunits for guaranteed minimums')
-flags.DEFINE_string('ovz_use_cpulimit',
-                    True,
-                    'Use OpenVz cpulimit for maximum cpu limits')
-flags.DEFINE_string('ovz_use_cpus',
-                    True,
-                    'Use OpenVz cpus for maximum cpus available to the container')
-flags.DEFINE_string('ovz_use_ioprio',
-                    True,
-                    'Use IO fair scheduling')
-flags.DEFINE_string('ovz_ioprio_limit',
-                    7,
-                    'Limit for IO priority weighting')
+flags.DEFINE_bool('ovz_use_cpuunit',
+                  True,
+                  'Use OpenVz cpuunits for guaranteed minimums')
+flags.DEFINE_bool('ovz_use_cpulimit',
+                  True,
+                  'Use OpenVz cpulimit for maximum cpu limits')
+flags.DEFINE_bool('ovz_use_cpus',
+                  True,
+                  'Use OpenVz cpus for maximum cpus available to the container')
+flags.DEFINE_bool('ovz_use_ioprio',
+                  True,
+                  'Use IO fair scheduling')
+flags.DEFINE_integer('ovz_ioprio_limit',
+                     7,
+                     'Limit for IO priority weighting')
+flags.DEFINE_bool('ovz_disk_space_oversub',
+                  True,
+                  'Allow over subscription of local disk')
+flags.DEFINE_float('ovz_disk_space_oversub_percent',
+                   1.10,
+                   'Local disk over subscription percentage')
+flags.DEFINE_string('ovz_disk_space_increment',
+                    'G',
+                    'Disk subscription increment')
+flags.DEFINE_bool('ovz_use_disk_quotas',
+                  True,
+                  'Use disk quotas to contain disk usage')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -220,6 +247,8 @@ class OpenVzConnection(driver.ComputeDriver):
             self._set_cpus(instance)
         if FLAGS.ovz_use_ioprio:
             self._set_ioprio(instance)
+        if FLAGS.ovz_use_disk_quotas:
+            self._set_diskspace(instance)
             
         self._start(instance)
         self._initial_secure_host(instance)
@@ -701,6 +730,41 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Unable to set IO priority for %s' % (
                 instance['id'],))
+
+    def _set_diskspace(self, instance, soft=None, hard=None):
+        """
+        Implement OpenVz disk quotas for local disk space usage.
+        This method takes a soft and hard limit.  This is also the amount
+        of diskspace that is reported by system tools such as du and df inside
+        the container.  If no argument is given then one will be calculated
+        based on the values in the instance_types table within the database.
+        """
+        instance_type = instance_types.get_instance_type(
+            instance['instance_type_id'])
+
+        if not soft:
+            soft = int(instance_type['local_gb'])
+
+        if not hard:
+            hard = int(instance_type['local_gb'] *
+                       FLAGS.ovz_disk_space_oversub_percent)
+
+        # Now set the increment of the limit.  I do this here so that I don't
+        # have to do this in every line above.
+        soft = '%s%s' % (soft, FLAGS.ovz_disk_space_increment)
+        hard = '%s%s' % (hard, FLAGS.ovz_disk_space_increment)
+
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                   '--save', '--diskspace',
+                                   '%s:%s' % (soft, hard))
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Error setting diskspace quota for %s' %
+                                  (instance['id'],))
+
 
     def snapshot(self, instance, name):
         """
