@@ -40,8 +40,6 @@ LOG = logging.getLogger("nova.volume.driver")
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean('san_thin_provision', 'true',
                      'Use thin provisioning for SAN volumes?')
-flags.DEFINE_string('san_ip', '',
-                    'IP address of SAN controller')
 flags.DEFINE_string('san_login', 'admin',
                     'Username for SAN controller')
 flags.DEFINE_string('san_password', '',
@@ -627,7 +625,7 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         # for stuff. Instead, we make it a multiple of 128 megabytes.
         size = volume['size']*128
         id = volume['id']
-        LOG.debug(_("Creating volume %s of size %dMB"), name, size)
+        LOG.debug(_("Creating volume of size %s MB") % str(size))
         try:
             self._run_ssh("sudo mkdir -p /san")
             self._run_ssh("sudo dd if=/dev/zero of=/san/%s.img bs=1024k count=%d"

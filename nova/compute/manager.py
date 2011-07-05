@@ -993,7 +993,7 @@ class ComputeManager(manager.SchedulerDependentManager):
             LOG.info(_("%s has no volume."), ec2_id)
         else:
             for v in instance_ref['volumes']:
-                self.volume_manager.setup_compute_volume(context, v['id'])
+                self.volume_client.initialize(context, v['id'], v['host'])
 
         # Bridge settings.
         # Call this method prior to ensure_filtering_rules_for_instance,
@@ -1001,7 +1001,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         # fails.
         #
         # Retry operation is necessary because continuously request comes,
-        # concorrent request occurs to iptables, then it complains.
+        # concurrent request occurs to iptables, then it complains.
         max_retry = FLAGS.live_migration_retry_count
         for cnt in range(max_retry):
             try:
@@ -1083,7 +1083,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         # Detaching volumes.
         try:
             for vol in self.db.volume_get_all_by_instance(ctxt, instance_id):
-                self.volume_manager.remove_compute_volume(ctxt, vol['id'])
+                self.volume_client.remove_volume(ctxt, vol['id'])
         except exception.NotFound:
             pass
 

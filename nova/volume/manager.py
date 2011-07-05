@@ -57,7 +57,8 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('storage_availability_zone',
                     'nova',
                     'availability zone of this service')
-flags.DEFINE_string('volume_driver', 'nova.volume.driver.ISCSIDriver',
+# Using a fake is necessary because unit tests are starting various daemons.
+flags.DEFINE_string('volume_driver', 'nova.volume.driver.FakeISCSIDriver',
                     'Driver to use for volume creation')
 flags.DEFINE_boolean('use_local_volumes', False,
                      'if True, will not discover local volumes')
