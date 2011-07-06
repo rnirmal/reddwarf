@@ -54,6 +54,7 @@ class ContainerTestInfo(object):
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the container.
+        self.volume = None # The volume the container will have.
 
     def check_database(self, dbname):
         return check_database(self.id, dbname)
@@ -137,11 +138,13 @@ class CreateContainer(unittest.TestCase):
         databases = []
         databases.append({"name": "firstdb", "charset": "latin2",
                           "collate": "latin2_general_ci"})
+        container_info.volume = {"size":1}
 
         container_info.result = dbaas.dbcontainers.create(
                                             container_info.name,
                                             container_info.dbaas_flavor_href,
-                                            databases)
+                                            databases,
+                                            container_info.volume)
         container_info.id = container_info.result.id
         
         # checks to be sure these are not found in the result
@@ -151,7 +154,7 @@ class CreateContainer(unittest.TestCase):
                             "Create response should not contain %s = %s" %
                             (attr, result_dict.get(attr)))
         # checks to be sure these are found in the result
-        for attr in ["flavorRef","id","name","status","addresses","links"]:
+        for attr in ["flavorRef","id","name","status","addresses","links","volume"]:
             self.assertTrue(result_dict.get(attr) != None,
                             "Create response should contain %s = %s attribute." %
                             (attr, result_dict.get(attr)))
@@ -314,6 +317,15 @@ class TestContainListing(unittest.TestCase):
         except NotFound:
             pass
 
+    def test_volume_found(self):
+        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
+        self.assertEquals(container_info.volume['size'],
+                          container_info.myresult['volume']['size'])
+        self.assertEquals(container_info.volume.get('name', None),
+                          container_info.myresult['volume'].get('name', None))
+        self.assertEquals(container_info.volume.get('desc', None),
+                          container_info.myresult['volume'].get('desc', None))
+
     def _detail_dbcontainers_exist(self):
         for container in container_info.myresult:
             if not container.__dict__['status']:
@@ -325,6 +337,8 @@ class TestContainListing(unittest.TestCase):
             if not container.__dict__['addresses']:
                 return False
             if not container.__dict__['links']:
+                return False
+            if not container.__dict__['volume']:
                 return False
         return True
 
