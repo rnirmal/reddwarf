@@ -466,6 +466,7 @@ class ComputeTestCase(test.TestCase):
         drivermock.ensure_filtering_rules_for_instance(i_ref)
 
         self.compute.db = dbmock
+        self.compute.volume_client = volclientmock
         self.compute.volume_manager = volmock
         self.compute.network_manager = netmock
         self.compute.driver = drivermock
@@ -527,6 +528,7 @@ class ComputeTestCase(test.TestCase):
 
         self.compute.db = dbmock
         self.compute.network_manager = netmock
+        self.compute.volume_client = volclientmock
         self.compute.volume_manager = volmock
 
         self.mox.ReplayAll()

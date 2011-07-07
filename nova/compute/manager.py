@@ -236,7 +236,7 @@ class ComputeManager(manager.SchedulerDependentManager):
                    metadata.get('mount_point', "/mnt/" + str(volume_id))
         except ValueError:
             raise RuntimeError("The volume_id was in an invalid format.")
-        except KeyError, exception.VolumeNotFound:
+        except (KeyError, exception.VolumeNotFound):
             return None, None
 
     def wait_until_volume_is_ready(self, context, volume):

@@ -250,6 +250,86 @@ class VolumeDriver(object):
             child.expect(pexpect.EOF)
 
 
+class LoggingVolumeDriver(VolumeDriver):
+    """Logs and records calls, for unit tests."""
+
+    def _check_device_exists(self, *args, **kwargs):
+        pass
+
+    def get_volume_uuid(self, device_path):
+        pass
+
+    def format(self, device_path):
+        pass
+
+    def check_for_setup_error(self):
+        pass
+
+    def create_volume(self, volume):
+        self.log_action('create_volume', volume)
+
+    def delete_volume(self, volume):
+        self.log_action('delete_volume', volume)
+
+    def local_path(self, volume):
+        print "local_path not implemented"
+        raise NotImplementedError()
+
+    def ensure_export(self, context, volume):
+        self.log_action('ensure_export', volume)
+
+    def create_export(self, context, volume):
+        self.log_action('create_export', volume)
+
+    def remove_export(self, context, volume):
+        self.log_action('remove_export', volume)
+
+    def discover_volume(self, context, volume):
+        self.log_action('discover_volume', volume)
+
+    def undiscover_volume(self, volume):
+        self.log_action('undiscover_volume', volume)
+
+    def check_for_export(self, context, volume_id):
+        self.log_action('check_for_export', volume_id)
+
+    _LOGS = []
+
+    @staticmethod
+    def clear_logs():
+        LoggingVolumeDriver._LOGS = []
+
+    @staticmethod
+    def log_action(action, parameters):
+        """Logs the command."""
+        LOG.debug(_("LoggingVolumeDriver: %s") % (action))
+        log_dictionary = {}
+        if parameters:
+            log_dictionary = dict(parameters)
+        log_dictionary['action'] = action
+        LOG.debug(_("LoggingVolumeDriver: %s") % (log_dictionary))
+        LoggingVolumeDriver._LOGS.append(log_dictionary)
+
+    @staticmethod
+    def all_logs():
+        return LoggingVolumeDriver._LOGS
+
+    @staticmethod
+    def logs_like(action, **kwargs):
+        matches = []
+        for entry in LoggingVolumeDriver._LOGS:
+            if entry['action'] != action:
+                continue
+            match = True
+            for k, v in kwargs.iteritems():
+                if entry.get(k) != v:
+                    match = False
+                    break
+            if match:
+                matches.append(entry)
+        return matches
+
+
 class AOEDriver(VolumeDriver):
     """Implements AOE specific volume commands."""
 
@@ -612,12 +692,36 @@ class ISCSIDriver(VolumeDriver):
             raise
 
 
-class FakeISCSIDriver(ISCSIDriver):
+class FakeISCSIDriver(ISCSIDriver, LoggingVolumeDriver):
     """Logs calls instead of executing."""
     def __init__(self, *args, **kwargs):
         super(FakeISCSIDriver, self).__init__(execute=self.fake_execute,
                                               sync_exec=self.fake_execute,
                                               *args, **kwargs)
+
+    def discover_volume(self, context, volume):
+        LoggingVolumeDriver.discover_volume(self, context, volume)
+
+    def undiscover_volume(self, volume):
+        LoggingVolumeDriver.undiscover_volume(self, volume)
+
+    def get_volume_uuid(self, device_path):
+        pass
+
+    def format(self, device_path):
+        pass
+
+    def _check_device_exists(self, *args, **kwargs):
+        pass
+
+    def get_volume_uuid(self, device_path):
+        pass
+
+    def format(self, device_path):
+        pass
+
+    def check_for_setup_error(self):
+        pass
 
     def check_for_client_setup_error(self):
         """No client check necessary """
@@ -734,74 +838,3 @@ class SheepdogDriver(VolumeDriver):
     def undiscover_volume(self, volume):
         """Undiscover volume on a remote host"""
         pass
-
-
-class LoggingVolumeDriver(VolumeDriver):
-    """Logs and records calls, for unit tests."""
-
-    def check_for_setup_error(self):
-        pass
-
-    def create_volume(self, volume):
-        self.log_action('create_volume', volume)
-
-    def delete_volume(self, volume):
-        self.log_action('delete_volume', volume)
-
-    def local_path(self, volume):
-        print "local_path not implemented"
-        raise NotImplementedError()
-
-    def ensure_export(self, context, volume):
-        self.log_action('ensure_export', volume)
-
-    def create_export(self, context, volume):
-        self.log_action('create_export', volume)
-
-    def remove_export(self, context, volume):
-        self.log_action('remove_export', volume)
-
-    def discover_volume(self, context, volume):
-        self.log_action('discover_volume', volume)
-
-    def undiscover_volume(self, volume):
-        self.log_action('undiscover_volume', volume)
-
-    def check_for_export(self, context, volume_id):
-        self.log_action('check_for_export', volume_id)
-
-    _LOGS = []
-
-    @staticmethod
-    def clear_logs():
-        LoggingVolumeDriver._LOGS = []
-
-    @staticmethod
-    def log_action(action, parameters):
-        """Logs the command."""
-        LOG.debug(_("LoggingVolumeDriver: %s") % (action))
-        log_dictionary = {}
-        if parameters:
-            log_dictionary = dict(parameters)
-        log_dictionary['action'] = action
-        LOG.debug(_("LoggingVolumeDriver: %s") % (log_dictionary))
-        LoggingVolumeDriver._LOGS.append(log_dictionary)
-
-    @staticmethod
-    def all_logs():
-        return LoggingVolumeDriver._LOGS
-
-    @staticmethod
-    def logs_like(action, **kwargs):
-        matches = []
-        for entry in LoggingVolumeDriver._LOGS:
-            if entry['action'] != action:
-                continue
-            match = True
-            for k, v in kwargs.iteritems():
-                if entry.get(k) != v:
-                    match = False
-                    break
-            if match:
-                matches.append(entry)
-        return matches
