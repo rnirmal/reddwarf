@@ -136,6 +136,32 @@ class ListCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def users(self, options, id):
+        """\tList the users on a dbcontainer's database"""
+        dbaas = _get_client(options)
+        try:
+            for user in dbaas.users.list(id):
+                _pretty_print(user._info)
+        except:
+            print sys.exc_info()[1]
+
+    def databases(self, options, id):
+        """List the databases on a dbcontainer"""
+        dbaas = _get_client(options)
+        try:
+            for database in dbaas.databases.list(id):
+                _pretty_print(database._info)
+        except:
+            print sys.exc_info()[1]
+
+    def root(self, options, id):
+        """\tCheck the container for root access"""
+        dbaas = _get_client(options)
+        try:
+            _pretty_print(dbaas.root.is_root_enabled(id))
+        except:
+            print sys.exc_info()[1]
+
 
 class CreateCommands(object):
     """Create DBContainers, Databases and Users"""
@@ -143,11 +169,12 @@ class CreateCommands(object):
     def __init__(self):
         pass
 
-    def dbcontainer(self, options, name, flavorRef="http://localhost:8775/v1.0/flavors/1"):
+    def dbcontainer(self, options, name, volume_size, flavorRef="http://localhost:8775/v1.0/flavors/1"):
         """Create a new dbcontainer"""
         dbaas = _get_client(options)
+        volume = {"size":volume_size}
         try:
-            result = dbaas.dbcontainers.create(name, flavorRef)
+            result = dbaas.dbcontainers.create(name, flavorRef, volume)
             _pretty_print(result._info)
         except:
             print sys.exc_info()[1]
@@ -174,7 +201,15 @@ class CreateCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def root(self, options, id):
+        """\tEnabling the container's root user."""
+        dbaas = _get_client(options)
+        try:
+            dbaas.root.create(id)
+        except:
+            print sys.exc_info()[1]
 
+            
 class DeleteCommands(object):
     """Delete DBContainers, Databases and Users"""
 
@@ -202,6 +237,14 @@ class DeleteCommands(object):
         dbaas = _get_client(options)
         try:
             dbaas.users.delete(id, user)
+        except:
+            print sys.exc_info()[1]
+
+    def root(self, options, id):
+        """\tDelete the container's root user."""
+        dbaas = _get_client(options)
+        try:
+            dbaas.root.delete(id)
         except:
             print sys.exc_info()[1]
 
