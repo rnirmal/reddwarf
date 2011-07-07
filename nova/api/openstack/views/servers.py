@@ -93,6 +93,7 @@ class ViewBuilder(object):
 
         self._build_image(inst_dict, inst)
         self._build_flavor(inst_dict, inst)
+        self._build_volume(inst_dict, inst)
 
         return dict(server=inst_dict)
 
@@ -139,6 +140,18 @@ class ViewBuilderV11(ViewBuilder):
             flavor_id = inst["instance_type"]['flavorid']
             flavor_ref = self.flavor_builder.generate_href(flavor_id)
             response["flavorRef"] = flavor_ref
+
+    def _build_volume(self, response, inst):
+        volumes = inst['volumes']
+        if volumes:
+            response["volumes"] = []
+            for volume in volumes:
+                vol = {}
+                vol['id'] = volume.id
+                vol['name'] = volume.display_name
+                vol['description'] = volume.display_description
+                vol['size'] = volume.size
+                response["volumes"].append(vol)
 
     def _build_extra(self, response, inst):
         self._build_links(response, inst)
