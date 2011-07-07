@@ -63,7 +63,7 @@ class Controller(common.DBaaSController):
                 "dbcontainer": ["id", "name", "status", "flavorRef", "rootEnabled"],
                 "dbtype": ["name", "version"],
                 "link": ["rel", "type", "href"],
-                "volume": ["size", "name", "desc"],
+                "volume": ["size"],
             },
         },
     }
@@ -182,8 +182,7 @@ class Controller(common.DBaaSController):
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
-        resp['dbcontainer']['volume'] = {}
-        resp['dbcontainer']['volume']['size'] = volume['size']
+        resp['dbcontainer']['volume'] = {'size':volume['size']}
 
         return resp
 
@@ -192,15 +191,13 @@ class Controller(common.DBaaSController):
         context = req.environ['nova.context']
         try:
             volume_size = env['dbcontainer']['volume']['size']
-            volume_name = env['dbcontainer']['volume'].get('name',None)
-            volume_desc = env['dbcontainer']['volume'].get('desc',None)
         except KeyError as e:
             LOG.error("Create Container Required field(s) - %s" % e)
             raise exc.HTTPBadRequest("Create Container Required field(s) - %s" % e)
 
-        return self.volume_api.create(context, size = volume_size,
-                                      name=volume_name,
-                                      description=volume_desc)
+        return self.volume_api.create(context, size=volume_size,
+                                      name=None,
+                                      description=None)
 
     def _try_create_server(self, req):
         """Handle the call to create a server through the openstack servers api.
