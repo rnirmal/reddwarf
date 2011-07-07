@@ -156,12 +156,9 @@ class Controller(common.DBaaSController):
         LOG.debug("%s - %s", req.environ, req.body)
         env, body = self._deserialize_create(req)
 
-
-        #TODO(tim.simpson) Check "env" to get volume options specified before
-        #                  modifying the 'body' object with the volume_id.
         volume = self.create_volume(req, env)
         body.add_volume_id(volume['id'])
-        body.add_mount_point(FLAGS.reddwarf_mysql_data_dir) # "/var/lib/mysql")
+        body.add_mount_point(FLAGS.reddwarf_mysql_data_dir)
 
         req.body = body.serialize_for_create()
 
@@ -192,7 +189,6 @@ class Controller(common.DBaaSController):
 
     def create_volume(self, req, env):
         """Creates the volume for the container and returns its ID."""
-        #TODO(tim.simpson) Make volume create options configurable.
         context = req.environ['nova.context']
         try:
             volume_size = env['dbcontainer']['volume']['size']
