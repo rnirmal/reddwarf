@@ -38,7 +38,7 @@ from nova.volume.driver import ISCSIDriver
 
 LOG = logging.getLogger("nova.volume.driver")
 FLAGS = flags.FLAGS
-flags.DEFINE_boolean('san_thin_provision', 'true',
+flags.DEFINE_boolean('san_thin_provision', 'false',
                      'Use thin provisioning for SAN volumes?')
 flags.DEFINE_string('san_login', 'admin',
                     'Username for SAN controller')
