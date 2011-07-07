@@ -3,6 +3,7 @@ from numbers import Number
 import os
 import re
 import shutil
+import socket
 import time
 import unittest
 
@@ -42,7 +43,7 @@ class StoryDetails(object):
         self.volume_id = None
         self.volume_name = None
         self.volume = None
-        self.host = "vagrant-host"
+        self.host = socket.gethostname()
         self.original_uuid = None
 
     def get_volume(self):
