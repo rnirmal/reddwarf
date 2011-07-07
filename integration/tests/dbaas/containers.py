@@ -143,8 +143,8 @@ class CreateContainer(unittest.TestCase):
         container_info.result = dbaas.dbcontainers.create(
                                             container_info.name,
                                             container_info.dbaas_flavor_href,
-                                            databases,
-                                            container_info.volume)
+                                            container_info.volume,
+                                            databases)
         container_info.id = container_info.result.id
         
         # checks to be sure these are not found in the result
@@ -321,34 +321,30 @@ class TestContainListing(unittest.TestCase):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
         self.assertEquals(container_info.volume['size'],
                           container_info.myresult['volume']['size'])
-        self.assertEquals(container_info.volume.get('name', None),
-                          container_info.myresult['volume'].get('name', None))
-        self.assertEquals(container_info.volume.get('desc', None),
-                          container_info.myresult['volume'].get('desc', None))
 
     def _detail_dbcontainers_exist(self):
         for container in container_info.myresult:
-            if not container.__dict__['status']:
+            if not container.status:
                 return False
-            if not container.__dict__['id'] and container.__dict__['id'] != container_info.id:
+            if not container.id and container.id != container_info.id:
                 return False
-            if not container.__dict__['name']:
+            if not container.name:
                 return False
-            if not container.__dict__['addresses']:
+            if not container.addresses:
                 return False
-            if not container.__dict__['links']:
+            if not container.links:
                 return False
-            if not container.__dict__['volume']:
+            if not container.volume:
                 return False
         return True
 
     def _index_dbcontainers_exist(self):
         for container in container_info.myresult:
-            if not container.__dict__['id'] and container.__dict__['id'] != container_info.id:
+            if not container.id and container.id != container_info.id:
                 return False
-            if not container.__dict__['name']:
+            if not container.name:
                 return False
-            if not container.__dict__['links']:
+            if not container.links:
                 return False
         return True
 
@@ -377,6 +373,6 @@ class DeleteContainer(unittest.TestCase):
             time.sleep(1)
             while container_info.result:
                 container_info.result = dbaas.dbcontainers.get(container_info.id)
-                self.assertEquals(_dbaas_mapping[power_state.SHUTDOWN], container_info.result.__dict__['status'])
+                self.assertEquals(_dbaas_mapping[power_state.SHUTDOWN], container_info.result.status)
         except NotFound:
             pass
