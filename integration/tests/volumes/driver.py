@@ -59,6 +59,7 @@ class StoryDetails(object):
 
 
 story = None
+storyFail = None
 
 LOCAL_MOUNT_PATH = "/testsmnt"
 
@@ -70,8 +71,9 @@ class VolumeTest(unittest.TestCase):
         unittest.TestCase.__init__(self, *args, **kwargs)
 
     def setUp(self):
-        global story
+        global story, storyFail
         self.story = story
+        self.storyFail = storyFail
 
     def assert_volume_as_expected(self, volume):
         self.assertTrue(isinstance(volume["id"], Number))
@@ -87,8 +89,9 @@ class SetUp(VolumeTest):
 
     def test_05_create_story(self):
         """Creating 'story' vars used by the rest of these tests."""
-        global story
+        global story, storyFail
         story = StoryDetails()
+        storyFail = StoryDetails()
 
     def test_10_wait_for_topics(self):
         """Wait until the volume topic is up before proceeding."""
@@ -112,18 +115,18 @@ class AddVolumeFailure(VolumeTest):
 
     def test_add(self):
         """Make call to FAIL a prov. volume and assert the return value is a FAILURE."""
-        self.assertEqual(None, self.story.volume_id)
+        self.assertEqual(None, self.storyFail.volume_id)
         name = "TestVolume"
         desc = "A volume that was created for testing."
-        self.story.volume_name = name
-        self.story.volume_desc = desc
-        volume = self.story.api.create(self.story.context, size = 500,
+        self.storyFail.volume_name = name
+        self.storyFail.volume_desc = desc
+        volume = self.storyFail.api.create(self.storyFail.context, size = 500,
                                        name=name, description=desc)
         self.assertEqual(500, volume["size"])
         self.assertTrue("creating", volume["status"])
         self.assertTrue("detached", volume["attach_status"])
-        self.story.volume = volume
-        self.story.volume_id = volume["id"]
+        self.storyFail.volume = volume
+        self.storyFail.volume_id = volume["id"]
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[AddVolumeFailure])
@@ -137,14 +140,13 @@ class AfterVolumeFailureIsAdded(VolumeTest):
     @time_out(120)
     def test_api_get(self):
         """Wait until the volume is a FAILURE."""
-        volume = poll_until(lambda : self.story.get_volume(),
+        volume = poll_until(lambda : self.storyFail.get_volume(),
                             lambda volume : volume["status"] != "creating")
         self.assertEqual(volume["status"], "error")
         self.assertTrue(volume["attach_status"], "detached")
-        self.story.volume_id = None # reset the id for next tests
 
 
-@test(groups=[VOLUMES_DRIVER], depends_on_classes=[AfterVolumeFailureIsAdded])
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
 class AddVolume(VolumeTest):
 
     def test_add(self):
