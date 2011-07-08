@@ -207,7 +207,7 @@ class WaitForTopics(unittest.TestCase):
 
 @test(groups=["start_and_wait"],
       depends_on_groups=["services.initialize"],
-      ignore=(os.environ.get("SERVICE_WAIT", 'False') != 'True'))
+      enabled=(os.environ.get("SERVICE_WAIT", 'False') == 'True'))
 class StartAndWait(unittest.TestCase):
 
     def test(self):

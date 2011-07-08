@@ -19,14 +19,14 @@ flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
 
 GROUP = "dbaas.guest.dns"
 
-IGNORE = False
+ENABLED = True
 try:
     import rsdns
 except Exception:
-    IGNORE = True
+    ENABLED = False
 
 
-@test(groups=[GROUP, GROUP_TEST], ignore=IGNORE)
+@test(groups=[GROUP, GROUP_TEST], enabled=ENABLED)
 class Setup(unittest.TestCase):
     """Creates the DNS Driver and entry factory used in subsequent tests."""
 
@@ -38,7 +38,7 @@ class Setup(unittest.TestCase):
 @test(depends_on_classes=[Setup],
       depends_on_groups=[CONTAINER_START],
       groups=[GROUP, GROUP_TEST],
-      ignore=IGNORE)
+      enabled=ENABLED)
 class WhenContainerIsCreated(unittest.TestCase):
     """Make sure the DNS name was provisioned.
 
@@ -60,7 +60,7 @@ class WhenContainerIsCreated(unittest.TestCase):
 @test(depends_on_classes=[Setup, WhenContainerIsCreated],
       depends_on_groups=[CONTAINER_STOP],
       groups=[GROUP],
-      ignore=IGNORE)
+      enabled=ENABLED)
 class AfterContainerIsDestroyed(unittest.TestCase):
     """Make sure the DNS name is removed along with a container.
 

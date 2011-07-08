@@ -29,3 +29,4 @@ contrib/tty.tgz
 *.sqlite
 vagrantup.*
 .apitoken
+integration/.noseids

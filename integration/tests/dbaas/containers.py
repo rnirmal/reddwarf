@@ -366,7 +366,8 @@ class DeleteContainer(unittest.TestCase):
     @time_out(6 * 60)
     def test_delete(self):
         global dbaas
-
+        if not hasattr(container_info, "result"):
+            raise SkipTest("Container was never created, skipping test...")
         dbaas.dbcontainers.delete(container_info.result)
 
         try:
