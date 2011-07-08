@@ -274,6 +274,7 @@ class ComputeManager(manager.SchedulerDependentManager):
                     "Details: %(ex)s")
             LOG.exception(msg)
             self._update_state(context, instance_id, power_state.FAILED)
+            return 
 
         context = context.elevated()
         instance_ref = self.db.instance_get(context, instance_id)
