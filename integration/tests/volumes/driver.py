@@ -108,6 +108,43 @@ class SetUp(VolumeTest):
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
+class AddVolumeFailure(VolumeTest):
+
+    def test_add(self):
+        """Make call to FAIL a prov. volume and assert the return value is a FAILURE."""
+        self.assertEqual(None, self.story.volume_id)
+        name = "TestVolume"
+        desc = "A volume that was created for testing."
+        self.story.volume_name = name
+        self.story.volume_desc = desc
+        volume = self.story.api.create(self.story.context, size = 500,
+                                       name=name, description=desc)
+        self.assertEqual(500, volume["size"])
+        self.assertTrue("creating", volume["status"])
+        self.assertTrue("detached", volume["attach_status"])
+        self.story.volume = volume
+        self.story.volume_id = volume["id"]
+
+
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[AddVolumeFailure])
+class AfterVolumeFailureIsAdded(VolumeTest):
+    """Check that the volume can be retrieved via the API, and setup.
+
+    All we want to see returned is a list-like with an initial string.
+
+    """
+
+    @time_out(120)
+    def test_api_get(self):
+        """Wait until the volume is a FAILURE."""
+        volume = poll_until(lambda : self.story.get_volume(),
+                            lambda volume : volume["status"] != "creating")
+        self.assertEqual(volume["status"], "error")
+        self.assertTrue(volume["attach_status"], "detached")
+        self.story.volume_id = None # reset the id for next tests
+
+
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[AfterVolumeFailureIsAdded])
 class AddVolume(VolumeTest):
 
     def test_add(self):
