@@ -93,6 +93,10 @@ class VolumeDriver(object):
         """
         pass
 
+    def check_for_available_space(self, size):
+        """Call to check the size is available for volume"""
+        pass
+
     def check_for_client_setup_error(self):
         """
         Returns and error if the client is not setup properly to

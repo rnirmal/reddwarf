@@ -110,6 +110,7 @@ class VolumeManager(manager.SchedulerDependentManager):
         try:
             vol_name = volume_ref['name']
             vol_size = volume_ref['size']
+            vol_avail = self.driver.check_for_available_space(vol_size)
             LOG.debug(_("volume %(vol_name)s: creating lv of"
                     " size %(vol_size)sG") % locals())
             model_update = self.driver.create_volume(volume_ref)

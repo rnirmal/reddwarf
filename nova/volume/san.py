@@ -52,6 +52,10 @@ flags.DEFINE_string('san_clustername', '',
                     'Cluster name to use for creating volumes')
 flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
+flags.DEFINE_integer('san_network_raid_factor', 2,
+                     'San network RAID factor')
+flags.DEFINE_integer('san_available_size_offset', 1,
+                     'San available size offset')
 
 
 class DiscoveryInfo(object):
@@ -501,6 +505,18 @@ class HpSanISCSIDriver(SanISCSIDriver):
         cliq_args['volumeName'] = volume_id
         cliq_args['serverName'] = host
         self._cliq_run_xml("assignVolumeToServer", cliq_args)
+
+    def check_for_available_space(self, size):
+        """Check for available volume space"""
+        cluster_info = self._cliq_get_cluster_info(FLAGS.san_clustername)
+        available_space = int(cluster_info['spaceAvail'])/ \
+                       int(FLAGS.san_network_raid_factor)
+        # convert space to GBs and take size offset into account
+        available_space = (available_space/1024/1024/1024)- \
+                       FLAGS.san_available_size_offset
+        LOG.debug("HpSan Volume Size requested : %sGBs" % size)
+        LOG.debug("HpSan Volume available_space : %sGBs" % available_space)
+        return (size < available_space)
 
     def create_volume(self, volume):
         """Creates a volume."""
