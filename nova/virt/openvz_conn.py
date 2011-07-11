@@ -877,8 +877,19 @@ class OpenVzConnection(driver.ComputeDriver):
         except ProcessExecutionError:
             raise exception.Error('Error destroying %d' % instance['id'])
 
+    def _attach_volumes(self, instance):
+        """
+        Iterate through all volumes and attach them all
+        """
+        if instance['volumes']:
+            for volume in instance['volumes']:
+                pass
+
     def attach_volume(self, instance_name, device_path, mountpoint):
         """Attach the disk at device_path to the instance at mountpoint"""
+        instance = self._find_by_name(instance_name)
+        if instance['volumes']:
+            pass
         return True
 
     def detach_volume(self, instance_name, mountpoint):
