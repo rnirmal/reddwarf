@@ -117,3 +117,33 @@ class Controller(common.DBaaSController):
                 raise exception.ApiError("Required attribute/key 'password' " \
                                          "was not specified")
         return body
+
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+        '1.1': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+            'user': ['name', 'password']}
+        },
+    }
+
+    xmlns = {
+        '1.0': wsgi.XMLNS_V10,
+        '1.1': wsgi.XMLNS_V11,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    deserializers = {
+        'application/xml': deserializers.UsersRequestXMLDeserializer(),
+    }
+
+    return wsgi.Resource(controller, serializers=serializers,
+                         deserializers=deserializers)

@@ -34,14 +34,6 @@ LOG.setLevel(logging.DEBUG)
 class Controller(common.DBaaSController):
     """ The Database Controller for the DBaaS API """
 
-    _serialization_metadata = {
-        'application/xml': {
-            'attributes': {
-                'database': ["name", "character_set", "collate"]
-            },
-        },
-    }
-
     def __init__(self):
         self.guest_api = guest_api.API()
         self.compute_api = compute.API()
@@ -115,3 +107,33 @@ class Controller(common.DBaaSController):
                 raise exception.ApiError("Required attribute/key 'name' " \
                                          "was not specified")
         return body
+
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+        '1.1': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+            'database': ["name", "character_set", "collate"]
+        },
+    }
+
+    xmlns = {
+        '1.0': wsgi.XMLNS_V10,
+        '1.1': wsgi.XMLNS_V11,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    deserializers = {
+        'application/xml': deserializer.DatabasesRequestXMLDeserializer(),
+    }
+
+    return wsgi.Resource(controller, serializers=serializers,
+                         deserializers=deserializers)

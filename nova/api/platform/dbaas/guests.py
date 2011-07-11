@@ -22,6 +22,7 @@ from nova import flags
 from nova import log as logging
 from nova.api.openstack import faults
 from nova.api.platform.dbaas import common
+from nova.api.platform.dbaas import deserializer
 from nova.guest import api
 
 LOG = logging.getLogger('nova.api.platform.dbaas.guests')
@@ -59,3 +60,32 @@ class Controller(common.DBaaSController):
         for instance in instances:
             self.guest_api.upgrade(ctxt, (str(instance['id'])))
         return exc.HTTPAccepted()
+
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+        '1.1': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+        },
+    }
+
+    xmlns = {
+        '1.0': wsgi.XMLNS_V10,
+        '1.1': wsgi.XMLNS_V11,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    deserializers = {
+        'application/xml': deserializer.GuestsRequestXMLDeserializer(),
+    }
+
+    return wsgi.Resource(controller, serializers=serializers,
+                         deserializers=deserializers)

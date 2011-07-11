@@ -55,17 +55,18 @@ class APIRouter(wsgi.Router):
 
     def __init__(self):
         mapper = routes.Mapper()
+        version = "1.1"
 
         container_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
             LOG.debug(_("Including admin operations in API."))
             mapper.resource("guest", "guests",
-                            controller=guests.Controller(),
+                            controller=guests.create_resource(version),
                             collection={'upgradeall': 'POST'},
                             member={'upgrade': 'POST'})
 
             mapper.resource("image", "images",
-                            controller=images.ControllerV11(),
+                            controller=images.create_resource(version),
                             collection={'detail': 'GET'})
 
             #TODO(rnirmal): Right now any user can access these
@@ -74,34 +75,34 @@ class APIRouter(wsgi.Router):
             # users can hit that api, others would just be rejected.
 
         mapper.resource("dbcontainer", "dbcontainers",
-                        controller=dbcontainers.Controller(),
+                        controller=dbcontainers.create_resource(version),
                         collection={'detail': 'GET'},
                         member=container_members)
 
         mapper.resource("flavor", "flavors",
-                        controller=flavors.ControllerV11(),
+                        controller=flavors.create_resource(version),
                         collection={'detail': 'GET'})
 
         mapper.resource("database", "databases",
-                        controller=databases.Controller(),
+                        controller=databases.create_resource(version),
                         parent_resource=dict(member_name='dbcontainer',
                         collection_name='dbcontainers'))
 
         mapper.resource("user", "users",
-                        controller=users.Controller(),
+                        controller=users.create_resource(version),
                         parent_resource=dict(member_name='dbcontainer',
                         collection_name='dbcontainers'))
 
         # Using connect instead of resource due to the incompatibility
         # for delete without providing an id.
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
-                       controller=root.Controller(),
+                       controller=root.create_resource(version),
                        action="create", conditions=dict(method=["POST"]))
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
-                       controller=root.Controller(),
+                       controller=root.create_resource(version),
                        action="delete", conditions=dict(method=["DELETE"]))
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
-                       controller=root.Controller(),
+                       controller=root.create_resource(version),
                        action="is_root_enabled", conditions=dict(method=["GET"]))
 
         super(APIRouter, self).__init__(mapper)

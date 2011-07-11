@@ -57,17 +57,6 @@ _dbaas_mapping = {
 class Controller(common.DBaaSController):
     """ The DBContainer API controller for the Platform API """
 
-    _serialization_metadata = {
-        'application/xml': {
-            "attributes": {
-                "dbcontainer": ["id", "name", "status", "flavorRef", "rootEnabled"],
-                "dbtype": ["name", "version"],
-                "link": ["rel", "type", "href"],
-                "volume": ["size"],
-            },
-        },
-    }
-
     def __init__(self):
         self.compute_api = compute.API()
         self.dns_entry_factory = \
@@ -320,3 +309,36 @@ class Controller(common.DBaaSController):
                 LOG.error(err)
                 LOG.error("rootEnabled for %s could not be determined." % id)
         return
+
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+        '1.1': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+            "dbcontainer": ["id", "name", "status", "flavorRef", "rootEnabled"],
+            "dbtype": ["name", "version"],
+            "link": ["rel", "type", "href"],
+            "volume": ["size"],
+        },
+    }
+
+    xmlns = {
+        '1.0': wsgi.XMLNS_V10,
+        '1.1': wsgi.XMLNS_V11,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    deserializers = {
+        'application/xml': deserializer.DBContainersRequestXMLDeserializer(),
+    }
+
+    return wsgi.Resource(controller, serializers=serializers,
+                         deserializers=deserializers)

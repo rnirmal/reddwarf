@@ -18,6 +18,7 @@ from webob import exc
 from nova import compute
 from nova import log as logging
 from nova.api.platform.dbaas import common
+from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
 from nova.guest import api as guest_api
 from nova.guest.db import models
@@ -30,14 +31,6 @@ LOG.setLevel(logging.DEBUG)
 
 class Controller(common.DBaaSController):
     """ Enable/Disable the root user for the DB Container """
-
-    _serialization_metadata = {
-        'application/xml': {
-            'attributes': {
-                'user': ['name', 'password']
-            },
-        },
-    }
 
     def __init__(self):
         self.guest_api = guest_api.API()
@@ -92,3 +85,33 @@ class Controller(common.DBaaSController):
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error determining root access")
+
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+        '1.1': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+            'user': ['name', 'password']
+        },
+    }
+
+    xmlns = {
+        '1.0': wsgi.XMLNS_V10,
+        '1.1': wsgi.XMLNS_V11,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    deserializers = {
+        'application/xml': deserializer.UsersRequestXMLDeserializer(),
+    }
+
+    return wsgi.Resource(controller, serializers=serializers,
+                         deserializers=deserializers)
