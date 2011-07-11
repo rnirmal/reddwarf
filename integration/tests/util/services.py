@@ -121,10 +121,7 @@ class Service(object):
         proc = start_proc("pgrep -f %s" % actual_command, shell=True)
         line = proc.stdout.readline()
         # pgrep only returns a pid. if there is no pid, it'll return nothing
-        if len(line) == 0:
-            return False
-        else:
-            return True
+        return len(line) != 0
 
     @property
     def is_running(self):
