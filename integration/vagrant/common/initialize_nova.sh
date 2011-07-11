@@ -44,8 +44,14 @@ fi
 
 glance_manage () {
     echo glance-manage $@
-    # /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
-    /glance/bin/glance-manage --config-file=/vagrant/glance-reg.conf $@
+    # Check if glance-upload is package installed or not by
+    # just checking if the 'known' glance-manage exists
+    if [ -f /glance/bin/glance-manage ]
+    then
+        /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+    else
+        glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+    fi
 }
 
 nova_manage () {

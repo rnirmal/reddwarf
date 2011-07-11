@@ -3,11 +3,11 @@
 Vagrant::Config.run do |global_config|
   # Host config
   global_config.vm.define :host do |config|
-      if ! ENV['GLANCEIMAGES']
-        raise ArgumentError, "GLANCEIMAGES environment variable not defined."
+      if ENV['GLANCEIMAGES']
+        config.vm.share_folder "glance_images", "/glance_images", ENV['GLANCEIMAGES']
       end
-      if ! ENV['GLANCESRC']
-        raise ArgumentError, "GLANCESRC environment variable not defined."
+      if ENV['GLANCESRC']
+        config.vm.share_folder "glance", "/glance", ENV['GLANCESRC']
       end
 
       # Assign this VM to a host only network IP, allowing you to access it
@@ -18,8 +18,7 @@ Vagrant::Config.run do |global_config|
       config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
       config.vm.host_name = "host"
 
-      config.vm.share_folder "glance", "/glance", ENV['GLANCESRC']
-      config.vm.share_folder "glance_images", "/glance_images", ENV['GLANCEIMAGES']
+      
       config.vm.share_folder "nova", "/src", "../../../"
       if ENV['RSDNS']
         rsdns_dir = ENV['RSDNS']

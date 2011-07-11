@@ -59,6 +59,9 @@ def glance_code_root():
     """The file path to the Glance source code."""
     return str(values.get("glance_code_root"))
 
+def glance_bin_root():
+    """The file path to the Glance bin directory."""
+    return str(values.get("glance_code_root")) + "/bin/"
 
 def glance_images_directory():
     """The path to images that will be uploaded by Glance."""

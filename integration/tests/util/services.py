@@ -116,17 +116,15 @@ class Service(object):
          """
         if not self.cmd:
             return False
-        time.sleep(1)
-        proc = start_proc("ps aux", shell=True)
-        for line in iter(proc.stdout.readline, ""):
-            found = True
-            for arg in self.cmd[1:]:
-                if line.find(arg) < 0:
-                    found = False
-                    break
-            if found:
-                return True
-        return False
+        time.sleep(1) 
+        actual_command = self.cmd[1].split("/")[-1]
+        proc = start_proc("pgrep -f %s" % actual_command, shell=True)
+        line = proc.stdout.readline()
+        # pgrep only returns a pid. if there is no pid, it'll return nothing
+        if len(line) == 0:
+            return False
+        else:
+            return True
 
     @property
     def is_running(self):
