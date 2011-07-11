@@ -46,7 +46,12 @@ else
         exit 1
     fi
 
-    pkg_install python-sphinx python-cheetah python-pastedeploy python-migrate python-netaddr python-lockfile
+    pkg_install python-sphinx python-cheetah python-pastedeploy python-migrate python-netaddr python-lockfile python-pip
+
+    # The default version of pip Ubuntu installs is old.
+    sudo pip install --upgrade pip
+    #sudo pip install proboscis==1.0.1
+    sudo pip install http://pypi.python.org/packages/source/p/proboscis/proboscis-1.1.1.tar.gz
 
     cp /etc/hosts ~/hosts_tmp
     echo '127.0.0.1    apt.rackspace.com' >> ~/hosts_tmp

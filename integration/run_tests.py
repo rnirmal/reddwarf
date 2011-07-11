@@ -115,5 +115,4 @@ if __name__ == '__main__':
         ])
 
     atexit.register(_clean_up)
-    proboscis.TestProgram(argv=nose_args, groups=groups)
-
+    proboscis.TestProgram(argv=nose_args, groups=groups).run_and_exit()
