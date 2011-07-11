@@ -23,7 +23,7 @@ from tests.util import test_config
 from tests.util.services import Service
 from tests.util.services import start_proc
 from tests.util.services import WebService
-from tests.util.test_config import glance_code_root
+from tests.util.test_config import glance_bin_root
 from tests.util.test_config import glance_images_directory
 from tests.util.test_config import nova_code_root
 from tests.util.test_config import python_cmd_list
@@ -60,7 +60,7 @@ class GlanceRegistry(unittest.TestCase):
 
     def setUp(self):
         self.service = Service(python_cmd_list() +
-                               ["%s/bin/glance-registry" % glance_code_root(),
+                               ["%sglance-registry" % glance_bin_root(),
                                 glance_reg_conf() ])
 
     def test_start(self):
@@ -74,7 +74,7 @@ class GlanceApi(unittest.TestCase):
 
     def setUp(self):
         self.service = Service(python_cmd_list() +
-                               ["%s/bin/glance-api" % glance_code_root(),
+                               ["%sglance-api" % glance_bin_root(),
                                 glance_api_conf() ])
 
     def test_start(self):
@@ -88,8 +88,13 @@ class AddGlanceImage(unittest.TestCase):
 
     def test_start(self):
         if os.environ.get("INSTALL_GLANCE_IMAGE", "False") == 'True':
-            proc = start_proc(["%s/bin/glance-upload" % glance_code_root(),
-                               "--type=raw",
+            # Check if glance-upload is package installed or not by
+            # just checking if the 'known' glance-upload exists
+            if os.path.exists("%sglance-upload" % glance_bin_root()):
+                exec_str = "%sglance-upload" % glance_bin_root()
+            else:
+                exec_str = "glance-upload"
+            proc = start_proc([exec_str, "--type=raw",
                                "%s/ubuntu-10.04-x86_64-openvz.tar.gz" %
                                glance_images_directory(),
                                "ubuntu-10.04-x86_64-openvz"])

@@ -38,7 +38,23 @@ dbaas_pkg_install_firstboot() {
 }
 
 dbaas_pkg_install_glance() {
-    # TODO(tim.simpson) Make this package it up for real and run that like above.
+    # Check if glance-upload is package installed or not by
+    # just checking if the 'known' glance setup.py exists.
+    if [ -d /glance && -f /glance/setup.py ]
+    then
+        dbaas_old_install_glance
+    else
+        # add the trunk ppa and install it
+        sudo -E add-apt-repository ppa:glance-core/trunk
+        sudo -E apt-get update
+        pkg_install glance
+        sudo sed -i 's/sql_connection = sqlite:\/\/\/\/var\/lib\/glance\/glance.sqlite/sql_connection = mysql:\/\/nova:novapass@localhost\/glance/g' /etc/glance/glance-registry.conf
+        sudo -E service glance-registry restart
+    fi
+}
+
+dbaas_old_install_glance() {
+    # The old way of installing glance
     sudo rm -rf ~/glance
     sudo cp -rf /glance ~/glance
     if [ $? -ne 0 ]
