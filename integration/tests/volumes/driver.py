@@ -59,6 +59,7 @@ class StoryDetails(object):
 
 
 story = None
+storyFail = None
 
 LOCAL_MOUNT_PATH = "/testsmnt"
 
@@ -70,8 +71,9 @@ class VolumeTest(unittest.TestCase):
         unittest.TestCase.__init__(self, *args, **kwargs)
 
     def setUp(self):
-        global story
+        global story, storyFail
         self.story = story
+        self.storyFail = storyFail
 
     def assert_volume_as_expected(self, volume):
         self.assertTrue(isinstance(volume["id"], Number))
@@ -87,8 +89,9 @@ class SetUp(VolumeTest):
 
     def test_05_create_story(self):
         """Creating 'story' vars used by the rest of these tests."""
-        global story
+        global story, storyFail
         story = StoryDetails()
+        storyFail = StoryDetails()
 
     def test_10_wait_for_topics(self):
         """Wait until the volume topic is up before proceeding."""
@@ -105,6 +108,42 @@ class SetUp(VolumeTest):
         os.mkdir(LOCAL_MOUNT_PATH)
         # Give some time for the services to startup
         time.sleep(10)
+
+
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
+class AddVolumeFailure(VolumeTest):
+
+    def test_add(self):
+        """Make call to FAIL a prov. volume and assert the return value is a FAILURE."""
+        self.assertEqual(None, self.storyFail.volume_id)
+        name = "TestVolume"
+        desc = "A volume that was created for testing."
+        self.storyFail.volume_name = name
+        self.storyFail.volume_desc = desc
+        volume = self.storyFail.api.create(self.storyFail.context, size = 500,
+                                       name=name, description=desc)
+        self.assertEqual(500, volume["size"])
+        self.assertTrue("creating", volume["status"])
+        self.assertTrue("detached", volume["attach_status"])
+        self.storyFail.volume = volume
+        self.storyFail.volume_id = volume["id"]
+
+
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[AddVolumeFailure])
+class AfterVolumeFailureIsAdded(VolumeTest):
+    """Check that the volume can be retrieved via the API, and setup.
+
+    All we want to see returned is a list-like with an initial string.
+
+    """
+
+    @time_out(120)
+    def test_api_get(self):
+        """Wait until the volume is a FAILURE."""
+        volume = poll_until(lambda : self.storyFail.get_volume(),
+                            lambda volume : volume["status"] != "creating")
+        self.assertEqual(volume["status"], "error")
+        self.assertTrue(volume["attach_status"], "detached")
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])

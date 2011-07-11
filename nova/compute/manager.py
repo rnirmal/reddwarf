@@ -267,8 +267,15 @@ class ComputeManager(manager.SchedulerDependentManager):
     @exception.wrap_exception
     def run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options."""
-        self.ensure_volume_is_ready(context, instance_id)
-        
+        try:
+            self.ensure_volume_is_ready(context, instance_id)
+        except exception.VolumeProvisioningError as ex:
+            msg = ("Volume for Instance '%(instance_id)s' failed to create. "
+                    "Details: %(ex)s")
+            LOG.exception(msg)
+            self._update_state(context, instance_id, power_state.FAILED)
+            return 
+
         context = context.elevated()
         instance_ref = self.db.instance_get(context, instance_id)
         instance_ref.injected_files = kwargs.get('injected_files', [])
