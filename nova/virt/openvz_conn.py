@@ -49,6 +49,9 @@ flags.DEFINE_string('ovz_ve_private_dir',
 flags.DEFINE_string('ovz_image_template_dir',
                     '/var/lib/vz/template/cache',
                     'Path where OpenVZ images are')
+flags.DEFINE_string('ovz_config_dir',
+                    '/etc/vz/conf',
+                    'Where the OpenVZ configs are stored')
 flags.DEFINE_string('ovz_bridge_device',
                     'br100',
                     'Bridge device to map veth devices to')
@@ -451,6 +454,11 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Add an ip to the container
         """
+        # TODO(imsplitbit): Make this work on all linux distros.  Currently this
+        # only works for one interface on ubuntu/debian.
+        ctxt = context.get_admin_context()
+        ip = db.instance_get_fixed_address(ctxt, instance['id'])
+        network = db.fixed_ip_get_network(ctxt, ip)
         net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
         if_file_path = net_path + '/' + if_file
         
@@ -887,14 +895,105 @@ class OpenVzConnection(driver.ComputeDriver):
 
     def attach_volume(self, instance_name, device_path, mountpoint):
         """Attach the disk at device_path to the instance at mountpoint"""
+
+        # Find the actual instance ref so we can see if it has a Reddwarf
+        # friendly volume.  i.e. a formatted filesystem with UUID attribute
+        # set.
         instance = self._find_by_name(instance_name)
         if instance['volumes']:
-            pass
+            for vol in instance['volumes']:
+                if vol['mountpoint'] == mountpoint and vol['uuid']:
+                    uuid = vol['uuid']
+
+        # Now we have detected whether or not we have a uuid, we need to either
+        # create or append to the existing container start and stop scripts so
+        # the filesystem is available when the container comes online.  As the
+        # functionality of either appending to or creating can get rather large
+        # I am breaking it out into it's own method.
+
         return True
 
     def detach_volume(self, instance_name, mountpoint):
         """Detach the disk attached to the instance at mountpoint"""
         return True
+
+    def _container_script_modify(self, instance, dev=None, uuid=None,
+                                 mount=None, action='add'):
+        """
+        This method is for the start/stop scripts for a container to make
+        filesystems available to the container at 'boot'.  We have to do quite
+        a bit of sudo 'magic' here just to make all this go as nova runs
+        typically as an unprivileged user and we are modifying files that
+        are owned by root.
+        """
+        # TODO(imsplitbit): Find a way to make this less of a hack with sudo
+        start_script = '%s/%s.start' % (FLAGS.ovz_config_dir, instance['id'])
+        stop_script = '%s/%s.stop' % (FLAGS.ovz_config_dir, instance['id'])
+
+        # Fixup perms to allow for this script to edit files.
+        try:
+            _, err = utils.execute('sudo', 'chmod', '777', start_script)
+            if err:
+                LOG.error(err)
+            _, err = utils.execute('sudo', 'chmod', '777', stop_script)
+            if err:
+                LOG.error(err)
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error(
+                "Cannot change permissions on start/stop files")
+
+        # Next check to see if we have a file and open it for reading.
+        try:
+            start_fh = open(start_script, 'r')
+            start_lines = start_fh.readlines()
+            start_fh.close()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error("Failed to open the container start script")
+
+        try:
+            stop_fh = open(stop_script, 'r')
+            stop_lines = stop_fh.readlines()
+            stop_fh.close()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error("Failed to open the container stop script")
+
+        # Make the magic happen.
+        
+
+        # Now reopen the files for writing and dump the contents into the
+        # files.
+        try:
+            start_fh = open(start_script, 'w')
+            start_fh.writelines('\n'.join(start_lines))
+            start_fh.close()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error(
+                "Failed to write the contents to start script")
+
+        try:
+            stop_fh = open(start_script, 'w')
+            stop_fh.writelines('\n'.join(stop_lines))
+            stop_fh.close()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error("Failed to write the contents to stop script")
+
+        # Close by setting more secure permissions on the start and stop scripts
+        try:
+            _, err = utils.execute('sudo', 'chmod', '755', start_script)
+            if err:
+                LOG.error(err)
+            _, err = utils.execute('sudo', 'chmod', '755', stop_script)
+            if err:
+                LOG.error(err)
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error(
+                "Cannot secure permissions on start/stop files")
 
     def get_info(self, instance_name):
         """
