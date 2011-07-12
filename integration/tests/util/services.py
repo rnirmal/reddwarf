@@ -92,19 +92,18 @@ class Service(object):
         """Finds and returns the process id."""
         if not self.cmd:
             return False
-        proc = start_proc("ps aux", shell=True)
+        # The cmd[1] signifies the executable python script. It gets invoked
+        # as python /path/to/executable args, so the entry is /path/to/executable
+        actual_command = self.cmd[1].split("/")[-1]
+        proc = start_proc(["/usr/bin/pgrep", "-f", actual_command], shell=False)
+        # this is to make sure there is only one pid returned from the pgrep
+        has_two_lines = False
         pid = None
         for line in iter(proc.stdout.readline, ""):
-            found = True
-            for arg in self.cmd[1:]:
-                if line.find(arg) < 0:
-                    found = False
-                    break
-            if found:
-                if pid != None:
-                    raise RuntimeError("Found PID twice.")
-                parts = line.split()
-                pid = int(parts[1])
+            if has_two_lines:
+                raise RuntimeError("Found PID twice.")
+            pid = int(line)
+            has_two_lines = True
         return pid
 
     def is_service_alive(self):
@@ -117,8 +116,10 @@ class Service(object):
         if not self.cmd:
             return False
         time.sleep(1) 
+        # The cmd[1] signifies the executable python script. It gets invoked
+        # as python /path/to/executable args, so the entry is /path/to/executable
         actual_command = self.cmd[1].split("/")[-1]
-        proc = start_proc("pgrep -f %s" % actual_command, shell=True)
+        proc = start_proc(["/usr/bin/pgrep", "-f", actual_command], shell=False)
         line = proc.stdout.readline()
         # pgrep only returns a pid. if there is no pid, it'll return nothing
         return len(line) != 0

@@ -44,7 +44,7 @@ fi
 
 glance_manage () {
     echo glance-manage $@
-    # Check if glance-upload is package installed or not by
+    # Check if glance is package installed or not by
     # just checking if the 'known' glance-manage exists
     if [ -f /glance/bin/glance-manage ]
     then
