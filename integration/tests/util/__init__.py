@@ -39,6 +39,7 @@ from reddwarfclient import Dbaas
 
 FLAGS = flags.FLAGS
 
+from tests.util.client import TestClient as TestClient
 
 _dns_entry_factory = None
 def get_dns_entry_factory():
@@ -79,6 +80,12 @@ def create_dns_entry(user_name, container_id):
     entry_factory = get_dns_entry_factory()
     return entry_factory.create_entry(instance)
 
+def create_openstack_client(user):
+    """Creates a rich client for the OpenStack API using the test config."""
+    test_config.nova.ensure_started()
+    openstack = OpenStack(user.auth_user, user.auth_key, test_config.dbaas.url)
+    openstack.authenticate()
+    return openstack
 
 def init_engine(user, password, host):
     return create_engine("mysql://%s:%s@%s:3306" %

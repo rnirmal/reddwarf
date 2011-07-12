@@ -39,6 +39,41 @@ dbaas_pkg_install_firstboot() {
     sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ includedeb lucid firstboot/*.deb
 }
 
+dbaas_pkg_install_novaclient() {
+    PYTHON_NOVACLIENT_VERSION = 28
+    # Builds and installs the novaclient based on a config'd version
+    pkg_remove python-novaclient
+    sudo -E mkdir -p /tmp/build/
+    sudo -E rm -fr /tmp/build/python-novaclient
+    sudo -E rm -rf /tmp/build/python-novapkg
+    # PYTHON_NOVACLIENT_VERSION is sourced from Utils
+    sudo rm -rf /tmp/build/python-novaclient
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:python-novaclient -r $PYTHON_NOVACLIENT_VERSION /tmp/build/python-novaclient
+    sudo rm -rf /tmp/build/python-novapkg/.bzr
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:ubuntu/natty/python-novaclient /tmp/build/python-novapkg
+    sudo -E mv /tmp/build/python-novapkg/debian /tmp/build/python-novaclient
+    pkg_install cdbs python-mock
+    cd /tmp/build/python-novaclient
+    sudo sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
+    sudo -E DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-novaclient
+    cd /tmp/build
+    sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid python-novaclient_2.4-0ubuntu1_amd64.changes
+    # Add the local apt repo temporarily to install the built novaclient
+    echo "deb http://0.0.0.0/ubuntu lucid main" | sudo -E tee /etc/apt/sources.list.d/temp-local-ppa-lucid.list > /dev/null
+    echo "Package: python-novaclient
+Pin: origin 0.0.0.0
+Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /dev/null
+    sudo -E apt-get update
+    # Based on the pin this will install the novaclient we just built
+    pkg_install python-novaclient
+    # now clean up that mess so it doesnt pollute into any other installations
+    sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin
+    sudo -E rm -fr /tmp/build/python-nova*
+    sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
+    sudo -E apt-get update
+}
+
 dbaas_pkg_install_glance() {
     # Check if glance is package installed or not by
     # just checking if the 'known' glance setup.py exists.
