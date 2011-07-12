@@ -59,9 +59,12 @@ class GlanceRegistry(unittest.TestCase):
     """Starts the glance registry."""
 
     def setUp(self):
+        if os.path.exists("%sglance-registry" % glance_bin_root()):
+            reg_path = "%sglance-registry" % glance_bin_root()
+        else:
+            reg_path = "/usr/bin/glance-registry"
         self.service = Service(python_cmd_list() +
-                               ["%sglance-registry" % glance_bin_root(),
-                                glance_reg_conf() ])
+                               [reg_path, glance_reg_conf() ])
 
     def test_start(self):
         if not either_web_service_is_up():
@@ -73,9 +76,12 @@ class GlanceApi(unittest.TestCase):
     """Starts the glance registry."""
 
     def setUp(self):
+        if os.path.exists("%sglance-api" % glance_bin_root()):
+            reg_path = "%sglance-api" % glance_bin_root()
+        else:
+            reg_path = "/usr/bin/glance-api"
         self.service = Service(python_cmd_list() +
-                               ["%sglance-api" % glance_bin_root(),
-                                glance_api_conf() ])
+                               [reg_path, glance_api_conf() ])
 
     def test_start(self):
         if not either_web_service_is_up():
@@ -93,13 +99,14 @@ class AddGlanceImage(unittest.TestCase):
             if os.path.exists("%sglance-upload" % glance_bin_root()):
                 exec_str = "%sglance-upload" % glance_bin_root()
             else:
-                exec_str = "glance-upload"
+                exec_str = "/usr/bin/glance-upload"
             proc = start_proc([exec_str, "--type=raw",
                                "%s/ubuntu-10.04-x86_64-openvz.tar.gz" %
                                glance_images_directory(),
                                "ubuntu-10.04-x86_64-openvz"])
-            proc.communicate()
-
+            (stdoutdata, stderrdata) = proc.communicate()
+            print "proc.communicate()'s stdout\n%s" % stdoutdata
+            print "proc.communicate()'s stderr\n%s" % stderrdata
 
 
 @test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
