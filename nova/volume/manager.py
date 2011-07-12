@@ -42,8 +42,6 @@ intact.
 
 """
 
-import datetime
-
 
 from nova import context
 from nova import exception
@@ -94,7 +92,7 @@ class VolumeManager(manager.SchedulerDependentManager):
         """Assigns a created volume to a host (usually a compute node)."""
         self.driver.assign_volume(volume_id, host)
 
-    def create_volume(self, context, volume_id):
+    def create_volume(self, context, volume_id, snapshot_id=None):
         """Creates and exports the volume."""
         context = context.elevated()
         volume_ref = self.db.volume_get(context, volume_id)
@@ -117,7 +115,13 @@ class VolumeManager(manager.SchedulerDependentManager):
                 raise exception.VolumeProvisioningError(volume_id=volume_id)
             LOG.debug(_("volume %(vol_name)s: creating lv of"
                     " size %(vol_size)sG") % locals())
-            model_update = self.driver.create_volume(volume_ref)
+            if snapshot_id == None:
+                model_update = self.driver.create_volume(volume_ref)
+            else:
+                snapshot_ref = self.db.snapshot_get(context, snapshot_id)
+                model_update = self.driver.create_volume_from_snapshot(
+                    volume_ref,
+                    snapshot_ref)
             if model_update:
                 self.db.volume_update(context, volume_ref['id'], model_update)
 
@@ -130,7 +134,7 @@ class VolumeManager(manager.SchedulerDependentManager):
                                   volume_ref['id'], {'status': 'error'})
             raise
 
-        now = datetime.datetime.utcnow()
+        now = utils.utcnow()
         self.db.volume_update(context,
                               volume_ref['id'], {'status': 'available',
                                                  'launched_at': now})
@@ -151,6 +155,12 @@ class VolumeManager(manager.SchedulerDependentManager):
             self.driver.remove_export(context, volume_ref)
             LOG.debug(_("volume %s: deleting"), volume_ref['name'])
             self.driver.delete_volume(volume_ref)
+        except exception.VolumeIsBusy, e:
+            LOG.debug(_("volume %s: volume is busy"), volume_ref['name'])
+            self.driver.ensure_export(context, volume_ref)
+            self.db.volume_update(context, volume_ref['id'],
+                                  {'status': 'available'})
+            return True
         except Exception:
             self.db.volume_update(context,
                                   volume_ref['id'],
@@ -167,6 +177,49 @@ class VolumeManager(manager.SchedulerDependentManager):
                          lambda volume : volume['status'] == 'available',
                          sleep_time=1, time_out=time_out)
         self.delete_volume(context, volume_id)
+
+    def create_snapshot(self, context, volume_id, snapshot_id):
+        """Creates and exports the snapshot."""
+        context = context.elevated()
+        snapshot_ref = self.db.snapshot_get(context, snapshot_id)
+        LOG.info(_("snapshot %s: creating"), snapshot_ref['name'])
+
+        try:
+            snap_name = snapshot_ref['name']
+            LOG.debug(_("snapshot %(snap_name)s: creating") % locals())
+            model_update = self.driver.create_snapshot(snapshot_ref)
+            if model_update:
+                self.db.snapshot_update(context, snapshot_ref['id'],
+                                        model_update)
+
+        except Exception:
+            self.db.snapshot_update(context,
+                                    snapshot_ref['id'], {'status': 'error'})
+            raise
+
+        self.db.snapshot_update(context,
+                                snapshot_ref['id'], {'status': 'available',
+                                                     'progress': '100%'})
+        LOG.debug(_("snapshot %s: created successfully"), snapshot_ref['name'])
+        return snapshot_id
+
+    def delete_snapshot(self, context, snapshot_id):
+        """Deletes and unexports snapshot."""
+        context = context.elevated()
+        snapshot_ref = self.db.snapshot_get(context, snapshot_id)
+
+        try:
+            LOG.debug(_("snapshot %s: deleting"), snapshot_ref['name'])
+            self.driver.delete_snapshot(snapshot_ref)
+        except Exception:
+            self.db.snapshot_update(context,
+                                    snapshot_ref['id'],
+                                    {'status': 'error_deleting'})
+            raise
+
+        self.db.snapshot_destroy(context, snapshot_id)
+        LOG.debug(_("snapshot %s: deleted successfully"), snapshot_ref['name'])
+        return True
 
     def check_for_export(self, context, instance_id):
         """Make sure whether volume is exported."""

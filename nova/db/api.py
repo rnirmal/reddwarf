@@ -47,6 +47,8 @@ flags.DEFINE_string('instance_name_template', 'instance-%08x',
                     'Template string to be used to generate instance names')
 flags.DEFINE_string('volume_name_template', 'volume-%08x',
                     'Template string to be used to generate instance names')
+flags.DEFINE_string('snapshot_name_template', 'snapshot-%08x',
+                    'Template string to be used to generate snapshot names')
 
 
 IMPL = utils.LazyPluggable(FLAGS['db_backend'],
@@ -410,6 +412,16 @@ def instance_data_get_for_project(context, project_id):
 def instance_destroy(context, instance_id):
     """Destroy the instance or raise if it does not exist."""
     return IMPL.instance_destroy(context, instance_id)
+
+
+def instance_stop(context, instance_id):
+    """Stop the instance or raise if it does not exist."""
+    return IMPL.instance_stop(context, instance_id)
+
+
+def instance_get_by_uuid(context, uuid):
+    """Get an instance or raise if it does not exist."""
+    return IMPL.instance_get_by_uuid(context, uuid)
 
 
 def instance_get(context, instance_id):
@@ -876,6 +888,73 @@ def volume_update(context, volume_id, values):
 
     """
     return IMPL.volume_update(context, volume_id, values)
+
+
+####################
+
+
+def snapshot_create(context, values):
+    """Create a snapshot from the values dictionary."""
+    return IMPL.snapshot_create(context, values)
+
+
+def snapshot_destroy(context, snapshot_id):
+    """Destroy the snapshot or raise if it does not exist."""
+    return IMPL.snapshot_destroy(context, snapshot_id)
+
+
+def snapshot_get(context, snapshot_id):
+    """Get a snapshot or raise if it does not exist."""
+    return IMPL.snapshot_get(context, snapshot_id)
+
+
+def snapshot_get_all(context):
+    """Get all snapshots."""
+    return IMPL.snapshot_get_all(context)
+
+
+def snapshot_get_all_by_project(context, project_id):
+    """Get all snapshots belonging to a project."""
+    return IMPL.snapshot_get_all_by_project(context, project_id)
+
+
+def snapshot_update(context, snapshot_id, values):
+    """Set the given properties on an snapshot and update it.
+
+    Raises NotFound if snapshot does not exist.
+
+    """
+    return IMPL.snapshot_update(context, snapshot_id, values)
+
+
+####################
+
+
+def block_device_mapping_create(context, values):
+    """Create an entry of block device mapping"""
+    return IMPL.block_device_mapping_create(context, values)
+
+
+def block_device_mapping_update(context, bdm_id, values):
+    """Create an entry of block device mapping"""
+    return IMPL.block_device_mapping_update(context, bdm_id, values)
+
+
+def block_device_mapping_get_all_by_instance(context, instance_id):
+    """Get all block device mapping belonging to a instance"""
+    return IMPL.block_device_mapping_get_all_by_instance(context, instance_id)
+
+
+def block_device_mapping_destroy(context, bdm_id):
+    """Destroy the block device mapping."""
+    return IMPL.block_device_mapping_destroy(context, bdm_id)
+
+
+def block_device_mapping_destroy_by_instance_and_volume(context, instance_id,
+                                                        volume_id):
+    """Destroy the block device mapping or raise if it does not exist."""
+    return IMPL.block_device_mapping_destroy_by_instance_and_volume(
+        context, instance_id, volume_id)
 
 
 ####################

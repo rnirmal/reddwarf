@@ -19,15 +19,20 @@
 Tests For Compute
 """
 
-import datetime
 import mox
 import stubout
 
+from nova.auth import manager
 from nova import compute
+from nova.compute import instance_types
+from nova.compute import manager as compute_manager
+from nova.compute import power_state
 from nova import context
 from nova import db
+from nova.db.sqlalchemy import models
 from nova import exception
 from nova import flags
+import nova.image.fake
 from nova import log as logging
 from nova import rpc
 from nova import test
@@ -75,7 +80,7 @@ class ComputeTestCase(test.TestCase):
         def fake_show(meh, context, id):
             return {'id': 1, 'properties': {'kernel_id': 1, 'ramdisk_id': 1}}
 
-        self.stubs.Set(local.LocalImageService, 'show', fake_show)
+        self.stubs.Set(nova.image.fake._FakeImageService, 'show', fake_show)
 
     def tearDown(self):
         self.manager.delete_user(self.user)
@@ -85,7 +90,7 @@ class ComputeTestCase(test.TestCase):
     def _create_instance(self, params={}):
         """Create a test instance"""
         inst = {}
-        inst['image_id'] = 1
+        inst['image_ref'] = 1
         inst['reservation_id'] = 'r-fakeres'
         inst['launch_time'] = '10'
         inst['user_id'] = self.user.id
@@ -151,7 +156,7 @@ class ComputeTestCase(test.TestCase):
         ref = self.compute_api.create(
                 self.context,
                 instance_type=instance_types.get_default_instance_type(),
-                image_id=None,
+                image_href=None,
                 security_group=['testgroup'])
         try:
             self.assertEqual(len(db.security_group_get_by_instance(
@@ -169,7 +174,7 @@ class ComputeTestCase(test.TestCase):
         ref = self.compute_api.create(
                 self.context,
                 instance_type=instance_types.get_default_instance_type(),
-                image_id=None,
+                image_href=None,
                 security_group=['testgroup'])
         try:
             db.instance_destroy(self.context, ref[0]['id'])
@@ -185,7 +190,7 @@ class ComputeTestCase(test.TestCase):
         ref = self.compute_api.create(
                 self.context,
                 instance_type=instance_types.get_default_instance_type(),
-                image_id=None,
+                image_href=None,
                 security_group=['testgroup'])
 
         try:
@@ -218,17 +223,32 @@ class ComputeTestCase(test.TestCase):
         instance_ref = db.instance_get(self.context, instance_id)
         self.assertEqual(instance_ref['launched_at'], None)
         self.assertEqual(instance_ref['deleted_at'], None)
-        launch = datetime.datetime.utcnow()
+        launch = utils.utcnow()
         self.compute.run_instance(self.context, instance_id)
         instance_ref = db.instance_get(self.context, instance_id)
         self.assert_(instance_ref['launched_at'] > launch)
         self.assertEqual(instance_ref['deleted_at'], None)
-        terminate = datetime.datetime.utcnow()
+        terminate = utils.utcnow()
         self.compute.terminate_instance(self.context, instance_id)
         self.context = self.context.elevated(True)
         instance_ref = db.instance_get(self.context, instance_id)
         self.assert_(instance_ref['launched_at'] < terminate)
         self.assert_(instance_ref['deleted_at'] > terminate)
+
+    def test_stop(self):
+        """Ensure instance can be stopped"""
+        instance_id = self._create_instance()
+        self.compute.run_instance(self.context, instance_id)
+        self.compute.stop_instance(self.context, instance_id)
+        self.compute.terminate_instance(self.context, instance_id)
+
+    def test_start(self):
+        """Ensure instance can be started"""
+        instance_id = self._create_instance()
+        self.compute.run_instance(self.context, instance_id)
+        self.compute.stop_instance(self.context, instance_id)
+        self.compute.start_instance(self.context, instance_id)
+        self.compute.terminate_instance(self.context, instance_id)
 
     def test_pause(self):
         """Ensure instance can be paused"""

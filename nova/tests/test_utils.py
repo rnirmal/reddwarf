@@ -278,7 +278,6 @@ class GenericUtilsTestCase(test.TestCase):
 
 
 class PollUntilTestCase(test.TestCase):
-
     def test_when_timeout_occurs(self):
         self.assertRaises(utils.PollTimeOut, utils.poll_until, lambda : 5,
                           lambda n : n != 5, sleep_time=0, time_out=1)
@@ -302,3 +301,21 @@ class PollUntilTestCase(test.TestCase):
         result = utils.poll_until(service.get_number, lambda n : n > 50,
                                   sleep_time=0)
         self.assertEqual(60, result)
+
+
+class IsUUIDLikeTestCase(test.TestCase):
+    def assertUUIDLike(self, val, expected):
+        result = utils.is_uuid_like(val)
+        self.assertEqual(result, expected)
+
+    def test_good_uuid(self):
+        val = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+        self.assertUUIDLike(val, True)
+
+    def test_integer_passed(self):
+        val = 1
+        self.assertUUIDLike(val, False)
+
+    def test_non_uuid_string_passed(self):
+        val = 'foo-fooo'
+        self.assertUUIDLike(val, False)
