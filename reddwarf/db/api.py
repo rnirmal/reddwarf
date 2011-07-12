@@ -45,7 +45,7 @@ def guest_status_get(instance_id, session=None):
     """Get the status of the guest
 
     :param instance_id: instance id for the guest
-    "param session: pass in a active session if available
+    :param session: pass in a active session if available
     """
     if not session:
         session = get_session()
@@ -61,7 +61,7 @@ def guest_status_get_list(instance_ids, session=None):
     """Get the status of the given guests
 
     :param instance_ids: list of instance ids for the guests
-    "param session: pass in a active session if available
+    :param session: pass in a active session if available
     """
     if not session:
         session = get_session()
