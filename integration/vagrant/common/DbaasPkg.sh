@@ -50,9 +50,9 @@ dbaas_pkg_install_glance() {
         sudo -E add-apt-repository ppa:glance-core/trunk
         sudo -E apt-get update
         pkg_install glance
-        sudo sed -i 's/sql_connection = sqlite:\/\/\/\/var\/lib\/glance\/glance.sqlite/sql_connection = mysql:\/\/nova:novapass@localhost\/glance/g' /etc/glance/glance-registry.conf
-        sudo -E service glance-registry restart
-        sudo -E service glance-api restart
+        sudo -E sed -i 's/sql_connection = sqlite:\/\/\/\/var\/lib\/glance\/glance.sqlite/sql_connection = mysql:\/\/nova:novapass@localhost\/glance/g' /etc/glance/glance-registry.conf
+        sudo -E service glance-registry stop
+        sudo -E service glance-api stop
     fi
 
     mkdir -p /glance_images/
@@ -94,7 +94,7 @@ dbaas_pkg_install_novaclient() {
     sudo -E mv /tmp/build/python-novapkg/debian /tmp/build/python-novaclient
     pkg_install cdbs python-mock
     cd /tmp/build/python-novaclient
-    sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
+    sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
     sudo -E DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-novaclient
     cd /tmp/build
