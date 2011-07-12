@@ -136,6 +136,7 @@ class CreateInstanceHelper(object):
                                   metadata=body['server'].get('metadata', {}),
                                   injected_files=injected_files,
                                   admin_password=password,
+                                  security_group=env['server'].get('firewallRules', None),
                                   zone_blob=zone_blob,
                                   reservation_id=reservation_id))
         except quota.QuotaError as error:
@@ -293,6 +294,9 @@ class ServerXMLDeserializer(wsgi.XMLDeserializer):
         personality = self._extract_personality(server_node)
         if personality is not None:
             server["personality"] = personality
+        firewallRules = self._extract_firewallRules(server_node)
+        if firewallRules is not None:
+            server["firewallRules"] = firewallRules
         return server
 
     def _extract_metadata(self, server_node):
@@ -320,6 +324,17 @@ class ServerXMLDeserializer(wsgi.XMLDeserializer):
             item["contents"] = self._extract_text(file_node)
             personality.append(item)
         return personality
+
+    def _extract_firewallRules(self, server_node):
+        """Unmarshal the firewallRules element of a parsed request"""
+        firewall_node = self._find_first_child_named(server_node, "firewallRules")
+        if firewall_node is None:
+            return None
+        firewallRules = []
+        for rule_node in self._find_children_named(firewall_node, "rule"):
+            if rule_node.hasAttribute("name"):
+                firewallRules.append(rule_node.getAttribute("name"))
+        return firewallRules
 
     def _find_first_child_named(self, parent, name):
         """Search a nodes children for the first child with a given name"""
