@@ -30,6 +30,7 @@
 import re
 import subprocess
 
+from novaclient import OpenStack
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 

@@ -106,12 +106,17 @@ if __name__ == '__main__':
     from tests.guest import dbaas_tests
     from tests.guest import pkg_tests
 
+    from tests.scheduler import driver
+    from tests.scheduler import SCHEDULER_DRIVER_GROUP
     from tests.volumes import driver
+    from tests.volumes import VOLUMES_DRIVER
 
     proboscis.register(groups=["host.ovz"], depends_on_groups=[
         "dbaas.guest",
         "dbaas.guest.dns",
+        SCHEDULER_DRIVER_GROUP,
         pkg_tests.GROUP,
+        VOLUMES_DRIVER
         ])
 
     atexit.register(_clean_up)

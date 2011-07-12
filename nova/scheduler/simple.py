@@ -25,6 +25,7 @@ import datetime
 
 from nova import db
 from nova import flags
+from nova import log as logging
 from nova.scheduler import driver
 from nova.scheduler import chance
 
@@ -38,6 +39,7 @@ flags.DEFINE_integer("max_instance_memory_mb", 10000,
 flags.DEFINE_integer("max_networks", 1000,
                      "maximum number of networks to allow per host")
 
+LOG = logging.getLogger('nova.scheduler.simple')
 
 class SimpleScheduler(chance.ChanceScheduler):
     """Implements Naive Scheduler that tries to find least loaded host."""
@@ -149,6 +151,8 @@ class MemoryScheduler(SimpleScheduler):
             (service, memory_mb) = result
             needed_memory = memory_mb + instance_ref['memory_mb']
             if needed_memory > FLAGS.max_instance_memory_mb:
+                LOG.debug("Error scheduling " +
+                          str(instance_ref['display_name']))
                 raise driver.NoValidHost(
                     _("Insufficient memory on all hosts."))
             if self.service_is_up(service):

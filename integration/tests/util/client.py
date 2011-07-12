@@ -43,17 +43,25 @@ class TestClient(object):
     def __init__(self, client):
         self.client = client
 
+    @staticmethod
+    def find_flavor_self_href(flavor):
+        self_links = [link for link in flavor.links if link['rel'] == 'self']
+        assert_true(len(self_links) > 0, "Flavor had no self href!")
+        flavor_href = self_links[0]['href']
+        assert_false(flavor_href is None, "Flavor link self href missing.")
+        return flavor_href
+
+    def find_flavors_by_ram(self, ram):
+        assert_false(ram is None)
+        flavors = self.client.flavors.list()
+        return [flavor for flavor in flavors if flavor.ram == ram]
+
     def find_flavor_and_self_href(self, flavor_id):
         """Given an ID, returns flavor and its self href."""
         assert_false(flavor_id is None)
         flavor = self.client.flavors.get(flavor_id)
         assert_false(flavor is None)
-        self_links = [link for link in flavor.links if link['rel'] == 'self']
-        assert_true(len(self_links) > 0,
-                    "Found flavor with ID %s, but it had no self href!"
-                    % str(1))
-        flavor_href = self_links[0]['href']
-        assert_false(flavor_href is None, "Flavor link self href missing.")
+        flavor_href = self.find_flavor_self_href(flavor)
         return flavor, flavor_href
 
     def find_image_and_self_href(self, image_id):
