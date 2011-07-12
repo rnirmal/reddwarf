@@ -104,8 +104,9 @@ class AddGlanceImage(unittest.TestCase):
                                "%s/ubuntu-10.04-x86_64-openvz.tar.gz" %
                                glance_images_directory(),
                                "ubuntu-10.04-x86_64-openvz"])
-            # If this messes up, print out the two dataz
             (stdoutdata, stderrdata) = proc.communicate()
+            print "proc.communicate()'s stdout\n%s" % stdoutdata
+            print "proc.communicate()'s stderr\n%s" % stderrdata
 
 
 @test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
