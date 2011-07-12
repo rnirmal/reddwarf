@@ -899,7 +899,8 @@ class OpenVzConnection(driver.ComputeDriver):
         # Find the actual instance ref so we can see if it has a Reddwarf
         # friendly volume.  i.e. a formatted filesystem with UUID attribute
         # set.
-        instance = self._find_by_name(instance_name)
+        meta = self._find_by_name(instance_name)
+        instance = db.instance_get(context.get_admin_context(), meta['id'])
         if instance['volumes']:
             for vol in instance['volumes']:
                 if vol['mountpoint'] == mountpoint and vol['uuid']:
@@ -929,6 +930,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # TODO(imsplitbit): Find a way to make this less of a hack with sudo
         start_script = '%s/%s.start' % (FLAGS.ovz_config_dir, instance['id'])
         stop_script = '%s/%s.stop' % (FLAGS.ovz_config_dir, instance['id'])
+        mount = '%s/%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'], mount)
 
         # Fixup perms to allow for this script to edit files.
         try:
@@ -941,7 +943,7 @@ class OpenVzConnection(driver.ComputeDriver):
         except Exception as err:
             LOG.error(err)
             raise exception.Error(
-                "Cannot change permissions on start/stop files")
+                'Cannot change permissions on start/stop files')
 
         # Next check to see if we have a file and open it for reading.
         try:
@@ -950,7 +952,7 @@ class OpenVzConnection(driver.ComputeDriver):
             start_fh.close()
         except Exception as err:
             LOG.error(err)
-            raise exception.Error("Failed to open the container start script")
+            raise exception.Error('Failed to open the container start script')
 
         try:
             stop_fh = open(stop_script, 'r')
@@ -958,29 +960,46 @@ class OpenVzConnection(driver.ComputeDriver):
             stop_fh.close()
         except Exception as err:
             LOG.error(err)
-            raise exception.Error("Failed to open the container stop script")
+            raise exception.Error('Failed to open the container stop script')
 
         # Make the magic happen.
-        
+        # Starting with the start script, check for a mountpoint line first
+        if action == 'add':
+            if dev:
+                mount_line = 'mount --bind %s %s' % (dev, mount)
+            elif uuid:
+                mount_line = 'mount --bind --uuid %s %s' % (uuid, mount)
+            else:
+                LOG.error('No mount line could be generated')
+
+            umount_line = 'umount %s' % (mount,)
+
+            if mount_line:
+                start_lines.append(mount_line)
+
+            stop_lines.append(umount_line)
+        elif action == 'del':
+            # Passing for now need to fix this once I implement detach
+            pass
 
         # Now reopen the files for writing and dump the contents into the
         # files.
         try:
             start_fh = open(start_script, 'w')
-            start_fh.writelines('\n'.join(start_lines))
+            start_fh.writelines('\n'.join(start_lines) + '\n')
             start_fh.close()
         except Exception as err:
             LOG.error(err)
             raise exception.Error(
-                "Failed to write the contents to start script")
+                'Failed to write the contents to start script')
 
         try:
             stop_fh = open(start_script, 'w')
-            stop_fh.writelines('\n'.join(stop_lines))
+            stop_fh.writelines('\n'.join(stop_lines) + '\n')
             stop_fh.close()
         except Exception as err:
             LOG.error(err)
-            raise exception.Error("Failed to write the contents to stop script")
+            raise exception.Error('Failed to write the contents to stop script')
 
         # Close by setting more secure permissions on the start and stop scripts
         try:
@@ -993,7 +1012,7 @@ class OpenVzConnection(driver.ComputeDriver):
         except Exception as err:
             LOG.error(err)
             raise exception.Error(
-                "Cannot secure permissions on start/stop files")
+                'Cannot secure permissions on start/stop files')
 
     def get_info(self, instance_name):
         """
