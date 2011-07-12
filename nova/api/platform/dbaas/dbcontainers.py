@@ -71,11 +71,13 @@ class Controller(object):
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
+        return self._manipulate_response(req, resp)
+
+    def _manipulate_response(self, req, resp):
+        """ Changes the response from detail and index """
         ids = [db['id'] for db in resp['dbcontainers']]
         results = dbapi.guest_status_get_list(ids)
-        out = {}
-        for result in results:
-            out[result.instance_id] = _dbaas_mapping[result.state]
+        out = dict([(r.instance_id, _dbaas_mapping[r.state]) for r in results])
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
             status = out[container['id']]
@@ -89,17 +91,8 @@ class Controller(object):
         LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
-        ids = [db['id'] for db in resp['dbcontainers']]
-        results = dbapi.guest_status_get_list(ids)
-        out = {}
-        for result in results:
-            out[result.instance_id] = _dbaas_mapping[result.state]
+        resp = self._manipulate_response(req, resp)
         for container in resp['dbcontainers']:
-            self._modify_fields(req, container)
-            status = out[container['id']]
-            if not status:
-                status = _dbaas_mapping[power_state.SHUTDOWN]
-            container['status'] = status
             enabled = self._determine_root(req, container, container['id'])
             if enabled is not None:
                 container['rootEnabled'] = enabled
