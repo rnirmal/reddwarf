@@ -55,12 +55,12 @@ dbaas_pkg_install_glance() {
         sudo -E service glance-api stop
     fi
 
-    mkdir -p /glance_images/
+    sudo -E mkdir /glance_images/
     # Check to see if the glance images folder has files in it
     if [ `ls /glance_images/|wc -l` == '0' ]
     then
         # If there are no files then we should curl the ovz image to the glance images folder
-        curl http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz --output /glance_images/ubuntu-10.04-x86_64-openvz.tar.gz
+        sudo -E curl http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz --output /glance_images/ubuntu-10.04-x86_64-openvz.tar.gz
     fi
 }
 
