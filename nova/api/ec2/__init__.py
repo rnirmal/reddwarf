@@ -242,6 +242,7 @@ class Authorizer(wsgi.Middleware):
                 'CreateKeyPair': ['all'],
                 'DeleteKeyPair': ['all'],
                 'DescribeSecurityGroups': ['all'],
+                'ImportPublicKey': ['all'],
                 'AuthorizeSecurityGroupIngress': ['netadmin'],
                 'RevokeSecurityGroupIngress': ['netadmin'],
                 'CreateSecurityGroup': ['netadmin'],
@@ -326,6 +327,12 @@ class Executor(wsgi.Application):
                      context=context)
             ec2_id = ec2utils.id_to_ec2_id(ex.volume_id, 'vol-%08x')
             message = _('Volume %s not found') % ec2_id
+            return self._error(req, context, type(ex).__name__, message)
+        except exception.SnapshotNotFound as ex:
+            LOG.info(_('SnapshotNotFound raised: %s'), unicode(ex),
+                     context=context)
+            ec2_id = ec2utils.id_to_ec2_id(ex.snapshot_id, 'snap-%08x')
+            message = _('Snapshot %s not found') % ec2_id
             return self._error(req, context, type(ex).__name__, message)
         except exception.NotFound as ex:
             LOG.info(_('NotFound raised: %s'), unicode(ex), context=context)

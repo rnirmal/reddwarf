@@ -91,7 +91,8 @@ class VMOps(object):
     def finish_resize(self, instance, disk_info):
         vdi_uuid = self.link_disks(instance, disk_info['base_copy'],
                 disk_info['cow'])
-        vm_ref = self._create_vm(instance, vdi_uuid)
+        vm_ref = self._create_vm(instance,
+                [dict(vdi_type='os', vdi_uuid=vdi_uuid)])
         self.resize_instance(instance, vdi_uuid)
         self._spawn(instance, vm_ref)
 
@@ -100,29 +101,30 @@ class VMOps(object):
         if not vm_ref:
             vm_ref = VMHelper.lookup(self._session, instance.name)
         if vm_ref is None:
-            raise exception(_('Attempted to power on non-existent instance'
+            raise Exception(_('Attempted to power on non-existent instance'
             ' bad instance id %s') % instance.id)
         LOG.debug(_("Starting instance %s"), instance.name)
         self._session.call_xenapi('VM.start', vm_ref, False, False)
 
-    def _create_disk(self, instance):
+    def _create_disks(self, instance):
         user = AuthManager().get_user(instance.user_id)
         project = AuthManager().get_project(instance.project_id)
         disk_image_type = VMHelper.determine_disk_image_type(instance)
-        vdi_uuid = VMHelper.fetch_image(self._session, instance.id,
-                instance.image_id, user, project, disk_image_type)
-        return vdi_uuid
+        vdis = VMHelper.fetch_image(self._session,
+                instance.id, instance.image_ref, user, project,
+                disk_image_type)
+        return vdis
 
     def spawn(self, instance, network_info=None):
-        vdi_uuid = self._create_disk(instance)
-        vm_ref = self._create_vm(instance, vdi_uuid, network_info)
+        vdis = self._create_disks(instance)
+        vm_ref = self._create_vm(instance, vdis, network_info)
         self._spawn(instance, vm_ref)
 
     def spawn_rescue(self, instance):
         """Spawn a rescue instance."""
         self.spawn(instance)
 
-    def _create_vm(self, instance, vdi_uuid, network_info=None):
+    def _create_vm(self, instance, vdis, network_info=None):
         """Create VM instance."""
         instance_name = instance.name
         vm_ref = VMHelper.lookup(self._session, instance_name)
@@ -141,28 +143,58 @@ class VMOps(object):
         user = AuthManager().get_user(instance.user_id)
         project = AuthManager().get_project(instance.project_id)
 
-        # Are we building from a pre-existing disk?
-        vdi_ref = self._session.call_xenapi('VDI.get_by_uuid', vdi_uuid)
-
         disk_image_type = VMHelper.determine_disk_image_type(instance)
 
         kernel = None
         if instance.kernel_id:
             kernel = VMHelper.fetch_image(self._session, instance.id,
-                instance.kernel_id, user, project, ImageType.KERNEL_RAMDISK)
+                    instance.kernel_id, user, project,
+                    ImageType.KERNEL_RAMDISK)
 
         ramdisk = None
         if instance.ramdisk_id:
             ramdisk = VMHelper.fetch_image(self._session, instance.id,
-                instance.ramdisk_id, user, project, ImageType.KERNEL_RAMDISK)
+                    instance.ramdisk_id, user, project,
+                    ImageType.KERNEL_RAMDISK)
 
-        use_pv_kernel = VMHelper.determine_is_pv(self._session, instance.id,
-            vdi_ref, disk_image_type, instance.os_type)
-        vm_ref = VMHelper.create_vm(self._session, instance, kernel, ramdisk,
-                                    use_pv_kernel)
+        # Create the VM ref and attach the first disk
+        first_vdi_ref = self._session.call_xenapi('VDI.get_by_uuid',
+                vdis[0]['vdi_uuid'])
 
+        vm_mode = instance.vm_mode and instance.vm_mode.lower()
+        if vm_mode == 'pv':
+            use_pv_kernel = True
+        elif vm_mode in ('hv', 'hvm'):
+            use_pv_kernel = False
+            vm_mode = 'hvm'  # Normalize
+        else:
+            use_pv_kernel = VMHelper.determine_is_pv(self._session,
+                    instance.id, first_vdi_ref, disk_image_type,
+                    instance.os_type)
+            vm_mode = use_pv_kernel and 'pv' or 'hvm'
+
+        if instance.vm_mode != vm_mode:
+            # Update database with normalized (or determined) value
+            db.instance_update(context.get_admin_context(),
+                               instance['id'], {'vm_mode': vm_mode})
+
+        vm_ref = VMHelper.create_vm(self._session, instance,
+                kernel, ramdisk, use_pv_kernel)
         VMHelper.create_vbd(session=self._session, vm_ref=vm_ref,
-                vdi_ref=vdi_ref, userdevice=0, bootable=True)
+                vdi_ref=first_vdi_ref, userdevice=0, bootable=True)
+
+        # Attach any other disks
+        # userdevice 1 is reserved for rescue
+        userdevice = 2
+        for vdi in vdis[1:]:
+            # vdi['vdi_type'] is either 'os' or 'swap', but we don't
+            # really care what it is right here.
+            vdi_ref = self._session.call_xenapi('VDI.get_by_uuid',
+                    vdi['vdi_uuid'])
+            VMHelper.create_vbd(session=self._session, vm_ref=vm_ref,
+                    vdi_ref=vdi_ref, userdevice=userdevice,
+                    bootable=False)
+            userdevice += 1
 
         # TODO(tr3buchet) - check to make sure we have network info, otherwise
         # create it now. This goes away once nova-multi-nic hits.
@@ -172,7 +204,7 @@ class VMOps(object):
         # Alter the image before VM start for, e.g. network injection
         if FLAGS.xenapi_inject_image:
             VMHelper.preconfigure_instance(self._session, instance,
-                                           vdi_ref, network_info)
+                                           first_vdi_ref, network_info)
 
         self.create_vifs(vm_ref, network_info)
         self.inject_network_info(instance, network_info, vm_ref)
@@ -1173,26 +1205,22 @@ class SimpleDH(object):
         mpi = M2Crypto.m2.bn_to_mpi(bn)
         return mpi
 
-    def _run_ssl(self, text, which):
-        base_cmd = ('openssl enc -aes-128-cbc -a -pass pass:%(shared)s '
-                '-nosalt %(dec_flag)s')
-        if which.lower()[0] == 'd':
-            dec_flag = ' -d'
-        else:
-            dec_flag = ''
-        shared = self._shared
-        cmd = base_cmd % locals()
-        proc = _runproc(cmd)
-        proc.stdin.write(text + '\n')
+    def _run_ssl(self, text, extra_args=None):
+        if not extra_args:
+            extra_args = ''
+        cmd = 'enc -aes-128-cbc -A -a -pass pass:%s -nosalt %s' % (
+                self._shared, extra_args)
+        proc = _runproc('openssl %s' % cmd)
+        proc.stdin.write(text)
         proc.stdin.close()
         proc.wait()
         err = proc.stderr.read()
         if err:
             raise RuntimeError(_('OpenSSL error: %s') % err)
-        return proc.stdout.read().strip('\n')
+        return proc.stdout.read()
 
     def encrypt(self, text):
-        return self._run_ssl(text, 'enc')
+        return self._run_ssl(text).strip('\n')
 
     def decrypt(self, text):
-        return self._run_ssl(text, 'dec')
+        return self._run_ssl(text, '-d')
