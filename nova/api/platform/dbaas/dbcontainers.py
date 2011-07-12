@@ -80,10 +80,8 @@ class Controller(object):
         out = dict([(r.instance_id, _dbaas_mapping[r.state]) for r in results])
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
-            status = out[container['id']]
-            if not status:
-                status = _dbaas_mapping[power_state.SHUTDOWN]
-            container['status'] = status
+            container['status'] = out.get(container['id'],
+                                          _dbaas_mapping[power_state.SHUTDOWN])
         return resp
 
     def detail(self, req):
