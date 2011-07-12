@@ -4,6 +4,8 @@
 #on the container, in /etc/apt/sources.list
 #deb http://10.0.2.15/ubuntu lucid main
 
+source /vagrant-common/Utils.sh
+
 dbaas_pkg_create_tmpbuild() {
     if [ -d /tmp/build ]
     then
@@ -38,9 +40,9 @@ dbaas_pkg_install_firstboot() {
 }
 
 dbaas_pkg_install_glance() {
-    # Check if glance-upload is package installed or not by
+    # Check if glance is package installed or not by
     # just checking if the 'known' glance setup.py exists.
-    if [ -d /glance && -f /glance/setup.py ]
+    if [ -d /glance -a -f /glance/setup.py ]
     then
         dbaas_old_install_glance
     else
@@ -48,8 +50,17 @@ dbaas_pkg_install_glance() {
         sudo -E add-apt-repository ppa:glance-core/trunk
         sudo -E apt-get update
         pkg_install glance
-        sudo sed -i 's/sql_connection = sqlite:\/\/\/\/var\/lib\/glance\/glance.sqlite/sql_connection = mysql:\/\/nova:novapass@localhost\/glance/g' /etc/glance/glance-registry.conf
-        sudo -E service glance-registry restart
+        sudo -E sed -i 's/sql_connection = sqlite:\/\/\/\/var\/lib\/glance\/glance.sqlite/sql_connection = mysql:\/\/nova:novapass@localhost\/glance/g' /etc/glance/glance-registry.conf
+        sudo -E service glance-registry stop
+        sudo -E service glance-api stop
+    fi
+
+    sudo -E mkdir /glance_images/
+    # Check to see if the glance images folder has files in it
+    if [ `ls /glance_images/|wc -l` == '0' ]
+    then
+        # If there are no files then we should curl the ovz image to the glance images folder
+        sudo -E curl http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz --output /glance_images/ubuntu-10.04-x86_64-openvz.tar.gz
     fi
 }
 
@@ -69,6 +80,38 @@ dbaas_old_install_glance() {
         echo "Failure to install glance."
         exit 1
     fi
+}
+
+dbaas_pkg_install_novaclient() {
+    # Builds and installs the novaclient based on a config'd version
+    pkg_remove python-novaclient
+    sudo -E mkdir -p /tmp/build/
+    sudo -E rm -fr /tmp/build/python-novaclient
+    sudo -E rm -fr /tmp/build/python-novapkg
+    # PYTHON_NOVACLIENT_VERSION is sourced from Utils
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:python-novaclient -r $PYTHON_NOVACLIENT_VERSION /tmp/build/python-novaclient
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:ubuntu/natty/python-novaclient /tmp/build/python-novapkg
+    sudo -E mv /tmp/build/python-novapkg/debian /tmp/build/python-novaclient
+    pkg_install cdbs python-mock
+    cd /tmp/build/python-novaclient
+    sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
+    sudo -E DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-novaclient
+    cd /tmp/build
+    sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid python-novaclient_2.4-0ubuntu1_amd64.changes
+    # Add the local apt repo temporarily to install the built novaclient
+    echo "deb http://0.0.0.0/ubuntu lucid main" | sudo -E tee /etc/apt/sources.list.d/temp-local-ppa-lucid.list > /dev/null
+    echo "Package: python-novaclient
+Pin: origin 0.0.0.0
+Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /dev/null
+    sudo -E apt-get update
+    # Based on the pin this will install the novaclient we just built
+    pkg_install python-novaclient
+    # now clean up that mess so it doesnt pollute into any other installations
+    sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin
+    sudo -E rm -fr /tmp/build/python-nova*
+    sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
+    sudo -E apt-get update
 }
 
 dbaas_pkg_install_nova() {

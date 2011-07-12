@@ -17,6 +17,7 @@ mysql_query () {
 mysql -u root -e "DROP DATABASE nova;"
 mysql -u root -e "DROP DATABASE glance;"
 sudo rm -rf /var/lib/glance
+sudo mkdir -p /var/lib/glance/images
 sudo rm -rf /vz/template/cache/*
 # Apparently this is no longer needed... ?
 /vagrant-common/update_ovz_template2.sh
@@ -44,7 +45,7 @@ fi
 
 glance_manage () {
     echo glance-manage $@
-    # Check if glance-upload is package installed or not by
+    # Check if glance is package installed or not by
     # just checking if the 'known' glance-manage exists
     if [ -f /glance/bin/glance-manage ]
     then
