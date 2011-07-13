@@ -12,6 +12,8 @@
 --allow_admin_api=True
 --flat_network_bridge=br100
 --lock_path=~/tmp
+--max_instance_memory_mb=6144
+--scheduler_driver=nova.scheduler.simple.MemoryScheduler
 
 # Volume configuration for vagrant vm
 --volume_driver=nova.volume.san.ISCSILiteDriver
