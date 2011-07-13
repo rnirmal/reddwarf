@@ -244,7 +244,8 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_hostname(instance)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
-        
+        self._attach_volumes(instance)
+
         if FLAGS.ovz_use_cpuunit:
             self._set_cpuunits(instance)
         if FLAGS.ovz_use_cpulimit:
@@ -893,11 +894,18 @@ class OpenVzConnection(driver.ComputeDriver):
 
     def _attach_volumes(self, instance):
         """
-        Iterate through all volumes and attach them all
+        Iterate through all volumes and attach them all.  This is just a helper
+        method for self.spawn so that all volumes in the db get added to a
+        container before it gets started.
         """
         if instance['volumes']:
             for volume in instance['volumes']:
-                pass
+                if volume['uuid']:
+                    self._container_script_modify(instance, None,
+                                                  volume['uuid'],
+                                                  volume['mountpoint'], 'add')
+                    LOG.debug('Added volume %s to %s' % (volume['uuid'],
+                                                         instance['id']))
 
     def attach_volume(self, instance_name, device_path, mountpoint):
         """Attach the disk at device_path to the instance at mountpoint"""
@@ -910,13 +918,19 @@ class OpenVzConnection(driver.ComputeDriver):
         if instance['volumes']:
             for vol in instance['volumes']:
                 if vol['mountpoint'] == mountpoint and vol['uuid']:
-                    uuid = vol['uuid']
-
-        # Now we have detected whether or not we have a uuid, we need to either
-        # create or append to the existing container start and stop scripts so
-        # the filesystem is available when the container comes online.  As the
-        # functionality of either appending to or creating can get rather large
-        # I am breaking it out into it's own method.
+                    # Volume has a UUID so do all the mount magic using the
+                    # UUID instead of the device name.
+                    self._container_script_modify(instance, None, vol['uuid'],
+                                                  mountpoint, 'add')
+                else:
+                    self._container_script_modify(instance, device_path, None,
+                                                  mountpoint, 'add')
+        else:
+            LOG.error('No volume in the db for this instance')
+            LOG.error('Instance: %s' % (instance_name,))
+            LOG.error('Device: %s' % (device_path,))
+            LOG.error('Mount: %s' % (mountpoint,))
+            raise exception.Error('No volume in the db for this instance')
 
         return True
 
@@ -972,17 +986,28 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Failed to open the container stop script')
 
         # Make the magic happen.
-        # Starting with the start script, check for a mountpoint line first
         if action == 'add':
             # Create a mount point for the device outside the root of the
             # container.
-            try:
-                _, err = utils.execute('sudo', 'mkdir', '-p', outside_mount)
-                if err:
+            if not os.path.exists(outside_mount):
+                try:
+                    _, err = utils.execute('sudo', 'mkdir', '-p', outside_mount)
+                    if err:
+                        LOG.error(err)
+                except ProcessExecutionError as err:
                     LOG.error(err)
-            except ProcessExecutionError as err:
-                LOG.error(err)
-                raise exception.Error('Unable to make the outside mount point')
+                    raise exception.Error('Unable to make the outside mount point')
+
+            # Create a mount point for the device inside the root of the
+            # container.
+            if not os.path.exists(inside_mount):
+                try:
+                    _, err = utils.execute('sudo', 'mkdir', '-p', inside_mount)
+                    if err:
+                        LOG.error(err)
+                except ProcessExecutionError as err:
+                    LOG.error(err)
+                    raise exception.Error('Unable to make the inside mount point')
 
             # Now create a mount entry that mounts the device outside of the
             # container when the container starts.
