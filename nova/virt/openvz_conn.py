@@ -46,6 +46,12 @@ flags.DEFINE_string('ovz_template_path',
 flags.DEFINE_string('ovz_ve_private_dir',
                     '/var/lib/vz/private',
                     'Path where VEs will get placed')
+flags.DEFINE_string('ovz_ve_root_dir',
+                    '/var/lib/vz/root',
+                    'Path where the VEs root is')
+flags.DEFINE_string('ovz_ve_outside_mount_dir',
+                    '/mnt',
+                    'Path where outside mounts go')
 flags.DEFINE_string('ovz_image_template_dir',
                     '/var/lib/vz/template/cache',
                     'Path where OpenVZ images are')
@@ -930,7 +936,10 @@ class OpenVzConnection(driver.ComputeDriver):
         # TODO(imsplitbit): Find a way to make this less of a hack with sudo
         start_script = '%s/%s.start' % (FLAGS.ovz_config_dir, instance['id'])
         stop_script = '%s/%s.stop' % (FLAGS.ovz_config_dir, instance['id'])
-        mount = '%s/%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'], mount)
+        inside_mount = '%s/%s/%s' % \
+                       (FLAGS.ovz_ve_root_dir, instance['id'], mount)
+        outside_mount = '%s/%s/%s' % \
+                        (FLAGS.ovz_outside_mount_dir, instance['id'], mount)
 
         # Fixup perms to allow for this script to edit files.
         try:
@@ -965,19 +974,44 @@ class OpenVzConnection(driver.ComputeDriver):
         # Make the magic happen.
         # Starting with the start script, check for a mountpoint line first
         if action == 'add':
+            # Create a mount point for the device outside the root of the
+            # container.
+            try:
+                _, err = utils.execute('sudo', 'mkdir', '-p', outside_mount)
+                if err:
+                    LOG.error(err)
+            except ProcessExecutionError as err:
+                LOG.error(err)
+                raise exception.Error('Unable to make the outside mount point')
+
+            # Now create a mount entry that mounts the device outside of the
+            # container when the container starts.
             if dev:
-                mount_line = 'mount --bind %s %s' % (dev, mount)
+                outside_mount_line = 'mount %s %s' % (dev, outside_mount)
             elif uuid:
-                mount_line = 'mount --bind --uuid %s %s' % (uuid, mount)
+                outside_mount_line = 'mount --uuid %s %s' % \
+                                     (uuid, outside_mount)
             else:
-                LOG.error('No mount line could be generated')
+                LOG.error('Could not create outside_mount_line')
+                raise exception.Error('Could not create outside_mount_line')
 
-            umount_line = 'umount %s' % (mount,)
+            # Now create a mount entry that bind mounts the outside mount into
+            # the container on boot.
+            inside_mount_line = 'mount --bind %s %s' % \
+                                (outside_mount, inside_mount)
 
-            if mount_line:
-                start_lines.append(mount_line)
+            # Add the outside and inside mount lines to the start script
+            start_lines.append(outside_mount_line)
+            start_lines.append(inside_mount_line)
 
-            stop_lines.append(umount_line)
+            # Create a umount statement to unmount the device from both the
+            # container and the server
+            inside_umount_line = 'umount %s' % (inside_mount,)
+            outside_umount_line = 'umount %s' % (outside_mount,)
+
+            # Add umount lines to the stop script
+            stop_lines.append(inside_umount_line)
+            stop_lines.append(outside_umount_line)
         elif action == 'del':
             # Passing for now need to fix this once I implement detach
             pass
@@ -1009,7 +1043,7 @@ class OpenVzConnection(driver.ComputeDriver):
             _, err = utils.execute('sudo', 'chmod', '755', stop_script)
             if err:
                 LOG.error(err)
-        except Exception as err:
+        except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error(
                 'Cannot secure permissions on start/stop files')
