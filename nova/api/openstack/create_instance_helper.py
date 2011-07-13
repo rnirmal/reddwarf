@@ -136,7 +136,7 @@ class CreateInstanceHelper(object):
                                   metadata=body['server'].get('metadata', {}),
                                   injected_files=injected_files,
                                   admin_password=password,
-                                  security_group=env['server'].get('firewallRules', None),
+                                  security_group=body['server'].get('firewallRules', None),
                                   zone_blob=zone_blob,
                                   reservation_id=reservation_id))
         except quota.QuotaError as error:

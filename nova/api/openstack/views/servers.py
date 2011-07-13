@@ -111,6 +111,10 @@ class ViewBuilder(object):
         """Return the flavor sub-resource of a server."""
         raise NotImplementedError()
 
+    def _build_volume(self, response, inst):
+        """Return the flavor sub-resource of a server."""
+        raise NotImplementedError()
+
     def _build_extra(self, response, inst):
         pass
 
@@ -128,6 +132,9 @@ class ViewBuilderV10(ViewBuilder):
     def _build_flavor(self, response, inst):
         if 'instance_type' in dict(inst):
             response['flavorId'] = inst['instance_type']['flavorid']
+
+    def _build_volume(self, response, inst):
+        pass
 
 
 class ViewBuilderV11(ViewBuilder):
