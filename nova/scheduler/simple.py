@@ -34,7 +34,7 @@ flags.DEFINE_integer("max_cores", 16,
                      "maximum number of instance cores to allow per host")
 flags.DEFINE_integer("max_gigabytes", 10000,
                      "maximum number of volume gigabytes to allow per host")
-flags.DEFINE_integer("max_instance_memory_mb", 16500,
+flags.DEFINE_integer("max_instance_memory_mb", 1024 * 15,
                      "maximum amount of memory a host can use on instances")
 flags.DEFINE_integer("max_networks", 1000,
                      "maximum number of networks to allow per host")
@@ -44,13 +44,14 @@ LOG = logging.getLogger('nova.scheduler.simple')
 class SimpleScheduler(chance.ChanceScheduler):
     """Implements Naive Scheduler that tries to find least loaded host."""
 
-    def _availability_zone_is_set(self, context, instance_ref):
-        return instance_ref['availability_zone'] \
-               and ':' in instance_ref['availability_zone'] \
-               and context.is_admin
+    @staticmethod
+    def _availability_zone_is_set(context, instance_ref):
+        return (instance_ref['availability_zone']
+                and ':' in instance_ref['availability_zone']
+                and context.is_admin)
 
     def _schedule_based_on_availability_zone(self, context, instance_ref):
-        zone, _x, host = instance_ref['availability_zone'].partition(':')
+        _zone, _x, host = instance_ref['availability_zone'].partition(':')
         service = db.service_get_by_args(context.elevated(), host,
                                          'nova-compute')
         if not self.service_is_up(service):
@@ -72,7 +73,8 @@ class SimpleScheduler(chance.ChanceScheduler):
                                    " for this request. Is the appropriate"
                                    " service running?"))
 
-    def _schedule_now_on_host(self, context, host, instance_id):
+    @staticmethod
+    def _schedule_now_on_host(context, host, instance_id):
         """Schedule the instance to run now on the given host."""
         # TODO(vish): this probably belongs in the manager, if we
         #             can generalize this somehow
@@ -96,7 +98,7 @@ class SimpleScheduler(chance.ChanceScheduler):
         if (volume_ref['availability_zone']
             and ':' in volume_ref['availability_zone']
             and context.is_admin):
-            zone, _x, host = volume_ref['availability_zone'].partition(':')
+            _zone, _x, host = volume_ref['availability_zone'].partition(':')
             service = db.service_get_by_args(context.elevated(), host,
                                              'nova-volume')
             if not self.service_is_up(service):
