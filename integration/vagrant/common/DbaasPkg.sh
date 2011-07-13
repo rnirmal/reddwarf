@@ -46,13 +46,7 @@ dbaas_pkg_install_glance() {
     then
         dbaas_old_install_glance
     else
-        # add the trunk ppa and install it
-        sudo -E add-apt-repository ppa:glance-core/trunk
-        sudo -E apt-get update
-        pkg_install glance
-        sudo -E sed -i 's/sql_connection = sqlite:\/\/\/\/var\/lib\/glance\/glance.sqlite/sql_connection = mysql:\/\/nova:novapass@localhost\/glance/g' /etc/glance/glance-registry.conf
-        sudo -E service glance-registry stop
-        sudo -E service glance-api stop
+        dbaas_pkg_install_glance
     fi
 
     sudo -E mkdir /glance_images/
@@ -112,6 +106,58 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
     sudo -E rm -fr /tmp/build/python-nova*
     sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
     sudo -E apt-get update
+}
+
+dbaas_pkg_install_glance() {
+    # Builds and installs the novaclient based on a config'd version
+    pkg_remove glance
+    pkg_remove python-glance
+    sudo -E mkdir -p /tmp/build/
+    sudo -E rm -fr /tmp/build/glance*
+    sudo -E rm -fr /tmp/build/python-glance*
+    # GLANCE_VERSION is sourced from Utils
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:glance -r $GLANCE_VERSION /tmp/build/glance
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/glance/ubuntu /tmp/build/glancepkg
+    sudo -E mv /tmp/build/glancepkg/debian /tmp/build/glance
+    pkg_install cdbs python-mock
+    cd /tmp/build/glance
+    sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
+    # for some reason glance needs swift core to build
+    add-apt-repository ppa:swift-core/trunk
+    pkg_install python-swift
+    if [ ! -f /tmp/build/glance/etc/glance.conf.sample ]
+    then
+        echo " " | sudo -E tee /tmp/build/glance/etc/glance.conf.sample
+    fi
+    
+    sudo -E DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    pkg_remove python-swift
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid glance
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-glance
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-glance-doc
+    cd /tmp/build
+    sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid glance*.changes
+    # Add the local apt repo temporarily to install the built novaclient
+    echo "deb http://0.0.0.0/ubuntu lucid main" | sudo -E tee /etc/apt/sources.list.d/temp-local-ppa-lucid.list > /dev/null
+    echo "Package: glance
+Pin: origin 0.0.0.0
+Pin-Priority: 700
+
+Package: python-glance
+Pin: origin 0.0.0.0
+Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /dev/null
+    sudo -E apt-get update
+    # Based on the pin this will install the novaclient we just built
+    pkg_install glance
+    # now clean up that mess so it doesnt pollute into any other installations
+    sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin
+    sudo -E rm -fr /tmp/build/glance*
+    sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
+    sudo -E apt-get update
+    
+    #Now that its installed lets change the db for it and stop the services
+    sudo -E service glance-registry stop
+    sudo -E service glance-api stop
 }
 
 dbaas_pkg_install_nova() {
