@@ -46,7 +46,7 @@ dbaas_pkg_install_glance() {
     then
         dbaas_old_install_glance
     else
-        dbaas_pkg_install_glance
+        dbaas_new_install_glance
     fi
 
     sudo -E mkdir /glance_images/
@@ -108,7 +108,7 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
     sudo -E apt-get update
 }
 
-dbaas_pkg_install_glance() {
+dbaas_new_install_glance() {
     # Builds and installs the novaclient based on a config'd version
     pkg_remove glance
     pkg_remove python-glance
