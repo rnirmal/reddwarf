@@ -24,6 +24,7 @@ Simple Scheduler
 from nova import db
 from nova import flags
 from nova import utils
+from nova import log as logging
 from nova.scheduler import driver
 from nova.scheduler import chance
 
@@ -32,31 +33,31 @@ flags.DEFINE_integer("max_cores", 16,
                      "maximum number of instance cores to allow per host")
 flags.DEFINE_integer("max_gigabytes", 10000,
                      "maximum number of volume gigabytes to allow per host")
+flags.DEFINE_integer("max_instance_memory_mb", 1024 * 15,
+                     "maximum amount of memory a host can use on instances")
 flags.DEFINE_integer("max_networks", 1000,
                      "maximum number of networks to allow per host")
 
+LOG = logging.getLogger('nova.scheduler.simple')
 
 class SimpleScheduler(chance.ChanceScheduler):
     """Implements Naive Scheduler that tries to find least loaded host."""
 
-    def _schedule_instance(self, context, instance_id, *_args, **_kwargs):
-        """Picks a host that is up and has the fewest running instances."""
-        instance_ref = db.instance_get(context, instance_id)
-        if (instance_ref['availability_zone']
-            and ':' in instance_ref['availability_zone']
-            and context.is_admin):
-            zone, _x, host = instance_ref['availability_zone'].partition(':')
-            service = db.service_get_by_args(context.elevated(), host,
-                                             'nova-compute')
-            if not self.service_is_up(service):
-                raise driver.WillNotSchedule(_("Host %s is not alive") % host)
+    @staticmethod
+    def _availability_zone_is_set(context, instance_ref):
+        return (instance_ref['availability_zone']
+                and ':' in instance_ref['availability_zone']
+                and context.is_admin)
 
-            # TODO(vish): this probably belongs in the manager, if we
-            #             can generalize this somehow
-            now = utils.utcnow()
-            db.instance_update(context, instance_id, {'host': host,
-                                                      'scheduled_at': now})
-            return host
+    def _schedule_based_on_availability_zone(self, context, instance_ref):
+        _zone, _x, host = instance_ref['availability_zone'].partition(':')
+        service = db.service_get_by_args(context.elevated(), host,
+                                         'nova-compute')
+        if not self.service_is_up(service):
+            raise driver.WillNotSchedule(_("Host %s is not alive") % host)
+        return self._schedule_now_on_host(context, host, instance_ref['id'])
+
+    def _schedule_based_on_resources(self, context, instance_ref):
         results = db.service_get_all_compute_sorted(context)
         for result in results:
             (service, instance_cores) = result
@@ -65,12 +66,8 @@ class SimpleScheduler(chance.ChanceScheduler):
             if self.service_is_up(service):
                 # NOTE(vish): this probably belongs in the manager, if we
                 #             can generalize this somehow
-                now = utils.utcnow()
-                db.instance_update(context,
-                                   instance_id,
-                                   {'host': service['host'],
-                                    'scheduled_at': now})
-                return service['host']
+                return self._schedule_now_on_host(context, service['host'],
+                                                  instance_ref['id'])
         raise driver.NoValidHost(_("Scheduler was unable to locate a host"
                                    " for this request. Is the appropriate"
                                    " service running?"))
@@ -80,6 +77,25 @@ class SimpleScheduler(chance.ChanceScheduler):
 
     def schedule_start_instance(self, context, instance_id, *_args, **_kwargs):
         return self._schedule_instance(context, instance_id, *_args, **_kwargs)
+    
+    @staticmethod
+    def _schedule_now_on_host(context, host, instance_id):
+        """Schedule the instance to run now on the given host."""
+        # TODO(vish): this probably belongs in the manager, if we
+        #             can generalize this somehow
+        now = datetime.datetime.utcnow()
+        db.instance_update(context, instance_id,
+                           {'host': host, 'scheduled_at': now})
+        return host
+
+    def _schedule_instance(self, context, instance_id, *_args, **_kwargs):
+        """Picks a host that is up and has the fewest running instances."""
+        instance_ref = db.instance_get(context, instance_id)
+        if self._availability_zone_is_set(context, instance_ref):
+            return self._schedule_based_on_availability_zone(context,
+                                                             instance_ref)
+        else:
+            return self._schedule_based_on_resources(context, instance_ref)
 
     def schedule_create_volume(self, context, volume_id, *_args, **_kwargs):
         """Picks a host that is up and has the fewest volumes."""
@@ -87,7 +103,7 @@ class SimpleScheduler(chance.ChanceScheduler):
         if (volume_ref['availability_zone']
             and ':' in volume_ref['availability_zone']
             and context.is_admin):
-            zone, _x, host = volume_ref['availability_zone'].partition(':')
+            _zone, _x, host = volume_ref['availability_zone'].partition(':')
             service = db.service_get_by_args(context.elevated(), host,
                                              'nova-volume')
             if not self.service_is_up(service):
@@ -131,3 +147,25 @@ class SimpleScheduler(chance.ChanceScheduler):
         raise driver.NoValidHost(_("Scheduler was unable to locate a host"
                                    " for this request. Is the appropriate"
                                    " service running?"))
+
+
+class MemoryScheduler(SimpleScheduler):
+    """Implements Naive Scheduler to find a host with the most free memory."""
+
+    def _schedule_based_on_resources(self, context, instance_ref):
+        results = db.service_get_all_compute_memory(context)
+        for result in results:
+            (service, memory_mb) = result
+            needed_memory = memory_mb + instance_ref['memory_mb']
+            if needed_memory > FLAGS.max_instance_memory_mb:
+                LOG.debug("Error scheduling " +
+                          str(instance_ref['display_name']))
+                raise driver.NoValidHost(
+                    _("Insufficient memory on all hosts."))
+            if self.service_is_up(service):
+                return self._schedule_now_on_host(context, service['host'],
+                                                  instance_ref['id'])
+        raise driver.NoValidHost(_("Scheduler was unable to locate a host"
+                                   " for this request. Is the appropriate"
+                                   " service running?"))
+

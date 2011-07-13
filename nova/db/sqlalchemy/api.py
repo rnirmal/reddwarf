@@ -243,6 +243,31 @@ def service_get_all_compute_sorted(context):
                                                subq,
                                                label)
 
+@require_admin_context
+def service_get_all_compute_memory(context):
+    """Return a list of service nodes and the memory used at each.
+
+    Most available memory is returned first.
+
+    """
+    session = get_session()
+    with session.begin():
+        # NOTE(tim.simpson): Identical to service_get_all_compute_sorted,
+        #                    except memory_mb is retrieved instead of
+        #                    instances.vcpus.
+        topic = 'compute'
+        label = 'instance_cores'
+        subq = session.query(models.Instance.host,
+                             func.sum(models.Instance.memory_mb).
+                             label(label)).\
+                       filter_by(deleted=False).\
+                       group_by(models.Instance.host).\
+                       subquery()
+        return _service_get_all_topic_subquery(context,
+                                               session,
+                                               topic,
+                                               subq,
+                                               label)
 
 @require_admin_context
 def service_get_all_network_sorted(context):

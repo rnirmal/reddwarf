@@ -630,6 +630,9 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         """Nothing to assign here."""
         pass
 
+    def check_for_available_space(self, size):
+        return size <= 10
+    
     def check_for_setup_error(self):
         """Check for any errors at setup for fast fail"""
         pass
