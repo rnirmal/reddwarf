@@ -119,6 +119,13 @@ def service_get_all_compute_sorted(context):
     """
     return IMPL.service_get_all_compute_sorted(context)
 
+def service_get_all_compute_memory(context):
+    """Return a list of service nodes and the memory used at each.
+
+    Most available memory is returned first.
+
+    """
+    return IMPL.service_get_all_compute_memory(context)
 
 def service_get_all_network_sorted(context):
     """Get all network services sorted by network count.

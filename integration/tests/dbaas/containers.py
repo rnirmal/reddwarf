@@ -32,7 +32,7 @@ from tests.util import create_dns_entry
 from tests.util import process
 from tests.util.users import Requirements
 from tests.util import string_in_list
-
+from tests.util import TestClient
 
 try:
     import rsdns
@@ -87,37 +87,15 @@ class Setup(unittest.TestCase):
         """Sets up the client."""
         global dbaas
         container_info.user = test_config.users.find_user(Requirements(is_admin=True))
-        dbaas = util.create_dbaas_client(container_info.user)
+        dbaas = TestClient(util.create_dbaas_client(container_info.user))
 
     def test_find_image(self):
-        self.assertNotEqual(None, test_config.dbaas_image)
-        images = dbaas.images.list()
-        self.assertTrue(len(images) > 0, "No images are loaded!")
-        for image in images:
-            if int(image.id) == test_config.dbaas_image:
-                container_info.dbaas_image = image
-                for link in container_info.dbaas_image.links:
-                    if link['rel'] == "self":
-                        container_info.dbaas_image_href = link['href']
-                if not container_info.dbaas_image_href:
-                    raise Exception("Found image with ID %s, but it had no " 
-                                    "self href!" % str(test_config.dbaas_image))
-        self.assertNotEqual(None, container_info.dbaas_image_href,
-                            "Image not found.")
+        result = dbaas.find_image_and_self_href(test_config.dbaas_image)
+        container_info.dbaas_image, container_info.dbaas_image_href = result
 
     def test_find_flavor(self):
-        self.assertNotEqual(None, test_config.dbaas_image)
-        flavors = dbaas.flavors.list()
-        for flavor in flavors:
-            if int(flavor.id) == 1:
-                container_info.dbaas_flavor = flavor
-                for link in container_info.dbaas_flavor.links:
-                    if link['rel'] == "self":
-                        container_info.dbaas_flavor_href = link['href']
-                if not container_info.dbaas_flavor_href:
-                    raise Exception("Found flavor with ID %s, but it had no "
-                                    "self href!" % str(1))
-        self.assertNotEqual(None, container_info.dbaas_flavor)
+        result = dbaas.find_flavor_and_self_href(flavor_id=1)
+        container_info.dbaas_flavor, container_info.dbaas_flavor_href = result
 
     def test_create_container_name(self):
         container_info.name = "TEST_" + str(datetime.now())
