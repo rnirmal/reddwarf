@@ -40,6 +40,8 @@ flags.DEFINE_integer('default_guest_mysql_port', 3306,
 flags.DEFINE_string('default_firewall_rule_name',
                     'tcp_%s' %  FLAGS.default_guest_mysql_port,
                     'Default firewall rule name used for guest instances')
+flags.DEFINE_string('nova_api_version', '1.1',
+                    'The default nova api version for reddwarf')
 
 
 class APIRouter(wsgi.Router):
@@ -55,18 +57,17 @@ class APIRouter(wsgi.Router):
 
     def __init__(self):
         mapper = routes.Mapper()
-        version = "1.1"
 
         container_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
             LOG.debug(_("Including admin operations in API."))
             mapper.resource("guest", "guests",
-                            controller=guests.create_resource(version),
+                            controller=guests.create_resource(),
                             collection={'upgradeall': 'POST'},
                             member={'upgrade': 'POST'})
 
             mapper.resource("image", "images",
-                            controller=images.create_resource(version),
+                            controller=images.create_resource(FLAGS.nova_api_version),
                             collection={'detail': 'GET'})
 
             #TODO(rnirmal): Right now any user can access these
@@ -75,34 +76,34 @@ class APIRouter(wsgi.Router):
             # users can hit that api, others would just be rejected.
 
         mapper.resource("dbcontainer", "dbcontainers",
-                        controller=dbcontainers.create_resource(version),
+                        controller=dbcontainers.create_resource(),
                         collection={'detail': 'GET'},
                         member=container_members)
 
         mapper.resource("flavor", "flavors",
-                        controller=flavors.create_resource(version),
+                        controller=flavors.create_resource(FLAGS.nova_api_version),
                         collection={'detail': 'GET'})
 
         mapper.resource("database", "databases",
-                        controller=databases.create_resource(version),
+                        controller=databases.create_resource(),
                         parent_resource=dict(member_name='dbcontainer',
                         collection_name='dbcontainers'))
 
         mapper.resource("user", "users",
-                        controller=users.create_resource(version),
+                        controller=users.create_resource(),
                         parent_resource=dict(member_name='dbcontainer',
                         collection_name='dbcontainers'))
 
         # Using connect instead of resource due to the incompatibility
         # for delete without providing an id.
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
-                       controller=root.create_resource(version),
+                       controller=root.create_resource(),
                        action="create", conditions=dict(method=["POST"]))
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
-                       controller=root.create_resource(version),
+                       controller=root.create_resource(),
                        action="delete", conditions=dict(method=["DELETE"]))
         mapper.connect("/dbcontainers/{dbcontainer_id}/root",
-                       controller=root.create_resource(version),
+                       controller=root.create_resource(),
                        action="is_root_enabled", conditions=dict(method=["GET"]))
 
         super(APIRouter, self).__init__(mapper)

@@ -17,6 +17,7 @@ from webob import exc
 
 from nova import compute
 from nova import log as logging
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
@@ -29,7 +30,7 @@ LOG = logging.getLogger('nova.api.platform.dbaas.root')
 LOG.setLevel(logging.DEBUG)
 
 
-class Controller(common.DBaaSController):
+class Controller(object):
     """ Enable/Disable the root user for the DB Container """
 
     def __init__(self):
@@ -51,7 +52,7 @@ class Controller(common.DBaaSController):
             LOG.error(err)
             return exc.HTTPError("Error disabling the root password")
 
-    def create(self, req, dbcontainer_id):
+    def create(self, req, dbcontainer_id, body):
         """ Enable the root user for the db container """
         LOG.info("Call to enable root user for container %s", dbcontainer_id)
         LOG.debug("%s - %s", req.environ, req.body)
@@ -90,7 +91,6 @@ class Controller(common.DBaaSController):
 def create_resource(version='1.0'):
     controller = {
         '1.0': Controller,
-        '1.1': Controller,
     }[version]()
 
     metadata = {
@@ -100,8 +100,7 @@ def create_resource(version='1.0'):
     }
 
     xmlns = {
-        '1.0': wsgi.XMLNS_V10,
-        '1.1': wsgi.XMLNS_V11,
+        '1.0': common.XML_NS_V10,
     }[version]
 
     serializers = {
@@ -109,9 +108,4 @@ def create_resource(version='1.0'):
                                                   xmlns=xmlns),
     }
 
-    deserializers = {
-        'application/xml': deserializer.UsersRequestXMLDeserializer(),
-    }
-
-    return wsgi.Resource(controller, serializers=serializers,
-                         deserializers=deserializers)
+    return wsgi.Resource(controller, serializers=serializers)

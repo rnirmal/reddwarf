@@ -20,7 +20,6 @@ from webob import exc
 
 
 from nova import exception
-from nova.api.openstack import common as oscommon
 from nova.api.openstack import faults
 from nova.guest.db import models
 
@@ -67,11 +66,3 @@ def instance_exists(ctxt, id, compute_api):
         return compute_api.get(ctxt, id)
     except exception.NotFound:
         raise faults.Fault(exc.HTTPNotFound())
-
-
-class DBaaSController(oscommon.OpenstackController):
-    """Base Controller for all DBaaS Controllers"""
-
-    def get_default_xmlns(self, req):
-        """Default namespace versioning is V1.0"""
-        return XML_NS_V10

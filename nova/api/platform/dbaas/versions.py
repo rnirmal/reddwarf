@@ -15,19 +15,29 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob.dec
-import webob.exc
-
-from nova import wsgi
 import nova.api.openstack.views.versions
+from nova.api.openstack import wsgi
 
 
-class Versions(wsgi.Application):
+class Versions(wsgi.Resource):
     """Supported versions"""
 
-    @webob.dec.wsgify(RequestClass=wsgi.Request)
-    def __call__(self, req, start_response):
-        """Respond to a request for all DBaaS API versions."""
+    def __init__(self):
+        metadata = {
+            "attributes": {
+                "version": ["status", "id"],
+                "link": ["rel", "href"],
+            }
+        }
+
+        serializers = {
+            'application/xml': wsgi.XMLDictSerializer(metadata=metadata),
+        }
+
+        wsgi.Resource.__init__(self, None, serializers=serializers)
+
+    def dispatch(self, request, *args):
+        """Respond to a request for all OpenStack API versions."""
         version_objs = [
             {
                 "id": "v1.0",
@@ -35,18 +45,6 @@ class Versions(wsgi.Application):
             }
         ]
 
-        builder = nova.api.openstack.views.versions.get_view_builder(req)
+        builder = nova.api.openstack.views.versions.get_view_builder(request)
         versions = [builder.build(version) for version in version_objs]
-        response = dict(versions=versions)
-
-        metadata = {
-            "application/xml": {
-                "attributes": {
-                    "version": ["status", "id"],
-                    "link": ["rel", "href"],
-                }
-            }
-        }
-
-        content_type = req.best_match_content_type()
-        return wsgi.Serializer(metadata).serialize(response, content_type)
+        return dict(versions=versions)

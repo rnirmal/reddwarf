@@ -21,6 +21,7 @@ from nova import compute
 from nova import exception
 from nova import log as logging
 from nova.api.openstack import faults
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.guest import api as guest_api
@@ -31,15 +32,8 @@ LOG = logging.getLogger('nova.api.platform.dbaas.users')
 LOG.setLevel(logging.DEBUG)
 
 
-class Controller(common.DBaaSController):
+class Controller(object):
     """ The User Controller for the Platform API """
-
-    _serialization_metadata = {
-        'application/xml': {
-            'attributes': {
-                'user': ['name', 'password']}
-        },
-    }
 
     def __init__(self):
         self.guest_api = guest_api.API()
@@ -78,34 +72,24 @@ class Controller(common.DBaaSController):
         self.guest_api.delete_user(ctxt, dbcontainer_id, user.serialize())
         return exc.HTTPAccepted()
 
-    def create(self, req, dbcontainer_id):
+    def create(self, req, dbcontainer_id, body):
         """ Creates a new user for the db container """
+        self._validate(body)
+
         LOG.info("Call to Create Useres for container %s", dbcontainer_id)
-        LOG.debug("%s - %s", req.environ, req.body)
+        LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
-
-        body = self._deserialize_create(req)
-        if not body:
-            return faults.Fault(exc.HTTPUnprocessableEntity())
 
         users = common.populate_users(body.get('users', ''))
         self.guest_api.create_user(ctxt, dbcontainer_id, users)
         return exc.HTTPAccepted()
 
-    def _deserialize_create(self, request):
-        """
-        Deserialize create user request
+    def _validate(self, body):
+        """Validate that the request has all the required parameters"""
+        if not body:
+            return faults.Fault(exc.HTTPUnprocessableEntity())
 
-        Overrides normal behavior in the case of xml content
-        """
-        if request.content_type == "application/xml":
-            deser = deserializer.RequestXMLDeserializer()
-            body = deser.deserialize_users(request.body)
-        else:
-            body = self._deserialize(request.body, request.get_content_type())
-
-         # Add any checks for required elements/attributes/keys
         if not body.get('users', ''):
             raise exception.ApiError("Required element/key 'users' " \
                                          "was not specified")
@@ -116,24 +100,21 @@ class Controller(common.DBaaSController):
             if not user.get('password'):
                 raise exception.ApiError("Required attribute/key 'password' " \
                                          "was not specified")
-        return body
 
 
 def create_resource(version='1.0'):
     controller = {
         '1.0': Controller,
-        '1.1': Controller,
     }[version]()
 
     metadata = {
         "attributes": {
-            'user': ['name', 'password']}
+            'user': ['name', 'password']
         },
     }
 
     xmlns = {
-        '1.0': wsgi.XMLNS_V10,
-        '1.1': wsgi.XMLNS_V11,
+        '1.0': common.XML_NS_V10,
     }[version]
 
     serializers = {
@@ -142,7 +123,7 @@ def create_resource(version='1.0'):
     }
 
     deserializers = {
-        'application/xml': deserializers.UsersRequestXMLDeserializer(),
+        'application/xml': deserializer.UserXMLDeserializer(),
     }
 
     return wsgi.Resource(controller, serializers=serializers,

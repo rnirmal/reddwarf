@@ -120,8 +120,9 @@ class AddVolumeFailure(VolumeTest):
         desc = "A volume that was created for testing."
         self.storyFail.volume_name = name
         self.storyFail.volume_desc = desc
-        volume = self.storyFail.api.create(self.storyFail.context, size = 500,
-                                       name=name, description=desc)
+        volume = self.storyFail.api.create(self.storyFail.context, size=500,
+                                           snapshot_id=None, name=name,
+                                           description=desc)
         self.assertEqual(500, volume["size"])
         self.assertTrue("creating", volume["status"])
         self.assertTrue("detached", volume["attach_status"])
@@ -156,8 +157,9 @@ class AddVolume(VolumeTest):
         desc = "A volume that was created for testing."
         self.story.volume_name = name
         self.story.volume_desc = desc
-        volume = self.story.api.create(self.story.context, size = 1,
-                                       name=name, description=desc)
+        volume = self.story.api.create(self.story.context, size=1,
+                                       snapshot_id=None, name=name,
+                                       description=desc)
         self.assert_volume_as_expected(volume)
         self.assertTrue("creating", volume["status"])
         self.assertTrue("detached", volume["attach_status"])

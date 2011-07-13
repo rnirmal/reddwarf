@@ -17,12 +17,10 @@ from webob import exc
 
 
 from nova import compute
-from nova import exception
 from nova import flags
 from nova import log as logging
-from nova.api.openstack import faults
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
-from nova.api.platform.dbaas import deserializer
 from nova.guest import api
 
 LOG = logging.getLogger('nova.api.platform.dbaas.guests')
@@ -32,7 +30,7 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 
 
-class Controller(common.DBaaSController):
+class Controller(object):
     """ The Guest Management Controller for the Platform API """
 
     def __init__(self):
@@ -40,17 +38,17 @@ class Controller(common.DBaaSController):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
-    def upgrade(self, req, id):
+    def upgrade(self, req, id, body):
         """Upgrade the guest for a specific container"""
         LOG.info("Upgrade of nova-guest issued for instance : %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, id, self.compute_api)
 
-        self.guest_api.upgrade(ctxt, (str(instance['id'])))
+        self.guest_api.upgrade(ctxt, id)
         return exc.HTTPAccepted()
 
-    def upgradeall(self, req):
+    def upgradeall(self, req, body):
         """Upgrade the guests for all the containers"""
         LOG.info("Upgrade all nova-guest issued")
         LOG.debug("%s - %s", req.environ, req.body)
@@ -65,7 +63,6 @@ class Controller(common.DBaaSController):
 def create_resource(version='1.0'):
     controller = {
         '1.0': Controller,
-        '1.1': Controller,
     }[version]()
 
     metadata = {
@@ -74,8 +71,7 @@ def create_resource(version='1.0'):
     }
 
     xmlns = {
-        '1.0': wsgi.XMLNS_V10,
-        '1.1': wsgi.XMLNS_V11,
+        '1.0': common.XML_NS_V10,
     }[version]
 
     serializers = {
@@ -83,9 +79,4 @@ def create_resource(version='1.0'):
                                                   xmlns=xmlns),
     }
 
-    deserializers = {
-        'application/xml': deserializer.GuestsRequestXMLDeserializer(),
-    }
-
-    return wsgi.Resource(controller, serializers=serializers,
-                         deserializers=deserializers)
+    return wsgi.Resource(controller, serializers=serializers)

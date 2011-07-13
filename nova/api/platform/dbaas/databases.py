@@ -21,6 +21,7 @@ from nova import compute
 from nova import exception
 from nova import log as logging
 from nova.api.openstack import faults
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.guest import api as guest_api
@@ -31,7 +32,7 @@ LOG = logging.getLogger('nova.api.platform.dbaas.databases')
 LOG.setLevel(logging.DEBUG)
 
 
-class Controller(common.DBaaSController):
+class Controller(object):
     """ The Database Controller for the DBaaS API """
 
     def __init__(self):
@@ -71,48 +72,36 @@ class Controller(common.DBaaSController):
         self.guest_api.delete_database(ctxt, dbcontainer_id, mydb.serialize())
         return exc.HTTPAccepted()
 
-    def create(self, req, dbcontainer_id):
+    def create(self, req, dbcontainer_id, body):
         """ Creates a new Database in the specified container """
+        self._validate(body)
+
         LOG.info("Call to Create Databases for container %s", dbcontainer_id)
-        LOG.debug("%s - %s", req.environ, req.body)
+        LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
-
-        body = self._deserialize_create(req)
-        if not body:
-            return faults.Fault(exc.HTTPUnprocessableEntity())
 
         databases = common.populate_databases(body.get('databases', ''))
         self.guest_api.create_database(ctxt, dbcontainer_id, databases)
         return exc.HTTPAccepted("")
 
-    def _deserialize_create(self, request):
-        """
-        Deserialize a create request
+    def _validate(self, body):
+        """Validate that the request has all the required parameters"""
+        if not body:
+            return faults.Fault(exc.HTTPUnprocessableEntity())
 
-        Overrides normal behavior in the case of xml content
-        """
-        if request.content_type == "application/xml":
-            deser = deserializer.RequestXMLDeserializer()
-            body = deser.deserialize_databases(request.body)
-        else:
-            body = self._deserialize(request.body, request.get_content_type())
-
-        # Add any checks for required elements/attributes/keys
         if not body.get('databases', ''):
             raise exception.ApiError("Required element/key 'databases' " \
-                                         "was not specified")
+                                      "was not specified")
         for database in body.get('databases'):
             if not database.get('name', ''):
                 raise exception.ApiError("Required attribute/key 'name' " \
                                          "was not specified")
-        return body
 
 
 def create_resource(version='1.0'):
     controller = {
         '1.0': Controller,
-        '1.1': Controller,
     }[version]()
 
     metadata = {
@@ -122,8 +111,7 @@ def create_resource(version='1.0'):
     }
 
     xmlns = {
-        '1.0': wsgi.XMLNS_V10,
-        '1.1': wsgi.XMLNS_V11,
+        '1.0': common.XML_NS_V10,
     }[version]
 
     serializers = {
@@ -132,7 +120,7 @@ def create_resource(version='1.0'):
     }
 
     deserializers = {
-        'application/xml': deserializer.DatabasesRequestXMLDeserializer(),
+        'application/xml': deserializer.DatabaseXMLDeserializer(),
     }
 
     return wsgi.Resource(controller, serializers=serializers,

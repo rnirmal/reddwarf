@@ -26,12 +26,12 @@ from nova import volume
 from nova import utils
 from nova.api.openstack import faults
 from nova.api.openstack import servers
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
-from nova.utils import poll_until
 from reddwarf.db import api as dbapi
 
 
@@ -54,7 +54,7 @@ _dbaas_mapping = {
 }
 
 
-class Controller(common.DBaaSController):
+class Controller(object):
     """ The DBContainer API controller for the Platform API """
 
     def __init__(self):
@@ -139,27 +139,27 @@ class Controller(common.DBaaSController):
                                                          time_out=60)
         return result
 
-    def create(self, req):
+    def create(self, req, body):
         """ Creates a new DBContainer for a given user """
+        self._validate(body)
+
         LOG.info("Create Container")
-        LOG.debug("%s - %s", req.environ, req.body)
-        env, body = self._deserialize_create(req)
+        LOG.debug("%s - %s", req.environ, body)
 
-        volume = self.create_volume(req, env)
-        body.add_volume_id(volume['id'])
-        body.add_mount_point(FLAGS.reddwarf_mysql_data_dir)
-
-        req.body = body.serialize_for_create()
-
+        # Create the Volume before hand
+        volume = self.create_volume(req, body)
+        # Setup Security groups
         self._setup_security_groups(req,
                                     FLAGS.default_firewall_rule_name,
                                     FLAGS.default_guest_mysql_port)
 
         databases = common.populate_databases(
-                                    env['dbcontainer'].get('databases', ''))
+                                    body['dbcontainer'].get('databases', ''))
 
-        server = self._try_create_server(req)
-
+        # Add any extra data that's required by the servers api
+        self._append_on_create(body, volume['id'],
+                               FLAGS.reddwarf_mysql_data_dir)
+        server = self._try_create_server(req, self._rename_to_server(body))
         server_id = str(server['server']['id'])
         dbapi.guest_status_create(server_id)
 
@@ -171,31 +171,49 @@ class Controller(common.DBaaSController):
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
-        resp['dbcontainer']['volume'] = {'size':volume['size']}
+        resp['dbcontainer']['volume'] = {'size': volume['size']}
 
         return resp
 
-    def create_volume(self, req, env):
+    def _append_on_create(self, body, volume_id, mount_point):
+        """Append additional stuff to create"""
+        # Add image_ref
+        body['dbcontainer']['imageRef'] = FLAGS.reddwarf_imageRef
+        # Add Firewall rules
+        body['dbcontainer']['firewallRules'] = [FLAGS.default_firewall_rule_name]
+        # Add volume id
+        if not 'metadata' in body['dbcontainer']:
+            body['dbcontainer']['metadata'] = {}
+        body['dbcontainer']['metadata']['volume_id'] = str(volume_id)
+        # Add mount point
+        body['dbcontainer']['metadata']['mount_point'] = str(mount_point)
+
+    def _rename_to_server(self, body):
+        """Rename dbcontainer to server"""
+        return {'server': body['dbcontainer']}
+
+    def create_volume(self, req, body):
         """Creates the volume for the container and returns its ID."""
         context = req.environ['nova.context']
         try:
-            volume_size = env['dbcontainer']['volume']['size']
+            volume_size = body['dbcontainer']['volume']['size']
         except KeyError as e:
             LOG.error("Create Container Required field(s) - %s" % e)
             raise exc.HTTPBadRequest("Create Container Required field(s) - %s" % e)
 
         return self.volume_api.create(context, size=volume_size,
+                                      snapshot_id=None,
                                       name=None,
                                       description=None)
 
-    def _try_create_server(self, req):
+    def _try_create_server(self, req, body):
         """Handle the call to create a server through the openstack servers api.
 
-        Separating this so we could do retries in the future and other processing of
-        the result etc.
+        Separating this so we could do retries in the future and other
+        processing of the result etc.
         """
         try:
-            server = self.server_controller.create(req)
+            server = self.server_controller.create(req, body)
             if not server or isinstance(server, faults.Fault):
                 if isinstance(server, faults.Fault):
                     LOG.error("%s: %s", server.wrapped_exc,
@@ -225,7 +243,7 @@ class Controller(common.DBaaSController):
             response["hostname"] = hostname
 
         LOG.debug("Removing the excess information from the containers.")
-        for attr in ["hostId","imageRef","metadata","adminPass"]:
+        for attr in ["hostId","imageRef","metadata","adminPass", "uuid"]:
             if response.has_key(attr):
                 del response[attr]
         if response.has_key("volumes"):
@@ -272,29 +290,6 @@ class Controller(common.DBaaSController):
             self.compute_api.trigger_security_group_rules_refresh(context,
                                                           security_group['id'])
 
-    def _deserialize_create(self, request):
-        """ Deserialize a create request
-
-        Overrides normal behavior in the case of xml content
-
-        :retval A dictionary object representing the original request, followed
-                by a SerializableMutableRequest representing 
-                string representing the request deserialized with values changed.
-        """
-        if request.content_type == "application/xml":
-            deser = deserializer.RequestXMLDeserializer()
-            env, body = deser.deserialize_create(request.body)
-        else:
-            deser = deserializer.RequestJSONDeserializer()
-            env = self._deserialize(request.body, request.get_content_type())
-            body = deser.deserialize_create(request.body)
-
-        # Add any checks for required elements/attributes/keys
-        if not env['dbcontainer'].get('flavorRef', ''):
-            raise exception.ApiError("Required attribute/key 'flavorRef' " \
-                                     "was not specified")
-        return env, body
-
     def _determine_root(self, req, container, id):
         """ Determine if root is enabled for a given container. """
         # If we can't determine if root is enabled for whatever reason,
@@ -310,11 +305,22 @@ class Controller(common.DBaaSController):
                 LOG.error("rootEnabled for %s could not be determined." % id)
         return
 
+    def _validate(self, body):
+        """Validate that the request has all the required parameters"""
+        if not body:
+            return faults.Fault(exc.HTTPUnprocessableEntity())
+
+        if not body.get('dbcontainer', ''):
+            raise exception.ApiError("Required element/key 'dbcontainer' " \
+                                      "was not specified")
+        if not body['dbcontainer'].get('flavorRef', ''):
+            raise exception.ApiError("Required attribute/key 'flavorRef' " \
+                                     "was not specified")
+
 
 def create_resource(version='1.0'):
     controller = {
         '1.0': Controller,
-        '1.1': Controller,
     }[version]()
 
     metadata = {
@@ -327,8 +333,7 @@ def create_resource(version='1.0'):
     }
 
     xmlns = {
-        '1.0': wsgi.XMLNS_V10,
-        '1.1': wsgi.XMLNS_V11,
+        '1.0': common.XML_NS_V10,
     }[version]
 
     serializers = {
@@ -337,7 +342,7 @@ def create_resource(version='1.0'):
     }
 
     deserializers = {
-        'application/xml': deserializer.DBContainersRequestXMLDeserializer(),
+        'application/xml': deserializer.DBContainerXMLDeserializer(),
     }
 
     return wsgi.Resource(controller, serializers=serializers,

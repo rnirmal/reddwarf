@@ -205,7 +205,8 @@ class CreateCommands(object):
         """\tEnabling the container's root user."""
         dbaas = _get_client(options)
         try:
-            dbaas.root.create(id)
+            user, password = dbaas.root.create(id)
+            print "User:\t\t%s\nPassword:\t%s" % (user, password)
         except:
             print sys.exc_info()[1]
 
