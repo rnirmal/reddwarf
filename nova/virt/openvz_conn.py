@@ -194,7 +194,7 @@ class OpenVzConnection(driver.ComputeDriver):
         return infos
 
     @exception.wrap_exception
-    def spawn(self, instance):
+    def spawn(self, instance, network_info=None, block_device_mapping=None):
         """
         Create a new virtual environment on the container platform.
 
@@ -296,7 +296,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # This will actually drop the os from the local image cache
         try:
             utils.execute('sudo', 'vzctl', 'create', instance['id'],
-                          '--ostemplate', instance['image_id'])
+                          '--ostemplate', instance['image_ref'])
         except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Failed creating VE %s from image cache' %
@@ -319,7 +319,7 @@ class OpenVzConnection(driver.ComputeDriver):
         Create the disk image for the virtual environment.
         """
 
-        image_name = '%s.tar.gz' % instance['image_id']
+        image_name = '%s.tar.gz' % instance['image_ref']
         full_image_path = '%s/%s' % (FLAGS.ovz_image_template_dir, image_name)
 
         if not os.path.exists(full_image_path):
@@ -330,7 +330,7 @@ class OpenVzConnection(driver.ComputeDriver):
             project = manager.AuthManager().get_project(instance['project_id'])
 
             # Grab image and place it in the image cache
-            images.fetch(instance['image_id'], full_image_path, user, project)
+            images.fetch(instance['image_ref'], full_image_path, user, project)
             return True
         else:
             return False
