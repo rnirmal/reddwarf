@@ -130,13 +130,17 @@ class Controller(object):
         LOG.info("Delete Container by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
-        volumes = db.volume_get_all_by_instance(context, id)
+
         result = self.server_controller.delete(req, id)
         if isinstance(result, exc.HTTPAccepted):
             dbapi.guest_status_delete(id)
-        for volume in volumes:
-            self.volume_api.delete_volume_when_available(context, volume['id'],
-                                                         time_out=60)
+        try:
+            for volume in db.volume_get_all_by_instance(context, id):
+                self.volume_api.delete_volume_when_available(context,
+                                                             volume['id'],
+                                                             time_out=60)
+        except exception.VolumeNotFoundForInstance:
+            LOG.info("Skipping as no volumes are associated with the instance")
         return result
 
     def create(self, req, body):

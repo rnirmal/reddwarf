@@ -11,7 +11,7 @@
 --ovz_ve_private_dir=/var/lib/vz/private/
 --allow_admin_api=True
 --flat_network_bridge=br100
---lock_path=~/tmp
+--lock_path=/tmp
 --max_instance_memory_mb=6144
 --scheduler_driver=nova.scheduler.simple.MemoryScheduler
 
