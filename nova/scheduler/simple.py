@@ -83,7 +83,7 @@ class SimpleScheduler(chance.ChanceScheduler):
         """Schedule the instance to run now on the given host."""
         # TODO(vish): this probably belongs in the manager, if we
         #             can generalize this somehow
-        now = datetime.datetime.utcnow()
+        now = utils.utcnow()
         db.instance_update(context, instance_id,
                            {'host': host, 'scheduled_at': now})
         return host
