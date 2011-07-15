@@ -45,23 +45,20 @@ def get_pagination_params(request):
                     exc.HTTPBadRequest() exceptions to be raised.
 
     """
-    try:
-        marker = int(request.GET.get('marker', 0))
-    except ValueError:
-        raise webob.exc.HTTPBadRequest(_('marker param must be an integer'))
+    params = {}
+    for param in ['marker', 'limit']:
+        if not param in request.GET:
+            continue
+        try:
+            params[param] = int(request.GET[param])
+        except ValueError:
+            msg = _('%s param must be an integer') % param
+            raise webob.exc.HTTPBadRequest(msg)
+        if params[param] < 0:
+            msg = _('%s param must be positive') % param
+            raise webob.exc.HTTPBadRequest(msg)
 
-    try:
-        limit = int(request.GET.get('limit', 0))
-    except ValueError:
-        raise webob.exc.HTTPBadRequest(_('limit param must be an integer'))
-
-    if limit < 0:
-        raise webob.exc.HTTPBadRequest(_('limit param must be positive'))
-
-    if marker < 0:
-        raise webob.exc.HTTPBadRequest(_('marker param must be positive'))
-
-    return(marker, limit)
+    return params
 
 
 def limited(items, request, max_limit=FLAGS.osapi_max_limit):
@@ -100,10 +97,10 @@ def limited(items, request, max_limit=FLAGS.osapi_max_limit):
 
 def limited_by_marker(items, request, max_limit=FLAGS.osapi_max_limit):
     """Return a slice of items according to the requested marker and limit."""
-    (marker, limit) = get_pagination_params(request)
+    params = get_pagination_params(request)
 
-    if limit == 0:
-        limit = max_limit
+    limit = params.get('limit', max_limit)
+    marker = params.get('marker')
 
     limit = min(max_limit, limit)
     start_index = 0
@@ -136,4 +133,25 @@ def get_id_from_href(href):
         return int(urlparse(href).path.split('/')[-1])
     except:
         LOG.debug(_("Error extracting id from href: %s") % href)
-        raise webob.exc.HTTPBadRequest(_('could not parse id from href'))
+        raise ValueError(_('could not parse id from href'))
+
+
+def remove_version_from_href(href):
+    """Removes the api version from the href.
+
+    Given: 'http://www.nova.com/v1.1/123'
+    Returns: 'http://www.nova.com/123'
+
+    """
+    try:
+        #matches /v#.#
+        new_href = re.sub(r'[/][v][0-9]*.[0-9]*', '', href)
+    except:
+        LOG.debug(_("Error removing version from href: %s") % href)
+        msg = _('could not parse version from href')
+        raise ValueError(msg)
+
+    if new_href == href:
+        msg = _('href does not contain version')
+        raise ValueError(msg)
+    return new_href

@@ -76,10 +76,17 @@ class Controller(object):
 
         builder - the response model builder
         """
-        reservation_id = req.str_GET.get('reservation_id')
+        query_str = req.str_GET
+        reservation_id = query_str.get('reservation_id')
+        project_id = query_str.get('project_id')
+        fixed_ip = query_str.get('fixed_ip')
+        recurse_zones = utils.bool_from_str(query_str.get('recurse_zones'))
         instance_list = self.compute_api.get_all(
-                                            req.environ['nova.context'],
-                                            reservation_id=reservation_id)
+                req.environ['nova.context'],
+                reservation_id=reservation_id,
+                project_id=project_id,
+                fixed_ip=fixed_ip,
+                recurse_zones=recurse_zones)
         limited_list = self._limit_items(instance_list, req)
         builder = self._get_view_builder(req)
         servers = [builder.build(inst, is_detail)['server']
@@ -97,28 +104,20 @@ class Controller(object):
         except exception.NotFound:
             return faults.Fault(exc.HTTPNotFound())
 
-    @scheduler_api.redirect_handler
-    def delete(self, req, id):
-        """ Destroys a server """
-        try:
-            self.compute_api.delete(req.environ['nova.context'], id)
-        except exception.NotFound:
-            return faults.Fault(exc.HTTPNotFound())
-        return exc.HTTPAccepted()
-
     def create(self, req, body):
         """ Creates a new server for a given user """
         extra_values = None
         result = None
         try:
-            extra_values, result = self.helper.create_instance(
-                                    req, body, self.compute_api.create)
+            extra_values, instances = self.helper.create_instance(
+                    req, body, self.compute_api.create)
         except faults.Fault, f:
             return f
 
-        instances = result
-
-        (inst, ) = instances
+        # We can only return 1 instance via the API, if we happen to
+        # build more than one...  instances is a list, so we'll just
+        # use the first one..
+        inst = instances[0]
         for key in ['instance_type', 'image_ref']:
             inst[key] = extra_values[key]
 
@@ -168,7 +167,7 @@ class Controller(object):
             'confirmResize': self._action_confirm_resize,
             'revertResize': self._action_revert_resize,
             'rebuild': self._action_rebuild,
-            }
+            'migrate': self._action_migrate}
 
         for key in actions.keys():
             if key in body:
@@ -210,6 +209,14 @@ class Controller(object):
         except Exception, e:
             LOG.exception(_("Error in reboot %s"), e)
             return faults.Fault(exc.HTTPUnprocessableEntity())
+        return exc.HTTPAccepted()
+
+    def _action_migrate(self, input_dict, req, id):
+        try:
+            self.compute_api.resize(req.environ['nova.context'], id)
+        except Exception, e:
+            LOG.exception(_("Error in migrate %s"), e)
+            return faults.Fault(exc.HTTPBadRequest())
         return exc.HTTPAccepted()
 
     @scheduler_api.redirect_handler
@@ -404,6 +411,15 @@ class Controller(object):
 
 class ControllerV10(Controller):
 
+    @scheduler_api.redirect_handler
+    def delete(self, req, id):
+        """ Destroys a server """
+        try:
+            self.compute_api.delete(req.environ['nova.context'], id)
+        except exception.NotFound:
+            return faults.Fault(exc.HTTPNotFound())
+        return exc.HTTPAccepted()
+
     def _image_ref_from_req_data(self, data):
         return data['server']['imageId']
 
@@ -466,6 +482,15 @@ class ControllerV10(Controller):
 
 
 class ControllerV11(Controller):
+
+    @scheduler_api.redirect_handler
+    def delete(self, req, id):
+        """ Destroys a server """
+        try:
+            self.compute_api.delete(req.environ['nova.context'], id)
+        except exception.NotFound:
+            return faults.Fault(exc.HTTPNotFound())
+
     def _image_ref_from_req_data(self, data):
         return data['server']['imageRef']
 
@@ -581,6 +606,12 @@ class ControllerV11(Controller):
         return self.helper._get_server_admin_password_new_style(server)
 
 
+class HeadersSerializer(wsgi.ResponseHeadersSerializer):
+
+    def delete(self, response, data):
+        response.status_int = 204
+
+
 def create_resource(version='1.0'):
     controller = {
         '1.0': ControllerV10,
@@ -608,14 +639,18 @@ def create_resource(version='1.0'):
         '1.1': wsgi.XMLNS_V11,
     }[version]
 
-    serializers = {
+    headers_serializer = HeadersSerializer()
+
+    body_serializers = {
         'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
                                                   xmlns=xmlns),
     }
 
-    deserializers = {
+    body_deserializers = {
         'application/xml': helper.ServerXMLDeserializer(),
     }
 
-    return wsgi.Resource(controller, serializers=serializers,
-                         deserializers=deserializers)
+    serializer = wsgi.ResponseSerializer(body_serializers, headers_serializer)
+    deserializer = wsgi.RequestDeserializer(body_deserializers)
+
+    return wsgi.Resource(controller, deserializer, serializer)
