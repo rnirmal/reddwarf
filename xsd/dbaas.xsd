@@ -34,22 +34,22 @@
     </annotation>
   </element>
   <element name="users" type="dbaas:Users">
-      <annotation>
-        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>A MySQL User.</p>
-        </xsd:documentation>
-        <xsd:appinfo>
-          <xsdxt:samples>
-            <xsdxt:sample>
-              <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-            </xsdxt:sample>
-            <xsdxt:sample>
-              <xsdxt:code type="application/json" href="../samples/user.json"/>
-            </xsdxt:sample>
-          </xsdxt:samples>
-        </xsd:appinfo>
-      </annotation>
-    </element>
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>A MySQL User.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/user.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
   <element name="container" type="dbaas:DatabaseContainer">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
