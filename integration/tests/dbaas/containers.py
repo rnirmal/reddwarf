@@ -25,6 +25,7 @@ from reddwarf.db import api as dbapi
 
 from reddwarfclient import Dbaas
 from tests.util import test_config
+from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from proboscis import test
 from tests.util import check_database
@@ -262,10 +263,20 @@ class TestVolume(unittest.TestCase):
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
-    
+
     def test_detail_list(self):
         container_info.myresult = dbaas.dbcontainers.details()
         self.assertTrue(self._detail_dbcontainers_exist())
+
+    def test_index_host_list(self):
+        container_info.myresult = dbaas.hosts.index()
+        self.assertNotEqual(container_info.myresult, None, "list hosts should not be empty")
+        self.assertTrue(len(container_info.myresult.hosts) > 0, "list hosts should not be empty")
+
+    def test_index_host_list_single(self):
+        container_info.myresult = dbaas.hosts.get('host')
+        self.assertNotEqual(container_info.myresult, None, "list hosts should not be empty")
+        self.assertTrue(len(container_info.myresult.dbcontainers) > 0, "dbcontainer list on the host should not be empty")
 
     def test_index_list(self):
         container_info.myresult = dbaas.dbcontainers.index()
@@ -278,6 +289,10 @@ class TestContainListing(unittest.TestCase):
     def test_get_container_status(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
         self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
+
+    def test_get_host_containers(self):
+        container_info.myresult = dbaas.hosts.get(container_info.id)
+        self.assertNotEqual(container_info.myresult, None, "get host containers should not be empty")
 
     def test_get_legacy_status(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
