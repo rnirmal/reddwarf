@@ -172,14 +172,12 @@ class CreateContainer(unittest.TestCase):
         
         # checks to be sure these are not found in the result
         for attr in ["hostId","imageRef","metadata","adminPass"]:
-            self.assertTrue(result.get_attr(attr) is None,
-                            "Create response should not contain %s = %s" %
-                            (attr, result.get_attr(attr)))
+            self.assertFalse(hasattr(result, attr),
+                            "Create response should not contain %r." % attr)
         # checks to be sure these are found in the result
         for attr in ["flavorRef","id","name","status","addresses","links","volume"]:
-            self.assertTrue(result_dict.get(attr) != None,
-                            "Create response should contain %s = %s attribute." %
-                            (attr, result.get_attr(attr)))
+            self.assertTrue(hasattr(result, attr),
+                            "Create response should contain %r attribute." % attr)
 
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
@@ -307,15 +305,13 @@ class TestContainListing(unittest.TestCase):
     
     def test_detail_list(self):
         containers = dbaas.dbcontainers.details()
-        assertEqual(len(containers), 1)
         for container in containers:
             self._detail_dbcontainers_exist(container)
 
     def test_index_list(self):
         containers = dbaas.dbcontainers.index()
-        assertEqual(len(containers), 1)
         for container in containers:
-            self._index_dbcontainers_exist(dbcontainers)
+            self._index_dbcontainers_exist(container)
 
     def test_get_container(self):
         container = dbaas.dbcontainers.get(container_info.id)
@@ -327,7 +323,7 @@ class TestContainListing(unittest.TestCase):
 
     def test_get_legacy_status(self):
         result = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(len(result) > 0)
+        self.assertTrue(result is not None)
 
     def test_get_legacy_status_notfound(self):
         self.assertRaises(NotFound, dbaas.dbcontainers.get, -2)
@@ -347,44 +343,16 @@ class TestContainListing(unittest.TestCase):
 
     def test_volume_found(self):
         container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEquals(container_info.volume['size'],
+        self.assertEqual(container_info.volume['size'],
                           container_info.myresult['volume']['size'])
 
-    def _detail_dbcontainers_exist(self):
-        for container in container_info.myresult:
-            if not container.status:
-                return False
-            if not container.id and container.id != container_info.id:
-                return False
-            if not container.name:
-                return False
-            if not container.addresses:
-                return False
-            if not container.links:
-                return False
-            if not container.volume:
-                return False
-        return True
-
-    def _index_dbcontainers_exist(self):
-        for container in container_info.myresult:
-            if not container.id and container.id != container_info.id:
-                return False
-            if not container.name:
-                return False
-            if not container.links:
-                return False
-        return True
-
-    def _assert_dbcontainers_exist(self):
-        container = container_info.myresult
+    def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)        
         attrs = ['name', 'links']
         self._check_attr_in_dbcontainers(container, attrs)
         if rsdns:
             dns_entry = container_info.expected_dns_entry()
             self.assertEqual(dns_entry.name, container.hostname)
-
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, "dbaas.mgmt.listing"])
 class MgmtHostCheck(unittest.TestCase):
@@ -461,12 +429,13 @@ def management_callback():
 @test(depends_on_classes=[CreateContainer, VerifyGuestStarted,
     WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 '''
-@test(depends_on=[management_callback])
+@test(depends_on=[management_callback], groups=[GROUP])
 class VerifyContainerMgmtInfo(unittest.TestCase):
 
     def _assert_key(self, k, expected):
-        err = "Key %r does not match expected value of %r" % (k, expected)
-        self.assertEqual(mgmt_details[k], expected, err)
+        v = getattr(mgmt_details, k)
+        err = "Key %r does not match expected value of %r (was %r)." % (k, expected, v)
+        self.assertEqual(str(v), str(expected), err)
 
     def test_id_matches(self):
         self._assert_key('id', container_info.id)
@@ -474,26 +443,43 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
         mgmt_details = dbaas.management.details(container_info.id)
-        info = container_info.initial_result
+        info = container_info
+        ir = info.initial_result
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
+            container_info.id)
+        volume = {
+            'id': volumes[0].id,
+            'name': volumes[0].display_name,
+            'size': volumes[0].size,
+            'description': volumes[0].display_description,
+            }
+
         expected = {
-            'id': info.id,
-            'name': info.name,
-            'host': info.initial_result.hostname,
+            'id': ir.id,
+            'name': ir.name,
             'account_id': info.user,
             'flavorRef': info.dbaas_flavor_href,
-            'databases': info.result.databases,
+            'databases': ir.databases, ## TODO(ed-)
             'users': test_config.users,
             'volume': volume,
             }
+
+        if rsdns is not None:
+            expected['host'] = info.hostname
+
         self.assertTrue(mgmt_details is not None)
         failures = []
         for (k,v) in expected.items():
+            #self.assertTrue(hasattr(mgmt_details, k), "Attr %r is missing." % k)
+            #self.assertEqual(getattr(mgmt_details, k), v,
+            #    "Attr %r expected to be %r but was %r." %
+            #    (k, v, getattr(mgmt_details, k)))
             if not hasattr(mgmt_details, k):
                 failures.append("Attr %r missing." % k)
                 continue
-            if getattr(mgmt_details, k) != v:
+            actual = getattr(mgmt_details, k)
+            if actual != v:
                 failures.append("Attr %r expected %r but was %r" %
-                    (k, v, getattr(mgmt_details, k)))
-        #self.assertEqual(mgmt_details.__dict__.get(k, None), v)
+                    (k, v, actual))
         failures = '\n'.join(failures)
         self.assertEqual('', failures)
