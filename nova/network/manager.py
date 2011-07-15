@@ -54,6 +54,7 @@ from eventlet import greenpool
 
 from nova import context
 from nova import db
+from nova import dns
 from nova import exception
 from nova import flags
 from nova import ipv6
@@ -296,6 +297,7 @@ class NetworkManager(manager.SchedulerDependentManager):
         if not network_driver:
             network_driver = FLAGS.network_driver
         self.driver = utils.import_object(network_driver)
+        self.dns_api = dns.API()
         self.network_api = network_api.API()
         super(NetworkManager, self).__init__(service_name='network',
                                                 *args, **kwargs)
@@ -381,6 +383,7 @@ class NetworkManager(manager.SchedulerDependentManager):
                                                                   project_id)
         self._allocate_mac_addresses(context, instance_id, networks)
         self._allocate_fixed_ips(admin_context, instance_id, networks, vpn=vpn)
+        self._allocate_dns_entry(admin_context, instance_id, networks, vpn=vpn)
         return self.get_instance_nw_info(context, instance_id, type_id)
 
     def deallocate_for_instance(self, context, **kwargs):
@@ -397,6 +400,9 @@ class NetworkManager(manager.SchedulerDependentManager):
         # deallocate fixed ips
         for fixed_ip in fixed_ips:
             self.deallocate_fixed_ip(context, fixed_ip['address'], **kwargs)
+        
+        # deallocate the single instance     
+        self.dns_api.delete_instance_entry(context, instance_id, fixed_ip)
 
         # deallocate vifs (mac addresses)
         self.db.virtual_interface_delete_by_instance(context, instance_id)
@@ -658,6 +664,10 @@ class NetworkManager(manager.SchedulerDependentManager):
             self.db.fixed_ip_create(context, {'network_id': network_id,
                                               'address': address,
                                               'reserved': reserved})
+
+    def _allocate_dns_entry(self, context, instance_id, networks, **kwargs):
+        """Creates a DNS entry for the compute instance"""
+        self.dns_api.create_instance_entry(context, instance_ref, address)
 
     def _allocate_fixed_ips(self, context, instance_id, networks, **kwargs):
         """Calls allocate_fixed_ip once for each network."""
