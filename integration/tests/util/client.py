@@ -27,9 +27,7 @@
 """
 
 
-from nose.tools import assert_equal
 from nose.tools import assert_false
-from nose.tools import assert_not_equal
 from nose.tools import assert_true
 
 class TestClient(object):
@@ -40,8 +38,11 @@ class TestClient(object):
 
     """
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, dbaas_client, os_client=None):
+        """Accepts a dbaas and os client. They may have different urls."""
+        os_client = os_client or dbaas_client
+        self.dbaas_client = dbaas_client
+        self.os_client = os_client
 
     @staticmethod
     def find_flavor_self_href(flavor):
@@ -53,13 +54,13 @@ class TestClient(object):
 
     def find_flavors_by_ram(self, ram):
         assert_false(ram is None)
-        flavors = self.client.flavors.list()
+        flavors = self.flavors.list()
         return [flavor for flavor in flavors if flavor.ram == ram]
 
     def find_flavor_and_self_href(self, flavor_id):
         """Given an ID, returns flavor and its self href."""
         assert_false(flavor_id is None)
-        flavor = self.client.flavors.get(flavor_id)
+        flavor = self.flavors.get(flavor_id)
         assert_false(flavor is None)
         flavor_href = self.find_flavor_self_href(flavor)
         return flavor, flavor_href
@@ -67,7 +68,7 @@ class TestClient(object):
     def find_image_and_self_href(self, image_id):
         """Given an ID, returns tuple with image and its self href."""
         assert_false(image_id is None)
-        image = self.client.images.get(image_id)
+        image = self.images.get(image_id)
         assert_true(image is not None)
         self_links = [link['href'] for link in image.links
                       if link['rel'] == 'self']
@@ -79,4 +80,8 @@ class TestClient(object):
         return image, image_href
 
     def __getattr__(self, item):
-        return getattr(self.client, item)
+        if item in ['ipgroups', 'servers', 'zones', 'accounts']:
+            preferred_client = self.os_client
+        else:
+            preferred_client = self.dbaas_client
+        return getattr(preferred_client, item)
