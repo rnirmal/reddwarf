@@ -49,4 +49,11 @@ class Hosts(base.ManagerWithFind):
 
         :rtype: :class:`DbContainer`
         """
-        return self._get("/mgmt/hosts/%s" % str(host), "host")
+        return self._get("/mgmt/hosts/%s" % self._get_host_name(host), "host")
+
+    def _get_host_name(self, host):
+        try:
+            if host.name:
+                return host.name
+        except AttributeError:
+            return host
