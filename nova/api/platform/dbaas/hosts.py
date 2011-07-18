@@ -19,6 +19,7 @@ from webob import exc
 from nova import compute
 from nova import flags
 from nova import log as logging
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from reddwarf.db import api as dbapi
 
@@ -29,17 +30,8 @@ LOG.setLevel(logging.DEBUG)
 FLAGS = flags.FLAGS
 
 
-class Controller(common.DBaaSController):
+class Controller(object):
     """ The Host Management Controller for the Platform API """
-
-    _serialization_metadata = {
-        'application/xml': {
-            "attributes": {
-                "host": ["name","instanceCount"],
-                "dbcontainer": ["id"],
-            },
-        },
-    }
 
     def __init__(self):
         self.host_api = compute.API()
@@ -67,3 +59,27 @@ class Controller(common.DBaaSController):
         for c in containers:
             resp['host']['dbcontainers'].append({'id':c.id})
         return resp
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+            "host": ["name","instanceCount"],
+            "dbcontainer": ["id"],
+        },
+    }
+
+    xmlns = {
+        '1.0': common.XML_NS_V10,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    return wsgi.Resource(controller, serializers=serializers,
+                         deserializers=None)

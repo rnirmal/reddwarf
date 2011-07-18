@@ -72,11 +72,11 @@ class APIRouter(wsgi.Router):
                             collection={'detail': 'GET'})
 
             mapper.connect("/mgmt/hosts",
-                       controller=hosts.Controller(),
+                       controller=hosts.create_resource(),
                        action="index", conditions=dict(method=["GET"]))
 
             mapper.connect("/mgmt/hosts/{id}",
-                       controller=hosts.Controller(),
+                       controller=hosts.create_resource(),
                        action="show", conditions=dict(method=["GET"]))
 
             #TODO(rnirmal): Right now any user can access these
