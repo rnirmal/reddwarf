@@ -21,6 +21,7 @@ import datetime
 from nova import exception
 from nova import log as logging
 from sqlalchemy.sql import func
+from sqlalchemy.sql import text
 from nova.db.sqlalchemy.api import is_admin_context
 from nova.db.sqlalchemy.api import require_context
 from nova.db.sqlalchemy.models import Instance
@@ -120,11 +121,16 @@ def list_compute_hosts(context):
         session = get_session()
         with session.begin():
             label = 'instance_count'
-            query = session.query(Service, func.count(Instance.id).label(label)).\
-                            filter_by(deleted=False).\
-                            filter_by(binary='nova-compute').\
-                            join((Instance,Instance.host==Service.host))
-            result = query.all()
+            query = text("""SELECT s.id, s.host, s.binary,
+                                (SELECT count(id)
+                                 FROM instances i
+                                 WHERE s.host=i.host
+                                    AND i.deleted=0) as instance_count
+                            FROM services s
+                            WHERE s.binary='nova-compute'
+                                AND s.deleted=0""")
+            LOG.debug("select_services query : %s" % str(query))
+            result = session.execute(query)
             return result
     else:
         return []

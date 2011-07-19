@@ -43,10 +43,14 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         services = dbapi.list_compute_hosts(ctxt)
+        LOG.debug("services - %s", str(services))
         resp = {'hosts':[]}
         for srv in services:
-            resp['hosts'].append({'name':srv.Service.host,
-                                  'instanceCount':srv.instance_count})
+            LOG.debug("service : %s" % str(srv))
+            if srv:
+                resp['hosts'].append({'name':srv['host'],
+                                      'instanceCount':srv['instance_count']
+                })
         return resp
 
     def show(self, req, id):
@@ -81,5 +85,6 @@ def create_resource(version='1.0'):
                                                   xmlns=xmlns),
     }
 
-    return wsgi.Resource(controller, serializers=serializers,
-                         deserializers=None)
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+
+    return wsgi.Resource(controller, serializer=response_serializer)
