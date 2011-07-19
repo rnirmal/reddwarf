@@ -45,7 +45,7 @@ def guest_status_get(instance_id, session=None):
     """Get the status of the guest
 
     :param instance_id: instance id for the guest
-    "param session: pass in a active session if available
+    :param session: pass in a active session if available
     """
     if not session:
         session = get_session()
@@ -57,6 +57,20 @@ def guest_status_get(instance_id, session=None):
         raise exception.InstanceNotFound(instance_id=instance_id)
     return result
 
+def guest_status_get_list(instance_ids, session=None):
+    """Get the status of the given guests
+
+    :param instance_ids: list of instance ids for the guests
+    :param session: pass in a active session if available
+    """
+    if not session:
+        session = get_session()
+    result = session.query(models.GuestStatus).\
+                         filter(models.GuestStatus.instance_id.in_(instance_ids)).\
+                         filter_by(deleted=False)
+    if not result:
+        raise exception.InstanceNotFound(instance_id=instance_ids)
+    return result
 
 def guest_status_update(instance_id, state, description=None):
     """Update the state of the guest with one of the valid states

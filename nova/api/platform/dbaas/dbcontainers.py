@@ -71,17 +71,17 @@ class Controller(object):
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
+        return self._manipulate_response(req, resp)
+
+    def _manipulate_response(self, req, resp):
+        """ Changes the response from detail and index """
+        ids = [db['id'] for db in resp['dbcontainers']]
+        results = dbapi.guest_status_get_list(ids)
+        out = dict([(r.instance_id, _dbaas_mapping[r.state]) for r in results])
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
-            # TODO(cp16net)
-            # make a guest status get function that allows you
-            # to pass a list of container ids
-            try:
-                result = dbapi.guest_status_get(container['id'])
-                container['status'] = _dbaas_mapping[result.state]
-            except InstanceNotFound:
-                # we set the state to shutdown if not found
-                container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
+            container['status'] = out.get(container['id'],
+                                          _dbaas_mapping[power_state.SHUTDOWN])
         return resp
 
     def detail(self, req):
@@ -89,17 +89,8 @@ class Controller(object):
         LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
+        resp = self._manipulate_response(req, resp)
         for container in resp['dbcontainers']:
-            self._modify_fields(req, container)
-            # TODO(cp16net)
-            # make a guest status get function that allows you
-            # to pass a list of container ids
-            try:
-                result = dbapi.guest_status_get(container['id'])
-                container['status'] = _dbaas_mapping[result.state]
-            except InstanceNotFound:
-                # we set the state to shutdown if not found
-                container['status'] = _dbaas_mapping[power_state.SHUTDOWN]
             enabled = self._determine_root(req, container, container['id'])
             if enabled is not None:
                 container['rootEnabled'] = enabled

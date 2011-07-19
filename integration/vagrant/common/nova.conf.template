@@ -22,6 +22,15 @@
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
 --enabled_apis=osapi
+
+# Quota Limits
+--quota_instances=10
+--quota_cores=20
+--quota_ram=51200
+--quota_volumes=10
+--quota_gigabytes=1000
+--quota_floating_ips=10
+
 #Extra ending line needed so that other conf files can be appended to this one.
 
 
