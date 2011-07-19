@@ -54,7 +54,6 @@ class Controller(common.DBaaSController):
                     'type',
                     'href',
                 ],
-            },
             'database': [
                 'name',
                 'collate',
@@ -69,6 +68,7 @@ class Controller(common.DBaaSController):
                 'description',
                 'name',
             ]
+            },
         },
     }
 
@@ -92,11 +92,12 @@ class Controller(common.DBaaSController):
         dbs = self.guest_api.list_databases(context, id)
         if isinstance(dbs, Exception):
             return dbs
-        dbs = [
-                {
-                    'name': db['_name'],
-                    'collate': db['_collate'],
-                    'character_set': db['_character_set'],
+
+        LOG.debug("DBS: %r" % dbs)
+        dbs = [{
+                'name': db['_name'],
+                'collate': db['_collate'],
+                'character_set': db['_character_set']
                 } for db in dbs]
 
         users = self.guest_api.list_users(context, id)

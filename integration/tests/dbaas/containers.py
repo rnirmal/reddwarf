@@ -53,7 +53,7 @@ class ContainerTestInfo(object):
         self.id = None  # The ID of the instance in the database.
         self.initial_result = None # The initial result from the create call.
         self.ip = None  # The IP of the instance.
-        self.myresult = None  # The container info returned by the API
+        self.result = None  # The container info returned by the API
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the container.
@@ -156,7 +156,7 @@ class CreateContainer(unittest.TestCase):
         time.sleep(2)
 
         databases = []
-        databases.append({"name": "firstdb", "charset": "latin2",
+        databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
         container_info.volume = {"size":1}
 
@@ -342,9 +342,9 @@ class TestContainListing(unittest.TestCase):
         self._check_attr_in_dbcontainers(container, attrs)
 
     def test_volume_found(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
+        container_info.result = dbaas.dbcontainers.get(container_info.id).__dict__
         self.assertEqual(container_info.volume['size'],
-                          container_info.myresult['volume']['size'])
+                          container_info.result['volume']['size'])
 
     def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)        
@@ -396,7 +396,7 @@ class DeleteContainer(unittest.TestCase):
         global dbaas
         if not hasattr(container_info, "result"):
             raise SkipTest("Container was never created, skipping test...")
-        dbaas.dbcontainers.delete(container_info.result)
+        dbaas.dbcontainers.delete(container_info.id)
 
         try:
             time.sleep(1)
@@ -447,21 +447,24 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
         ir = info.initial_result
         volumes = db.volume_get_all_by_instance(context.get_admin_context(),
             container_info.id)
-        volume = {
-            'id': volumes[0].id,
-            'name': volumes[0].display_name,
-            'size': volumes[0].size,
-            'description': volumes[0].display_description,
-            }
 
         expected = {
-            'id': ir.id,
+            'id': str(ir.id),
             'name': ir.name,
-            'account_id': info.user,
+            'account_id': info.user.auth_user,
             'flavorRef': info.dbaas_flavor_href,
-            'databases': ir.databases, ## TODO(ed-)
-            'users': test_config.users,
-            'volume': volume,
+            'databases': [{
+                'name': 'firstdb',
+                'charset': 'latin2',
+                'collate': 'latin2_general_ci',
+                }],
+            'users': [], # TODO(ed-) Surely I can't guarantee this.
+            'volume': {
+                'id': volumes[0].id,
+                'name': volumes[0].display_name,
+                'size': volumes[0].size,
+                'description': volumes[0].display_description,
+                },
             }
 
         if rsdns is not None:
@@ -479,7 +482,7 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
                 continue
             actual = getattr(mgmt_details, k)
             if actual != v:
-                failures.append("Attr %r expected %r but was %r" %
+                failures.append("Attr %r expected \n\t%r but was \n\t%r" %
                     (k, v, actual))
-        failures = '\n'.join(failures)
+        failures = '\n\n'.join(failures)
         self.assertEqual('', failures)

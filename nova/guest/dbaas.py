@@ -153,11 +153,24 @@ class DBaaSAgent(object):
             mysql_user = models.MySQLUser()
             t = text("""show databases where `Database` not in ('mysql', 'information_schema');""")
             result = client.execute(t)
-            LOG.debug("result = " + str(result))
+            t = text('''
+            SELECT
+                schema_name as name,
+                default_character_set_name as charset,
+                default_collation_name as collation
+            FROM
+                information_schema.schemata
+            ''')
+            locales = [x for x in client.execute(t).fetchall()]
+            LOG.debug("result = %r" % result)
+            LOG.debug("locales = %r" % locales)
             for row in result:
                 LOG.debug("database = " + str(row))
                 mysql_db = models.MySQLDatabase()
                 mysql_db.name = row[0]
+                charset, collation = [(ch, co) for (n, ch, co) in locales if n==row[0]][0]
+                mysql_db.collate = collation
+                mysql_db.character_set = charset
                 databases.append(mysql_db.serialize())
         LOG.debug("databases = " + str(databases))
         return databases
