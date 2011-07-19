@@ -80,8 +80,6 @@ class Controller(object):
         out = dict([(r.instance_id, _dbaas_mapping[r.state]) for r in results])
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
-            container['status'] = out.get(container['id'],
-                                          _dbaas_mapping[power_state.SHUTDOWN])
         return resp
 
     def detail(self, req):
@@ -91,6 +89,7 @@ class Controller(object):
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
         resp = self._manipulate_response(req, resp)
         for container in resp['dbcontainers']:
+            self._modify_fields(req, container)
             enabled = self._determine_root(req, container, container['id'])
             if enabled is not None:
                 container['rootEnabled'] = enabled
@@ -105,12 +104,6 @@ class Controller(object):
             return response  # Just return the exception to throw it
         resp = {'dbcontainer': response['server']}
         self._modify_fields(req, resp['dbcontainer'])
-        try:
-            result = dbapi.guest_status_get(instance_id=id)
-            resp['dbcontainer']['status'] = _dbaas_mapping[result.state]
-        except InstanceNotFound:
-            # we set the state to shutdown if not found
-            resp['dbcontainer']['status']  = _dbaas_mapping[power_state.SHUTDOWN]
         enabled = self._determine_root(req, resp['dbcontainer'], id)
         if enabled is not None:
             resp['dbcontainer']['rootEnabled'] = enabled
@@ -126,9 +119,9 @@ class Controller(object):
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(id)
         try:
-            for volume in db.volume_get_all_by_instance(context, id):
+            for volume_ref in db.volume_get_all_by_instance(context, id):
                 self.volume_api.delete_volume_when_available(context,
-                                                             volume['id'],
+                                                             volume_ref['id'],
                                                              time_out=60)
         except exception.VolumeNotFoundForInstance:
             LOG.info("Skipping as no volumes are associated with the instance")
@@ -141,7 +134,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, body)
 
         # Create the Volume before hand
-        volume = self.create_volume(req, body)
+        volume_ref = self.create_volume(req, body)
         # Setup Security groups
         self._setup_security_groups(req,
                                     FLAGS.default_firewall_rule_name,
@@ -151,7 +144,7 @@ class Controller(object):
                                     body['dbcontainer'].get('databases', ''))
 
         # Add any extra data that's required by the servers api
-        self._append_on_create(body, volume['id'],
+        self._append_on_create(body, volume_ref['id'],
                                FLAGS.reddwarf_mysql_data_dir)
         server = self._try_create_server(req, self._rename_to_server(body))
         server_id = str(server['server']['id'])
@@ -165,7 +158,7 @@ class Controller(object):
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
-        resp['dbcontainer']['volume'] = {'size': volume['size']}
+        resp['dbcontainer']['volume'] = {'size': volume_ref['size']}
 
         return resp
 
@@ -174,7 +167,8 @@ class Controller(object):
         # Add image_ref
         body['dbcontainer']['imageRef'] = FLAGS.reddwarf_imageRef
         # Add Firewall rules
-        body['dbcontainer']['firewallRules'] = [FLAGS.default_firewall_rule_name]
+        firewall_rules = [FLAGS.default_firewall_rule_name]
+        body['dbcontainer']['firewallRules'] = firewall_rules
         # Add volume id
         if not 'metadata' in body['dbcontainer']:
             body['dbcontainer']['metadata'] = {}
@@ -193,7 +187,8 @@ class Controller(object):
             volume_size = body['dbcontainer']['volume']['size']
         except KeyError as e:
             LOG.error("Create Container Required field(s) - %s" % e)
-            raise exc.HTTPBadRequest("Create Container Required field(s) - %s" % e)
+            raise exc.HTTPBadRequest("Create Container Required field(s) - %s"
+                                     % e)
 
         return self.volume_api.create(context, size=volume_size,
                                       snapshot_id=None,
@@ -231,6 +226,8 @@ class Controller(object):
         context = req.environ['nova.context']
         user_id=context.user_id
         instance_info = {"id": response["id"], "user_id": user_id}
+        if 'status' in response:
+            instance_info['status'] = response['status']
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
         if dns_entry:
             hostname = dns_entry.name
@@ -249,6 +246,22 @@ class Controller(object):
                 #set the last volume to our volume information (only 1)
                 response["volume"] = volume
             del response["volumes"]
+
+        # Status is set by first checking the compute instance status and
+        # then the guest status.
+        if 'status' in instance_info:
+            if instance_info['status'] == 'ERROR':
+                response['status'] = 'ERROR'
+            else:
+                # TODO(cp16net)
+                # make a guest status get function that allows you
+                # to pass a list of container ids
+                try:
+                    result = dbapi.guest_status_get(response["id"])
+                    response['status'] = _dbaas_mapping[result.state]
+                except InstanceNotFound:
+                    # we set the state to shutdown if not found
+                    response['status'] = _dbaas_mapping[power_state.SHUTDOWN]
         return response
 
     def _setup_security_groups(self, req, group_name, port):
@@ -266,7 +279,8 @@ class Controller(object):
         context = req.environ['nova.context']
         self.compute_api.ensure_default_security_group(context)
 
-        if not db.security_group_exists(context, context.project_id, group_name):
+        if not db.security_group_exists(context, context.project_id,
+                                        group_name):
             LOG.debug('Creating a new firewall rule %s for project %s'
                         % (group_name, context.project_id))
             values = {'name': group_name,

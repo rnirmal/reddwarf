@@ -25,6 +25,8 @@ from nova import db
 from nova import flags
 from nova import utils
 from nova import log as logging
+from nova.compute import power_state
+from nova.exception import OutOfInstanceMemory
 from nova.scheduler import driver
 from nova.scheduler import chance
 
@@ -169,3 +171,16 @@ class MemoryScheduler(SimpleScheduler):
                                    " for this request. Is the appropriate"
                                    " service running?"))
 
+
+class UnforgivingMemoryScheduler(MemoryScheduler):
+    """When NoValidHosts is thrown, this sets the instance state to FAILED."""
+
+    def schedule_run_instance(self, context, instance_id, *_args, **_kwargs):
+        base = super(UnforgivingMemoryScheduler, self)
+        try:
+            return base.schedule_run_instance(context, instance_id,
+                                              *_args, **_kwargs)
+        except driver.NoValidHost:
+            db.instance_set_state(context, instance_id, power_state.FAILED)
+            memory_mb = db.instance_get(context, instance_id)['memory_mb']
+            raise OutOfInstanceMemory(instance_memory_mb=memory_mb)

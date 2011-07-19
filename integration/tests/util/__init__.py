@@ -34,6 +34,7 @@ from novaclient import OpenStack
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 
+from nova import exception
 from nova import flags
 from nova import utils
 from reddwarfclient import Dbaas
@@ -67,12 +68,32 @@ def check_database(container_id, dbname):
         return False
 
 
+def count_message_occurrence_in_logs(msg):
+    """Counts the number of times some message appears in the log."""
+    count = 0
+    for line in open(FLAGS.logfile, 'r'):
+        if msg in line:
+            count = count + 1
+    return count
+
+
+def check_logs_for_message(msg):
+    """Searches the logs for the given message. Takes a long time."""
+    return msg in file(FLAGS.logfile, 'r').read()
+
+
+def count_ops_notifications(msg):
+    """Counts the number of times an ops notification has been given."""
+    return count_message_occurrence_in_logs(exception._OPS_LOG_PREFIX + msg)
+
+
 def create_dbaas_client(user):
     """Creates a rich client for the RedDwarf API using the test config."""
     test_config.nova.ensure_started()
     dbaas = Dbaas(user.auth_user, user.auth_key, test_config.dbaas.url)
     dbaas.authenticate()
     return dbaas
+
 
 def create_dns_entry(user_name, container_id):
     """Given the container_Id and it's owner returns the DNS entry."""
@@ -81,17 +102,27 @@ def create_dns_entry(user_name, container_id):
     entry_factory = get_dns_entry_factory()
     return entry_factory.create_entry(instance)
 
+
 def create_openstack_client(user):
     """Creates a rich client for the OpenStack API using the test config."""
     test_config.nova.ensure_started()
-    openstack = OpenStack(user.auth_user, user.auth_key, test_config.dbaas.url)
+    openstack = OpenStack(user.auth_user, user.auth_key, test_config.nova.url)
     openstack.authenticate()
     return openstack
+
+
+def create_test_client(user):
+    """Creates a test client loaded with asserts that works with both APIs."""
+    os_client = create_openstack_client(user)
+    dbaas_client = create_dbaas_client(user)
+    return TestClient(dbaas_client=dbaas_client, os_client=os_client)
+
 
 def init_engine(user, password, host):
     return create_engine("mysql://%s:%s@%s:3306" %
                                (user, password, host),
                                pool_recycle=1800, echo=True)
+
 
 def process(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
