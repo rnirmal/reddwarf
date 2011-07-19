@@ -24,13 +24,13 @@ import routes
 from nova import flags
 from nova import log as logging
 from nova import wsgi
-from nova.api.openstack import flavors
 from nova.api.openstack import images
 from nova.api.platform.dbaas import databases
 from nova.api.platform.dbaas import dbcontainers
 from nova.api.platform.dbaas import guests
 from nova.api.platform.dbaas import root
 from nova.api.platform.dbaas import users
+from nova.api.platform.dbaas import flavors
 
 LOG = logging.getLogger('nova.api.platform.dbaas')
 FLAGS = flags.FLAGS
