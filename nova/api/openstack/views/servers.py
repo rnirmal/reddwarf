@@ -176,6 +176,7 @@ class ViewBuilderV11(ViewBuilder):
 
     def _build_links(self, response, inst):
         href = self.generate_href(inst["id"])
+        bookmark = self.generate_bookmark(inst["id"])
 
         links = [
             {
@@ -184,13 +185,7 @@ class ViewBuilderV11(ViewBuilder):
             },
             {
                 "rel": "bookmark",
-                "type": "application/json",
-                "href": href,
-            },
-            {
-                "rel": "bookmark",
-                "type": "application/xml",
-                "href": href,
+                "href": bookmark,
             },
         ]
 
@@ -199,3 +194,8 @@ class ViewBuilderV11(ViewBuilder):
     def generate_href(self, server_id):
         """Create an url that refers to a specific server id."""
         return os.path.join(self.base_url, "servers", str(server_id))
+
+    def generate_bookmark(self, server_id):
+        """Create an url that refers to a specific flavor id."""
+        return os.path.join(common.remove_version_from_href(self.base_url),
+            "servers", str(server_id))

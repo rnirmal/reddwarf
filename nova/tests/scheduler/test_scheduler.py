@@ -268,7 +268,6 @@ class SimpleDriverTestCase(test.TestCase):
         inst['user_id'] = self.user.id
         inst['project_id'] = self.project.id
         inst['instance_type_id'] = '1'
-        inst['mac_address'] = utils.generate_mac()
         inst['vcpus'] = kwargs.get('vcpus', 1)
         inst['ami_launch_index'] = 0
         inst['availability_zone'] = kwargs.get('availability_zone', None)
@@ -1134,7 +1133,7 @@ class DynamicNovaClientTest(test.TestCase):
 
         self.assertEquals(api._issue_novaclient_command(
                     FakeNovaClient(FakeServerCollection()),
-                    zone, "servers", "find", "name").b, 22)
+                    zone, "servers", "find", name="test").b, 22)
 
         self.assertEquals(api._issue_novaclient_command(
                     FakeNovaClient(FakeServerCollection()),
@@ -1148,7 +1147,7 @@ class DynamicNovaClientTest(test.TestCase):
 
         self.assertEquals(api._issue_novaclient_command(
                     FakeNovaClient(FakeEmptyServerCollection()),
-                    zone, "servers", "find", "name"), None)
+                    zone, "servers", "find", name="test"), None)
 
         self.assertEquals(api._issue_novaclient_command(
                     FakeNovaClient(FakeEmptyServerCollection()),
