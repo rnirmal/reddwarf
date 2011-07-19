@@ -9,27 +9,27 @@ source /vagrant-common/Utils.sh
 exclaim Setting up SQL.
 
 mysql_query () {
-    mysql -u root -e $1
+    mysql -u root -pnova -e $1
 }
 
 
 # Drop these in case this command is being run again.
-mysql -u root -e "DROP DATABASE nova;"
-mysql -u root -e "DROP DATABASE glance;"
+mysql -u root -pnova -e "DROP DATABASE nova;"
+mysql -u root -pnova -e "DROP DATABASE glance;"
 sudo rm -rf /var/lib/glance
 sudo mkdir -p /var/lib/glance/images
 sudo rm -rf /vz/template/cache/*
 # Apparently this is no longer needed... ?
 /vagrant-common/update_ovz_template2.sh
 
-mysql -u root -e "CREATE USER 'nova'@'%';"
-mysql -u root -e "CREATE DATABASE nova;"
-mysql -u root -e "CREATE DATABASE glance;"
-mysql -u root -e "UPDATE mysql.user SET Password=PASSWORD('novapass') WHERE User='nova';"
-mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'nova'@'%' WITH GRANT OPTION;"
-mysql -u root -e "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost';"
-mysql -u root -e "DELETE FROM mysql.user WHERE User='';"
-mysql -u root -e "FLUSH PRIVILEGES;"
+mysql -u root -pnova -e "CREATE USER 'nova'@'%';"
+mysql -u root -pnova -e "CREATE DATABASE nova;"
+mysql -u root -pnova -e "CREATE DATABASE glance;"
+mysql -u root -pnova -e "UPDATE mysql.user SET Password=PASSWORD('novapass') WHERE User='nova';"
+mysql -u root -pnova -e "GRANT ALL PRIVILEGES ON *.* TO 'nova'@'%' WITH GRANT OPTION;"
+mysql -u root -pnova -e "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost';"
+mysql -u root -pnova -e "DELETE FROM mysql.user WHERE User='';"
+mysql -u root -pnova -e "FLUSH PRIVILEGES;"
 
 sudo -E sed -i.bak 's/^bind/#bind/g' /etc/mysql/my.cnf
 # sudo -E cp /vagrant-common/mysql_my.cnf /etc/mysql/my.cnf
@@ -128,16 +128,21 @@ echo "--flat_network_dns=$dns_ip" >> /home/vagrant/nova.conf
 #nova_manage network create 10.0.2.0/24 1 256
 
 # Can't figure out the CIDR rules, so I'm giving it 256 ips.
-nova_manage network create `ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`.0/24 1 256
+nova_manage network create private `ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`.0/24 1 256 0 0 0 0 br100 eth0
+# This for some reason is not being added, nor is it a option in nova manage.
+# We NEED to get the project associated w/ the network and this is a nasty hack
+# TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
+mysql -u root -pnova -e "update nova.networks set project_id = 'dbaas';"
+
 
 # Assume there is only one network and `update all rows.
-mysql -u root -e "UPDATE nova.networks SET gateway='$gateway_ip';"
-mysql -u root -e "UPDATE nova.networks SET dns='$dns_ip';"
+mysql -u root -pnova -e "UPDATE nova.networks SET gateway='$gateway_ip';"
+mysql -u root -pnova -e "UPDATE nova.networks SET dns='$dns_ip';"
 
 
 # Deletes a fixed ip (argument is the last number in an IP)
 delete_fixed_ip() {
-    mysql -u root -e "DELETE FROM nova.fixed_ips WHERE address='$ip_start123.$1';"
+    mysql -u root -pnova -e "DELETE FROM nova.fixed_ips WHERE address='$ip_start123.$1';"
 }
 
 # Delete all extra IPs grabbed by Nova.
@@ -152,6 +157,9 @@ sudo iscsiadm -m node --logout
 # Delete all of the volumes on the Volumes VM since the DB will now
 # be out of sync.
 ssh vagrant@33.33.33.10 "sudo /vagrant-common/delete_volumes.sh"
+
+# Restart Rabbit MQ so all the old queues are cleared
+sudo service rabbitmq-server restart
 
 # TODO: It may be necessary to delete all other instances of this.
 

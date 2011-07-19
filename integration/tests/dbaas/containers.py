@@ -341,7 +341,7 @@ class TestContainListing(unittest.TestCase):
 class DeleteContainer(unittest.TestCase):
     """ Delete the created container """
 
-    @time_out(6 * 60)
+    @time_out(3 * 60)
     def test_delete(self):
         global dbaas
         if not hasattr(container_info, "result"):

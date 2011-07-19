@@ -98,7 +98,7 @@ def _setup():
     values = load_configuration()
     use_venv = values.get("use_venv", True)
     dbaas_url = str(values.get("dbaas_url", "http://localhost:8775/v1.0"))
-    nova_url = str(values.get("nova_url", "http://localhost:8774/v1.0"))
+    nova_url = str(values.get("nova_url", "http://localhost:8774/v1.1"))
     nova_code_root = str(values["nova_code_root"])
     nova_conf = str(values["nova_conf"])
     if not nova_conf:

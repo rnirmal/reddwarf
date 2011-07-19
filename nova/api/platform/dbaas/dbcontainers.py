@@ -131,9 +131,9 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
-        result = self.server_controller.delete(req, id)
-        if isinstance(result, exc.HTTPAccepted):
-            dbapi.guest_status_delete(id)
+        self.server_controller.delete(req, id)
+        #TODO(rnirmal): Use a deferred here to update status
+        dbapi.guest_status_delete(id)
         try:
             for volume in db.volume_get_all_by_instance(context, id):
                 self.volume_api.delete_volume_when_available(context,
@@ -141,7 +141,6 @@ class Controller(object):
                                                              time_out=60)
         except exception.VolumeNotFoundForInstance:
             LOG.info("Skipping as no volumes are associated with the instance")
-        return result
 
     def create(self, req, body):
         """ Creates a new DBContainer for a given user """
@@ -349,5 +348,8 @@ def create_resource(version='1.0'):
         'application/xml': deserializer.DBContainerXMLDeserializer(),
     }
 
-    return wsgi.Resource(controller, serializers=serializers,
-                         deserializers=deserializers)
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+    request_deserializer = wsgi.RequestDeserializer(body_deserializers=deserializers)
+
+    return wsgi.Resource(controller, deserializer=request_deserializer,
+                         serializer=response_serializer)

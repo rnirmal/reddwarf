@@ -79,4 +79,6 @@ def create_resource(version='1.0'):
                                                   xmlns=xmlns),
     }
 
-    return wsgi.Resource(controller, serializers=serializers)
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+
+    return wsgi.Resource(controller, serializer=response_serializer)

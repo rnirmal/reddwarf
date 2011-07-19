@@ -15,8 +15,11 @@
 
 import unittest
 import os
+import time
 
 from nose.plugins.skip import SkipTest
+from nova import context
+from nova.db import api as dbapi
 
 from proboscis import test
 from tests.util import test_config
@@ -215,6 +218,25 @@ class WaitForTopics(unittest.TestCase):
         from tests.util.topics import hosts_up
         while not all(hosts_up(topic) for topic in topics):
             pass
+
+
+@test(groups=["services.initialize"],
+      depends_on_classes=[WaitForTopics])
+class ServicesTestable(unittest.TestCase):
+    """Check Services are ready for Tests
+
+    Use this class to add extra checks for services to be completely up,
+    no exceptions... 100% ready to go
+    """
+
+    def test_networks_have_host_assigned(self):
+        """Check that default networks have a host assigned"""
+        while(True):
+            networks = dbapi.network_get_all(context.get_admin_context())
+            for network in networks:
+                if network["host"]:
+                    return
+            time.sleep(5)
 
 
 @test(groups=["start_and_wait"],

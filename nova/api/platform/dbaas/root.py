@@ -19,7 +19,6 @@ from nova import compute
 from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
-from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
 from nova.guest import api as guest_api
 from nova.guest.db import models
@@ -55,7 +54,7 @@ class Controller(object):
     def create(self, req, dbcontainer_id, body):
         """ Enable the root user for the db container """
         LOG.info("Call to enable root user for container %s", dbcontainer_id)
-        LOG.debug("%s - %s", req.environ, req.body)
+        LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
 
@@ -108,4 +107,6 @@ def create_resource(version='1.0'):
                                                   xmlns=xmlns),
     }
 
-    return wsgi.Resource(controller, serializers=serializers)
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+
+    return wsgi.Resource(controller, serializer=response_serializer)

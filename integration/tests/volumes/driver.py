@@ -22,7 +22,6 @@ from tests import initialize
 from tests.volumes import VOLUMES_DRIVER
 from tests.util import test_config
 from nova.utils import poll_until
-from nova.volume.san import ISCSILiteDriver
 
 FLAGS = flags.FLAGS
 UUID_PATTERN = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
@@ -341,6 +340,7 @@ class DeleteVolume(VolumeTest):
 class ConfirmMissing(VolumeTest):
 
     @expect_exception(Exception)
+    @time_out(60)
     def test_discover_should_fail(self):
         self.story.client.driver.discover_volume(self.story.context,
                                                 self.story.volume)

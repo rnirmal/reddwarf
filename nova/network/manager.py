@@ -402,7 +402,7 @@ class NetworkManager(manager.SchedulerDependentManager):
             self.deallocate_fixed_ip(context, fixed_ip['address'], **kwargs)
         
         # deallocate the single instance     
-        self.dns_api.delete_instance_entry(context, instance_id, fixed_ip)
+        #self.dns_api.delete_instance_entry(context, instance_id, fixed_ip)
 
         # deallocate vifs (mac addresses)
         self.db.virtual_interface_delete_by_instance(context, instance_id)
@@ -667,7 +667,7 @@ class NetworkManager(manager.SchedulerDependentManager):
 
     def _allocate_dns_entry(self, context, instance_id, networks, **kwargs):
         """Creates a DNS entry for the compute instance"""
-        self.dns_api.create_instance_entry(context, instance_ref, address)
+        #self.dns_api.create_instance_entry(context, instance_ref, address)
 
     def _allocate_fixed_ips(self, context, instance_id, networks, **kwargs):
         """Calls allocate_fixed_ip once for each network."""

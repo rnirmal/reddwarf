@@ -193,7 +193,6 @@ class OpenVzConnection(driver.ComputeDriver):
 
         return infos
 
-    @exception.wrap_exception
     def spawn(self, instance, network_info=None, block_device_mapping=None):
         """
         Create a new virtual environment on the container platform.
@@ -233,9 +232,9 @@ class OpenVzConnection(driver.ComputeDriver):
         self._configure_vz(instance)
         self._set_name(instance)
         self._add_netif(instance)
-        self._add_ip(instance)
+        self._add_ip(instance, network_info)
         self._set_hostname(instance)
-        self._set_nameserver(instance)
+        self._set_nameserver(instance, network_info)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
         
@@ -429,14 +428,15 @@ class OpenVzConnection(driver.ComputeDriver):
                     'Error adding network device to container %s' %
                     instance['id'])
 
-    def _add_ip(self, instance, netif='eth0',
+    def _add_ip(self, instance, network_info, netif='eth0',
                 if_file='etc/network/interfaces'):
         """
         Add an ip to the container
         """
         ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
+        ip = network_info[0][1]["ips"][0]["ip"]
+        netmask = network_info[0][1]["ips"][0]["netmask"]
+        gateway = network_info[0][1]["gateway"]
         net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
         if_file_path = net_path + '/' + if_file
         
@@ -445,8 +445,8 @@ class OpenVzConnection(driver.ComputeDriver):
             with open(FLAGS.ovz_network_template) as fh:
                 network_file = fh.read() % {'gateway_dev': netif,
                                             'address': ip,
-                                            'netmask': network['netmask'],
-                                            'gateway': network['gateway']}
+                                            'netmask': netmask,
+                                            'gateway': gateway}
 
             # TODO(imsplitbit): Find a way to write to this file without
             # mangling the perms.
@@ -460,18 +460,17 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Error adding IP')
 
-    def _set_nameserver(self, instance):
+    def _set_nameserver(self, instance, network_info):
         """
         Get the nameserver for the assigned network and set it using
         OpenVz's tools.
         """
         ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
+        dns = network_info[0][1]["dns"][0]
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--nameserver', network['dns'])
+                                   '--save', '--nameserver', dns)
             if err:
                 LOG.error(err)
         except Exception as err:
@@ -569,12 +568,6 @@ class OpenVzConnection(driver.ComputeDriver):
         #                   a directory which can't be locked.  It'd be nice
         #                   if we could somehow detect that and raise an error
         #                   instead.
-
-        #
-        # Get the ip and network information
-        ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
 
         # Create our table instance and add our chains for the instance
         table_ipv4 = linux_net.iptables_manager.ipv4['filter']

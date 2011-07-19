@@ -123,5 +123,8 @@ def create_resource(version='1.0'):
         'application/xml': deserializer.DatabaseXMLDeserializer(),
     }
 
-    return wsgi.Resource(controller, serializers=serializers,
-                         deserializers=deserializers)
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+    request_deserializer = wsgi.RequestDeserializer(body_deserializers=deserializers)
+
+    return wsgi.Resource(controller, deserializer=request_deserializer,
+                         serializer=response_serializer)

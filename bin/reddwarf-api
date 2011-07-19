@@ -19,25 +19,23 @@
 
 """Starter script for Platform API."""
 
-import gettext
 import os
+import signal
 import sys
 
-# If ../nova/__init__.py exists, add ../ to Python search path, so that
-# it will override what happens to be installed in /usr/(local/)lib/python...
 possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir,
                                    os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'nova', '__init__.py')):
+if os.path.exists(os.path.join(possible_topdir, "nova", "__init__.py")):
     sys.path.insert(0, possible_topdir)
 
-gettext.install('nova', unicode=1)
+import nova.service
+import nova.utils
 
 from nova import flags
 from nova import log as logging
-from nova import service
-from nova import utils
 from nova import version
+from nova import wsgi
 
 
 LOG = logging.getLogger('nova.api.platform')
@@ -45,27 +43,47 @@ LOG.setLevel(logging.DEBUG)
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('platformapi_extensions_path', '/var/lib/platform/extensions',
-               'default directory for platform extensions')
+flags.DEFINE_string('platformapi_extensions_path',
+                    '/var/lib/platform/extensions',
+                    'default directory for platform extensions')
 flags.DEFINE_integer('platformapi_max_limit', 1000,
-               'max number of items returned in a collection response')
+                     'max number of items returned in a collection response')
 flags.DEFINE_string('dbaasapi_listen', "0.0.0.0",
                     'IP address for DBaaS API to listen')
-flags.DEFINE_integer('dbaasapi_listen_port', 8775, 'Port for DBaaS API to listen')
-flags.DEFINE_string('platformapi_paste_config', "reddwarf-api-paste.ini",
+flags.DEFINE_integer('dbaasapi_listen_port', 8775,
+                     'Port for DBaaS API to listen')
+flags.DEFINE_string('reddwarf_api_paste_config', "reddwarf-api-paste.ini",
                     'File name for the paste.deploy config for platform-api')
+
+nova.utils.default_flagfile()
+FLAGS(sys.argv)
+logging.setup()
+LOG.audit(_("Starting reddwarf-api node (version %s)"),
+          version.version_string_with_vcs())
+LOG.debug(_("Full set of FLAGS:"))
+
+for flag in FLAGS:
+    flag_get = FLAGS.get(flag, None)
+    LOG.debug("%(flag)s : %(flag_get)s" % locals())
+
+
+def main():
+    """Launch reddwarf api services."""
+    nova.utils.Bootstrapper.bootstrap_binary(sys.argv)
+
+    launcher = nova.service.Launcher()
+
+    loader = wsgi.Loader(config_path=FLAGS.reddwarf_api_paste_config)
+    service = nova.service.WSGIService("dbaasapi", loader=loader)
+    launcher.launch_service(service)
+
+    signal.signal(signal.SIGTERM, lambda *_: launcher.stop())
+
+    try:
+        launcher.wait()
+    except KeyboardInterrupt:
+        launcher.stop()
 
 
 if __name__ == '__main__':
-    utils.default_flagfile()
-    FLAGS(sys.argv)
-    logging.setup()
-    LOG.audit(_("Starting reddwarf-api node (version %s)"),
-              version.version_string_with_vcs())
-    LOG.debug(_("Full set of FLAGS:"))
-    for flag in FLAGS:
-        flag_get = FLAGS.get(flag, None)
-        LOG.debug("%(flag)s : %(flag_get)s" % locals())
-
-    service = service.serve_wsgi(service.PlatformApiService)
-    service.wait()
+    sys.exit(main())
