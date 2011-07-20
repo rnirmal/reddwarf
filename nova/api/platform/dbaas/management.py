@@ -20,10 +20,11 @@ from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
-from nova import volume
 from nova import utils
+from nova import volume
 from nova.api.openstack import flavors
 from nova.api.openstack import servers
+from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest
@@ -36,41 +37,39 @@ LOG.setLevel(logging.DEBUG)
 
 FLAGS = flags.FLAGS
 
-class Controller(common.DBaaSController):
-    """ The DBContainer API controller for the Management API """
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+    }[version]()
 
-    _serialization_metadata = {
+    metadata = {
         'application/xml': {
             'attributes': {
-                'dbcontainer': [
-                    'account_id',
-                    'flavorRef',
-                    'host',
-                    'id',
-                    'name',
-                ],
-                'link': [
-                    'rel',
-                    'type',
-                    'href',
-                ],
-            'database': [
-                'name',
-                'collate',
-                'character_set',
-            ],
-            'user': [
-                'name',
-            ],
-            'volume': [
-                'id',
-                'size',
-                'description',
-                'name',
-            ]
+                'dbcontainer': ['account_id', 'flavorRef', 'host', 'id', 'name'],
+                'link': ['rel', 'type', 'href'],
+                'database': ['name', 'collate', 'character_set'],
+                'user': ['name'],
+                'volume': [ 'id', 'size', 'description', 'name']
             },
         },
+
     }
+
+    xmlns = {
+        '1.0': common.XML_NS_V10,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+    return wsgi.Resource(controller, serializer=response_serializer)
+
+
+class Controller(object):
+    """ The DBContainer API controller for the Management API """
 
     def __init__(self):
         self.compute_api = compute.API()
@@ -79,7 +78,7 @@ class Controller(common.DBaaSController):
         self.guest_api = guest.API()
         super(Controller, self).__init__()
 
-    def detail(self, req, id):
+    def show(self, req, id):
         """ Returns dbcontainer details by container id """
         LOG.info("Get Instance Detail by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)

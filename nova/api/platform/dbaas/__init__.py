@@ -81,8 +81,8 @@ class APIRouter(wsgi.Router):
                        action="show", conditions=dict(method=["GET"]))
 
             mapper.connect("/mgmt/dbcontainers/{id}",
-                            controller=management.Controller(),
-                            action="detail", conditions=dict(method=["GET"]))
+                            controller=management.create_resource(),
+                            action="show", conditions=dict(method=["GET"]))
 
             #TODO(rnirmal): Right now any user can access these
             # functions as long as the allow_admin_api flag is set.

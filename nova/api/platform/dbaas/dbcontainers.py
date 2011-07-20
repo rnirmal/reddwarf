@@ -22,8 +22,8 @@ from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
-from nova import volume
 from nova import utils
+from nova import volume
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi

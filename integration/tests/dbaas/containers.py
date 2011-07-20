@@ -394,7 +394,7 @@ class DeleteContainer(unittest.TestCase):
     @time_out(3 * 60)
     def test_delete(self):
         global dbaas
-        if not hasattr(container_info, "result"):
+        if not hasattr(container_info, "initial_result"):
             raise SkipTest("Container was never created, skipping test...")
         dbaas.dbcontainers.delete(container_info.id)
 
@@ -423,7 +423,7 @@ class ContainerHostCheck2(ContainerHostCheck):
     WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 def management_callback():
     global mgmt_details
-    mgmt_details = dbaas.management.details(container_info.id)
+    mgmt_details = dbaas.management.show(container_info.id)
 
 '''
 @test(depends_on_classes=[CreateContainer, VerifyGuestStarted,
@@ -442,11 +442,13 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
     
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
-        mgmt_details = dbaas.management.details(container_info.id)
+        #mgmt_details = dbaas.management.show(container_info.id)
         info = container_info
         ir = info.initial_result
-        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
-            container_info.id)
+        cid = ir.id
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(), cid)
+        self.assertEqual(len(volumes), 1)
+        volume = volumes[0]
 
         expected = {
             'id': str(ir.id),
@@ -455,15 +457,15 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
             'flavorRef': info.dbaas_flavor_href,
             'databases': [{
                 'name': 'firstdb',
-                'charset': 'latin2',
+                'character_set': 'latin2',
                 'collate': 'latin2_general_ci',
                 }],
             'users': [], # TODO(ed-) Surely I can't guarantee this.
             'volume': {
-                'id': volumes[0].id,
-                'name': volumes[0].display_name,
-                'size': volumes[0].size,
-                'description': volumes[0].display_description,
+                'id': volume.id,
+                'name': volume.display_name,
+                'size': volume.size,
+                'description': volume.display_description,
                 },
             }
 
@@ -473,16 +475,8 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
         self.assertTrue(mgmt_details is not None)
         failures = []
         for (k,v) in expected.items():
-            #self.assertTrue(hasattr(mgmt_details, k), "Attr %r is missing." % k)
-            #self.assertEqual(getattr(mgmt_details, k), v,
-            #    "Attr %r expected to be %r but was %r." %
-            #    (k, v, getattr(mgmt_details, k)))
-            if not hasattr(mgmt_details, k):
-                failures.append("Attr %r missing." % k)
-                continue
-            actual = getattr(mgmt_details, k)
-            if actual != v:
-                failures.append("Attr %r expected \n\t%r but was \n\t%r" %
-                    (k, v, actual))
-        failures = '\n\n'.join(failures)
-        self.assertEqual('', failures)
+            self.assertTrue(hasattr(mgmt_details, k), "Attr %r is missing." % k)
+            self.assertEqual(getattr(mgmt_details, k), v,
+                "Attr %r expected to be %r but was %r." %
+                (k, v, getattr(mgmt_details, k)))
+

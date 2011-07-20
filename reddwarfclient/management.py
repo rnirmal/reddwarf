@@ -28,11 +28,12 @@ class Management(base.ManagerWithFind):
             raise Exception("Call to " + url + " did not return a body.")
         return self.resource_class(self, body[response_key])
 
-    def details(self, dbcontainer):
+    def show(self, dbcontainer):
         """
         Get details of one dbcontainer.
 
         :rtype: :class:`DbContainer`.
         """
+        
         return self._list("/mgmt/dbcontainers/%s" % base.getid(dbcontainer),
             'dbcontainer')
