@@ -953,7 +953,7 @@ class OpenVzConnection(driver.ComputeDriver):
         inside_mount = '%s/%s/%s' % \
                        (FLAGS.ovz_ve_root_dir, instance['id'], mount)
         outside_mount = '%s/%s/%s' % \
-                        (FLAGS.ovz_outside_mount_dir, instance['id'], mount)
+                        (FLAGS.ovz_ve_outside_mount_dir, instance['id'], mount)
 
         # Fixup perms to allow for this script to edit files.
         try:
