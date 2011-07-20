@@ -259,7 +259,6 @@ class Controller(object):
         # then the guest status. "guest_states" is a dictionary of
         # guest states mapped by guest ids.
         id = response['id']
-        assert 'status' in instance_info
         if instance_info['status'] == 'ERROR':
             response['status'] = 'ERROR'
         else:
