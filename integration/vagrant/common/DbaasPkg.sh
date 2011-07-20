@@ -5,6 +5,7 @@
 #deb http://10.0.2.15/ubuntu lucid main
 
 source /vagrant-common/Utils.sh
+source /vagrant-common/Exports.sh
 
 dbaas_pkg_create_tmpbuild() {
     if [ -d /tmp/build ]
@@ -82,7 +83,7 @@ dbaas_pkg_install_novaclient() {
     sudo -E mkdir -p /tmp/build/
     sudo -E rm -fr /tmp/build/python-novaclient
     sudo -E rm -fr /tmp/build/python-novapkg
-    # PYTHON_NOVACLIENT_VERSION is sourced from Utils
+    # PYTHON_NOVACLIENT_VERSION is sourced from Exports
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:python-novaclient -r $PYTHON_NOVACLIENT_VERSION /tmp/build/python-novaclient
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:ubuntu/natty/python-novaclient /tmp/build/python-novapkg
     sudo -E mv /tmp/build/python-novapkg/debian /tmp/build/python-novaclient
@@ -115,7 +116,7 @@ dbaas_new_install_glance() {
     sudo -E mkdir -p /tmp/build/
     sudo -E rm -fr /tmp/build/glance*
     sudo -E rm -fr /tmp/build/python-glance*
-    # GLANCE_VERSION is sourced from Utils
+    # GLANCE_VERSION is sourced from Exports
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:glance -r $GLANCE_VERSION /tmp/build/glance
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/glance/ubuntu /tmp/build/glancepkg
     sudo -E mv /tmp/build/glancepkg/debian /tmp/build/glance
