@@ -50,7 +50,7 @@ _dbaas_mapping = {
     power_state.NOSTATE: 'BUILD',
     power_state.RUNNING: 'ACTIVE',
     power_state.SHUTDOWN: 'SHUTDOWN',
-    power_state.BUILDING: 'BUILD',
+    power_state.BUILDING: 'BUILD'
 }
 
 
@@ -71,25 +71,30 @@ class Controller(object):
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
-        return self._manipulate_response(req, resp)
-
-    def _manipulate_response(self, req, resp):
-        """ Changes the response from detail and index """
-        ids = [db['id'] for db in resp['dbcontainers']]
-        results = dbapi.guest_status_get_list(ids)
-        out = dict([(r.instance_id, _dbaas_mapping[r.state]) for r in results])
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
         return resp
+
+    @staticmethod
+    def get_guest_state_mapping(resp):
+        """Returns a dictionary of guest statuses keyed by guest ids."""
+        ids = [dbcontainer['id'] for dbcontainer in resp['dbcontainers']]
+        results = dbapi.guest_status_get_list(ids)
+        return dict([(r.instance_id, r.state) for r in results])
 
     def detail(self, req):
         """ Returns a list of dbcontainer details for a given user """
         LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
-        resp = self._manipulate_response(req, resp)
+        #resp = self._manipulate_response(req, resp)
+        guest_state_mapping = self.get_guest_state_mapping(resp)
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
+            # We're making the assumption we can pull the status from the
+            # returned instance info.
+            self._modify_status(response=container, instance_info=container,
+                                guest_states=guest_state_mapping)
             enabled = self._determine_root(req, container, container['id'])
             if enabled is not None:
                 container['rootEnabled'] = enabled
@@ -103,7 +108,9 @@ class Controller(object):
         if isinstance(response, Exception):
             return response  # Just return the exception to throw it
         resp = {'dbcontainer': response['server']}
-        self._modify_fields(req, resp['dbcontainer'])
+        dbcontainer = resp['dbcontainer']
+        self._modify_fields(req, dbcontainer)
+        self._modify_status(response=dbcontainer, instance_info=dbcontainer)
         enabled = self._determine_root(req, resp['dbcontainer'], id)
         if enabled is not None:
             resp['dbcontainer']['rootEnabled'] = enabled
@@ -162,7 +169,8 @@ class Controller(object):
 
         return resp
 
-    def _append_on_create(self, body, volume_id, mount_point):
+    @staticmethod
+    def _append_on_create(body, volume_id, mount_point):
         """Append additional stuff to create"""
         # Add image_ref
         body['dbcontainer']['imageRef'] = FLAGS.reddwarf_imageRef
@@ -176,7 +184,8 @@ class Controller(object):
         # Add mount point
         body['dbcontainer']['metadata']['mount_point'] = str(mount_point)
 
-    def _rename_to_server(self, body):
+    @staticmethod
+    def _rename_to_server(body):
         """Rename dbcontainer to server"""
         return {'server': body['dbcontainer']}
 
@@ -224,45 +233,46 @@ class Controller(object):
 
         """
         context = req.environ['nova.context']
-        user_id=context.user_id
+        user_id = context.user_id
         instance_info = {"id": response["id"], "user_id": user_id}
-        if 'status' in response:
-            instance_info['status'] = response['status']
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
         if dns_entry:
             hostname = dns_entry.name
             response["hostname"] = hostname
 
         LOG.debug("Removing the excess information from the containers.")
-        for attr in ["hostId","imageRef","metadata","adminPass", "uuid"]:
+        for attr in ["hostId", "imageRef", "metadata", "adminPass", "uuid"]:
             if response.has_key(attr):
                 del response[attr]
-        if response.has_key("volumes"):
+        if "volumes" in response:
             LOG.debug("Removing the excess information from the volumes.")
-            for volume in response["volumes"]:
+            for volume_ref in response["volumes"]:
                 for attr in ["id", "name", "description"]:
-                    if attr in volume:
-                        del volume[attr]
+                    if attr in volume_ref:
+                        del volume_ref[attr]
                 #set the last volume to our volume information (only 1)
-                response["volume"] = volume
+                response["volume"] = volume_ref
             del response["volumes"]
-
-        # Status is set by first checking the compute instance status and
-        # then the guest status.
-        if 'status' in instance_info:
-            if instance_info['status'] == 'ERROR':
-                response['status'] = 'ERROR'
-            else:
-                # TODO(cp16net)
-                # make a guest status get function that allows you
-                # to pass a list of container ids
-                try:
-                    result = dbapi.guest_status_get(response["id"])
-                    response['status'] = _dbaas_mapping[result.state]
-                except InstanceNotFound:
-                    # we set the state to shutdown if not found
-                    response['status'] = _dbaas_mapping[power_state.SHUTDOWN]
         return response
+
+    @staticmethod
+    def _modify_status(response, instance_info, guest_states=None):
+        # Status is set by first checking the compute instance status and
+        # then the guest status. "guest_states" is a dictionary of
+        # guest states mapped by guest ids.
+        id = response['id']
+        if instance_info['status'] == 'ERROR':
+            response['status'] = 'ERROR'
+        else:
+            try:
+                if guest_states:
+                    state = guest_states[id]
+                else:
+                    state = dbapi.guest_status_get(id).state
+            except (KeyError, InstanceNotFound):
+                # we set the state to shutdown if not found
+                state = power_state.SHUTDOWN
+            response['status'] = _dbaas_mapping[state]
 
     def _setup_security_groups(self, req, group_name, port):
         """ Setup a default firewall rule for reddwarf.
@@ -294,7 +304,7 @@ class Controller(object):
                      'protocol': 'tcp',
                      'from_port': port,
                      'to_port': port}
-            security_group_rule = db.security_group_rule_create(context, rules)
+            db.security_group_rule_create(context, rules)
             self.compute_api.trigger_security_group_rules_refresh(context,
                                                           security_group['id'])
 
@@ -313,7 +323,8 @@ class Controller(object):
                 LOG.error("rootEnabled for %s could not be determined." % id)
         return
 
-    def _validate(self, body):
+    @staticmethod
+    def _validate(body):
         """Validate that the request has all the required parameters"""
         if not body:
             return faults.Fault(exc.HTTPUnprocessableEntity())

@@ -71,15 +71,17 @@ def check_database(container_id, dbname):
 def count_message_occurrence_in_logs(msg):
     """Counts the number of times some message appears in the log."""
     count = 0
-    for line in open(FLAGS.logfile, 'r'):
-        if msg in line:
-            count = count + 1
+    with open(FLAGS.logfile, 'r') as log:
+        for line in log:
+            if msg in line:
+                count = count + 1
     return count
 
 
 def check_logs_for_message(msg):
     """Searches the logs for the given message. Takes a long time."""
-    return msg in file(FLAGS.logfile, 'r').read()
+    with open(FLAGS.logfile, 'r') as logs:
+        return msg in logs.read()
 
 
 def count_ops_notifications(msg):
