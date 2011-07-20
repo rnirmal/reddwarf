@@ -76,7 +76,7 @@ class Controller(object):
         return resp
 
     @staticmethod
-    def get_guest_state_list(resp):
+    def get_guest_state_mapping(resp):
         """Returns a dictionary of guest statuses keyed by guest ids."""
         ids = [dbcontainer['id'] for dbcontainer in resp['dbcontainers']]
         results = dbapi.guest_status_get_list(ids)
@@ -88,7 +88,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
         #resp = self._manipulate_response(req, resp)
-        guest_state_mapping = self.get_guest_state_list(resp)
+        guest_state_mapping = self.get_guest_state_mapping(resp)
         for container in resp['dbcontainers']:
             self._modify_fields(req, container)
             # We're making the assumption we can pull the status from the
