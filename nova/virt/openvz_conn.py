@@ -955,6 +955,18 @@ class OpenVzConnection(driver.ComputeDriver):
         outside_mount = '%s/%s/%s' % \
                         (FLAGS.ovz_ve_outside_mount_dir, instance['id'], mount)
 
+        # Create the files if they don't exist
+        try:
+            _, err = utils.execute('sudo', 'touch', start_script)
+            if err:
+                LOG.error(err)
+            _, err = utils.execute('sudo', 'touch', stop_script)
+            if err:
+                LOG.error(err)
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error('Cannot create the start/stop files')
+        
         # Fixup perms to allow for this script to edit files.
         try:
             _, err = utils.execute('sudo', 'chmod', '777', start_script)
