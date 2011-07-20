@@ -71,6 +71,8 @@ class Controller(object):
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.index(req)['servers']}
+        for container in resp['dbcontainers']:
+            self._modify_fields(req, container)
         return resp
 
     @staticmethod
@@ -242,7 +244,7 @@ class Controller(object):
         for attr in ["hostId", "imageRef", "metadata", "adminPass", "uuid"]:
             if response.has_key(attr):
                 del response[attr]
-        if response.has_key("volumes"):
+        if "volumes" in response:
             LOG.debug("Removing the excess information from the volumes.")
             for volume_ref in response["volumes"]:
                 for attr in ["id", "name", "description"]:
