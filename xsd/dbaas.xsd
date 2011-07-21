@@ -84,6 +84,23 @@
       </xsd:appinfo>
     </annotation>
   </element>
+  <element name="flavors" type="dbaas:Flavors">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Settings such as memory used to create a database container.</p>
+        </xsd:documentation>
+        <xsd:appinfo>
+          <xsdxt:samples>
+            <xsdxt:sample>
+              <xsdxt:code type="application/xml" href="../samples/flavor.xml"/>
+            </xsdxt:sample>
+            <xsdxt:sample>
+              <xsdxt:code type="application/json" href="../samples/flavor.json"/>
+            </xsdxt:sample>
+          </xsdxt:samples>
+        </xsd:appinfo>
+      </annotation>
+    </element>
   <element name="database" type="dbaas:Database">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
@@ -245,6 +262,67 @@
    </element>
  </complexType>
 
+  <complexType name="Link">
+    <attribute name="rel" type="xsd:string" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The type of link.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+    <attribute name="href" type="xsd:string" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The URL.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+  </complexType>
+
+  <complexType name="Flavors">
+    <sequence>
+      <element name="Flavors" type="dbaas:Flavor" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>A list of flavors.</p>
+          </xsd:documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+
+  <complexType name="Flavor">
+   <attribute name="id" type="xsd:ID" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A unique flavor id.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+   <attribute name="name" type="xsd:string" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The name for the container.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+   <attribute name="ram" type="xsd:integer" use="required">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The RAM in megabytes.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+   <sequence>
+      <element name="links" type="dbaas:Link" minOccurs="0" maxOccurs="unbounded">
+         <annotation>
+           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+             <p>A list of links.</p>
+           </xsd:documentation>
+         </annotation>
+       </element>
+   </sequence>
+ </complexType>
 
   <complexType name="Databases">
     <sequence>

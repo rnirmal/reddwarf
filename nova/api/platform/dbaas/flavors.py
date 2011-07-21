@@ -19,14 +19,21 @@ import webob
 
 from nova import db
 from nova import exception
+from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.openstack.flavors import Controller as OriginalController
 from nova.api.platform.dbaas import views
 
+
+LOG = logging.getLogger('nova.api.platform.dbaas.flavors')
+LOG.setLevel(logging.DEBUG)
+
+
 class ControllerV10(OriginalController):
 
     def _get_view_builder(self, req):
-        return views.flavors.ViewBuilder()
+        LOG.debug("_get_view_builder for flavors")
+        return views.flavors.ViewBuilder(base_url=req.application_url)
 
 
 def create_resource(version='1.0'):
@@ -38,8 +45,10 @@ def create_resource(version='1.0'):
         '1.0': wsgi.XMLNS_V10,
     }[version]
 
-    serializers = {
+    body_serializers = {
         'application/xml': wsgi.XMLDictSerializer(xmlns=xmlns),
     }
 
-    return wsgi.Resource(controller, serializers=serializers)
+    serializer = wsgi.ResponseSerializer(body_serializers)
+
+    return wsgi.Resource(controller, serializer=serializer)

@@ -81,7 +81,7 @@ class APIRouter(wsgi.Router):
                         member=container_members)
 
         mapper.resource("flavor", "flavors",
-                        controller=flavors.create_resource(FLAGS.nova_api_version),
+                        controller=flavors.create_resource(),
                         collection={'detail': 'GET'})
 
         mapper.resource("database", "databases",

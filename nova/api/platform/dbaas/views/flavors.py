@@ -14,7 +14,12 @@
 #    under the License.
 
 
+from nova import log as logging
 from nova.api.openstack.views import flavors as os_flavors
+
+
+LOG = logging.getLogger('nova.api.platform.dbaas.flavors')
+LOG.setLevel(logging.DEBUG)
 
 
 class ViewBuilder(os_flavors.ViewBuilderV11):
@@ -22,6 +27,7 @@ class ViewBuilder(os_flavors.ViewBuilderV11):
 
     def _build_detail(self, flavor_obj):
         """Build a more complete representation of a flavor."""
+        LOG.debug("_build_detail of a flavor")
         detail = super(ViewBuilder, self)._build_detail(flavor_obj)
-        del detail['local_gb']
+        del detail['disk']
         return detail
