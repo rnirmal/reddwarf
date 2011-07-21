@@ -22,7 +22,7 @@ from nova import exception
 from nova import log as logging
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
-from nova.db.sqlalchemy.api import is_admin_context
+from nova.db.sqlalchemy.api import require_admin_context
 from nova.db.sqlalchemy.api import require_context
 from nova.db.sqlalchemy.models import Instance
 from nova.db.sqlalchemy.models import Service
@@ -114,36 +114,19 @@ def guest_status_delete(instance_id):
                         'state': state,
                         'state_description': power_state.name(state)})
 
-@require_context
-def list_compute_hosts(context):
-    """List all the compute hosts that are in the system."""
-    if is_admin_context(context):
-        session = get_session()
-        with session.begin():
-            label = 'instance_count'
-            query = text("""SELECT s.id, s.host, s.binary,
-                                (SELECT count(id)
-                                 FROM instances i
-                                 WHERE s.host=i.host
-                                    AND i.deleted=0) as instance_count
-                            FROM services s
-                            WHERE s.binary='nova-compute'
-                                AND s.deleted=0""")
-            LOG.debug("select_services query : %s" % str(query))
-            result = session.execute(query)
-            return result
-    else:
-        return []
-
-@require_context
+@require_admin_context
 def show_containers_on_host(context, id):
     """Show all the containers that are on the given host id."""
     LOG.debug("show_containers_on_host id = %s" % str(id))
-    if is_admin_context(context):
-        session = get_session()
-        with session.begin():
-            return session.query(Instance).\
-                            filter_by(host=id).\
-                            filter_by(deleted=False).all()
-    else:
-        return []
+    session = get_session()
+    with session.begin():
+        count = session.query(Service).\
+                        filter_by(host=id).\
+                        filter_by(deleted=False).\
+                        filter_by(disabled=False).count()
+        if not count:
+            raise exception.HostNotFound(host=id)
+        result = session.query(Instance).\
+                        filter_by(host=id).\
+                        filter_by(deleted=False).all()
+    return result

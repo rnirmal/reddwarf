@@ -37,21 +37,22 @@ class Hosts(base.ManagerWithFind):
 
     def index(self):
         """
-        Get a list of all dbcontainers.
+        Get a list of all hosts.
 
-        :rtype: list of :class:`DbContainer`.
+        :rtype: list of :class:`Hosts`.
         """
         return self._list("/mgmt/hosts", "hosts")
 
     def get(self, host):
         """
-        Get a specific containers.
+        Get a specific hosts.
 
-        :rtype: :class:`DbContainer`
+        :rtype: :class:`host`
         """
         return self._get("/mgmt/hosts/%s" % self._get_host_name(host), "host")
 
-    def _get_host_name(self, host):
+    @staticmethod
+    def _get_host_name(host):
         try:
             if host.name:
                 return host.name

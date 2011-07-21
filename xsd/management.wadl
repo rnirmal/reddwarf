@@ -5,6 +5,7 @@
    xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
    xmlns:dbaasmanagement="http://docs.rackspacecloud.com/database/api/mgmt/v1.0">
   <grammars>
+    <include href="dbaas.xsd"/>
     <include href="management.xsd"/>
   </grammars>
   <resources base="https://auth.api.rackspacecloud.com">

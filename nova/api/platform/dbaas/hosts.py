@@ -15,13 +15,12 @@
 
 from webob import exc
 
-
-from nova import compute
 from nova import flags
 from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
-from reddwarf.db import api as dbapi
+from nova.db.sqlalchemy.api import service_get_all_compute_sorted
+from reddwarf.db.api import show_containers_on_host
 
 LOG = logging.getLogger('nova.api.platform.dbaas.hosts')
 LOG.setLevel(logging.DEBUG)
@@ -34,7 +33,6 @@ class Controller(object):
     """ The Host Management Controller for the Platform API """
 
     def __init__(self):
-        self.host_api = compute.API()
         super(Controller, self).__init__()
 
     def index(self, req):
@@ -42,27 +40,22 @@ class Controller(object):
         LOG.info("List all the nova-compute hosts in the system")
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        services = dbapi.list_compute_hosts(ctxt)
-        LOG.debug("services - %s", str(services))
-        resp = {'hosts':[]}
-        for srv in services:
-            LOG.debug("service : %s" % str(srv))
-            if srv:
-                resp['hosts'].append({'name':srv['host'],
-                                      'instanceCount':srv['instance_count']
-                })
-        return resp
+        services = service_get_all_compute_sorted(ctxt)
+        hosts = [{'name':srv[0].host,
+                  'instanceCount':str(srv[1])}
+                  for srv in services]
+        return {'hosts': hosts}
 
+    #TODO(cp16net): this would be nice to use if zones are working for us
+    #@check_host
     def show(self, req, id):
         """List all the dbcontainers on the host given"""
         LOG.info("List all the nova-compute hosts in the system")
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        containers = dbapi.show_containers_on_host(ctxt, id)
-        resp = {'host': {'name':id, 'dbcontainers':[]}}
-        for c in containers:
-            resp['host']['dbcontainers'].append({'id':c.id})
-        return resp
+        containers = show_containers_on_host(ctxt,id)
+        dbcontainers = [{'id':c.id} for c in containers]
+        return {'host': {'name':id, 'dbcontainers':dbcontainers}}
 
 def create_resource(version='1.0'):
     controller = {

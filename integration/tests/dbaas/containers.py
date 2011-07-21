@@ -101,32 +101,39 @@ class Setup(unittest.TestCase):
     def test_create_container_name(self):
         container_info.name = "TEST_" + str(datetime.now())
 
-    def test_setup_index_host_list(self):
-        container_info.myresult = dbaas.hosts.index()
-        self.assertNotEqual(container_info.myresult, None,
+@test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
+class ContainerHostCheck(unittest.TestCase):
+    """Class to run tests after Setup"""
+    
+    def test_empty_index_host_list(self):
+        host_index_result = dbaas.hosts.index()
+        self.assertNotEqual(host_index_result, None,
                             "list hosts call should not be empty")
-        print("result : %s" % str(container_info.myresult))
-        self.assertTrue(len(container_info.myresult) > 0,
+        print("result : %s" % str(host_index_result))
+        self.assertTrue(len(host_index_result) > 0,
                         "list hosts length should not be empty")
-        print("test_index_host_list result: %s" % str(container_info.myresult[0]))
-        self.assertEquals(container_info.myresult[0].instanceCount, 0,
+        print("test_index_host_list result: %s" % str(host_index_result[0]))
+        print("instance count for host : %d" % int(host_index_result[0].instanceCount))
+        self.assertEquals(int(host_index_result[0].instanceCount), 0,
                           "instance count of 'host' should have 0 running instances")
         print("test_index_host_list result instance_count: %s" %
-              str(container_info.myresult[0].instanceCount))
-        for host in list(enumerate(container_info.myresult, start=1)):
+              str(host_index_result[0].instanceCount))
+        self.assertEquals(len(host_index_result), 1,
+                          "The result list is expected to be of length 1")
+        for host in list(enumerate(host_index_result, start=1)):
             print("%d host: %s" % (host[0], host[1]))
             container_info.host = host[1]
 
-    def test_setup_index_host_list_single(self):
-        container_info.myresult = dbaas.hosts.get(container_info.host)
-        self.assertNotEqual(container_info.myresult, None,
+    def test_empty_index_host_list_single(self):
+        host_index_result = dbaas.hosts.get(container_info.host)
+        self.assertNotEqual(host_index_result, None,
                             "list hosts should not be empty")
         print("test_index_host_list_single result: %s" %
-              str(container_info.myresult))
+              str(host_index_result))
         self.assertTrue(container_info.name
-                        not in [dbc['name'] for dbc
-                                in container_info.myresult.dbcontainers])
-        for container in list(enumerate(container_info.myresult.dbcontainers, start=1)):
+                        not in [dbc.name for dbc
+                                in host_index_result.dbcontainers])
+        for container in list(enumerate(host_index_result.dbcontainers, start=1)):
             print("%d dbcontainer: %s" % (container[0], container[1]))
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
@@ -296,34 +303,6 @@ class TestContainListing(unittest.TestCase):
         container_info.myresult = dbaas.dbcontainers.details()
         self.assertTrue(self._detail_dbcontainers_exist())
 
-    def test_index_host_list(self):
-        container_info.myresult = dbaas.hosts.index()
-        self.assertNotEqual(container_info.myresult, None,
-                            "list hosts should not be empty")
-        self.assertTrue(len(container_info.myresult) > 0,
-                        "list hosts should not be empty")
-        print("test_index_host_list result: %s" % str(container_info.myresult))
-        self.assertEquals(container_info.myresult[0].instanceCount, 1,
-                          "instance count of 'host' should have 1 running instances")
-        print("test_index_host_list result instance_count: %s" %
-              str(container_info.myresult[0].instanceCount))
-        for host in list(enumerate(container_info.myresult, start=1)):
-            print("%d host: %s" % (host[0], host[1]))
-            container_info.host = host[1]
-
-    def test_index_host_list_single(self):
-        container_info.myresult = dbaas.hosts.get(container_info.host)
-        self.assertNotEqual(container_info.myresult, None,
-                            "list hosts should not be empty")
-        print("test_index_host_list_single result: %s" %
-              str(container_info.myresult))
-        self.assertTrue(len(container_info.myresult.dbcontainers) > 0,
-                        "dbcontainer list on the host should not be empty")
-        print("test_index_host_list_single result dbcontainers: %s" %
-              str(container_info.myresult.dbcontainers))
-        for container in list(enumerate(container_info.myresult.dbcontainers, start=1)):
-            print("%d dbcontainer: %s" % (container[0], container[1]))
-
     def test_index_list(self):
         container_info.myresult = dbaas.dbcontainers.index()
         self.assertTrue(self._index_dbcontainers_exist())
@@ -393,6 +372,38 @@ class TestContainListing(unittest.TestCase):
             self.assertEqual(dns_entry.name, container.hostname)
 
 
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, "dbaas.mgmt.listing"])
+class MgmtHostCheck(unittest.TestCase):
+    def test_index_host_list(self):
+        container_info.myresult = dbaas.hosts.index()
+        self.assertNotEqual(container_info.myresult, None,
+                            "list hosts should not be empty")
+        self.assertTrue(len(container_info.myresult) > 0,
+                        "list hosts should not be empty")
+        print("test_index_host_list result: %s" % str(container_info.myresult))
+        print("test_index_host_list result instance_count: %d" %
+              int(container_info.myresult[0].instanceCount))
+        self.assertEquals(int(container_info.myresult[0].instanceCount), 1,
+                          "instance count of 'host' should have 1 running instances")
+        self.assertEquals(len(container_info.myresult), 1,
+                          "The result list is expected to be of length 1")
+        for host in list(enumerate(container_info.myresult, start=1)):
+            print("%d host: %s" % (host[0], host[1]))
+            container_info.host = host[1]
+
+    def test_index_host_list_single(self):
+        container_info.myresult = dbaas.hosts.get(container_info.host)
+        self.assertNotEqual(container_info.myresult, None,
+                            "list hosts should not be empty")
+        print("test_index_host_list_single result: %s" %
+              str(container_info.myresult))
+        self.assertTrue(len(container_info.myresult.dbcontainers) > 0,
+                        "dbcontainer list on the host should not be empty")
+        print("test_index_host_list_single result dbcontainers: %s" %
+              str(container_info.myresult.dbcontainers))
+        for container in list(enumerate(container_info.myresult.dbcontainers, start=1)):
+            print("%d dbcontainer: %s" % (container[0], container[1]))
+
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
       never_skip=True)
 class DeleteContainer(unittest.TestCase):
@@ -413,30 +424,14 @@ class DeleteContainer(unittest.TestCase):
         except NotFound:
             pass
 
-    def test_delete_index_host_list(self):
-        container_info.myresult = dbaas.hosts.index()
-        self.assertNotEqual(container_info.myresult, None,
-                            "list hosts call should not be empty")
-        print("result : %s" % str(container_info.myresult))
-        self.assertTrue(len(container_info.myresult) > 0,
-                        "list hosts length should not be empty")
-        print("test_index_host_list result: %s" % str(container_info.myresult[0]))
-        self.assertEquals(container_info.myresult[0].instanceCount, 0,
-                          "instance count of 'host' should have 0 running instances")
-        print("test_index_host_list result instance_count: %s" %
-              str(container_info.myresult[0].instanceCount))
-        for host in list(enumerate(container_info.myresult, start=1)):
-            print("%d host: %s" % (host[0], host[1]))
-            container_info.host = host[1]
+@test(depends_on_classes=[DeleteContainer], groups=[GROUP, GROUP_STOP])
+class ContainerHostCheck2(ContainerHostCheck):
+    """Class to run tests after delete"""
 
-    def test_delete_index_host_list_single(self):
-        container_info.myresult = dbaas.hosts.get(container_info.host)
-        self.assertNotEqual(container_info.myresult, None,
-                            "list hosts should not be empty")
-        print("test_index_host_list_single result: %s" %
-              str(container_info.myresult))
-        self.assertTrue(container_info.name
-                        not in [dbc['name'] for dbc
-                                in container_info.myresult.dbcontainers])
-        for container in list(enumerate(container_info.myresult.dbcontainers, start=1)):
-            print("%d dbcontainer: %s" % (container[0], container[1]))
+    @expect_exception(Exception)
+    def test_host_not_found(self):
+        container_info.myresult = dbaas.hosts.get('host-dne')
+
+    @expect_exception(Exception)
+    def test_host_not_found(self):
+        container_info.myresult = dbaas.hosts.get('host@$%3dne')
