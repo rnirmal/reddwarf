@@ -104,7 +104,6 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
     pkg_install python-novaclient
     # now clean up that mess so it doesnt pollute into any other installations
     sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin
-    sudo -E rm -fr /tmp/build/python-nova*
     sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
     sudo -E apt-get update
 }
@@ -152,7 +151,6 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
     pkg_install glance
     # now clean up that mess so it doesnt pollute into any other installations
     sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin
-    sudo -E rm -fr /tmp/build/glance*
     sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
     sudo -E apt-get update
     
