@@ -26,7 +26,8 @@ from nova.api.openstack import flavors
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
-from nova.exception import InstanceNotFound
+from nova.compute import power_state
+from nova.exception import InstanceNotFound, InstanceNotRunning
 from nova.guest import api as guest
 from nova.utils import poll_until
 from reddwarf.db import api as dbapi
@@ -84,29 +85,31 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
+        # Let's make sure the container exists first.
+        # If it doesn't, we'll get an exception.
+        try:
+            status = dbapi.guest_status_get(id)
+        except InstanceNotFound:
+            #raise InstanceNotFound(instance_id=id)
+            raise exc.HTTPNotFound("No container with id %s." % id)
+        if status.state != power_state.RUNNING:
+            raise InstanceNotRunning(instance_id=id)
+
         instance = self.compute_api.get(context, id)
-        if isinstance(instance, Exception):
-            return instance
 
-        dbs = self.guest_api.list_databases(context, id)
-        if isinstance(dbs, Exception):
-            return dbs
+        db_list = self.guest_api.list_databases(context, id)
 
-        LOG.debug("DBS: %r" % dbs)
+        LOG.debug("DBS: %r" % db_list)
         dbs = [{
                 'name': db['_name'],
                 'collate': db['_collate'],
                 'character_set': db['_character_set']
-                } for db in dbs]
+                } for db in db_list]
 
         users = self.guest_api.list_users(context, id)
-        if isinstance(users, Exception):
-            return users
         users = [{'name': user['_name']} for user in users]
 
         volume = self.volume_api.get(context, id)
-        if isinstance(volume, Exception):
-            return volume
         volume = {
             'id': volume['id'],
             'name': volume['display_name'],
@@ -116,6 +119,8 @@ class Controller(object):
 
         server = self.server_controller.show(req, id)
         if isinstance(server, Exception):
+            # The server controller has a habit of returning exceptions
+            # instead of raising them.
             return server
         flavorRef = server['server']['flavorRef']
         

@@ -18,7 +18,6 @@ from nose.plugins.skip import SkipTest
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
-from nova import exception
 from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
@@ -342,9 +341,8 @@ class TestContainListing(unittest.TestCase):
         self._check_attr_in_dbcontainers(container, attrs)
 
     def test_volume_found(self):
-        container_info.result = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEqual(container_info.volume['size'],
-                          container_info.result['volume']['size'])
+        container = dbaas.dbcontainers.get(container_info.id)
+        self.assertEqual(container_info.volume['size'], container.volume['size'])
 
     def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)        
@@ -425,10 +423,6 @@ def management_callback():
     global mgmt_details
     mgmt_details = dbaas.management.show(container_info.id)
 
-'''
-@test(depends_on_classes=[CreateContainer, VerifyGuestStarted,
-    WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
-'''
 @test(depends_on=[management_callback], groups=[GROUP])
 class VerifyContainerMgmtInfo(unittest.TestCase):
 
@@ -439,10 +433,15 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
 
     def test_id_matches(self):
         self._assert_key('id', container_info.id)
+
+    def test_bogus_container_mgmt_data(self):
+        # Make sure that a management call to a bogus API 500s.
+        # The client reshapes the exception into just an OpenStackException.
+        #self.assertRaises(nova.exception.InstanceNotFound, dbaas.management.show, -1)
+        self.assertRaises(NotFound, dbaas.management.show, -1)
     
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
-        #mgmt_details = dbaas.management.show(container_info.id)
         info = container_info
         ir = info.initial_result
         cid = ir.id
