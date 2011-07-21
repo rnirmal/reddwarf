@@ -51,24 +51,23 @@ class TestClient(object):
         assert_false(flavor_href is None, "Flavor link self href missing.")
         return flavor_href
 
-    def find_flavors_by_ram(self, ram, flavors_manager=None):
-        flavors_manager = flavors_manager or self.flavors
+    def find_flavors_by_ram(self, ram, flavor_manager=None):
+        flavor_manager = flavor_manager or self.flavors
         assert_false(ram is None)
-        flavors = flavors_manager.list()
+        flavors = flavor_manager.list()
         return [flavor for flavor in flavors if flavor.ram == ram]
 
-    def find_flavor_and_self_href(self, flavor_id, flavors_manager=None):
+    def find_flavor_and_self_href(self, flavor_id, flavor_manager=None):
         """Given an ID, returns flavor and its self href."""
-        flavors_manager = flavors_manager or self.flavors
+        flavor_manager = flavor_manager or self.flavors
         assert_false(flavor_id is None)
-        flavor = flavors_manager.get(flavor_id)
+        flavor = flavor_manager.get(flavor_id)
         assert_false(flavor is None)
         flavor_href = self.find_flavor_self_href(flavor)
         return flavor, flavor_href
 
     def find_image_and_self_href(self, image_id):
         """Given an ID, returns tuple with image and its self href."""
-        flavors_manager = flavors_manager or self.flavors
         assert_false(image_id is None)
         image = self.images.get(image_id)
         assert_true(image is not None)
