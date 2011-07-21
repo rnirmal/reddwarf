@@ -15,8 +15,10 @@
 
 from webob import exc
 
+from nova import exception
 from nova import flags
 from nova import log as logging
+from nova.api.openstack import faults
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.db.sqlalchemy.api import service_get_all_compute_sorted
@@ -41,8 +43,10 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         services = service_get_all_compute_sorted(ctxt)
+        # services looks like (Service(object), Decimal('0'))
+        # must convert from Decimal('0') to int() because no JSON repr
         hosts = [{'name':srv[0].host,
-                  'instanceCount':str(srv[1])}
+                  'instanceCount':int(srv[1])}
                   for srv in services]
         return {'hosts': hosts}
 
@@ -50,12 +54,15 @@ class Controller(object):
     #@check_host
     def show(self, req, id):
         """List all the dbcontainers on the host given"""
-        LOG.info("List all the nova-compute hosts in the system")
-        LOG.debug("%s - %s", req.environ, req.body)
-        ctxt = req.environ['nova.context']
-        containers = show_containers_on_host(ctxt,id)
-        dbcontainers = [{'id':c.id} for c in containers]
-        return {'host': {'name':id, 'dbcontainers':dbcontainers}}
+        try:
+            LOG.info("List all the nova-compute hosts in the system")
+            LOG.debug("%s - %s", req.environ, req.body)
+            ctxt = req.environ['nova.context']
+            containers = show_containers_on_host(ctxt,id)
+            dbcontainers = [{'id':c.id} for c in containers]
+            return {'host': {'name':id, 'dbcontainers':dbcontainers}}
+        except exception.HostNotFound:
+            return faults.Fault(exc.HTTPNotFound())
 
 def create_resource(version='1.0'):
     controller = {

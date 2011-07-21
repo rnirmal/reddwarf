@@ -135,6 +135,10 @@ class ContainerHostCheck(unittest.TestCase):
                                 in host_index_result.dbcontainers])
         for container in list(enumerate(host_index_result.dbcontainers, start=1)):
             print("%d dbcontainer: %s" % (container[0], container[1]))
+            
+    @expect_exception(NotFound)
+    def test_host_not_found(self):
+        container_info.myresult = dbaas.hosts.get('host@$%3dne')
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
