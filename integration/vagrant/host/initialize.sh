@@ -16,6 +16,9 @@ cd $home
 source /vagrant-common/DbaasPkg.sh
 source /vagrant-common/Utils.sh
 
+# Remove ip routing from br200
+sudo ip route del default via 10.0.4.2
+
 if [ -f ~/dependencies_are_installed ]
 then
     echo Dependencies are already installed.
