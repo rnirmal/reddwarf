@@ -29,6 +29,7 @@ from nova.api.platform.dbaas import databases
 from nova.api.platform.dbaas import dbcontainers
 from nova.api.platform.dbaas import guests
 from nova.api.platform.dbaas import hosts
+from nova.api.platform.dbaas import management
 from nova.api.platform.dbaas import root
 from nova.api.platform.dbaas import users
 from nova.api.platform.dbaas import flavors
@@ -78,6 +79,10 @@ class APIRouter(wsgi.Router):
             mapper.connect("/mgmt/hosts/{id}",
                        controller=hosts.create_resource(),
                        action="show", conditions=dict(method=["GET"]))
+
+            mapper.connect("/mgmt/dbcontainers/{id}",
+                            controller=management.create_resource(),
+                            action="show", conditions=dict(method=["GET"]))
 
             #TODO(rnirmal): Right now any user can access these
             # functions as long as the allow_admin_api flag is set.

@@ -18,7 +18,6 @@ from nose.plugins.skip import SkipTest
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
-from nova import exception
 from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
@@ -51,8 +50,9 @@ class ContainerTestInfo(object):
         self.dbaas_image = None  # The image used to create the container.
         self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
+        self.initial_result = None # The initial result from the create call.
         self.ip = None  # The IP of the instance.
-        self.myresult = None  # The container info returned by the API
+        self.result = None  # The container info returned by the API
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the container.
@@ -155,32 +155,28 @@ class CreateContainer(unittest.TestCase):
         time.sleep(2)
 
         databases = []
-        databases.append({"name": "firstdb", "charset": "latin2",
+        databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
         container_info.volume = {"size":1}
 
-        container_info.result = dbaas.dbcontainers.create(
+        container_info.initial_result = dbaas.dbcontainers.create(
                                             container_info.name,
                                             container_info.dbaas_flavor_href,
                                             container_info.volume,
                                             databases)
-        container_info.id = container_info.result.id
+        result = container_info.initial_result
+        container_info.id = result.id
+
+        self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
         
         # checks to be sure these are not found in the result
-        result_dict = container_info.result.__dict__
         for attr in ["hostId","imageRef","metadata","adminPass"]:
-            self.assertTrue(result_dict.get(attr) == None,
-                            "Create response should not contain %s = %s" %
-                            (attr, result_dict.get(attr)))
+            self.assertFalse(hasattr(result, attr),
+                            "Create response should not contain %r." % attr)
         # checks to be sure these are found in the result
         for attr in ["flavorRef","id","name","status","addresses","links","volume"]:
-            self.assertTrue(result_dict.get(attr) != None,
-                            "Create response should contain %s = %s attribute." %
-                            (attr, result_dict.get(attr)))
-
-    def test_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEquals(_dbaas_mapping[power_state.BUILDING], container_info.myresult['status'])
+            self.assertTrue(hasattr(result, attr),
+                            "Create response should contain %r attribute." % attr)
 
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
@@ -203,7 +199,7 @@ class VerifyGuestStarted(unittest.TestCase):
             if not string_in_list(status, ["running"]):
                 time.sleep(5)
             else:
-                self.assertEquals("running", status.strip())
+                self.assertEqual("running", status.strip())
                 break
 
 
@@ -223,8 +219,8 @@ class VerifyGuestStarted(unittest.TestCase):
         self.assertEqual(result.state, power_state.BUILDING)
 
     def test_guest_started_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEquals(_dbaas_mapping[power_state.BUILDING], container_info.myresult['status'])
+        result = dbaas.dbcontainers.get(container_info.id)
+        self.assertEqual(_dbaas_mapping[power_state.BUILDING], result.status)
 
 
 @test(depends_on_classes=[VerifyGuestStarted], groups=[GROUP, GROUP_START])
@@ -237,10 +233,12 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
     def test_container_created(self):
         #/vz/private/1/var/log/nova/nova-guest.log
         while True:
+            result = dbaas.dbcontainers.get(container_info.id)
             status, err = process(
-                """cat /vz/private/%s/var/log/nova/nova-guest.log | grep "Dbaas" """
+                """grep "Dbaas" /vz/private/%s/var/log/nova/nova-guest.log"""
                 % str(container_info.id))
             if not string_in_list(status, ["Dbaas preparation complete."]):
+                self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
                 time.sleep(5)
             else:
                 break
@@ -286,8 +284,8 @@ class TestGuestProcess(unittest.TestCase):
 
 
     def test_guest_status_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
+        result = dbaas.dbcontainers.get(container_info.id)
+        self.assertEqual(_dbaas_mapping[power_state.RUNNING], result.status)
 
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "nova.volumes.container"])
@@ -298,84 +296,61 @@ class TestVolume(unittest.TestCase):
         """The compute manager should associate a volume to the instance."""
         volumes = db.volume_get_all_by_instance(context.get_admin_context(), 
                                                 container_info.id)
-        self.assertEquals(1, len(volumes))
+        self.assertEqual(1, len(volumes))
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
     
     def test_detail_list(self):
-        container_info.myresult = dbaas.dbcontainers.details()
-        self.assertTrue(self._detail_dbcontainers_exist())
+        containers = dbaas.dbcontainers.details()
+        for container in containers:
+            self._detail_dbcontainers_exist(container)
 
     def test_index_list(self):
-        container_info.myresult = dbaas.dbcontainers.index()
-        self.assertTrue(self._index_dbcontainers_exist())
+        containers = dbaas.dbcontainers.index()
+        for container in containers:
+            self._index_dbcontainers_exist(container)
 
     def test_get_container(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id)
-        self._assert_dbcontainers_exist()
+        container = dbaas.dbcontainers.get(container_info.id)
+        self._assert_dbcontainers_exist(container)
 
     def test_get_container_status(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEquals(_dbaas_mapping[power_state.RUNNING], container_info.myresult['status'])
+        result = dbaas.dbcontainers.get(container_info.id)
+        self.assertEqual(_dbaas_mapping[power_state.RUNNING], result.status)
 
     def test_get_legacy_status(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        if len(container_info.myresult)>0:
-            self.assertTrue(True)
-        else:
-            self.assertTrue(False)
+        result = dbaas.dbcontainers.get(container_info.id)
+        self.assertTrue(result is not None)
 
     def test_get_legacy_status_notfound(self):
-        try:
-            if dbaas.dbcontainers.get(-2):
-                self.assertTrue(True)
-            else:
-                self.assertTrue(False)
-        except NotFound:
-            pass
+        self.assertRaises(NotFound, dbaas.dbcontainers.get, -2)
+
+    def _check_attr_in_dbcontainers(self, container, attrs):
+        for attr in attrs:
+            msg = "Missing attribute %r" % attr
+            self.assertTrue(hasattr(container, attr), msg)
+
+    def _detail_dbcontainers_exist(self, container):
+        attrs = ['status', 'name', 'addresses', 'links', 'id']
+        self._check_attr_in_dbcontainers(container, attrs)
+
+    def _index_dbcontainers_exist(self, container):
+        attrs = ['id', 'name', 'links']
+        self._check_attr_in_dbcontainers(container, attrs)
 
     def test_volume_found(self):
-        container_info.myresult = dbaas.dbcontainers.get(container_info.id).__dict__
-        self.assertEquals(container_info.volume['size'],
-                          container_info.myresult['volume']['size'])
+        container = dbaas.dbcontainers.get(container_info.id)
+        self.assertEqual(container_info.volume['size'], container.volume['size'])
 
-    def _detail_dbcontainers_exist(self):
-        for container in container_info.myresult:
-            if not container.status:
-                return False
-            if not container.id and container.id != container_info.id:
-                return False
-            if not container.name:
-                return False
-            if not container.addresses:
-                return False
-            if not container.links:
-                return False
-            if not container.volume:
-                return False
-        return True
-
-    def _index_dbcontainers_exist(self):
-        for container in container_info.myresult:
-            if not container.id and container.id != container_info.id:
-                return False
-            if not container.name:
-                return False
-            if not container.links:
-                return False
-        return True
-
-    def _assert_dbcontainers_exist(self):
-        container = container_info.myresult
+    def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)        
-        self.assertTrue(container.name is not None)
-        self.assertTrue(container.links is not None)
+        attrs = ['name', 'links']
+        self._check_attr_in_dbcontainers(container, attrs)
         if rsdns:
             dns_entry = container_info.expected_dns_entry()
             self.assertEqual(dns_entry.name, container.hostname)
-
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, "dbaas.mgmt.listing"])
 class MgmtHostCheck(unittest.TestCase):
@@ -417,15 +392,16 @@ class DeleteContainer(unittest.TestCase):
     @time_out(3 * 60)
     def test_delete(self):
         global dbaas
-        if not hasattr(container_info, "result"):
+        if not hasattr(container_info, "initial_result"):
             raise SkipTest("Container was never created, skipping test...")
-        dbaas.dbcontainers.delete(container_info.result)
+        dbaas.dbcontainers.delete(container_info.id)
 
         try:
             time.sleep(1)
-            while container_info.result:
-                container_info.result = dbaas.dbcontainers.get(container_info.id)
-                self.assertEquals(_dbaas_mapping[power_state.SHUTDOWN], container_info.result.status)
+            result = True
+            while result is not None:
+                result = dbaas.dbcontainers.get(container_info.id)
+                self.assertEqual(_dbaas_mapping[power_state.SHUTDOWN], result.status)
         except NotFound:
             pass
 
@@ -440,3 +416,66 @@ class ContainerHostCheck2(ContainerHostCheck):
     @expect_exception(Exception)
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
+
+@test(depends_on_classes=[CreateContainer, VerifyGuestStarted,
+    WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
+def management_callback():
+    global mgmt_details
+    mgmt_details = dbaas.management.show(container_info.id)
+
+@test(depends_on=[management_callback], groups=[GROUP])
+class VerifyContainerMgmtInfo(unittest.TestCase):
+
+    def _assert_key(self, k, expected):
+        v = getattr(mgmt_details, k)
+        err = "Key %r does not match expected value of %r (was %r)." % (k, expected, v)
+        self.assertEqual(str(v), str(expected), err)
+
+    def test_id_matches(self):
+        self._assert_key('id', container_info.id)
+
+    def test_bogus_container_mgmt_data(self):
+        # Make sure that a management call to a bogus API 500s.
+        # The client reshapes the exception into just an OpenStackException.
+        #self.assertRaises(nova.exception.InstanceNotFound, dbaas.management.show, -1)
+        self.assertRaises(NotFound, dbaas.management.show, -1)
+    
+    def test_mgmt_data(self):
+        # Test that the management API returns all the values we expect it to.
+        info = container_info
+        ir = info.initial_result
+        cid = ir.id
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(), cid)
+        self.assertEqual(len(volumes), 1)
+        volume = volumes[0]
+
+        expected = {
+            'id': str(ir.id),
+            'name': ir.name,
+            'account_id': info.user.auth_user,
+            'flavorRef': info.dbaas_flavor_href,
+            'databases': [{
+                'name': 'firstdb',
+                'character_set': 'latin2',
+                'collate': 'latin2_general_ci',
+                }],
+            'users': [], # TODO(ed-) Surely I can't guarantee this.
+            'volume': {
+                'id': volume.id,
+                'name': volume.display_name,
+                'size': volume.size,
+                'description': volume.display_description,
+                },
+            }
+
+        if rsdns is not None:
+            expected['host'] = info.hostname
+
+        self.assertTrue(mgmt_details is not None)
+        failures = []
+        for (k,v) in expected.items():
+            self.assertTrue(hasattr(mgmt_details, k), "Attr %r is missing." % k)
+            self.assertEqual(getattr(mgmt_details, k), v,
+                "Attr %r expected to be %r but was %r." %
+                (k, v, getattr(mgmt_details, k)))
+

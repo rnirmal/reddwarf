@@ -30,3 +30,7 @@ contrib/tty.tgz
 vagrantup.*
 .apitoken
 integration/.noseids
+*.vim
+.*swp
+.gitignore
+host.Dummy*

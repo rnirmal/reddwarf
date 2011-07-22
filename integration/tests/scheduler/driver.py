@@ -76,11 +76,11 @@ def create_container():
     """Create the container. Expect the scheduler to fail the request."""
     #TODO(tim.simpson): Try to get this to work using a direct instance
     #                   creation call.
-#    instance = instance_info.client.servers.create(
-#        name="My Instance",
-#        image=test_config.dbaas_image,
-#        flavor=1
-#    )
+    #    instance = instance_info.client.servers.create(
+    #        name="My Instance",
+    #        image=test_config.dbaas_image,
+    #        flavor=1
+    #    )
     now = datetime.utcnow()
     global initial_instance
     initial_instance = client.dbcontainers.create(
