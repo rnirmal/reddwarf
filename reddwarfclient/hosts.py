@@ -45,7 +45,7 @@ class Hosts(base.ManagerWithFind):
 
     def get(self, host):
         """
-        Get a specific hosts.
+        Get a specific host.
 
         :rtype: :class:`host`
         """
