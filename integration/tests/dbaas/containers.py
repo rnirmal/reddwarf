@@ -25,6 +25,7 @@ from reddwarf.db import api as dbapi
 
 from reddwarfclient import Dbaas
 from tests.util import test_config
+from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from proboscis import test
 from tests.util import check_database
@@ -75,7 +76,7 @@ container_info = ContainerTestInfo()
 dbaas = None  # Rich client used throughout this test.
 
 
-@test(groups=[GROUP, GROUP_START], depends_on_groups=["services.initialize"])
+@test(groups=[GROUP, GROUP_START, 'dbaas.setup'], depends_on_groups=["services.initialize"])
 class Setup(unittest.TestCase):
     """Makes sure the client can hit the ReST service.
 
@@ -99,6 +100,45 @@ class Setup(unittest.TestCase):
 
     def test_create_container_name(self):
         container_info.name = "TEST_" + str(datetime.now())
+
+@test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
+class ContainerHostCheck(unittest.TestCase):
+    """Class to run tests after Setup"""
+    
+    def test_empty_index_host_list(self):
+        host_index_result = dbaas.hosts.index()
+        self.assertNotEqual(host_index_result, None,
+                            "list hosts call should not be empty")
+        print("result : %s" % str(host_index_result))
+        self.assertTrue(len(host_index_result) > 0,
+                        "list hosts length should not be empty")
+        print("test_index_host_list result: %s" % str(host_index_result[0]))
+        print("instance count for host : %d" % int(host_index_result[0].instanceCount))
+        self.assertEquals(int(host_index_result[0].instanceCount), 0,
+                          "instance count of 'host' should have 0 running instances")
+        print("test_index_host_list result instance_count: %s" %
+              str(host_index_result[0].instanceCount))
+        self.assertEquals(len(host_index_result), 1,
+                          "The result list is expected to be of length 1")
+        for host in list(enumerate(host_index_result, start=1)):
+            print("%d host: %s" % (host[0], host[1]))
+            container_info.host = host[1]
+
+    def test_empty_index_host_list_single(self):
+        host_index_result = dbaas.hosts.get(container_info.host)
+        self.assertNotEqual(host_index_result, None,
+                            "list hosts should not be empty")
+        print("test_index_host_list_single result: %s" %
+              str(host_index_result))
+        self.assertTrue(container_info.name
+                        not in [dbc.name for dbc
+                                in host_index_result.dbcontainers])
+        for container in list(enumerate(host_index_result.dbcontainers, start=1)):
+            print("%d dbcontainer: %s" % (container[0], container[1]))
+            
+    @expect_exception(NotFound)
+    def test_host_not_found(self):
+        container_info.myresult = dbaas.hosts.get('host@$%3dne')
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
@@ -336,6 +376,38 @@ class TestContainListing(unittest.TestCase):
             self.assertEqual(dns_entry.name, container.hostname)
 
 
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, "dbaas.mgmt.listing"])
+class MgmtHostCheck(unittest.TestCase):
+    def test_index_host_list(self):
+        myresult = dbaas.hosts.index()
+        self.assertNotEqual(myresult, None,
+                            "list hosts should not be empty")
+        self.assertTrue(len(myresult) > 0,
+                        "list hosts should not be empty")
+        print("test_index_host_list result: %s" % str(myresult))
+        print("test_index_host_list result instance_count: %d" %
+              myresult[0].instanceCount)
+        self.assertEquals(myresult[0].instanceCount, 1,
+                          "instance count of 'host' should have 1 running instances")
+        self.assertEquals(len(myresult), 1,
+                          "The result list is expected to be of length 1")
+        for index, host in enumerate(myresult, start=1):
+            print("%d host: %s" % (index, host))
+            container_info.host = host
+
+    def test_index_host_list_single(self):
+        myresult = dbaas.hosts.get(container_info.host)
+        self.assertNotEqual(myresult, None,
+                            "list hosts should not be empty")
+        print("test_index_host_list_single result: %s" %
+              str(myresult))
+        self.assertTrue(len(myresult.dbcontainers) > 0,
+                        "dbcontainer list on the host should not be empty")
+        print("test_index_host_list_single result dbcontainers: %s" %
+              str(myresult.dbcontainers))
+        for index, container in enumerate(myresult.dbcontainers, start=1):
+            print("%d dbcontainer: %s" % (index, container))
+
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
       never_skip=True)
 class DeleteContainer(unittest.TestCase):
@@ -355,3 +427,15 @@ class DeleteContainer(unittest.TestCase):
                 self.assertEquals(_dbaas_mapping[power_state.SHUTDOWN], container_info.result.status)
         except NotFound:
             pass
+
+@test(depends_on_classes=[DeleteContainer], groups=[GROUP, GROUP_STOP])
+class ContainerHostCheck2(ContainerHostCheck):
+    """Class to run tests after delete"""
+
+    @expect_exception(Exception)
+    def test_host_not_found(self):
+        container_info.myresult = dbaas.hosts.get('host-dne')
+
+    @expect_exception(Exception)
+    def test_host_not_found(self):
+        container_info.myresult = dbaas.hosts.get('host@$%3dne')

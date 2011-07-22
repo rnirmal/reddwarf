@@ -17,6 +17,7 @@ from novaclient import OpenStack
 
 from reddwarfclient.dbcontainers import DbContainers
 from reddwarfclient.databases import Databases
+from reddwarfclient.hosts import Hosts
 from reddwarfclient.users import Users
 from reddwarfclient.root import Root
 
@@ -49,3 +50,4 @@ class Dbaas(OpenStack):
         self.dbcontainers = DbContainers(self)
         self.users = Users(self)
         self.root = Root(self)
+        self.hosts = Hosts(self)

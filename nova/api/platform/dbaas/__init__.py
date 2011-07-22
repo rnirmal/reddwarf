@@ -29,6 +29,7 @@ from nova.api.openstack import images
 from nova.api.platform.dbaas import databases
 from nova.api.platform.dbaas import dbcontainers
 from nova.api.platform.dbaas import guests
+from nova.api.platform.dbaas import hosts
 from nova.api.platform.dbaas import root
 from nova.api.platform.dbaas import users
 
@@ -69,6 +70,14 @@ class APIRouter(wsgi.Router):
             mapper.resource("image", "images",
                             controller=images.create_resource(FLAGS.nova_api_version),
                             collection={'detail': 'GET'})
+
+            mapper.connect("/mgmt/hosts",
+                       controller=hosts.create_resource(),
+                       action="index", conditions=dict(method=["GET"]))
+
+            mapper.connect("/mgmt/hosts/{id}",
+                       controller=hosts.create_resource(),
+                       action="show", conditions=dict(method=["GET"]))
 
             #TODO(rnirmal): Right now any user can access these
             # functions as long as the allow_admin_api flag is set.

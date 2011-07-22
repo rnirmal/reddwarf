@@ -19,10 +19,18 @@ API Interface for reddwarf datastore operations
 import datetime
 
 from nova import exception
+from nova import log as logging
+from sqlalchemy.sql import func
+from sqlalchemy.sql import text
+from nova.db.sqlalchemy.api import require_admin_context
+from nova.db.sqlalchemy.api import require_context
+from nova.db.sqlalchemy.models import Instance
+from nova.db.sqlalchemy.models import Service
 from nova.db.sqlalchemy.session import get_session
 from nova.compute import power_state
 from reddwarf.db import models
 
+LOG = logging.getLogger('reddwarf.db.api')
 
 def guest_status_create(instance_id):
     """Create a new guest status for the instance
@@ -105,3 +113,20 @@ def guest_status_delete(instance_id):
                         'deleted_at': datetime.datetime.utcnow(),
                         'state': state,
                         'state_description': power_state.name(state)})
+
+@require_admin_context
+def show_containers_on_host(context, id):
+    """Show all the containers that are on the given host id."""
+    LOG.debug("show_containers_on_host id = %s" % str(id))
+    session = get_session()
+    with session.begin():
+        count = session.query(Service).\
+                        filter_by(host=id).\
+                        filter_by(deleted=False).\
+                        filter_by(disabled=False).count()
+        if not count:
+            raise exception.HostNotFound(host=id)
+        result = session.query(Instance).\
+                        filter_by(host=id).\
+                        filter_by(deleted=False).all()
+    return result

@@ -5,7 +5,7 @@
          targetNamespace="http://docs.rackspacecloud.com/database/api/mgmt/v1.0" 
          xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
          xmlns="http://www.w3.org/2001/XMLSchema" 
-         xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0" 
+         xmlns:dbaasmanagement="http://docs.rackspacecloud.com/database/api/v1.0"
          xmlns:xsdxt="http://docs.rackspacecloud.com/xsd-ext/v1.0">
   <annotation>
     <xsd:appinfo xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
@@ -15,4 +15,72 @@
       <p>This schema defines entity contains entities related to the dbaas Management API.</p>
     </xsd:documentation>
   </annotation>
+
+  <element name="host" type="dbaasmanagement:Host">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Information about a Host.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/user.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+  <element name="hosts" type="dbaasmanagement:Hosts">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>List of Hosts.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/user.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+
+  <!--Complex Types-->
+  <complexType name="Hosts">
+    <sequence>
+      <element name="hosts" type="dbaasmanagement:Host" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>A list of Host names.</p>
+          </xsd:documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+
+  <complexType name="Host">
+    <sequence>
+      <element name="dbcontainers" type="dbaas:DatabaseContainer" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>A database containers that are on the Host.</p>
+          </xsd:documentation>
+        </annotation>
+      </element>
+    </sequence>
+    <attribute name="name" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The name of the Host.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+
 </schema>
