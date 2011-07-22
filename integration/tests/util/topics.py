@@ -17,11 +17,9 @@
 
 from nova import flags
 from nova import utils
+from nova.scheduler import manager  # Do this to create flag "scheduler_driver"
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('scheduler_driver',
-        'nova.scheduler.chance.ChanceScheduler',
-        'Driver to use for the scheduler')
 
 
 class FakeContext(object):

@@ -22,13 +22,16 @@ Simple Scheduler
 """
 
 from nova import db
+from nova import exception
 from nova import flags
 from nova import utils
 from nova import log as logging
 from nova.compute import power_state
 from nova.exception import OutOfInstanceMemory
+from nova.notifier import api as notifier
 from nova.scheduler import driver
 from nova.scheduler import chance
+from nova.scheduler import manager
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_cores", 16,
@@ -173,7 +176,14 @@ class MemoryScheduler(SimpleScheduler):
 
 
 class UnforgivingMemoryScheduler(MemoryScheduler):
-    """When NoValidHosts is thrown, this sets the instance state to FAILED."""
+    """When NoValidHosts is thrown, this sets the instance state to FAILED.
+
+    We could just issue a notification in the MemoryScheduler when throwing
+    NoValidHost, but I'm concerned is that the manager might be changed so that
+    NoValidHost means "try again later." Since we're setting the instance to
+    failed we don't want it to ever try again and we raise OutOfInstanceMemory.
+
+    """
 
     def schedule_run_instance(self, context, instance_id, *_args, **_kwargs):
         base = super(UnforgivingMemoryScheduler, self)
@@ -183,4 +193,7 @@ class UnforgivingMemoryScheduler(MemoryScheduler):
         except driver.NoValidHost:
             db.instance_set_state(context, instance_id, power_state.FAILED)
             memory_mb = db.instance_get(context, instance_id)['memory_mb']
+            notifier.notify(manager.publisher_id(), 'out.of.instance.memory',
+                            notifier.ERROR,
+                            {"requested_instance_memory_mb":memory_mb})
             raise OutOfInstanceMemory(instance_memory_mb=memory_mb)

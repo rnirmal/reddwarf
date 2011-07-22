@@ -28,7 +28,6 @@ from functools import wraps
 
 from nova import log as logging
 
-_OPS_LOG_PREFIX = "__CRITICAL_ALERT_!:"
 LOG = logging.getLogger('nova.exception')
 
 
@@ -157,30 +156,6 @@ class VirtualInterfaceCreateException(NovaException):
 class VirtualInterfaceMacAddressException(NovaException):
     message = _("5 attempts to create virtual interface"
                 "with unique mac address failed")
-
-def notify_ops(msg):
-    """Alerts ops somehow.
-
-    Currently this is done by putting a special string in the logs. The plan
-    is to use notifications when they are finished.
-    """
-    LOG.error(_OPS_LOG_PREFIX + msg)
-
-
-class OpsNotification(NovaException):
-    """An exception which, when raised, notifies Ops."""
-    ops_message = _("A critical issue detected.")
-
-    def __init__(self, **kwargs):
-        try:
-            self._msg_string = (self.ops_message % kwargs)
-        except Exception:
-            self._msg_string = self.ops_message
-        notify_ops(self._msg_string)
-        super(OpsNotification, self).__init__(**kwargs)
-
-    def __str__(self):
-        return self._msg_string
 
 
 class NotAuthorized(NovaException):
@@ -605,11 +580,10 @@ class SchedulerWeightFlagNotFound(NotFound):
     message = _("Scheduler weight flag not found: %(flag_name)s")
 
 
-class OutOfInstanceMemory(OpsNotification):
+class OutOfInstanceMemory(NovaException):
 
     message = _("Scheduler unable to find a host with memory left for an "
                 "instance needing %(instance_memory_mb)s MB of RAM.")
-    ops_message = message
 
 
 class InstanceMetadataNotFound(NotFound):

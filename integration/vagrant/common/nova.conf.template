@@ -32,6 +32,8 @@
 --quota_gigabytes=1000
 --quota_floating_ips=10
 
+--notification_driver=nova.notifier.log_notifier
+
 #Extra ending line needed so that other conf files can be appended to this one.
 
 
