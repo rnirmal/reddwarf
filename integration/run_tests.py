@@ -103,6 +103,8 @@ if __name__ == '__main__':
     from tests.dbaas import dbaas_ovz
     from tests.dbaas import dns
 
+    from tests.dbaas import flavors
+
     from tests.guest import dbaas_tests
     from tests.guest import pkg_tests
 

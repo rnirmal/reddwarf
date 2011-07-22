@@ -84,7 +84,6 @@ class Controller(object):
 
     def detail(self, req):
         """ Returns a list of dbcontainer details for a given user """
-        LOG.info("Call to DBContainers detail")
         LOG.debug("%s - %s", req.environ, req.body)
         resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
         #resp = self._manipulate_response(req, resp)

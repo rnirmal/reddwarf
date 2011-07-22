@@ -30,6 +30,7 @@ from proboscis.decorators import time_out
 from proboscis import test
 from tests.util import check_database
 from tests.util import create_dns_entry
+from tests.util import create_test_client
 from tests.util import process
 from tests.util.users import Requirements
 from tests.util import string_in_list
@@ -88,7 +89,7 @@ class Setup(unittest.TestCase):
         """Sets up the client."""
         global dbaas
         container_info.user = test_config.users.find_user(Requirements(is_admin=True))
-        dbaas = TestClient(util.create_dbaas_client(container_info.user))
+        dbaas = create_test_client(container_info.user)
 
     def test_find_image(self):
         result = dbaas.find_image_and_self_href(test_config.dbaas_image)

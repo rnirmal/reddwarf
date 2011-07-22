@@ -24,7 +24,6 @@ import routes
 from nova import flags
 from nova import log as logging
 from nova import wsgi
-from nova.api.openstack import flavors
 from nova.api.openstack import images
 from nova.api.platform.dbaas import databases
 from nova.api.platform.dbaas import dbcontainers
@@ -32,6 +31,7 @@ from nova.api.platform.dbaas import guests
 from nova.api.platform.dbaas import hosts
 from nova.api.platform.dbaas import root
 from nova.api.platform.dbaas import users
+from nova.api.platform.dbaas import flavors
 
 LOG = logging.getLogger('nova.api.platform.dbaas')
 FLAGS = flags.FLAGS
@@ -90,7 +90,7 @@ class APIRouter(wsgi.Router):
                         member=container_members)
 
         mapper.resource("flavor", "flavors",
-                        controller=flavors.create_resource(FLAGS.nova_api_version),
+                        controller=flavors.create_resource(),
                         collection={'detail': 'GET'})
 
         mapper.resource("database", "databases",

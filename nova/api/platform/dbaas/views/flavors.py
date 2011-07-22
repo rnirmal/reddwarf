@@ -1,5 +1,3 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
 # Copyright 2010-2011 OpenStack LLC.
 # All Rights Reserved.
 #
@@ -15,4 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import flavors
+
+from nova import log as logging
+from nova.api.openstack.views import flavors as os_flavors
+
+
+LOG = logging.getLogger('nova.api.platform.dbaas.flavors')
+LOG.setLevel(logging.DEBUG)
+
+
+class ViewBuilder(os_flavors.ViewBuilderV11):
+    """Simpler view of flavors which removes local_gb."""
+
+    def _build_detail(self, flavor_obj):
+        """Build a more complete representation of a flavor."""
+        LOG.debug("_build_detail of a flavor")
+        detail = super(ViewBuilder, self)._build_detail(flavor_obj)
+        del detail['disk']
+        return detail

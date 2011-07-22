@@ -38,11 +38,10 @@ class TestClient(object):
 
     """
 
-    def __init__(self, dbaas_client, os_client=None):
+    def __init__(self, dbaas_client, os_client):
         """Accepts a dbaas and os client. They may have different urls."""
-        os_client = os_client or dbaas_client
-        self.dbaas_client = dbaas_client
-        self.os_client = os_client
+        self.dbaas = dbaas_client
+        self.os = os_client
 
     @staticmethod
     def find_flavor_self_href(flavor):
@@ -52,15 +51,17 @@ class TestClient(object):
         assert_false(flavor_href is None, "Flavor link self href missing.")
         return flavor_href
 
-    def find_flavors_by_ram(self, ram):
+    def find_flavors_by_ram(self, ram, flavor_manager=None):
+        flavor_manager = flavor_manager or self.flavors
         assert_false(ram is None)
-        flavors = self.flavors.list()
+        flavors = flavor_manager.list()
         return [flavor for flavor in flavors if flavor.ram == ram]
 
-    def find_flavor_and_self_href(self, flavor_id):
+    def find_flavor_and_self_href(self, flavor_id, flavor_manager=None):
         """Given an ID, returns flavor and its self href."""
+        flavor_manager = flavor_manager or self.flavors
         assert_false(flavor_id is None)
-        flavor = self.flavors.get(flavor_id)
+        flavor = flavor_manager.get(flavor_id)
         assert_false(flavor is None)
         flavor_href = self.find_flavor_self_href(flavor)
         return flavor, flavor_href
@@ -81,7 +82,7 @@ class TestClient(object):
 
     def __getattr__(self, item):
         if item in ['ipgroups', 'servers', 'zones', 'accounts']:
-            preferred_client = self.os_client
+            preferred_client = self.os
         else:
-            preferred_client = self.dbaas_client
+            preferred_client = self.dbaas
         return getattr(preferred_client, item)
