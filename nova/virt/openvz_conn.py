@@ -948,8 +948,8 @@ class OpenVzConnection(driver.ComputeDriver):
         are and should be owned by root.
         """
         # TODO(imsplitbit): Find a way to make this less of a hack with sudo
-        start_script = '%s/%s.start' % (FLAGS.ovz_config_dir, instance['id'])
-        stop_script = '%s/%s.stop' % (FLAGS.ovz_config_dir, instance['id'])
+        start_script = '%s/%s.mount' % (FLAGS.ovz_config_dir, instance['id'])
+        stop_script = '%s/%s.umount' % (FLAGS.ovz_config_dir, instance['id'])
         inside_mount = '%s/%s/%s' % \
                        (FLAGS.ovz_ve_private_dir, instance['id'], mount)
         outside_mount = '%s/%s/%s' % \
