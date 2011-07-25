@@ -1,5 +1,4 @@
 #!/bin/bash
-export PYTHON_NOVACLIENT_VERSION=28
 
 exclaim () {
     echo "*******************************************************************************"
