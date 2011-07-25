@@ -997,6 +997,20 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Failed to open the container stop script')
 
+        # Fixup the mount and umount files to have the proper shell script
+        # header otherwise vzctl rejects it.
+        if len(start_lines) > 0:
+            if not start_lines[0] == '#!/bin/sh':
+                start_lines = ['#!/bin/sh'] + start_lines
+        else:
+            start_lines = ['#!/bin/sh'] + start_lines
+
+        if len(stop_lines) > 0:
+            if not stop_lines[0] == '#!/bin/sh':
+                stop_lines = ['#!/bin/sh'] + stop_lines
+        else:
+            stop_lines = ['#!/bin/sh'] + stop_lines
+
         # Make the magic happen.
         if action == 'add':
             # Create a mount point for the device outside the root of the
