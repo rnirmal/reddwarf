@@ -37,7 +37,7 @@ flags.DEFINE_string('volume_group', 'nova-volumes',
                     'Name for the VG that will contain exported volumes')
 flags.DEFINE_string('aoe_eth_dev', 'eth0',
                     'Which device to export the volumes on')
-flags.DEFINE_string('num_shell_tries', 3,
+flags.DEFINE_integer('num_shell_tries', 3,
                     'number of times to attempt to run flakey shell commands')
 flags.DEFINE_integer('num_shelves',
                     100,
