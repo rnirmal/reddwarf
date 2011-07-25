@@ -1085,6 +1085,24 @@ def instance_destroy(context, instance_id):
 
 
 @require_context
+def instance_get_state(context, instance_id):
+    """Given an instance returns the state."""
+    session = get_session()
+    result = session.query(models.Instance).first()
+    if not result:
+        raise exception.InstanceNotFound(instance_id=instance_id)
+    return result['state']
+
+
+@require_context
+def instance_get_all_states(context, instance_id):
+    """Returns a dictionary mapping instance IDs to their state."""
+    session = get_session()
+    results = session.query(models.Instance).filter_by(id=instance_id).all()
+    return dict((result['id'], result['state']) for result in results)
+
+
+@require_context
 def instance_stop(context, instance_id):
     session = get_session()
     with session.begin():
