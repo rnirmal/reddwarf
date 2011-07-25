@@ -951,7 +951,7 @@ class OpenVzConnection(driver.ComputeDriver):
         start_script = '%s/%s.start' % (FLAGS.ovz_config_dir, instance['id'])
         stop_script = '%s/%s.stop' % (FLAGS.ovz_config_dir, instance['id'])
         inside_mount = '%s/%s/%s' % \
-                       (FLAGS.ovz_ve_root_dir, instance['id'], mount)
+                       (FLAGS.ovz_ve_private_dir, instance['id'], mount)
         outside_mount = '%s/%s/%s' % \
                         (FLAGS.ovz_ve_outside_mount_dir, instance['id'], mount)
 
