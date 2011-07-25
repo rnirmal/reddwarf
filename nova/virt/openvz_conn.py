@@ -1026,7 +1026,7 @@ class OpenVzConnection(driver.ComputeDriver):
             if dev:
                 outside_mount_line = 'mount %s %s' % (dev, outside_mount)
             elif uuid:
-                outside_mount_line = 'mount --uuid %s %s' % \
+                outside_mount_line = 'mount UUID=%s %s' % \
                                      (uuid, outside_mount)
             else:
                 LOG.error('Could not create outside_mount_line')
