@@ -945,7 +945,7 @@ class OpenVzConnection(driver.ComputeDriver):
         filesystems available to the container at 'boot'.  We have to do quite
         a bit of sudo 'magic' here just to make all this go as nova runs
         typically as an unprivileged user and we are modifying files that
-        are owned by root.
+        are and should be owned by root.
         """
         # TODO(imsplitbit): Find a way to make this less of a hack with sudo
         start_script = '%s/%s.start' % (FLAGS.ovz_config_dir, instance['id'])
@@ -980,7 +980,7 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error(
                 'Cannot change permissions on start/stop files')
 
-        # Next check to see if we have a file and open it for reading.
+        # Next open the start / stop files for reading.
         try:
             start_fh = open(start_script, 'r')
             start_lines = start_fh.readlines()
@@ -1065,7 +1065,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 'Failed to write the contents to start script')
 
         try:
-            stop_fh = open(start_script, 'w')
+            stop_fh = open(stop_script, 'w')
             stop_fh.writelines('\n'.join(stop_lines) + '\n')
             stop_fh.close()
         except Exception as err:
