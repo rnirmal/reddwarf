@@ -27,6 +27,7 @@ from nova import volume
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
+from nova.api.openstack.views.servers import ViewBuilder as servers_view
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
@@ -71,12 +72,21 @@ class Controller(object):
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
         servers_response = self.server_controller.index(req)
+        server_list = servers_response['servers']
         context = req.environ['nova.context']
-        id_list = [server['id'] for server in servers]
+
+        # DbContainers need the status for each instance in all circumstances,
+        # unlike servers.
+        server_states = db.instance_get_all_states(context)
+        for server in server_list:
+            state = server_states[server['id']]
+            server['status'] = servers_view.get_status_from_state(state)
+
+        id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
         dbcontainers = [self._create_dbcontainer_dict(context, server,
                                                       guest_state_mapping)
-                        for server in servers_response['servers']]
+                        for server in server_list]
         return {'dbcontainers': dbcontainers}
 
     @staticmethod
@@ -232,7 +242,7 @@ class Controller(object):
             volume_dict = volumes[0]
         except (KeyError, IndexError):
             return None
-        if len(volumes < 1):
+        if len(volumes) < 1:
             raise exception.Error("> 1 volumes in the underlying container!")
         return {'size': volume_dict['size']}
 
