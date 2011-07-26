@@ -1085,10 +1085,13 @@ def instance_destroy(context, instance_id):
 
 
 @require_context
-def instance_get_all_states(context):
+def instance_state_get_all_by_user(context, user_id):
     """Returns a dictionary mapping instance IDs to their state."""
+    authorize_user_context(context, user_id)
     session = get_session()
-    results = session.query(models.Instance).all()
+    results = session.query(models.Instance).\
+                      filter_by(user_id=user_id).\
+                      filter_by(deleted=False).all()
     return dict((result['id'], result['state']) for result in results)
 
 

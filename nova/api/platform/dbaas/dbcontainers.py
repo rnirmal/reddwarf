@@ -77,7 +77,8 @@ class Controller(object):
 
         # DbContainers need the status for each instance in all circumstances,
         # unlike servers.
-        server_states = db.instance_get_all_states(context)
+        server_states = db.instance_state_get_all_by_user(context,
+                                                           context.user_id)
         for server in server_list:
             state = server_states[server['id']]
             server['status'] = servers_view.get_status_from_state(state)
@@ -175,10 +176,7 @@ class Controller(object):
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
         dbcontainer['volume'] = {'size': volume_ref['size']}
-        resp = {
-            'dbcontainer': dbcontainer,
-        }
-        return resp
+        return { 'dbcontainer': dbcontainer }
 
     @staticmethod
     def _append_on_create(body, volume_id, mount_point):
@@ -242,7 +240,7 @@ class Controller(object):
             volume_dict = volumes[0]
         except (KeyError, IndexError):
             return None
-        if len(volumes) < 1:
+        if len(volumes) > 1:
             raise exception.Error("> 1 volumes in the underlying container!")
         return {'size': volume_dict['size']}
 
@@ -397,7 +395,6 @@ def create_resource(version='1.0'):
     }
 
     response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
-    request_deserializer = wsgi.RequestDeserializer(
-                                              body_deserializers=deserializers)
+    request_deserializer = wsgi.RequestDeserializer(deserializers)
     return wsgi.Resource(controller, deserializer=request_deserializer,
                          serializer=response_serializer)

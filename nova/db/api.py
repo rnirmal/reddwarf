@@ -500,9 +500,9 @@ def instance_get_all(context):
     """Get all instances."""
     return IMPL.instance_get_all(context)
 
-def instance_get_all_states(context):
-    """Return a dictionary mapping instance ids to states."""
-    return IMPL.instance_get_all_states(context)
+def instance_state_get_all_by_user(context, user_id):
+    """Return a dictionary mapping instance ids to states for a user."""
+    return IMPL.instance_state_get_all_by_user(context, user_id)
 
 def instance_get_active_by_window(context, begin, end=None):
     """Get instances active during a certain time window."""
