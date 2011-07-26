@@ -41,7 +41,7 @@ from reddwarfclient import Dbaas
 
 
 oparser = None
-APITOKEN = ".apitoken"
+APITOKEN = os.path.expanduser("~/.apitoken")
 
 
 def _get_client(options):
@@ -250,6 +250,38 @@ class DeleteCommands(object):
             print sys.exc_info()[1]
 
 
+class MgmtCommands(object):
+    """Run various management commands"""
+
+    def __init__(self):
+        pass
+
+    def hosts(self, options):
+        """\tList all Compute hosts"""
+        dbaas = _get_client(options)
+        try:
+            for host in dbaas.hosts.index():
+                _pretty_print(host._info)
+        except:
+            print sys.exc_info()[1]
+
+    def host(self, options, name):
+        """\tList details for the specified Host"""
+        dbaas = _get_client(options)
+        try:
+            _pretty_print(dbaas.hosts.get(name)._info)
+        except:
+            print sys.exc_info()[1]
+
+    def dbcontainer(self, options, id):
+        """List details for the specified DBContainer"""
+        dbaas = _get_client(options)
+        try:
+            _pretty_print(dbaas.management.show(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+
 def methods_of(obj):
     """Get all callable methods of an object that don't start with underscore
     returns a list of tuples of the form (method_name, method)"""
@@ -290,7 +322,8 @@ def print_commands():
 COMMANDS = {'auth': Auth,
             'list': ListCommands,
             'create': CreateCommands,
-            'delete': DeleteCommands}
+            'delete': DeleteCommands,
+            'mgmt': MgmtCommands}
 
 
 def main():
