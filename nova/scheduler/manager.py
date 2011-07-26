@@ -27,6 +27,7 @@ from nova import db
 from nova import flags
 from nova import log as logging
 from nova import manager
+from nova.notifier import api as notifier
 from nova import rpc
 from nova import utils
 from nova.scheduler import zone_manager
@@ -37,6 +38,8 @@ flags.DEFINE_string('scheduler_driver',
                     'nova.scheduler.chance.ChanceScheduler',
                     'Driver to use for the scheduler')
 
+def publisher_id(host=None):
+    return notifier.publisher_id("scheduler", host)
 
 class SchedulerManager(manager.Manager):
     """Chooses a host to run instances on."""

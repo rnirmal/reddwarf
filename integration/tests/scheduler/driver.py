@@ -27,13 +27,14 @@ from proboscis.decorators import time_out
 from nova import db
 from nova import exception
 from nova import flags
+from nova.notifier import api as notifier
 from nova.utils import LoopingCall
 from nova.utils import poll_until
 from tests import initialize
 from tests.scheduler import SCHEDULER_DRIVER_GROUP
 from tests.volumes import VOLUMES_DRIVER
 from tests.util import create_dbaas_client
-from tests.util import count_ops_notifications
+from tests.util import count_notifications
 from tests.util import create_test_client
 from tests.util import test_config
 from tests.util import TestClient
@@ -51,9 +52,7 @@ original_notification_count = None
 
 def out_of_instance_memory_nofication_count():
     """Counts the times an OutOfInstanceMemory notification has been raised."""
-    msg = exception.OutOfInstanceMemory.ops_message % \
-          {'instance_memory_mb':8192}
-    return count_ops_notifications(msg)
+    return count_notifications(notifier.ERROR, "out.of.instance.memory")
 
 
 @test(groups=[GROUP], depends_on_groups=["services.initialize"])

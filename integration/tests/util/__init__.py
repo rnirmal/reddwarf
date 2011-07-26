@@ -84,9 +84,10 @@ def check_logs_for_message(msg):
         return msg in logs.read()
 
 
-def count_ops_notifications(msg):
+def count_notifications(priority, event_type):
     """Counts the number of times an ops notification has been given."""
-    return count_message_occurrence_in_logs(exception._OPS_LOG_PREFIX + msg)
+    log_msg = priority + " nova.notification." + event_type
+    return count_message_occurrence_in_logs(log_msg)
 
 
 def create_dbaas_client(user):

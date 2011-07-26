@@ -22,11 +22,11 @@ from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
-from reddwarfclient import Dbaas
 from tests.util import test_config
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from proboscis import test
+from tests.util import test_config
 from tests.util import check_database
 from tests.util import create_dns_entry
 from tests.util import create_test_client
@@ -301,7 +301,7 @@ class TestVolume(unittest.TestCase):
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
-    
+
     def test_detail_list(self):
         containers = dbaas.dbcontainers.details()
         for container in containers:
@@ -345,7 +345,7 @@ class TestContainListing(unittest.TestCase):
         self.assertEqual(container_info.volume['size'], container.volume['size'])
 
     def _assert_dbcontainers_exist(self, container):
-        self.assertEqual(container_info.id, container.id)        
+        self.assertEqual(container_info.id, container.id)
         attrs = ['name', 'links']
         self._check_attr_in_dbcontainers(container, attrs)
         if rsdns:
