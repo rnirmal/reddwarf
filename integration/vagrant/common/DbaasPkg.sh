@@ -124,6 +124,7 @@ dbaas_new_install_glance() {
     sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
     # for some reason glance needs swift core to build
     add-apt-repository ppa:swift-core/trunk
+    sudo -E apt-get update
     pkg_install python-swift
     if [ ! -f /tmp/build/glance/etc/glance.conf.sample ]
     then
