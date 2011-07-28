@@ -74,6 +74,8 @@ class Controller(object):
 
     def __init__(self):
         self.compute_api = compute.API()
+        self.dns_entry_factory = \
+            utils.import_object(FLAGS.dns_instance_entry_factory)
         self.server_controller = servers.ControllerV11()
         self.volume_api = volume.API()
         self.guest_api = guest.API()
@@ -123,7 +125,7 @@ class Controller(object):
             # instead of raising them.
             return server
         flavorRef = server['server']['flavorRef']
-        
+
         resp = {
             'dbcontainer': {
                 'id': id,
@@ -136,4 +138,7 @@ class Controller(object):
                 'volume': volume,
             },
         }
+        dns_entry = self.dns_entry_factory.create_entry(instance)
+        if dns_entry:
+            resp["dbcontainer"]["hostname"] = dns_entry.name
         return resp

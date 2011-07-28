@@ -383,6 +383,12 @@ def fixed_ip_get_by_instance(context, instance_id):
     return IMPL.fixed_ip_get_by_instance(context, instance_id)
 
 
+def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
+    """Get fixed ips for instance on a certain network bridge."""
+    return IMPL.fixed_ip_get_by_instance_for_network(context, instance_id,
+                                                     bridge_name)
+
+
 def fixed_ip_get_by_virtual_interface(context, vif_id):
     """Get fixed ips by virtual interface or raise if none exist."""
     return IMPL.fixed_ip_get_by_virtual_interface(context, vif_id)

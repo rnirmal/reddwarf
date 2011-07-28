@@ -25,8 +25,6 @@ from nova import utils
 from nova.manager import Manager
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
-                    'Driver to use for DNS work')
 
 LOG = logging.getLogger('nova.dns.manager')
 

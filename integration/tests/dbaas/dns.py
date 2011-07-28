@@ -14,12 +14,9 @@ from tests.dbaas.containers import GROUP_STOP as CONTAINER_STOP
 dns_driver = None
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
-                    'Driver to use for DNS work')
-
 GROUP = "dbaas.guest.dns"
-
 ENABLED = True
+
 try:
     import rsdns
 except Exception:
@@ -69,11 +66,14 @@ class AfterContainerIsDestroyed(unittest.TestCase):
 
     """
 
-    @time_out(30)
     def test_dns_entry_exist_should_be_removed_shortly_thereafter(self):
         entry = container_info.expected_dns_entry()
 
-        entries = dns_driver.get_entries_by_name(entry.name)
-        while len(entries) > 0:
-            time.sleep(1)
-            entries = dns_driver.get_entries_by_name(entry.name)
+        try:
+            utils.poll_until(lambda : dns_driver.get_entries_by_name(entry.name),
+                             lambda entries : len(entries) > 0,
+                             sleep_time=1, time_out=30)
+        except utils.PollTimeOut:
+            # Manually delete this
+            dns_driver.delete_entry(entry.name, entry.type, entry.dns_zone)
+            self.fail("The DNS entry was never deleted when the container was destroyed.")
