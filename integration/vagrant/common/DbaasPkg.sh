@@ -138,7 +138,7 @@ dbaas_new_install_glance() {
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-glance-doc
     cd /tmp/build
     sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid glance*.changes
-    # Add the local apt repo temporarily to install the built novaclient
+    # Add the local apt repo temporarily to install the built glance
     echo "deb http://0.0.0.0/ubuntu lucid main" | sudo -E tee /etc/apt/sources.list.d/temp-local-ppa-lucid.list > /dev/null
     echo "Package: glance
 Pin: origin 0.0.0.0
@@ -148,7 +148,7 @@ Package: python-glance
 Pin: origin 0.0.0.0
 Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /dev/null
     sudo -E apt-get update
-    # Based on the pin this will install the novaclient we just built
+    # Based on the pin this will install the glance we just built
     pkg_install glance
     # now clean up that mess so it doesnt pollute into any other installations
     sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin

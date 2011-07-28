@@ -21,8 +21,6 @@ if [ -f ~/dependencies_are_installed ]
 then
     rm -rf /tmp/build
     mkdir /tmp/build
-    dbaas_pkg_install_glance
-    if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_nova
     if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_dbaasmycnf
@@ -34,6 +32,8 @@ then
         dbaas_pkg_install_rsdns
         if [ $? -ne 0 ]; then exit 1; fi
     fi
+    dbaas_pkg_install_glance
+    if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_novaclient
     if [ $? -ne 0 ]; then exit 1; fi
     
