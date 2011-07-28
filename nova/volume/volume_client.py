@@ -41,6 +41,10 @@ class VolumeClient(Base):
         self.driver.check_for_client_setup_error()
         self.volume_api = API()
 
+    def check_for_available_space(self, context, size):
+        """Check the device for available space for a Volume"""
+        return self.driver.check_for_available_space(size)
+
     def get_uuid(self, device_path):
         """Returns a UUID for a device given its mount point."""
         return self.driver.get_volume_uuid(device_path)

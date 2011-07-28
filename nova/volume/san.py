@@ -54,8 +54,8 @@ flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
 flags.DEFINE_integer('san_network_raid_factor', 2,
                      'San network RAID factor')
-flags.DEFINE_integer('san_available_size_offset', 1,
-                     'San available size offset')
+flags.DEFINE_integer('san_max_provision_percent', 70,
+                     'Max percentage of the total SAN space to be provisioned.')
 
 
 class DiscoveryInfo(object):
@@ -509,14 +509,25 @@ class HpSanISCSIDriver(SanISCSIDriver):
     def check_for_available_space(self, size):
         """Check for available volume space"""
         cluster_info = self._cliq_get_cluster_info(FLAGS.san_clustername)
-        available_space = int(cluster_info['spaceAvail'])/ \
-                       int(FLAGS.san_network_raid_factor)
-        # convert space to GBs and take size offset into account
-        available_space = (available_space/1024/1024/1024)- \
-                       FLAGS.san_available_size_offset
-        LOG.debug("HpSan Volume Size requested : %sGBs" % size)
+        space_total = int(cluster_info['spaceTotal'])
+        space_avail = int(cluster_info['spaceAvail'])
+        LOG.debug("HpSan Volume space Total : %sGBs" % space_total)
+        LOG.debug("HpSan Volume space Avail : %sGBs" % space_avail)
+        # Calculate the available space and total space based on factors
+        factor_total = 1.0*space_total/int(FLAGS.san_network_raid_factor)/\
+                      1024/1024/1024
+        factor_avail = 1.0*space_avail/int(FLAGS.san_network_raid_factor)/\
+                      1024/1024/1024
+        LOG.debug("HpSan Volume factor Total : %sGBs" % factor_total)
+        LOG.debug("HpSan Volume factor Avail : %sGBs" % factor_avail)
+        percent = int(FLAGS.san_max_provision_percent)/100.0
+        prov_total = int(factor_total * percent)
+        prov_used =  (factor_total - factor_avail)/1024/1024/1024
+        LOG.debug("HpSan Volume total space size : %sGBs" % prov_total)
+        LOG.debug("HpSan Volume used space size : %sGBs" % prov_used)
+        available_space =  prov_total - prov_used
         LOG.debug("HpSan Volume available_space : %sGBs" % available_space)
-        return (size < available_space)
+        return (size <= available_space)
 
     def create_volume(self, volume_ref):
         """Creates a volume."""
@@ -637,7 +648,9 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         pass
 
     def check_for_available_space(self, size):
-        return size <= 10
+        avail = 20/2*(int(FLAGS.san_max_provision_percent)/100.0)
+        LOG.debug("checking_for_available_space %r : %r" % (size, avail))
+        return size <= avail
     
     def check_for_setup_error(self):
         """Check for any errors at setup for fast fail"""

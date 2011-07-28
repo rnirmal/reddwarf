@@ -108,6 +108,51 @@ class SetUp(VolumeTest):
         # Give some time for the services to startup
         time.sleep(10)
 
+    def test_check_available_space(self):
+        """Check for available space on SAN"""
+        if FLAGS.volume_driver == 'nova.volume.san.HpSanISCSIDriver':
+            driver = volume.san.HpSanISCSIDriver()
+            info = driver._cliq_get_cluster_info(FLAGS.san_clustername)
+            self._assert_avilable_space(info)
+        info = {'spaceTotal':20*1024*1024*1024,
+                'spaceAvail':20*1024*1024*1024}
+        self._assert_avilable_space(info)
+        info = {'spaceTotal':20*1024*1024*1024,
+                'spaceAvail':19*1024*1024*1024}
+        self._assert_avilable_space(info)
+        info = {'spaceTotal':20*1024*1024*1024,
+                'spaceAvail':14*1024*1024*1024}
+        self._assert_avilable_space(info)
+        self.fail('fail')
+
+    def _assert_avilable_space(self, info, fail=False):
+        """Give the SAN info(fake or not) and get the asserts for free"""
+        print("INFO on SAN : %r" % info)
+        gbs = 1.0/1024/1024/1024/2
+        total = int(info['spaceTotal'])*gbs
+        free = int(info['spaceAvail'])*gbs
+        used = total - free
+        usable = round(total * (FLAGS.san_max_provision_percent * 1.0/100))
+        real_free = round((usable - used))
+
+        print("total : %r" % total)
+        print("free : %r" % free)
+        print("used : %r" % used)
+        print("usable : %r" % usable)
+        print("real_free : %r" % real_free)
+
+        self.assertFalse(self.story.client.check_for_available_space(context, 500))
+        self.assertFalse(self.story.client.check_for_available_space(context, real_free+1))
+
+        if fail:
+            self.assertFalse(self.story.client.check_for_available_space(context, real_free))
+            self.assertFalse(self.story.client.check_for_available_space(context, real_free-1))
+            self.assertFalse(self.story.client.check_for_available_space(context, 1))
+        else:
+            self.assertTrue(self.story.client.check_for_available_space(context, real_free))
+            self.assertTrue(self.story.client.check_for_available_space(context, real_free-1))
+            self.assertTrue(self.story.client.check_for_available_space(context, 1))
+
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
 class AddVolumeFailure(VolumeTest):
