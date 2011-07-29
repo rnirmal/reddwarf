@@ -58,7 +58,7 @@ def upgrade(migrate_engine):
 
 def downgrade(migrate_engine):
     # Operations to reverse the above upgrade go here.
-    # Here are the old static instance types    
+    # Here are the old static instance types
     INSTANCE_TYPES = {
     'm1.tiny': dict(memory_mb=512, vcpus=1, local_gb=0, flavorid=1),
     'm1.small': dict(memory_mb=2048, vcpus=1, local_gb=20, flavorid=2),
