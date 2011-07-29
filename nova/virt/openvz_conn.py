@@ -954,6 +954,9 @@ class OpenVzConnection(driver.ComputeDriver):
                        (FLAGS.ovz_ve_private_dir, instance['id'], mount)
         outside_mount = '%s/%s/%s' % \
                         (FLAGS.ovz_ve_outside_mount_dir, instance['id'], mount)
+        # Fix mounts to remove duplicate slashes
+        inside_mount = os.path.abspath(inside_mount)
+        outside_mount = os.path.abspath(outside_mount)
 
         # Create the files if they don't exist
         try:
@@ -1098,6 +1101,16 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error(
                 'Cannot secure permissions on start/stop files')
+
+    def _set_perms(self, filename, permissions):
+        try:
+            _, err = utils.execute('sudo', 'chmod', permissions, filename)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Error setting permissions %s on %s' %
+                                  (permissions, filename))
 
     def get_info(self, instance_name):
         """
