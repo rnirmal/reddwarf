@@ -962,84 +962,33 @@ class OpenVzConnection(driver.ComputeDriver):
         outside_mount = os.path.abspath(outside_mount)
 
         # Create the files if they don't exist
-        try:
-            _, err = utils.execute('sudo', 'touch', mount_script)
-            if err:
-                LOG.error(err)
-            _, err = utils.execute('sudo', 'touch', umount_script)
-            if err:
-                LOG.error(err)
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Cannot create the start/stop files')
+        self._touch_file(mount_script)
+        self._touch_file(umount_script)
         
         # Fixup perms to allow for this script to edit files.
-        try:
-            _, err = utils.execute('sudo', 'chmod', '777', mount_script)
-            if err:
-                LOG.error(err)
-            _, err = utils.execute('sudo', 'chmod', '777', umount_script)
-            if err:
-                LOG.error(err)
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error(
-                'Cannot change permissions on start/stop files')
+        self._set_perms(mount_script, '777')
+        self._set_perms(umount_script, '777')
 
         # Next open the start / stop files for reading.
-        try:
-            start_fh = open(mount_script, 'r')
-            start_lines = start_fh.readlines()
-            start_fh.close()
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Failed to open the container start script')
-
-        try:
-            stop_fh = open(umount_script, 'r')
-            stop_lines = stop_fh.readlines()
-            stop_fh.close()
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Failed to open the container stop script')
+        mount_lines = self._read_file(mount_script)
+        umount_lines = self._read_file(umount_script)
 
         # Fixup the mount and umount files to have the proper shell script
         # header otherwise vzctl rejects it.
-        if len(start_lines) > 0:
-            if not start_lines[0] == '#!/bin/sh':
-                start_lines = ['#!/bin/sh'] + start_lines
-        else:
-            start_lines = ['#!/bin/sh'] + start_lines
-
-        if len(stop_lines) > 0:
-            if not stop_lines[0] == '#!/bin/sh':
-                stop_lines = ['#!/bin/sh'] + stop_lines
-        else:
-            stop_lines = ['#!/bin/sh'] + stop_lines
+        mount_lines = self._correct_shell_scripts(mount_lines)
+        umount_lines = self._correct_shell_scripts(umount_lines)
 
         # Make the magic happen.
         if action == 'add':
             # Create a mount point for the device outside the root of the
             # container.
             if not os.path.exists(outside_mount):
-                try:
-                    _, err = utils.execute('sudo', 'mkdir', '-p', outside_mount)
-                    if err:
-                        LOG.error(err)
-                except ProcessExecutionError as err:
-                    LOG.error(err)
-                    raise exception.Error('Unable to make the outside mount point')
+                self._make_directory(outside_mount)
 
             # Create a mount point for the device inside the root of the
             # container.
             if not os.path.exists(inside_mount):
-                try:
-                    _, err = utils.execute('sudo', 'mkdir', '-p', inside_mount)
-                    if err:
-                        LOG.error(err)
-                except ProcessExecutionError as err:
-                    LOG.error(err)
-                    raise exception.Error('Unable to make the inside mount point')
+                self._make_directory(inside_mount)
 
             # Now create a mount entry that mounts the device outside of the
             # container when the container starts.
@@ -1058,8 +1007,8 @@ class OpenVzConnection(driver.ComputeDriver):
                                 (outside_mount, inside_root_mount)
 
             # Add the outside and inside mount lines to the start script
-            start_lines.append(outside_mount_line)
-            start_lines.append(inside_mount_line)
+            mount_lines.append(outside_mount_line)
+            mount_lines.append(inside_mount_line)
 
             # Create a umount statement to unmount the device from both the
             # container and the server
@@ -1067,43 +1016,67 @@ class OpenVzConnection(driver.ComputeDriver):
             outside_umount_line = 'umount %s' % (outside_mount,)
 
             # Add umount lines to the stop script
-            stop_lines.append(inside_umount_line)
-            stop_lines.append(outside_umount_line)
+            umount_lines.append(inside_umount_line)
+            umount_lines.append(outside_umount_line)
         elif action == 'del':
             # Passing for now need to fix this once I implement detach
             pass
 
         # Now reopen the files for writing and dump the contents into the
         # files.
-        try:
-            start_fh = open(mount_script, 'w')
-            start_fh.writelines('\n'.join(start_lines) + '\n')
-            start_fh.close()
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error(
-                'Failed to write the contents to start script')
-
-        try:
-            stop_fh = open(umount_script, 'w')
-            stop_fh.writelines('\n'.join(stop_lines) + '\n')
-            stop_fh.close()
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Failed to write the contents to stop script')
+        self._write_to_file(mount_script, mount_lines)
+        self._write_to_file(umount_script, umount_lines)
 
         # Close by setting more secure permissions on the start and stop scripts
+        self._set_perms(mount_script, '755')
+        self._set_perms(umount_script, '755')
+
+    def _make_directory(self, dir):
         try:
-            _, err = utils.execute('sudo', 'chmod', '755', mount_script)
-            if err:
-                LOG.error(err)
-            _, err = utils.execute('sudo', 'chmod', '755', umount_script)
+            _, err = utils.execute('sudo', 'mkdir', '-p', dir)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
             LOG.error(err)
-            raise exception.Error(
-                'Cannot secure permissions on start/stop files')
+            raise exception.Error('Unable to make the path %s' % (dir,))
+
+    def _touch_file(self, filename):
+        try:
+            _, err = utils.execute('sudo', 'touch', filename)
+            if err:
+                LOG.error(err)
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error('Error touching file %s' % (filename,))
+        
+    def _read_file(self, filename):
+        try:
+            fh = open(filename, 'r')
+            contents = fh.readlines()
+            fh.close()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error('Failed to open file %s for reading' %
+                                  (filename,))
+        return contents
+
+    def _correct_shell_scripts(self, contents):
+        if len(contents) > 0:
+            if not contents[0] == '#!/bin/sh':
+                contents = ['#!/bin/sh'] + contents
+        else:
+            contents = ['#!/bin/sh'] + contents
+        return contents
+
+    def _write_to_file(self, filename, contents):
+        try:
+            fh = open(filename, 'w')
+            fh.writelines('\n'.join(contents) + '\n')
+            fh.close()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error('Failed to write the contents to %s' %
+                                  (filename,))
 
     def _set_perms(self, filename, permissions):
         try:
