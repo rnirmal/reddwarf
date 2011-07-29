@@ -78,7 +78,7 @@ class Controller(object):
         # DbContainers need the status for each instance in all circumstances,
         # unlike servers.
         server_states = db.instance_state_get_all_by_user(context,
-                                                           context.user_id)
+                                                          context.user_id)
         for server in server_list:
             state = server_states[server['id']]
             server['status'] = servers_view.get_status_from_state(state)

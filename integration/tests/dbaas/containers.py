@@ -233,11 +233,12 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
     def test_container_created(self):
         #/vz/private/1/var/log/nova/nova-guest.log
         while True:
-            result = dbaas.dbcontainers.get(container_info.id)
             status, err = process(
                 """grep "Dbaas" /vz/private/%s/var/log/nova/nova-guest.log"""
                 % str(container_info.id))
-            if not string_in_list(status, ["Dbaas preparation complete."]):
+            guest_status = dbapi.guest_status_get(container_info.id)
+            if guest_status.state != power_state.RUNNING:
+                result = dbaas.dbcontainers.get(container_info.id)
                 self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
                 time.sleep(5)
             else:
@@ -298,7 +299,7 @@ class TestVolume(unittest.TestCase):
                                                 container_info.id)
         self.assertEqual(1, len(volumes))
 
-@test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, "dbaas.listing"])
+@test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):
     """ Test the listing of the container information """
 
@@ -396,14 +397,20 @@ class DeleteContainer(unittest.TestCase):
             raise SkipTest("Container was never created, skipping test...")
         dbaas.dbcontainers.delete(container_info.id)
 
+        attempts = 0
         try:
             time.sleep(1)
             result = True
             while result is not None:
+                attempts += 1
                 result = dbaas.dbcontainers.get(container_info.id)
                 self.assertEqual(_dbaas_mapping[power_state.SHUTDOWN], result.status)
         except NotFound:
             pass
+        except Exception as ex:
+            self.fail("A failure occured when trying to GET container %s"
+                      " for the %d time: %s" %
+                      (str(container_info.id), attempts, str(ex)))
 
 @test(depends_on_classes=[DeleteContainer], groups=[GROUP, GROUP_STOP])
 class ContainerHostCheck2(ContainerHostCheck):
@@ -469,7 +476,7 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
             }
 
         if rsdns is not None:
-            expected['host'] = info.hostname
+            expected['hostname'] = info.expected_dns_entry().name
 
         self.assertTrue(mgmt_details is not None)
         failures = []

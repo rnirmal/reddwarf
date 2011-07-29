@@ -383,7 +383,7 @@ class NetworkManager(manager.SchedulerDependentManager):
                                                                   project_id)
         self._allocate_mac_addresses(context, instance_id, networks)
         self._allocate_fixed_ips(admin_context, instance_id, networks, vpn=vpn)
-        self._allocate_dns_entry(admin_context, instance_id, networks, vpn=vpn)
+        self._allocate_dns_entry(admin_context, instance_id)
         return self.get_instance_nw_info(context, instance_id, type_id)
 
     def deallocate_for_instance(self, context, **kwargs):
@@ -397,15 +397,29 @@ class NetworkManager(manager.SchedulerDependentManager):
                   self.db.fixed_ip_get_by_instance(context, instance_id)
         LOG.debug(_("network deallocation for instance |%s|"), instance_id,
                                                                context=context)
+
+        self._deallocate_dns_entry(context, instance_id)
+
         # deallocate fixed ips
         for fixed_ip in fixed_ips:
             self.deallocate_fixed_ip(context, fixed_ip['address'], **kwargs)
-        
-        # deallocate the single instance     
-        #self.dns_api.delete_instance_entry(context, instance_id, fixed_ip)
 
         # deallocate vifs (mac addresses)
         self.db.virtual_interface_delete_by_instance(context, instance_id)
+
+    def _deallocate_dns_entry(self, context, instance_id):
+        """Removes the dns entry. Must be called while fixed_ips exist."""
+        address = self._find_address_used_for_dns(context, instance_id)
+        if address:
+            instance_ref = self.db.instance_get(context, instance_id)
+            self.dns_api.delete_instance_entry(context, instance_ref, address)
+
+    def _find_address_used_for_dns(self, context, instance_id):
+        fixed_ips = self.db.fixed_ip_get_by_instance_for_network(
+            context, instance_id, FLAGS.dns_bridge_name)
+        if len(fixed_ips) > 0:
+            return fixed_ips[0].address
+        return None
 
     def get_instance_nw_info(self, context, instance_id, instance_type_id):
         """Creates network info list for instance.
@@ -665,9 +679,13 @@ class NetworkManager(manager.SchedulerDependentManager):
                                               'address': address,
                                               'reserved': reserved})
 
-    def _allocate_dns_entry(self, context, instance_id, networks, **kwargs):
+    def _allocate_dns_entry(self, context, instance_id):
         """Creates a DNS entry for the compute instance"""
-        #self.dns_api.create_instance_entry(context, instance_ref, address)
+        instance_ref = self.db.instance_get(context, instance_id)
+        address = self._find_address_used_for_dns(context, instance_id)
+        if address:
+            self.dns_api.create_instance_entry(context, instance_ref, address)
+
 
     def _allocate_fixed_ips(self, context, instance_id, networks, **kwargs):
         """Calls allocate_fixed_ip once for each network."""

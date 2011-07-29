@@ -810,6 +810,21 @@ def fixed_ip_get_by_instance(context, instance_id):
 
 
 @require_context
+def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
+    session = get_session()
+    rv = session.query(models.FixedIp).\
+                 options(joinedload('floating_ips')).\
+                 filter_by(instance_id=instance_id).\
+                 filter_by(deleted=False).\
+                 join(models.Network).\
+                 filter_by(bridge=bridge_name).\
+                 all()
+    if not rv:
+        raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
+    return rv
+
+
+@require_context
 def fixed_ip_get_by_virtual_interface(context, vif_id):
     session = get_session()
     rv = session.query(models.FixedIp).\
