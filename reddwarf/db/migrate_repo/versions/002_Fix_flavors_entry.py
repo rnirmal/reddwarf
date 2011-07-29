@@ -50,9 +50,9 @@ def upgrade(migrate_engine):
     'm1.tiny': dict(memory_mb=512, vcpus=1, local_gb=2, flavorid=1),
     'm1.small': dict(memory_mb=1024, vcpus=1, local_gb=3, flavorid=2),
     'm1.medium': dict(memory_mb=2048, vcpus=1, local_gb=5, flavorid=3),
-    'm1.large': dict(memory_mb=4096, vcpus=2, local_gb=9, flavorid=4),
-    'm1.xlarge': dict(memory_mb=8192, vcpus=4, local_gb=17, flavorid=5),
-    'm1.xxlarge': dict(memory_mb=16384, vcpus=8, local_gb=33, flavorid=6)}
+    'm1.large': dict(memory_mb=4096, vcpus=1, local_gb=9, flavorid=4),
+    'm1.xlarge': dict(memory_mb=8192, vcpus=2, local_gb=17, flavorid=5),
+    'm1.xxlarge': dict(memory_mb=16384, vcpus=4, local_gb=33, flavorid=6)}
 
     _modify(migrate_engine, INSTANCE_TYPES)
 
