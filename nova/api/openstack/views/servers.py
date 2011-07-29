@@ -58,8 +58,9 @@ class ViewBuilder(object):
         """Return a simple model of a server."""
         return dict(server=dict(id=inst['id'], name=inst['display_name']))
 
-    def _build_detail(self, inst):
-        """Returns a detailed model of a server."""
+    @staticmethod
+    def get_status_from_state(state):
+        """Given the state of an instance, returns the status of the server."""
         power_mapping = {
             None: 'BUILD',
             power_state.NOSTATE: 'BUILD',
@@ -73,12 +74,17 @@ class ViewBuilder(object):
             power_state.FAILED: 'ERROR',
             power_state.BUILDING: 'BUILD',
         }
+        return power_mapping[state]
+
+    def _build_detail(self, inst):
+        """Returns a detailed model of a server."""
+
 
         inst_dict = {
             'id': inst['id'],
             'name': inst['display_name'],
             'addresses': self.addresses_builder.build(inst),
-            'status': power_mapping[inst.get('state')]}
+            'status': self.get_status_from_state(inst.get('state'))}
 
         ctxt = nova.context.get_admin_context()
         compute_api = nova.compute.API()

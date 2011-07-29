@@ -27,6 +27,7 @@ from nova import volume
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
+from nova.api.openstack.views.servers import ViewBuilder as servers_view
 from nova.api.platform.dbaas import common
 from nova.api.platform.dbaas import deserializer
 from nova.compute import power_state
@@ -70,50 +71,57 @@ class Controller(object):
         """ Returns a list of dbcontainer names and ids for a given user """
         LOG.info("Call to DBContainers index test")
         LOG.debug("%s - %s", req.environ, req.body)
-        resp = {'dbcontainers': self.server_controller.index(req)['servers']}
-        for container in resp['dbcontainers']:
-            self._modify_fields(req, container)
-        return resp
+        servers_response = self.server_controller.index(req)
+        server_list = servers_response['servers']
+        context = req.environ['nova.context']
+
+        # DbContainers need the status for each instance in all circumstances,
+        # unlike servers.
+        server_states = db.instance_state_get_all_by_user(context,
+                                                           context.user_id)
+        for server in server_list:
+            state = server_states[server['id']]
+            server['status'] = servers_view.get_status_from_state(state)
+
+        id_list = [server['id'] for server in server_list]
+        guest_state_mapping = self.get_guest_state_mapping(id_list)
+        dbcontainers = [self._create_dbcontainer_dict(context, server,
+                                                      guest_state_mapping)
+                        for server in server_list]
+        return {'dbcontainers': dbcontainers}
 
     @staticmethod
-    def get_guest_state_mapping(resp):
+    def get_guest_state_mapping(id_list):
         """Returns a dictionary of guest statuses keyed by guest ids."""
-        ids = [dbcontainer['id'] for dbcontainer in resp['dbcontainers']]
-        results = dbapi.guest_status_get_list(ids)
+        results = dbapi.guest_status_get_list(id_list)
         return dict([(r.instance_id, r.state) for r in results])
 
     def detail(self, req):
         """ Returns a list of dbcontainer details for a given user """
         LOG.debug("%s - %s", req.environ, req.body)
-        resp = {'dbcontainers': self.server_controller.detail(req)['servers']}
-        #resp = self._manipulate_response(req, resp)
-        guest_state_mapping = self.get_guest_state_mapping(resp)
-        for container in resp['dbcontainers']:
-            self._modify_fields(req, container)
-            # We're making the assumption we can pull the status from the
-            # returned instance info.
-            self._modify_status(response=container, instance_info=container,
-                                guest_states=guest_state_mapping)
-            enabled = self._determine_root(req, container, container['id'])
-            if enabled is not None:
-                container['rootEnabled'] = enabled
-        return resp
+        server_list = self.server_controller.detail(req)['servers']
+        context = req.environ['nova.context']
+        id_list = [server['id'] for server in server_list]
+        guest_state_mapping = self.get_guest_state_mapping(id_list)
+        dbcontainers = [self._create_detailed_dbcontainer_dict(context, server,
+                                                           guest_state_mapping)
+                        for server in server_list]
+        return { 'dbcontainers' : dbcontainers }
 
     def show(self, req, id):
         """ Returns dbcontainer details by container id """
         LOG.info("Get Container by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
-        response = self.server_controller.show(req, id)
-        if isinstance(response, Exception):
-            return response  # Just return the exception to throw it
-        resp = {'dbcontainer': response['server']}
-        dbcontainer = resp['dbcontainer']
-        self._modify_fields(req, dbcontainer)
-        self._modify_status(response=dbcontainer, instance_info=dbcontainer)
-        enabled = self._determine_root(req, resp['dbcontainer'], id)
-        if enabled is not None:
-            resp['dbcontainer']['rootEnabled'] = enabled
-        return resp
+        server_response = self.server_controller.show(req, id)
+        LOG.debug("server_response - %s", server_response)
+        if isinstance(server_response, Exception):
+            return server_response  # Just return the exception to throw it
+        context = req.environ['nova.context']
+        server = server_response['server']
+        LOG.debug("server - %s", server)
+        dbcontainer = self._create_detailed_dbcontainer_dict(context, server)
+        LOG.debug("dbcontainer - %s", dbcontainer)
+        return {'dbcontainer': dbcontainer}
 
     def delete(self, req, id):
         """ Destroys a dbcontainer """
@@ -139,10 +147,12 @@ class Controller(object):
         LOG.info("Create Container")
         LOG.debug("%s - %s", req.environ, body)
 
+        context = req.environ['nova.context']
+
         # Create the Volume before hand
-        volume_ref = self.create_volume(req, body)
+        volume_ref = self.create_volume(context, body)
         # Setup Security groups
-        self._setup_security_groups(req,
+        self._setup_security_groups(context,
                                     FLAGS.default_firewall_rule_name,
                                     FLAGS.default_guest_mysql_port)
 
@@ -152,21 +162,21 @@ class Controller(object):
         # Add any extra data that's required by the servers api
         self._append_on_create(body, volume_ref['id'],
                                FLAGS.reddwarf_mysql_data_dir)
-        server = self._try_create_server(req, self._rename_to_server(body))
-        server_id = str(server['server']['id'])
+        server_req_body = self._rename_to_server(body)
+        server_resp = self._try_create_server(req, server_req_body)
+        server_id = str(server_resp['server']['id'])
         dbapi.guest_status_create(server_id)
 
         # Send the prepare call to Guest
-        self.guest_api.prepare(req.environ['nova.context'],
+        self.guest_api.prepare(context,
                                server_id, databases)
-        resp = {'dbcontainer': server['server']}
-        self._modify_fields(req, resp['dbcontainer'])
+        dbcontainer = self._create_dbcontainer_dict(context,
+                                                    server_resp['server'])
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
-        resp['dbcontainer']['volume'] = {'size': volume_ref['size']}
-
-        return resp
+        dbcontainer['volume'] = {'size': volume_ref['size']}
+        return { 'dbcontainer': dbcontainer }
 
     @staticmethod
     def _append_on_create(body, volume_id, mount_point):
@@ -188,9 +198,8 @@ class Controller(object):
         """Rename dbcontainer to server"""
         return {'server': body['dbcontainer']}
 
-    def create_volume(self, req, body):
+    def create_volume(self, context, body):
         """Creates the volume for the container and returns its ID."""
-        context = req.environ['nova.context']
         try:
             volume_size = body['dbcontainer']['volume']['size']
         except KeyError as e:
@@ -223,45 +232,57 @@ class Controller(object):
             LOG.error(e)
             raise exception.Error(exc.HTTPUnprocessableEntity())
 
-    def _modify_fields(self, req, response):
-        """ Adds and removes the fields from the parent dbcontainer call.
+    @staticmethod
+    def _create_dbvolume_from_server(server):
+        """Given a server dict returns the dbcontainer volume dict."""
+        try:
+            volumes = server['volumes']
+            volume_dict = volumes[0]
+        except (KeyError, IndexError):
+            return None
+        if len(volumes) > 1:
+            raise exception.Error("> 1 volumes in the underlying container!")
+        return {'size': volume_dict['size']}
 
-        We delete elements but if the call came from the index function
-        the response will not have all the fields and we expect some to
-        raise a key error exception.
+    def _create_dbcontainer_dict(self, context, server, guest_states=None):
+        """Given a server (obtained from the servers API) returns a container.
+
+        We copy all elements from the server and then delete some, erring on
+        the side of copying too many instead of too few.
+        "guest_states" is a dictionary mapping guest IDs to their state. If
+        it is None the state is queried.
 
         """
-        context = req.environ['nova.context']
+        server_only_keys = ["hostId", "imageRef", "metadata", "adminPass",
+                            "uuid", "volumes", "status"]
+        dbcontainer = dict((key, server[key]) for key in server.keys()
+                           if key not in server_only_keys)
+        # Add DNS hostname
         user_id = context.user_id
-        instance_info = {"id": response["id"], "user_id": user_id}
+        instance_info = {"id": dbcontainer["id"], "user_id": user_id}
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
         if dns_entry:
-            hostname = dns_entry.name
-            response["hostname"] = hostname
-
-        LOG.debug("Removing the excess information from the containers.")
-        for attr in ["hostId", "imageRef", "metadata", "adminPass", "uuid"]:
-            if response.has_key(attr):
-                del response[attr]
-        if "volumes" in response:
-            LOG.debug("Removing the excess information from the volumes.")
-            for volume_ref in response["volumes"]:
-                for attr in ["id", "name", "description"]:
-                    if attr in volume_ref:
-                        del volume_ref[attr]
-                #set the last volume to our volume information (only 1)
-                response["volume"] = volume_ref
-            del response["volumes"]
-        return response
+            dbcontainer["hostname"] = dns_entry.name
+        # Add volume information
+        dbvolume = self._create_dbvolume_from_server(server)
+        if dbvolume:
+            dbcontainer['volume'] = dbvolume
+        # Add status
+        dbcontainer['status'] = self._get_dbcontainer_status(server,
+                                                             guest_states)
+        return dbcontainer
 
     @staticmethod
-    def _modify_status(response, instance_info, guest_states=None):
-        # Status is set by first checking the compute instance status and
-        # then the guest status. "guest_states" is a dictionary of
-        # guest states mapped by guest ids.
-        id = response['id']
-        if instance_info['status'] == 'ERROR':
-            response['status'] = 'ERROR'
+    def _get_dbcontainer_status(server, guest_states=None):
+        """Figures out what the dbcontainer status should be.
+
+        First looks at the server status, then to a dictionary mapping guest
+        IDs to their states.
+
+        """
+        id = server['id']
+        if server['status'] == 'ERROR':
+            return 'ERROR'
         else:
             try:
                 if guest_states:
@@ -271,9 +292,21 @@ class Controller(object):
             except (KeyError, InstanceNotFound):
                 # we set the state to shutdown if not found
                 state = power_state.SHUTDOWN
-            response['status'] = _dbaas_mapping[state]
+            return _dbaas_mapping[state]
 
-    def _setup_security_groups(self, req, group_name, port):
+    def _create_detailed_dbcontainer_dict(self, context, server,
+                                          guest_states=None):
+        """Creates a dbcontainer dictionary to be used in a response
+        """
+        dbcontainer = self._create_dbcontainer_dict(context, server,
+                                                    guest_states)
+        # Add rootEnabled info.
+        enabled = self._determine_root(context, dbcontainer)
+        if enabled is not None:
+            dbcontainer['rootEnabled'] = enabled
+        return dbcontainer
+
+    def _setup_security_groups(self, context, group_name, port):
         """ Setup a default firewall rule for reddwarf.
 
         We are using the existing infrastructure of security groups in nova
@@ -285,7 +318,6 @@ class Controller(object):
 
         -A nova-compute-inst-<id> -p tcp -m tcp --dport 3306 -j ACCEPT
         """
-        context = req.environ['nova.context']
         self.compute_api.ensure_default_security_group(context)
 
         if not db.security_group_exists(context, context.project_id,
@@ -307,7 +339,7 @@ class Controller(object):
             self.compute_api.trigger_security_group_rules_refresh(context,
                                                           security_group['id'])
 
-    def _determine_root(self, req, container, id):
+    def _determine_root(self, context, container):
         """ Determine if root is enabled for a given container. """
         # If we can't determine if root is enabled for whatever reason,
         # including if the container isn't ACTIVE, rootEnabled isn't
@@ -315,8 +347,7 @@ class Controller(object):
         running = _dbaas_mapping[power_state.RUNNING]
         if container['status'] == running:
             try:
-                ctxt = req.environ['nova.context']
-                return self.guest_api.is_root_enabled(ctxt, id)
+                return self.guest_api.is_root_enabled(context, container['id'])
             except Exception as err:
                 LOG.error(err)
                 LOG.error("rootEnabled for %s could not be determined." % id)
@@ -364,7 +395,6 @@ def create_resource(version='1.0'):
     }
 
     response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
-    request_deserializer = wsgi.RequestDeserializer(body_deserializers=deserializers)
-
+    request_deserializer = wsgi.RequestDeserializer(deserializers)
     return wsgi.Resource(controller, deserializer=request_deserializer,
                          serializer=response_serializer)
