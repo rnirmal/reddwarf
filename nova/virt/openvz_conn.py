@@ -948,22 +948,25 @@ class OpenVzConnection(driver.ComputeDriver):
         are and should be owned by root.
         """
         # TODO(imsplitbit): Find a way to make this less of a hack with sudo
-        start_script = '%s/%s.mount' % (FLAGS.ovz_config_dir, instance['id'])
-        stop_script = '%s/%s.umount' % (FLAGS.ovz_config_dir, instance['id'])
+        mount_script = '%s/%s.mount' % (FLAGS.ovz_config_dir, instance['id'])
+        umount_script = '%s/%s.umount' % (FLAGS.ovz_config_dir, instance['id'])
         inside_mount = '%s/%s/%s' % \
                        (FLAGS.ovz_ve_private_dir, instance['id'], mount)
+        inside_root_mount = '%s/%s/%s' % \
+                            (FLAGS.ovz_ve_root_dir, instance['id'], mount)
         outside_mount = '%s/%s/%s' % \
                         (FLAGS.ovz_ve_outside_mount_dir, instance['id'], mount)
         # Fix mounts to remove duplicate slashes
         inside_mount = os.path.abspath(inside_mount)
+        inside_root_mount = os.path.abspath(inside_root_mount)
         outside_mount = os.path.abspath(outside_mount)
 
         # Create the files if they don't exist
         try:
-            _, err = utils.execute('sudo', 'touch', start_script)
+            _, err = utils.execute('sudo', 'touch', mount_script)
             if err:
                 LOG.error(err)
-            _, err = utils.execute('sudo', 'touch', stop_script)
+            _, err = utils.execute('sudo', 'touch', umount_script)
             if err:
                 LOG.error(err)
         except Exception as err:
@@ -972,10 +975,10 @@ class OpenVzConnection(driver.ComputeDriver):
         
         # Fixup perms to allow for this script to edit files.
         try:
-            _, err = utils.execute('sudo', 'chmod', '777', start_script)
+            _, err = utils.execute('sudo', 'chmod', '777', mount_script)
             if err:
                 LOG.error(err)
-            _, err = utils.execute('sudo', 'chmod', '777', stop_script)
+            _, err = utils.execute('sudo', 'chmod', '777', umount_script)
             if err:
                 LOG.error(err)
         except Exception as err:
@@ -985,7 +988,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Next open the start / stop files for reading.
         try:
-            start_fh = open(start_script, 'r')
+            start_fh = open(mount_script, 'r')
             start_lines = start_fh.readlines()
             start_fh.close()
         except Exception as err:
@@ -993,7 +996,7 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Failed to open the container start script')
 
         try:
-            stop_fh = open(stop_script, 'r')
+            stop_fh = open(umount_script, 'r')
             stop_lines = stop_fh.readlines()
             stop_fh.close()
         except Exception as err:
@@ -1052,7 +1055,7 @@ class OpenVzConnection(driver.ComputeDriver):
             # Now create a mount entry that bind mounts the outside mount into
             # the container on boot.
             inside_mount_line = 'mount --bind %s %s' % \
-                                (outside_mount, inside_mount)
+                                (outside_mount, inside_root_mount)
 
             # Add the outside and inside mount lines to the start script
             start_lines.append(outside_mount_line)
@@ -1060,7 +1063,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
             # Create a umount statement to unmount the device from both the
             # container and the server
-            inside_umount_line = 'umount %s' % (inside_mount,)
+            inside_umount_line = 'umount %s' % (inside_root_mount,)
             outside_umount_line = 'umount %s' % (outside_mount,)
 
             # Add umount lines to the stop script
@@ -1073,7 +1076,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # Now reopen the files for writing and dump the contents into the
         # files.
         try:
-            start_fh = open(start_script, 'w')
+            start_fh = open(mount_script, 'w')
             start_fh.writelines('\n'.join(start_lines) + '\n')
             start_fh.close()
         except Exception as err:
@@ -1082,7 +1085,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 'Failed to write the contents to start script')
 
         try:
-            stop_fh = open(stop_script, 'w')
+            stop_fh = open(umount_script, 'w')
             stop_fh.writelines('\n'.join(stop_lines) + '\n')
             stop_fh.close()
         except Exception as err:
@@ -1091,10 +1094,10 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Close by setting more secure permissions on the start and stop scripts
         try:
-            _, err = utils.execute('sudo', 'chmod', '755', start_script)
+            _, err = utils.execute('sudo', 'chmod', '755', mount_script)
             if err:
                 LOG.error(err)
-            _, err = utils.execute('sudo', 'chmod', '755', stop_script)
+            _, err = utils.execute('sudo', 'chmod', '755', umount_script)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
