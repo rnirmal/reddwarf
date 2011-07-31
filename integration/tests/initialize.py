@@ -16,12 +16,15 @@
 import unittest
 import os
 import time
+import socket
 
 from nose.plugins.skip import SkipTest
 from nova import context
+from nova import utils
 from nova.db import api as dbapi
 
 from proboscis import test
+from proboscis.decorators import time_out
 from tests.util import test_config
 from tests.util.services import Service
 from tests.util.services import start_proc
@@ -229,13 +232,16 @@ class ServicesTestable(unittest.TestCase):
     no exceptions... 100% ready to go
     """
 
+    @time_out(60 * 3)
     def test_networks_have_host_assigned(self):
-        """Check that default networks have a host assigned"""
+        """
+        ServicesUp - Check that default networks have a host assigned
+        """
         while(True):
-            networks = dbapi.network_get_all(context.get_admin_context())
-            for network in networks:
-                if network["host"]:
-                    return
+            networks = dbapi.network_get_all_by_host(context.get_admin_context(),
+                                                     socket.gethostname())
+            if len(networks) == 2:
+                return
             time.sleep(5)
 
 

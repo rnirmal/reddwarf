@@ -18,6 +18,8 @@ source Utils.sh
 pkg_install apt-proxy
 
 cp /vagrant-common/apt-proxy.conf /etc/apt-proxy/
+br200_ip=`get_ip_for_device br200`
+sed -i "s/;address = 192.168.0.254/address = $br200_ip/g" /etc/apt-proxy/apt-proxy.conf
 #UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
 # check to see if http_proxy is set http_proxy=$http_proxy bash hack
 if [ ! "${http_proxy}" = '' ]; then

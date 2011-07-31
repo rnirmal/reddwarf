@@ -81,17 +81,17 @@ sed -i 's/#discovery.sendtargets.auth.password = password/discovery.sendtargets.
 # Restart the iscsi initiator
 sudo /etc/init.d/open-iscsi restart
 
-# Update services to listen only on br100
-br100_ip=`get_ip_for_device br100`
+# Update services to listen only on br200 the infranet
+br200_ip=`get_ip_for_device br200`
 
 # Set Rabbitmq to listen on br100 only
 sudo cat > /etc/rabbitmq/rabbitmq.config <<EOF
 [
-    {rabbit, [{tcp_listeners, [{"$br100_ip", 5672}]}]}
+    {rabbit, [{tcp_listeners, [{"$br200_ip", 5672}]}]}
 ].
 EOF
 sudo service rabbitmq-server restart
 
 # Set Mysql (Nova DB) to listen on br100 only
-sudo sed -i "s/^bind-address[ \t]*= 127.0.0.1/bind-address\t\t = $br100_ip/g" /etc/mysql/my.cnf
+sudo sed -i "s/^bind-address[ \t]*= 127.0.0.1/bind-address\t\t = $br200_ip/g" /etc/mysql/my.cnf
 sudo service mysql restart

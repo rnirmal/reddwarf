@@ -120,8 +120,8 @@ echo "--flat_network_dns=$dns_ip" >> /home/vagrant/nova.conf
 #nova_manage network create 10.0.2.0/24 1 256
 
 # Can't figure out the CIDR rules, so I'm giving it 256 ips.
-nova_manage network create private $ip_startbr100.0/24 1 256 0 0 0 0 br100 eth0
-nova_manage network create servicenet $ip_startbr200.0/24 1 256 0 0 0 0 br200 eth1
+nova_manage network create usernet $ip_startbr100.0/24 1 256 0 0 0 0 br100 eth0
+nova_manage network create infranet $ip_startbr200.0/24 1 256 0 0 0 0 br200 eth1
 # This for some reason is not being added, nor is it a option in nova manage.
 # We NEED to get the project associated w/ the network and this is a nasty hack
 # TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
@@ -152,6 +152,9 @@ ssh vagrant@33.33.33.10 "sudo /vagrant-common/delete_volumes.sh"
 
 # Restart Rabbit MQ so all the old queues are cleared
 sudo service rabbitmq-server restart
+
+# Restart apt-proxy.... sometimes it's flaky
+sudo service apt-proxy restart
 
 # TODO: It may be necessary to delete all other instances of this.
 

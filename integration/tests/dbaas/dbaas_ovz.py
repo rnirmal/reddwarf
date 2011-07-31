@@ -9,9 +9,12 @@ import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 
-from reddwarfclient import Dbaas
+from nova import context
+from nova import db
 from nova.guest.dbaas import LocalSqlClient
 from novaclient.exceptions import NotFound
+from reddwarfclient import Dbaas
+
 from proboscis import test
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
@@ -19,6 +22,7 @@ from tests.dbaas.containers import container_info
 from tests.dbaas.containers import GROUP_START
 from tests.dbaas.containers import GROUP_TEST
 from tests.util import check_database
+from tests.util import get_vz_ip_for_device
 from tests.util import init_engine
 from tests.util import process
 from tests.util import string_in_list
@@ -40,19 +44,39 @@ class Setup(unittest.TestCase):
         dbaas = util.create_dbaas_client(container_info.user)
 
 
-@test(depends_on_classes=[Setup], groups=[GROUP_TEST, "dbaas.guest.mysql"])
+@test(depends_on_classes=[Setup], groups=[GROUP_TEST, "dbaas.guest.ovz"])
+class TestMultiNic(unittest.TestCase):
+    """
+        Test that the created container has 2 nics with the specified ip
+        address as allocated to it.
+    """
+
+    def setUp(self):
+        container_info.user_ip = get_vz_ip_for_device(container_info.id,
+                                                      "eth0")
+        container_info.infra_ip = get_vz_ip_for_device(container_info.id,
+                                                       "eth1")
+
+    def test_multi_nic(self):
+        """
+        Multinic - Verify that nics as specified in the database are created
+        in the guest
+        """
+        vifs = db.virtual_interface_get_by_instance(context.get_admin_context(),
+                                                    container_info.id)
+        for vif in vifs:
+            fixed_ip = db.fixed_ip_get_by_virtual_interface(context.get_admin_context(),
+                                                            vif['id'])
+            vz_ip = get_vz_ip_for_device(container_info.id,
+                                         vif['network']['bridge_interface'])
+            self.assertEquals(vz_ip, fixed_ip[0]['address'])
+
+
+@test(depends_on_classes=[TestMultiNic], groups=[GROUP_TEST, "dbaas.guest.mysql"])
 class TestMysqlAccess(unittest.TestCase):
     """
         Test Access to the mysql server as os_admin and root
     """
-
-    def setUp(self):
-        ip, err = process("""sudo vzctl exec %s ifconfig eth0 | grep 'inet addr' """
-                           """| awk '{gsub(/addr:/, "");print $2}' """
-                            % container_info.id)
-        if err:
-            self.assertFalse(True, err)
-        container_info.ip = ip.strip()
 
     def _mysql_error_handler(self, err):
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
@@ -68,18 +92,20 @@ class TestMysqlAccess(unittest.TestCase):
     @time_out(60 * 2)
     def test_mysql_admin(self):
         while True:
-            mysqld, err = process("pstree -a %s | grep mysqld" % container_info.pid)
+            mysqld, err = process("pstree -a %s | grep mysqld"
+                                  % container_info.pid)
             if not string_in_list(mysqld, ["mysqld"]):
                 time.sleep(10)
             else:
                 time.sleep(10)
                 out, err = process("mysql -h %s -u os_admin -pasdfd-asdf234"
-                                    % container_info.ip)
+                                    % container_info.user_ip)
                 self._mysql_error_handler(err)
                 break
 
     def test_mysql_root(self):
-        out, err = process("mysql -h %s -u root -pdsfgnear" % container_info.ip)
+        out, err = process("mysql -h %s -u root -pdsfgnear"
+                           % container_info.user_ip)
         self._mysql_error_handler(err)
 
     def test_zfirst_db(self):
@@ -225,7 +251,7 @@ class TestUsers(unittest.TestCase):
 
     def check_database_for_user(self, user, password, dbs):
         dblist, err = process("sudo mysql    -h %s -u '%s' -p'%s' -e 'show databases;'"
-                                % (container_info.ip, user, password))
+                                % (container_info.user_ip, user, password))
         if err:
             self.assertFalse(True, err)
         for db in dbs:
@@ -237,7 +263,7 @@ class TestUsers(unittest.TestCase):
     def _check_connection(self, username, password):
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
         dblist, err = process("sudo mysql -h %s -u '%s' -p'%s' -e 'show databases;'"
-                                % (container_info.ip, username, password))
+                                % (container_info.user_ip, username, password))
         if pos_error.match(err):
             self.assertTrue(True)
         else:
@@ -249,7 +275,7 @@ class TestUsers(unittest.TestCase):
         host = "%"
         user, password = dbaas.root.create(container_info.id)
 
-        engine = init_engine(user, password, container_info.ip)
+        engine = init_engine(user, password, container_info.user_ip)
         client = LocalSqlClient(engine)
         with client:
             t = text("""SELECT User, Host FROM mysql.user WHERE User=:user AND Host=:host;""")
@@ -325,7 +351,7 @@ class TestUsers(unittest.TestCase):
         dbaas.root.delete(container_info.id)
 
         try:
-            engine = init_engine(user, root_password, container_info.ip)
+            engine = init_engine(user, root_password, container_info.user_ip)
             client = LocalSqlClient(engine)
             with client:
                 t = text("""SELECT * FROM mysql.user where User=:user, Host=:host;""")

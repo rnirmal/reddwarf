@@ -137,3 +137,14 @@ def process(cmd):
 def string_in_list(str, substr_list):
     """Returns True if the string appears in the list."""
     return any([str.find(x) >=0 for x in substr_list])
+
+
+def get_vz_ip_for_device(container_id, device):
+    """Get the IP of the device within openvz for the specified container"""
+    ip, err = process("""sudo vzctl exec %s ifconfig %s | grep 'inet addr' """
+                      """| awk '{gsub(/addr:/, "");print $2}' """
+                      % (container_id, device))
+    if err:
+        self.assertFalse(True, err)
+    else:
+        return ip.strip()
