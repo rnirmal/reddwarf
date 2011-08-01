@@ -231,10 +231,8 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_vz_os_hint(instance)
         self._configure_vz(instance)
         self._set_name(instance)
-        self._add_netif(instance)
-        self._add_ip(instance, network_info)
+        self._setup_networks(instance, network_info)
         self._set_hostname(instance)
-        self._set_nameserver(instance, network_info)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
         
@@ -399,7 +397,28 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Failed to update db for %s' % instance['id'])
 
-    def _add_netif(self, instance, netif_number=0,
+    def _setup_networks(self, instance, network_info):
+        """Setup all the provided networks
+
+        Add the specified network interfaces.
+        Assign ips for those interfaces and bridge them.
+        Add nameserver information for all the interfaces
+        """
+        for eth_id, network in enumerate(network_info):
+            bridge = network[0]["bridge"]
+            netif = network[0]["bridge_interface"] \
+                        if network[0].has_key("bridge_interface") \
+                        else "eth%s" % eth_id
+            ip = network[1]["ips"][0]["ip"]
+            netmask = network[1]["ips"][0]["netmask"]
+            gateway = network[1]["gateway"]
+            dns = network[1]["dns"][0]
+
+            self._add_netif(instance, netif=netif, bridge=bridge)
+            self._add_ip(instance, ip, netmask, gateway, netif=netif)
+            self._set_nameserver(instance, dns)
+
+    def _add_netif(self, instance, netif="eth0",
                    host_if=False,
                    bridge=FLAGS.ovz_bridge_device):
         """
@@ -413,12 +432,11 @@ class OpenVzConnection(driver.ComputeDriver):
             # right now this is the only supported networking model
             # in the openvz connector.
             if not host_if:
-                host_if = 'veth%s.%s' % (instance['id'], netif_number)
+                host_if = 'veth%s.%s' % (instance['id'], netif)
 
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
                                      '--save', '--netif_add',
-                                     'eth%s,,%s,,%s' % (netif_number,
-                                                        host_if, bridge))
+                                     '%s,,%s,,%s' % (netif, host_if, bridge))
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -428,15 +446,11 @@ class OpenVzConnection(driver.ComputeDriver):
                     'Error adding network device to container %s' %
                     instance['id'])
 
-    def _add_ip(self, instance, network_info, netif='eth0',
+    def _add_ip(self, instance, ip, netmask, gateway, netif='eth0',
                 if_file='etc/network/interfaces'):
         """
         Add an ip to the container
         """
-        ctxt = context.get_admin_context()
-        ip = network_info[0][1]["ips"][0]["ip"]
-        netmask = network_info[0][1]["ips"][0]["netmask"]
-        gateway = network_info[0][1]["gateway"]
         net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
         if_file_path = net_path + '/' + if_file
         
@@ -460,14 +474,11 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Error adding IP')
 
-    def _set_nameserver(self, instance, network_info):
+    def _set_nameserver(self, instance, dns):
         """
         Get the nameserver for the assigned network and set it using
         OpenVz's tools.
         """
-        ctxt = context.get_admin_context()
-        dns = network_info[0][1]["dns"][0]
-
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
                                    '--save', '--nameserver', dns)
