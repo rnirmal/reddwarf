@@ -193,8 +193,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         return infos
 
-    @exception.wrap_exception
-    def spawn(self, instance):
+    def spawn(self, instance, network_info=None, block_device_mapping=None):
         """
         Create a new virtual environment on the container platform.
 
@@ -232,10 +231,8 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_vz_os_hint(instance)
         self._configure_vz(instance)
         self._set_name(instance)
-        self._add_netif(instance)
-        self._add_ip(instance)
+        self._setup_networks(instance, network_info)
         self._set_hostname(instance)
-        self._set_nameserver(instance)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
         
@@ -296,7 +293,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # This will actually drop the os from the local image cache
         try:
             utils.execute('sudo', 'vzctl', 'create', instance['id'],
-                          '--ostemplate', instance['image_id'])
+                          '--ostemplate', instance['image_ref'])
         except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Failed creating VE %s from image cache' %
@@ -319,7 +316,7 @@ class OpenVzConnection(driver.ComputeDriver):
         Create the disk image for the virtual environment.
         """
 
-        image_name = '%s.tar.gz' % instance['image_id']
+        image_name = '%s.tar.gz' % instance['image_ref']
         full_image_path = '%s/%s' % (FLAGS.ovz_image_template_dir, image_name)
 
         if not os.path.exists(full_image_path):
@@ -330,7 +327,7 @@ class OpenVzConnection(driver.ComputeDriver):
             project = manager.AuthManager().get_project(instance['project_id'])
 
             # Grab image and place it in the image cache
-            images.fetch(instance['image_id'], full_image_path, user, project)
+            images.fetch(instance['image_ref'], full_image_path, user, project)
             return True
         else:
             return False
@@ -400,7 +397,28 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Failed to update db for %s' % instance['id'])
 
-    def _add_netif(self, instance, netif_number=0,
+    def _setup_networks(self, instance, network_info):
+        """Setup all the provided networks
+
+        Add the specified network interfaces.
+        Assign ips for those interfaces and bridge them.
+        Add nameserver information for all the interfaces
+        """
+        for eth_id, network in enumerate(network_info):
+            bridge = network[0]["bridge"]
+            netif = network[0]["bridge_interface"] \
+                        if network[0].has_key("bridge_interface") \
+                        else "eth%s" % eth_id
+            ip = network[1]["ips"][0]["ip"]
+            netmask = network[1]["ips"][0]["netmask"]
+            gateway = network[1]["gateway"]
+            dns = network[1]["dns"][0]
+
+            self._add_netif(instance, netif=netif, bridge=bridge)
+            self._add_ip(instance, ip, netmask, gateway, netif=netif)
+            self._set_nameserver(instance, dns)
+
+    def _add_netif(self, instance, netif="eth0",
                    host_if=False,
                    bridge=FLAGS.ovz_bridge_device):
         """
@@ -414,12 +432,11 @@ class OpenVzConnection(driver.ComputeDriver):
             # right now this is the only supported networking model
             # in the openvz connector.
             if not host_if:
-                host_if = 'veth%s.%s' % (instance['id'], netif_number)
+                host_if = 'veth%s.%s' % (instance['id'], netif)
 
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
                                      '--save', '--netif_add',
-                                     'eth%s,,%s,,%s' % (netif_number,
-                                                        host_if, bridge))
+                                     '%s,,%s,,%s' % (netif, host_if, bridge))
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -429,14 +446,11 @@ class OpenVzConnection(driver.ComputeDriver):
                     'Error adding network device to container %s' %
                     instance['id'])
 
-    def _add_ip(self, instance, netif='eth0',
+    def _add_ip(self, instance, ip, netmask, gateway, netif='eth0',
                 if_file='etc/network/interfaces'):
         """
         Add an ip to the container
         """
-        ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
         net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
         if_file_path = net_path + '/' + if_file
         
@@ -445,8 +459,8 @@ class OpenVzConnection(driver.ComputeDriver):
             with open(FLAGS.ovz_network_template) as fh:
                 network_file = fh.read() % {'gateway_dev': netif,
                                             'address': ip,
-                                            'netmask': network['netmask'],
-                                            'gateway': network['gateway']}
+                                            'netmask': netmask,
+                                            'gateway': gateway}
 
             # TODO(imsplitbit): Find a way to write to this file without
             # mangling the perms.
@@ -460,18 +474,14 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Error adding IP')
 
-    def _set_nameserver(self, instance):
+    def _set_nameserver(self, instance, dns):
         """
         Get the nameserver for the assigned network and set it using
         OpenVz's tools.
         """
-        ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
-
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--nameserver', network['dns'])
+                                   '--save', '--nameserver', dns)
             if err:
                 LOG.error(err)
         except Exception as err:
@@ -569,12 +579,6 @@ class OpenVzConnection(driver.ComputeDriver):
         #                   a directory which can't be locked.  It'd be nice
         #                   if we could somehow detect that and raise an error
         #                   instead.
-
-        #
-        # Get the ip and network information
-        ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
 
         # Create our table instance and add our chains for the instance
         table_ipv4 = linux_net.iptables_manager.ipv4['filter']
