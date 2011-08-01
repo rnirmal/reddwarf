@@ -978,6 +978,27 @@ class OpenVzConnection(driver.ComputeDriver):
         mount_lines = self._correct_shell_scripts(mount_lines)
         umount_lines = self._correct_shell_scripts(umount_lines)
 
+        # Now create a mount entry that mounts the device outside of the
+        # container when the container starts.
+        if dev:
+            outside_mount_line = 'mount %s %s' % (dev, outside_mount)
+        elif uuid:
+            outside_mount_line = 'mount UUID=%s %s' % \
+                                 (uuid, outside_mount)
+        else:
+            LOG.error('Could not create outside_mount_line')
+            raise exception.Error('Could not create outside_mount_line')
+
+        # Now create a mount entry that bind mounts the outside mount into
+        # the container on boot.
+        inside_mount_line = 'mount --bind %s %s' % \
+                            (outside_mount, inside_root_mount)
+
+        # Create a umount statement to unmount the device from both the
+        # container and the server
+        inside_umount_line = 'umount %s' % (inside_root_mount,)
+        outside_umount_line = 'umount %s' % (outside_mount,)
+
         # Make the magic happen.
         if action == 'add':
             # Create a mount point for the device outside the root of the
@@ -990,37 +1011,48 @@ class OpenVzConnection(driver.ComputeDriver):
             if not os.path.exists(inside_mount):
                 self._make_directory(inside_mount)
 
-            # Now create a mount entry that mounts the device outside of the
-            # container when the container starts.
-            if dev:
-                outside_mount_line = 'mount %s %s' % (dev, outside_mount)
-            elif uuid:
-                outside_mount_line = 'mount UUID=%s %s' % \
-                                     (uuid, outside_mount)
-            else:
-                LOG.error('Could not create outside_mount_line')
-                raise exception.Error('Could not create outside_mount_line')
-
-            # Now create a mount entry that bind mounts the outside mount into
-            # the container on boot.
-            inside_mount_line = 'mount --bind %s %s' % \
-                                (outside_mount, inside_root_mount)
-
             # Add the outside and inside mount lines to the start script
             mount_lines.append(outside_mount_line)
             mount_lines.append(inside_mount_line)
 
-            # Create a umount statement to unmount the device from both the
-            # container and the server
-            inside_umount_line = 'umount %s' % (inside_root_mount,)
-            outside_umount_line = 'umount %s' % (outside_mount,)
-
             # Add umount lines to the stop script
             umount_lines.append(inside_umount_line)
             umount_lines.append(outside_umount_line)
+            
         elif action == 'del':
-            # Passing for now need to fix this once I implement detach
-            pass
+            # Unmount the storage
+            try:
+                _, err = utils.execute(inside_umount_line.split())
+                if err:
+                    LOG.error(err)
+            except ProcessExecutionError as err:
+                LOG.error(err)
+                raise exception.Error(
+                    'Error unmounting inside mount for %s' %
+                    (instance['id'],))
+
+            try:
+                _, err = utils.execute(outside_umount_line.split())
+                if err:
+                    LOG.error(err)
+            except ProcessExecutionError as err:
+                LOG.error(err)
+                raise exception.Error('Error unmounting outside mount for %s' %
+                                      (instance['id'],))
+
+            # If the lines of the mount and unmount statements are in
+            # the CTID.mount and CTID.umount files remove them.
+            if inside_mount_line in mount_lines:
+                mount_lines.remove(inside_mount_line)
+
+            if outside_mount_line in mount_lines:
+                mount_lines.remove(inside_mount_line)
+
+            if inside_umount_line in umount_lines:
+                umount_lines.remove(inside_umount_line)
+
+            if outside_umount_line in umount_lines:
+                umount_lines.remove(outside_umount_line)
 
         # Now reopen the files for writing and dump the contents into the
         # files.
