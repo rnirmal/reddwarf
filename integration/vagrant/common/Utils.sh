@@ -17,7 +17,7 @@ fail_if_exists () {
 ip_chunk() {
     # Given 1-4 returns a bit of where the ip range starts.
     # Full IP= `ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`.`ip_chunk 4`
-    ifconfig $1 | grep 'inet addr:' | awk '{print $2} '| cut -d: -f2|cut -d. -f$2
+    get_ip_for_device $1 | cut -d. -f$2
 }
 
 pkg_install () {
@@ -31,5 +31,5 @@ pkg_remove () {
 }
 
 get_ip_for_device() {
-    ifconfig $1 | grep 'inet addr:' | awk '{print $2} '| cut -d: -f2
+    ifconfig $1 | awk '/inet addr/{gsub(/addr:/,"");print $2}'
 }

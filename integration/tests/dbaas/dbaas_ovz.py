@@ -92,8 +92,7 @@ class TestMysqlAccess(unittest.TestCase):
     @time_out(60 * 2)
     def test_mysql_admin(self):
         while True:
-            mysqld, err = process("pstree -a %s | grep mysqld"
-                                  % container_info.pid)
+            mysqld, err = process("pgrep -l -P %s mysqld" % container_info.pid)
             if not string_in_list(mysqld, ["mysqld"]):
                 time.sleep(10)
             else:

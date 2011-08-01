@@ -141,9 +141,9 @@ def string_in_list(str, substr_list):
 
 def get_vz_ip_for_device(container_id, device):
     """Get the IP of the device within openvz for the specified container"""
-    ip, err = process("""sudo vzctl exec %s ifconfig %s | grep 'inet addr' """
-                      """| awk '{gsub(/addr:/, "");print $2}' """
-                      % (container_id, device))
+    ip, err = process("""sudo vzctl exec %(container_id)s ifconfig %(device)s"""
+                      """ | awk '/inet addr/{gsub(/addr:/,"");print $2}'"""
+                      % locals())
     if err:
         self.assertFalse(True, err)
     else:
