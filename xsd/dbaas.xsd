@@ -236,7 +236,7 @@
        </xsd:documentation>
      </annotation>
    </attribute>
-   <element name="Volume" type="dbaas:Volume">
+   <element name="volume" type="dbaas:Volume">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
          <p>A volume attached to the container.</p>
