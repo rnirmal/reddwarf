@@ -51,7 +51,8 @@ class ContainerTestInfo(object):
         self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
         self.initial_result = None # The initial result from the create call.
-        self.ip = None  # The IP of the instance.
+        self.user_ip = None  # The IP address of the instance, given to user.
+        self.infra_ip = None # The infrastructure network IP address.
         self.result = None  # The container info returned by the API
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
@@ -424,11 +425,13 @@ class ContainerHostCheck2(ContainerHostCheck):
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
 
+
 @test(depends_on_classes=[CreateContainer, VerifyGuestStarted,
     WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 def management_callback():
     global mgmt_details
     mgmt_details = dbaas.management.show(container_info.id)
+
 
 @test(depends_on=[management_callback], groups=[GROUP])
 class VerifyContainerMgmtInfo(unittest.TestCase):

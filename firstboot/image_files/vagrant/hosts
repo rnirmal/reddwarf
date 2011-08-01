@@ -1,6 +1,6 @@
-127.0.0.1 localhost.localdomain localhost
+127.0.0.1	localhost.localdomain localhost
 
-10.0.2.15	apt.rackspace.com
-10.0.2.15	ppa.rackspace.com
-10.0.2.15	RabbitHost
-10.0.2.15	DbHost
+10.0.4.15	apt.rackspace.com
+10.0.4.15	ppa.rackspace.com
+10.0.4.15	RabbitHost
+10.0.4.15	DbHost

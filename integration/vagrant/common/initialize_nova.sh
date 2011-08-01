@@ -31,10 +31,6 @@ mysql -u root -pnova -e "DELETE FROM mysql.user WHERE User='root' AND Host!='loc
 mysql -u root -pnova -e "DELETE FROM mysql.user WHERE User='';"
 mysql -u root -pnova -e "FLUSH PRIVILEGES;"
 
-sudo -E sed -i.bak 's/^bind/#bind/g' /etc/mysql/my.cnf
-# sudo -E cp /vagrant-common/mysql_my.cnf /etc/mysql/my.cnf
-sudo -E service mysql restart
-
 exclaim Initializing Nova database.
 
 cat /vagrant-common/nova.conf.template > /home/vagrant/nova.conf
@@ -113,13 +109,9 @@ fi
 
 exclaim Setting up Networking
 
-# Given 1-4 returns a bit of where the ip range starts.
-ip_chunk() {
-    ifconfig br100| grep 'inet addr:' | awk '{print $2} '| cut -d: -f2|cut -d. -f$@
-}
-
 # This next value will be something like '10.0.0'
-ip_start123=`ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`
+ip_startbr100=`ip_chunk br100 1`.`ip_chunk br100 2`.`ip_chunk br100 3`
+ip_startbr200=`ip_chunk br200 1`.`ip_chunk br200 2`.`ip_chunk br200 3`
 
 gateway_ip=`route -n|grep ^0.0.0.0|sed 's/ \+/ /g'|cut -d' ' -f2`
 dns_ip=`grep -m1 nameserver /etc/resolv.conf |cut -d' ' -f2`
@@ -128,7 +120,8 @@ echo "--flat_network_dns=$dns_ip" >> /home/vagrant/nova.conf
 #nova_manage network create 10.0.2.0/24 1 256
 
 # Can't figure out the CIDR rules, so I'm giving it 256 ips.
-nova_manage network create private `ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`.0/24 1 256 0 0 0 0 br100 eth0
+nova_manage network create usernet $ip_startbr100.0/24 1 256 0 0 0 0 br100 eth0
+nova_manage network create infranet $ip_startbr200.0/24 1 256 0 0 0 0 br200 eth1
 # This for some reason is not being added, nor is it a option in nova manage.
 # We NEED to get the project associated w/ the network and this is a nasty hack
 # TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
@@ -139,17 +132,16 @@ mysql -u root -pnova -e "update nova.networks set project_id = 'dbaas';"
 mysql -u root -pnova -e "UPDATE nova.networks SET gateway='$gateway_ip';"
 mysql -u root -pnova -e "UPDATE nova.networks SET dns='$dns_ip';"
 
-
-# Deletes a fixed ip (argument is the last number in an IP)
-delete_fixed_ip() {
-    mysql -u root -pnova -e "DELETE FROM nova.fixed_ips WHERE address='$ip_start123.$1';"
+# Delete all extra IPs grabbed by Nova.
+delete_extra_ips() {
+    for (( x=0; x <= `ip_chunk $1 4`; x += 1))
+    do
+        mysql -u root -pnova -e "DELETE FROM nova.fixed_ips WHERE address='$2.$x';"
+    done
 }
 
-# Delete all extra IPs grabbed by Nova.
-for (( x=0; x <= `ip_chunk 4`; x += 1))
-do
-    delete_fixed_ip $x
-done
+delete_extra_ips br100 $ip_startbr100
+delete_extra_ips br200 $ip_startbr200
 
 # Remove all the devices on the Host
 sudo iscsiadm -m node --logout
@@ -160,6 +152,9 @@ ssh vagrant@33.33.33.10 "sudo /vagrant-common/delete_volumes.sh"
 
 # Restart Rabbit MQ so all the old queues are cleared
 sudo service rabbitmq-server restart
+
+# Restart apt-proxy.... sometimes it's flaky
+sudo service apt-proxy restart
 
 # TODO: It may be necessary to delete all other instances of this.
 
