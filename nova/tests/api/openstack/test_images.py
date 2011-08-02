@@ -155,7 +155,7 @@ class GlanceImageServiceTest(_BaseImageServiceTests):
         fakes.stub_out_compute_api_snapshot(self.stubs)
         service_class = 'nova.image.glance.GlanceImageService'
         self.service = utils.import_object(service_class)
-        self.context = context.RequestContext(1, None)
+        self.context = context.RequestContext('fake', 'fake')
         self.service.delete_all()
         self.sent_to_glance = {}
         fakes.stub_out_glance_add_image(self.stubs, self.sent_to_glance)
@@ -168,7 +168,7 @@ class GlanceImageServiceTest(_BaseImageServiceTests):
         """Ensure instance_id is persisted as an image-property"""
         fixture = {'name': 'test image',
                    'is_public': False,
-                   'properties': {'instance_id': '42', 'user_id': '1'}}
+                   'properties': {'instance_id': '42', 'user_id': 'fake'}}
 
         image_id = self.service.create(self.context, fixture)['id']
         expected = fixture
@@ -178,7 +178,7 @@ class GlanceImageServiceTest(_BaseImageServiceTests):
         expected = {'id': image_id,
                     'name': 'test image',
                     'is_public': False,
-                    'properties': {'instance_id': '42', 'user_id': '1'}}
+                    'properties': {'instance_id': '42', 'user_id': 'fake'}}
         self.assertDictMatch(image_meta, expected)
 
         image_metas = self.service.detail(self.context)
@@ -331,11 +331,8 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
         self.orig_image_service = FLAGS.image_service
         FLAGS.image_service = 'nova.image.glance.GlanceImageService'
         self.stubs = stubout.StubOutForTesting()
-        fakes.FakeAuthManager.reset_fake_data()
-        fakes.FakeAuthDatabase.data = {}
         fakes.stub_out_networking(self.stubs)
         fakes.stub_out_rate_limiting(self.stubs)
-        fakes.stub_out_auth(self.stubs)
         fakes.stub_out_key_pair_funcs(self.stubs)
         self.fixtures = self._make_image_fixtures()
         fakes.stub_out_glance(self.stubs, initial_fixtures=self.fixtures)
@@ -352,7 +349,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
         """Determine if this fixture is applicable for given user id."""
         is_public = fixture["is_public"]
         try:
-            uid = int(fixture["properties"]["user_id"])
+            uid = fixture["properties"]["user_id"]
         except KeyError:
             uid = None
         return uid == user_id or is_public
@@ -424,7 +421,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
                 },
                 "metadata": {
                     "instance_ref": "http://localhost/v1.1/servers/42",
-                    "user_id": "1",
+                    "user_id": "fake",
                 },
                 "links": [{
                     "rel": "self",
@@ -538,7 +535,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
         # because the element hasn't changed definition
         expected = minidom.parseString("""
             <itemNotFound code="404"
-                    xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
+                    xmlns="http://docs.openstack.org/compute/api/v1.1">
                 <message>
                     Image not found.
                 </message>
@@ -559,7 +556,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
         fixtures = copy.copy(self.fixtures)
 
         for image in fixtures:
-            if not self._applicable_fixture(image, 1):
+            if not self._applicable_fixture(image, "fake"):
                 fixtures.remove(image)
                 continue
 
@@ -568,10 +565,16 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
             test_image = {
                 "id": image["id"],
                 "name": image["name"],
-                "links": [{
-                    "rel": "self",
-                    "href": href,
-                }],
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": href,
+                    },
+                    {
+                        "rel": "bookmark",
+                        "href": bookmark,
+                    },
+                ],
             }
             self.assertTrue(test_image in response_list)
 
@@ -660,7 +663,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
             'name': 'queued snapshot',
             'metadata': {
                 u'instance_ref': u'http://localhost/v1.1/servers/42',
-                u'user_id': u'1',
+                u'user_id': u'fake',
             },
             'updated': self.NOW_API_FORMAT,
             'created': self.NOW_API_FORMAT,
@@ -690,7 +693,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
             'name': 'saving snapshot',
             'metadata': {
                 u'instance_ref': u'http://localhost/v1.1/servers/42',
-                u'user_id': u'1',
+                u'user_id': u'fake',
             },
             'updated': self.NOW_API_FORMAT,
             'created': self.NOW_API_FORMAT,
@@ -721,7 +724,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
             'name': 'active snapshot',
             'metadata': {
                 u'instance_ref': u'http://localhost/v1.1/servers/42',
-                u'user_id': u'1',
+                u'user_id': u'fake',
             },
             'updated': self.NOW_API_FORMAT,
             'created': self.NOW_API_FORMAT,
@@ -751,7 +754,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
             'name': 'killed snapshot',
             'metadata': {
                 u'instance_ref': u'http://localhost/v1.1/servers/42',
-                u'user_id': u'1',
+                u'user_id': u'fake',
             },
             'updated': self.NOW_API_FORMAT,
             'created': self.NOW_API_FORMAT,
@@ -797,154 +800,206 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
         self.assertDictListMatch(expected, response_list)
 
     def test_image_filter_with_name(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'name': 'testname'}
-        image_service.index(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images?name=testname')
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?name=testname')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.index(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_image_filter_with_status(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'status': 'ACTIVE'}
-        image_service.index(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images?status=ACTIVE')
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?status=ACTIVE')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.index(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_image_filter_with_property(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'property-test': '3'}
-        image_service.index(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images?property-test=3')
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?property-test=3')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.index(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
+
+    def test_image_filter_server(self):
+        image_service = self.mox.CreateMockAnything()
+        context = object()
+        # 'server' should be converted to 'property-instance_ref'
+        filters = {'property-instance_ref': 'http://localhost:8774/servers/12'}
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?server='
+                                      'http://localhost:8774/servers/12')
+        request.environ['nova.context'] = context
+        controller = images.ControllerV11(image_service=image_service)
+        controller.index(request)
+        self.mox.VerifyAll()
+
+    def test_image_filter_changes_since(self):
+        image_service = self.mox.CreateMockAnything()
+        context = object()
+        filters = {'changes-since': '2011-01-24T17:08Z'}
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?changes-since='
+                                      '2011-01-24T17:08Z')
+        request.environ['nova.context'] = context
+        controller = images.ControllerV11(image_service=image_service)
+        controller.index(request)
+        self.mox.VerifyAll()
+
+    def test_image_filter_with_type(self):
+        image_service = self.mox.CreateMockAnything()
+        context = object()
+        filters = {'property-image_type': 'BASE'}
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?type=BASE')
+        request.environ['nova.context'] = context
+        controller = images.ControllerV11(image_service=image_service)
+        controller.index(request)
+        self.mox.VerifyAll()
 
     def test_image_filter_not_supported(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'status': 'ACTIVE'}
-        image_service.index(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images?status=ACTIVE&UNSUPPORTEDFILTER=testname')
+        image_service.detail(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images?status=ACTIVE&'
+                                      'UNSUPPORTEDFILTER=testname')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
-        controller.index(request)
-        mocker.VerifyAll()
+        controller.detail(request)
+        self.mox.VerifyAll()
 
     def test_image_no_filters(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {}
         image_service.index(
             context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
+        self.mox.ReplayAll()
         request = webob.Request.blank(
             '/v1.1/images')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.index(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_image_detail_filter_with_name(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'name': 'testname'}
-        image_service.detail(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images/detail?name=testname')
+        image_service.detail(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?name=testname')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.detail(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_image_detail_filter_with_status(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'status': 'ACTIVE'}
-        image_service.detail(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images/detail?status=ACTIVE')
+        image_service.detail(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?status=ACTIVE')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.detail(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_image_detail_filter_with_property(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'property-test': '3'}
-        image_service.detail(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images/detail?property-test=3')
+        image_service.detail(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?property-test=3')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.detail(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
+
+    def test_image_detail_filter_server(self):
+        image_service = self.mox.CreateMockAnything()
+        context = object()
+        # 'server' should be converted to 'property-instance_ref'
+        filters = {'property-instance_ref': 'http://localhost:8774/servers/12'}
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?server='
+                                      'http://localhost:8774/servers/12')
+        request.environ['nova.context'] = context
+        controller = images.ControllerV11(image_service=image_service)
+        controller.index(request)
+        self.mox.VerifyAll()
+
+    def test_image_detail_filter_changes_since(self):
+        image_service = self.mox.CreateMockAnything()
+        context = object()
+        filters = {'changes-since': '2011-01-24T17:08Z'}
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?changes-since='
+                                      '2011-01-24T17:08Z')
+        request.environ['nova.context'] = context
+        controller = images.ControllerV11(image_service=image_service)
+        controller.index(request)
+        self.mox.VerifyAll()
+
+    def test_image_detail_filter_with_type(self):
+        image_service = self.mox.CreateMockAnything()
+        context = object()
+        filters = {'property-image_type': 'BASE'}
+        image_service.index(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?type=BASE')
+        request.environ['nova.context'] = context
+        controller = images.ControllerV11(image_service=image_service)
+        controller.index(request)
+        self.mox.VerifyAll()
 
     def test_image_detail_filter_not_supported(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {'status': 'ACTIVE'}
-        image_service.detail(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images/detail?status=ACTIVE&UNSUPPORTEDFILTER=testname')
+        image_service.detail(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail?status=ACTIVE&'
+                                      'UNSUPPORTEDFILTER=testname')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.detail(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_image_detail_no_filters(self):
-        mocker = mox.Mox()
-        image_service = mocker.CreateMockAnything()
+        image_service = self.mox.CreateMockAnything()
         context = object()
         filters = {}
-        image_service.detail(
-            context, filters=filters).AndReturn([])
-        mocker.ReplayAll()
-        request = webob.Request.blank(
-            '/v1.1/images/detail')
+        image_service.detail(context, filters=filters).AndReturn([])
+        self.mox.ReplayAll()
+        request = webob.Request.blank('/v1.1/images/detail')
         request.environ['nova.context'] = context
         controller = images.ControllerV11(image_service=image_service)
         controller.detail(request)
-        mocker.VerifyAll()
+        self.mox.VerifyAll()
 
     def test_get_image_found(self):
         req = webob.Request.blank('/v1.0/images/123')
@@ -1201,7 +1256,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
 
         # Snapshot for User 1
         server_ref = 'http://localhost/v1.1/servers/42'
-        snapshot_properties = {'instance_ref': server_ref, 'user_id': '1'}
+        snapshot_properties = {'instance_ref': server_ref, 'user_id': 'fake'}
         for status in ('queued', 'saving', 'active', 'killed'):
             add_fixture(id=image_id, name='%s snapshot' % status,
                         is_public=False, status=status,
@@ -1209,7 +1264,7 @@ class ImageControllerWithGlanceServiceTest(test.TestCase):
             image_id += 1
 
         # Snapshot for User 2
-        other_snapshot_properties = {'instance_id': '43', 'user_id': '2'}
+        other_snapshot_properties = {'instance_id': '43', 'user_id': 'other'}
         add_fixture(id=image_id, name='someone elses snapshot',
                     is_public=False, status='active',
                     properties=other_snapshot_properties)
