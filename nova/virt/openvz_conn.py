@@ -932,11 +932,14 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error('Mount: %s' % (mountpoint,))
             raise exception.Error('No volume in the db for this instance')
 
-        return True
-
     def detach_volume(self, instance_name, mountpoint):
         """Detach the disk attached to the instance at mountpoint"""
-        return True
+
+        # Find the instance ref so we can pass it to the
+        # _container_script_modify method.
+        meta = self._find_by_name(instance_name)
+        instance = db.instance_get(context.get_admin_context(), meta['id'])
+        self._container_script_modify(instance, None, None, mountpoint, 'del')
 
     def _container_script_modify(self, instance, dev=None, uuid=None,
                                  mount=None, action='add'):
@@ -986,8 +989,13 @@ class OpenVzConnection(driver.ComputeDriver):
             outside_mount_line = 'mount UUID=%s %s' % \
                                  (uuid, outside_mount)
         else:
-            LOG.error('Could not create outside_mount_line')
-            raise exception.Error('Could not create outside_mount_line')
+            for line in mount_lines:
+                if outside_mount in line:
+                    outside_mount_line = line
+            if not outside_mount_line:
+                err = 'Cannot find the outside mount for %s' % (instance['id'],)
+                LOG.error(err)
+                raise exception.Error(err)
 
         # Now create a mount entry that bind mounts the outside mount into
         # the container on boot.
