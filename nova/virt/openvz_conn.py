@@ -330,9 +330,10 @@ class OpenVzConnection(driver.ComputeDriver):
         full_image_path = '%s/%s' % (FLAGS.ovz_image_template_dir, image_name)
 
         if not os.path.exists(full_image_path):
-            # These objects are required to retrieve images from the object store.
-            # This is known only to work with glance so far but as I understand it
-            # glance's interface matches that of the other object stores.
+            # These objects are required to retrieve images from the object
+            # store. This is known only to work with glance so far but as I
+            # understand it. glance's interface matches that of the other
+            # object stores.
             user = manager.AuthManager().get_user(instance['user_id'])
             project = manager.AuthManager().get_project(instance['project_id'])
 
@@ -986,8 +987,7 @@ class OpenVzConnection(driver.ComputeDriver):
         if dev:
             outside_mount_line = 'mount %s %s' % (dev, outside_mount)
         elif uuid:
-            outside_mount_line = 'mount UUID=%s %s' % \
-                                 (uuid, outside_mount)
+            outside_mount_line = 'mount UUID=%s %s' % (uuid, outside_mount)
         else:
             for line in mount_lines:
                 if outside_mount in line:
@@ -1157,9 +1157,10 @@ class OpenVzConnection(driver.ComputeDriver):
         if instance['state'] != power_state.NOSTATE:
             # NOTE(imsplitbit): This is not ideal but it looks like nova uses
             # codes returned from libvirt and xen which don't correlate to
-            # the status returned from OpenVZ which is either 'running' or 'stopped'
-            # There is some contention on how to handle systems that were shutdown
-            # intentially however I am defaulting to the nova expected behavior
+            # the status returned from OpenVZ which is either 'running' or
+            # 'stopped'.  There is some contention on how to handle systems
+            # that were shutdown intentially however I am defaulting to the
+            # nova expected behavior.
             if meta['state'] == 'running':
                 state = power_state.RUNNING
             elif meta['state'] == None or meta['state'] == '-':
