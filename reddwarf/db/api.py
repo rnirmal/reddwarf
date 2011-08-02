@@ -130,3 +130,14 @@ def show_containers_on_host(context, id):
                         filter_by(host=id).\
                         filter_by(deleted=False).all()
     return result
+
+@require_admin_context
+def instance_get_memory_sum_by_host(context, hostname):
+    session = get_session()
+    result = session.query(Instance).\
+                      filter_by(host=hostname).\
+                      filter_by(deleted=False).\
+                      value(func.sum(Instance.memory_mb))
+    if not result:
+        return 0
+    return result
