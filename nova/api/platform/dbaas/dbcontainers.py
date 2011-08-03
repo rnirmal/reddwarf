@@ -205,14 +205,9 @@ class Controller(object):
 
     def create_volume(self, context, body):
         """Creates the volume for the container and returns its ID."""
-        try:
-            volume_size = body['dbcontainer']['volume']['size']
-            name = body['dbcontainer'].get('name', None)
-            description = FLAGS.reddwarf_volume_description % (None, None)
-        except KeyError as e:
-            LOG.error("Create Container Required field(s) - %s" % e)
-            raise exc.HTTPBadRequest("Create Container Required field(s) - %s"
-                                     % e)
+        volume_size = body['dbcontainer']['volume']['size']
+        name = body['dbcontainer'].get('name', None)
+        description = FLAGS.reddwarf_volume_description % (None, None)
 
         return self.volume_api.create(context, size=volume_size,
                                       snapshot_id=None,
@@ -373,12 +368,18 @@ class Controller(object):
         if not body:
             return faults.Fault(exc.HTTPUnprocessableEntity())
 
-        if not body.get('dbcontainer', ''):
-            raise exception.ApiError("Required element/key 'dbcontainer' " \
-                                      "was not specified")
-        if not body['dbcontainer'].get('flavorRef', ''):
-            raise exception.ApiError("Required attribute/key 'flavorRef' " \
-                                     "was not specified")
+        try:
+            body['dbcontainer']
+            body['dbcontainer']['flavorRef']
+            volume_size = body['dbcontainer']['volume']['size']
+            if int(volume_size) != abs(volume_size) or int(volume_size) < 1:
+                msg = "Volume 'size' needs to be a positive integer value, %s"\
+                      " cannot be accepted." % volume_size
+                raise exception.ApiError(msg)
+        except KeyError as e:
+            LOG.error("Create Container Required field(s) - %s" % e)
+            raise exception.ApiError("Required element/key - %s " \
+                                      "was not specified" % e)
 
 
 def create_resource(version='1.0'):
