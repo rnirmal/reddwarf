@@ -3,6 +3,7 @@
    xmlns="http://wadl.dev.java.net/2009/02" 
    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
    xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+   xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0"
    xmlns:dbaasmanagement="http://docs.rackspacecloud.com/database/api/mgmt/v1.0">
   <grammars>
     <include href="dbaas.xsd"/>
@@ -19,7 +20,7 @@
       </resource>
       <resource id="dbcontainers" path="dbcontainers">
         <param name="containerId" style="template" type="xsd:string"/>
-        <method href="#show"/>
+        <method href="#showdbcontainers"/>
       </resource>
       <resource id="guests" path="guests">
          <resource id="guestUpgradeAll" path="upgradeall">
@@ -63,6 +64,16 @@
       <response status="200">
       <representation mediaType="application/xml" element="dbaasmanagement:Host"/>
       <representation mediaType="application/json" element="dbaasmanagement:Host"/>
+    </response>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+  <method name="GET" id="showdbcontainers">
+      <response status="200">
+      <representation mediaType="application/xml" element="dbaas:dbcontainers"/>
+      <representation mediaType="application/json" element="dbaas:dbcontainers"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
