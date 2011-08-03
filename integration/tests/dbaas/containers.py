@@ -299,6 +299,9 @@ class TestVolume(unittest.TestCase):
         volumes = db.volume_get_all_by_instance(context.get_admin_context(), 
                                                 container_info.id)
         self.assertEqual(1, len(volumes))
+        description = "Volume ID: %s assigned to Instance: %s" \
+                        % (volumes[0]['id'], container_info.id)
+        self.assertEqual(description, volumes[0]['display_description'])
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestContainListing(unittest.TestCase):

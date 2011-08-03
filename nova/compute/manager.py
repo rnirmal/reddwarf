@@ -254,6 +254,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         # Needs to be something that can identify the compute node.
         self.volume_client.initialize(context, volume["id"], self.host)
         self.db.volume_attached(context, volume["id"], instance_id, mount_point)
+        self.volume_api.update(context, volume["id"], {})
 
     @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     def refresh_provider_fw_rules(self, context, **_kwargs):
