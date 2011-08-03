@@ -462,11 +462,6 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Add an ip to the container
         """
-        # TODO(imsplitbit): Make this work on all linux distros.  Currently this
-        # only works for one interface on ubuntu/debian.
-        ctxt = context.get_admin_context()
-        ip = db.instance_get_fixed_address(ctxt, instance['id'])
-        network = db.fixed_ip_get_network(ctxt, ip)
         net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
         if_file_path = net_path + '/' + if_file
         
