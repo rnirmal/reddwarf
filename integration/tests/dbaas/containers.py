@@ -61,6 +61,7 @@ class ContainerTestInfo(object):
 
     def __init__(self):
         self.dbaas = None  # The rich client instance used by these tests.
+        self.dbaas_flavor = None # The flavor used to create the container.
         self.dbaas_flavor_href = None  # The flavor of the container.
         self.dbaas_image = None  # The image used to create the container.
         self.dbaas_image_href = None  # The link of the image.
@@ -431,14 +432,17 @@ class MgmtHostCheck(unittest.TestCase):
               str(myresult))
         self.assertTrue(len(myresult.dbcontainers) > 0,
                         "dbcontainer list on the host should not be empty")
-        self.assertTrue(myresult.percentUsed > 0,
-                        "percentUsed should be : %r > 0" % myresult.percentUsed)
         self.assertTrue(myresult.totalRAM == container_info.host_info.totalRAM,
                         "totalRAM should be the same as before : %r == %r" %
                         (myresult.totalRAM, container_info.host_info.totalRAM))
-        self.assertTrue(myresult.usedRAM > container_info.host_info.usedRAM,
-                        "usedRAM should be : %r > %r" %
-                        (myresult.usedRAM, container_info.host_info.usedRAM))
+        diff = container_info.host_info.usedRAM + container_info.dbaas_flavor.ram
+        self.assertTrue(myresult.usedRAM == diff,
+                        "usedRAM should be : %r == %r" %
+                        (myresult.usedRAM, diff))
+        calc = round(1.0 * myresult.usedRAM / myresult.totalRAM * 100)
+        self.assertTrue(myresult.percentUsed == calc,
+                        "percentUsed should be : %r == %r" %
+                        (myresult.percentUsed, calc))
         print("test_index_host_list_single result dbcontainers: %s" %
               str(myresult.dbcontainers))
         for index, container in enumerate(myresult.dbcontainers, start=1):

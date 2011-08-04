@@ -58,18 +58,19 @@ class Controller(object):
             LOG.info("List the info on nova-compute '%s'" % id)
             LOG.debug("%s - %s", req.environ, req.body)
             ctxt = req.environ['nova.context']
-            containers = dbapi.show_containers_on_host(ctxt,id)
+            containers = dbapi.show_containers_on_host(ctxt, id)
             dbcontainers = [{'id':c.id} for c in containers]
             total_ram = FLAGS.max_instance_memory_mb
-            used_ram = dbapi.instance_get_memory_sum_by_host(ctxt,id)
-            percent = int(round((used_ram/total_ram)*100))
-            return {'host': {'name':id,
-                             'percentUsed':percent,
-                             'totalRAM':total_ram,
-                             'usedRAM':int(used_ram),
-                             'dbcontainers':dbcontainers}}
+            used_ram = dbapi.instance_get_memory_sum_by_host(ctxt, id)
+            percent = int(round((used_ram / total_ram) * 100))
+            return {'host': {'name': id,
+                             'percentUsed': percent,
+                             'totalRAM': total_ram,
+                             'usedRAM': int(used_ram),
+                             'dbcontainers': dbcontainers}}
         except exception.HostNotFound:
             return faults.Fault(exc.HTTPNotFound())
+
 
 def create_resource(version='1.0'):
     controller = {
@@ -78,7 +79,8 @@ def create_resource(version='1.0'):
 
     metadata = {
         "attributes": {
-            "host": ["name","instanceCount","percentUsed","totalRAM","usedRAM"],
+            "host": ["name", "instanceCount", "percentUsed",
+                     "totalRAM", "usedRAM"],
             "dbcontainer": ["id"],
         },
     }
