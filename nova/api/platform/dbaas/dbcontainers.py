@@ -45,6 +45,9 @@ flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
 flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
                     'Mount point within the container for MySQL data.')
+flags.DEFINE_string('reddwarf_volume_description',
+                    'Volume ID: %s assigned to Instance: %s',
+                    'Default description populated for volumes')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -172,6 +175,8 @@ class Controller(object):
                                server_id, databases)
         dbcontainer = self._create_dbcontainer_dict(context,
                                                     server_resp['server'])
+        # Update volume description
+        self.update_volume_info(context, volume_ref, dbcontainer)
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
@@ -200,17 +205,21 @@ class Controller(object):
 
     def create_volume(self, context, body):
         """Creates the volume for the container and returns its ID."""
-        try:
-            volume_size = body['dbcontainer']['volume']['size']
-        except KeyError as e:
-            LOG.error("Create Container Required field(s) - %s" % e)
-            raise exc.HTTPBadRequest("Create Container Required field(s) - %s"
-                                     % e)
+        volume_size = body['dbcontainer']['volume']['size']
+        name = body['dbcontainer'].get('name', None)
+        description = FLAGS.reddwarf_volume_description % (None, None)
 
         return self.volume_api.create(context, size=volume_size,
                                       snapshot_id=None,
-                                      name=None,
-                                      description=None)
+                                      name=name,
+                                      description=description)
+
+    def update_volume_info(self, context, volume_ref, dbcontainer):
+        """Update the volume description with the available dbcontainer info"""
+        description = FLAGS.reddwarf_volume_description \
+                            % (volume_ref['id'], dbcontainer['id'])
+        self.volume_api.update(context, volume_ref['id'],
+                               {'display_description': description})
 
     def _try_create_server(self, req, body):
         """Handle the call to create a server through the openstack servers api.
@@ -359,12 +368,18 @@ class Controller(object):
         if not body:
             return faults.Fault(exc.HTTPUnprocessableEntity())
 
-        if not body.get('dbcontainer', ''):
-            raise exception.ApiError("Required element/key 'dbcontainer' " \
-                                      "was not specified")
-        if not body['dbcontainer'].get('flavorRef', ''):
-            raise exception.ApiError("Required attribute/key 'flavorRef' " \
-                                     "was not specified")
+        try:
+            body['dbcontainer']
+            body['dbcontainer']['flavorRef']
+            volume_size = body['dbcontainer']['volume']['size']
+            if int(volume_size) != abs(volume_size) or int(volume_size) < 1:
+                msg = "Volume 'size' needs to be a positive integer value, %s"\
+                      " cannot be accepted." % volume_size
+                raise exception.ApiError(msg)
+        except KeyError as e:
+            LOG.error("Create Container Required field(s) - %s" % e)
+            raise exception.ApiError("Required element/key - %s " \
+                                      "was not specified" % e)
 
 
 def create_resource(version='1.0'):

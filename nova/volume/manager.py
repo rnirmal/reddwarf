@@ -230,3 +230,7 @@ class VolumeManager(manager.SchedulerDependentManager):
     def unassign_volume(self, context, volume_id, host):
         """Un-Assigns an existing volume from a host (usually a compute node)."""
         self.driver.unassign_volume(volume_id, host)
+
+    def update_info(self, context, volume_ref):
+        """Update volume info like name and description"""
+        self.driver.update_info(volume_ref)
