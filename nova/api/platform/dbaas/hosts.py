@@ -55,7 +55,7 @@ class Controller(object):
     def show(self, req, id):
         """List all the dbcontainers on the host given"""
         try:
-            LOG.info("List all the nova-compute hosts in the system")
+            LOG.info("List the info on nova-compute '%s'" % id)
             LOG.debug("%s - %s", req.environ, req.body)
             ctxt = req.environ['nova.context']
             containers = dbapi.show_containers_on_host(ctxt,id)
