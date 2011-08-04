@@ -125,6 +125,7 @@ class Controller(object):
             # instead of raising them.
             return server
         flavorRef = server['server']['flavorRef']
+        addresses = server['server']['addresses']
 
         resp = {
             'dbcontainer': {
@@ -132,6 +133,7 @@ class Controller(object):
                 'name': instance['display_name'],
                 'host': instance['host'],
                 'account_id': instance['user_id'],
+                'addresses': addresses,
                 'flavorRef': flavorRef,
                 'databases': dbs,
                 'users': users,

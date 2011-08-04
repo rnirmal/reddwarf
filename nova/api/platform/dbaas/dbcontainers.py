@@ -72,7 +72,7 @@ class Controller(object):
 
     def index(self, req):
         """ Returns a list of dbcontainer names and ids for a given user """
-        LOG.info("Call to DBContainers index test")
+        LOG.info("Call to DBContainers index")
         LOG.debug("%s - %s", req.environ, req.body)
         servers_response = self.server_controller.index(req)
         server_list = servers_response['servers']
@@ -262,8 +262,8 @@ class Controller(object):
         it is None the state is queried.
 
         """
-        server_only_keys = ["hostId", "imageRef", "metadata", "adminPass",
-                            "uuid", "volumes", "status"]
+        server_only_keys = ['hostId', 'imageRef', 'metadata', 'adminPass',
+                            'uuid', 'volumes', 'status', 'addresses']
         dbcontainer = dict((key, server[key]) for key in server.keys()
                            if key not in server_only_keys)
         # Add DNS hostname

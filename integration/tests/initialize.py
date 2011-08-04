@@ -216,6 +216,7 @@ class PlatformApi(unittest.TestCase):
 class WaitForTopics(unittest.TestCase):
     """Waits until needed services are up."""
 
+    @time_out(60)
     def test_start(self):
         topics = ["compute", "volume"]
         from tests.util.topics import hosts_up

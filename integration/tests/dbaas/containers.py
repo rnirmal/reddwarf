@@ -103,6 +103,7 @@ class Setup(unittest.TestCase):
     def test_create_container_name(self):
         container_info.name = "TEST_" + str(datetime.now())
 
+
 @test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class ContainerHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
@@ -142,6 +143,7 @@ class ContainerHostCheck(unittest.TestCase):
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
 
+
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
     """Test to create a Database Container
@@ -171,11 +173,12 @@ class CreateContainer(unittest.TestCase):
         self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
         
         # checks to be sure these are not found in the result
-        for attr in ["hostId","imageRef","metadata","adminPass"]:
+        for attr in ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
+                     'volumes', 'addresses']:
             self.assertFalse(hasattr(result, attr),
                             "Create response should not contain %r." % attr)
         # checks to be sure these are found in the result
-        for attr in ["flavorRef","id","name","status","addresses","links","volume"]:
+        for attr in ['flavorRef', 'id', 'name', 'status', 'links', 'volume']:
             self.assertTrue(hasattr(result, attr),
                             "Create response should contain %r attribute." % attr)
 
@@ -303,23 +306,28 @@ class TestVolume(unittest.TestCase):
                         % (volumes[0]['id'], container_info.id)
         self.assertEqual(description, volumes[0]['display_description'])
 
+
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START, "dbaas.listing"])
-class TestContainListing(unittest.TestCase):
+class TestContainerListing(unittest.TestCase):
     """ Test the listing of the container information """
 
     def test_detail_list(self):
         containers = dbaas.dbcontainers.details()
         for container in containers:
             self._detail_dbcontainers_exist(container)
+            self._dbcontainers_attributes_should_not_exist(container)
 
     def test_index_list(self):
         containers = dbaas.dbcontainers.index()
         for container in containers:
             self._index_dbcontainers_exist(container)
+            self._index_dbcontainers_attrs_should_not_exist(container)
+            self._dbcontainers_attributes_should_not_exist(container)
 
     def test_get_container(self):
         container = dbaas.dbcontainers.get(container_info.id)
         self._assert_dbcontainers_exist(container)
+        self._dbcontainers_attributes_should_not_exist(container)
 
     def test_get_container_status(self):
         result = dbaas.dbcontainers.get(container_info.id)
@@ -335,15 +343,29 @@ class TestContainListing(unittest.TestCase):
     def _check_attr_in_dbcontainers(self, container, attrs):
         for attr in attrs:
             msg = "Missing attribute %r" % attr
-            self.assertTrue(hasattr(container, attr), msg)
+            self.assertTrue(container._info.has_key(attr), msg)
+
+    def _check_should_not_show_attr_in_dbcontainers(self, container, attrs):
+        for attr in attrs:
+            msg = "Attribute %r should not be returned" % attr
+            self.assertFalse(container._info.has_key(attr), msg)
 
     def _detail_dbcontainers_exist(self, container):
-        attrs = ['status', 'name', 'addresses', 'links', 'id']
+        attrs = ['status', 'name', 'links', 'id', 'volume', 'rootEnabled']
         self._check_attr_in_dbcontainers(container, attrs)
 
+    def _dbcontainers_attributes_should_not_exist(self, container):
+        attrs = ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
+                 'volumes', 'addresses']
+        self._check_should_not_show_attr_in_dbcontainers(container, attrs)
+
     def _index_dbcontainers_exist(self, container):
-        attrs = ['id', 'name', 'links']
+        attrs = ['id', 'name', 'links', 'status']
         self._check_attr_in_dbcontainers(container, attrs)
+
+    def _index_dbcontainers_attrs_should_not_exist(self, container):
+        attrs = ['flavorRef', 'rootEnabled', 'volume']
+        self._check_should_not_show_attr_in_dbcontainers(container, attrs)
 
     def test_volume_found(self):
         container = dbaas.dbcontainers.get(container_info.id)
@@ -351,11 +373,13 @@ class TestContainListing(unittest.TestCase):
 
     def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)
-        attrs = ['name', 'links']
+        attrs = ['name', 'links', 'id', 'flavorRef', 'rootEnabled', 'status',
+                 'volume']
         self._check_attr_in_dbcontainers(container, attrs)
         if rsdns:
             dns_entry = container_info.expected_dns_entry()
             self.assertEqual(dns_entry.name, container.hostname)
+
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, "dbaas.mgmt.listing"])
 class MgmtHostCheck(unittest.TestCase):
@@ -389,6 +413,7 @@ class MgmtHostCheck(unittest.TestCase):
         for index, container in enumerate(myresult.dbcontainers, start=1):
             print("%d dbcontainer: %s" % (index, container))
 
+
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
       never_skip=True)
 class DeleteContainer(unittest.TestCase):
@@ -415,6 +440,7 @@ class DeleteContainer(unittest.TestCase):
             self.fail("A failure occured when trying to GET container %s"
                       " for the %d time: %s" %
                       (str(container_info.id), attempts, str(ex)))
+
 
 @test(depends_on_classes=[DeleteContainer], groups=[GROUP, GROUP_STOP])
 class ContainerHostCheck2(ContainerHostCheck):
