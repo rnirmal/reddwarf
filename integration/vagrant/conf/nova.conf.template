@@ -1,0 +1,57 @@
+# Glance
+--image_service=nova.image.glance.GlanceImageService
+
+# Nova Network
+--network_manager=nova.network.manager.FlatManager
+--fixed_range=10.0.0.0/26
+--network_size=1
+--flat_network_bridge=br100
+
+# Nova Scheduler
+--scheduler_driver=nova.scheduler.simple.UnforgivingMemoryScheduler
+--max_instance_memory_mb=6144
+
+# Nova Volume
+# Volume configuration for vagrant vm
+--volume_driver=reddwarf.tests.volume.driver.ISCSITestDriver
+--san_ip=33.33.33.10
+--san_login=vagrant
+--san_privatekey=/home/vagrant/.ssh/id_rsa
+
+# Reddwarf Compute Manager
+--compute_manager=reddwarf.compute.manager.ReddwarfComputeManager
+
+# Nova Compute
+--connection_type=openvz
+--ovz_ve_private_dir=/var/lib/vz/private/
+--lock_path=/tmp
+
+# API
+--api_paste_config=/home/vagrant/api-paste_keystone.ini
+--reddwarf_api_paste_config=/home/vagrant/reddwarf-api-paste.ini
+--enabled_apis=osapi
+--allow_admin_api=True
+
+# Quota Limits
+--quota_instances=10
+--quota_cores=20
+--quota_ram=51200
+--quota_volumes=10
+--quota_gigabytes=1000
+--quota_floating_ips=10
+
+# Infrastructure Services
+--sql_connection=mysql://nova:novapass@10.0.4.15/nova
+--sql_min_pool_size=1
+--rabbit_host=10.0.4.15
+
+# Logging
+--logfile=/vagrant/nova.log
+--verbose
+--notification_driver=nova.notifier.log_notifier
+
+# Reaper config
+--reaper_driver=reddwarf.reaper.driver.ReddwarfReaperDriver
+
+#Extra ending line needed so that other conf files can be appended to this one.
+

@@ -1,0 +1,34 @@
+@BOX_URL="http://c629296.r96.cf2.rackcdn.com"
+
+Vagrant::Config.run do |global_config|
+  # Host config
+  global_config.vm.define :host do |config|
+      if ENV['GLANCEIMAGES']
+        config.vm.share_folder "glance_images", "/glance_images", ENV['GLANCEIMAGES']
+      end
+
+      # Assign this VM to a host only network IP, allowing you to access it
+      # via the IP. The IP for the volume vm is "33.33.33.10"
+      config.vm.network "33.33.33.11"
+
+      config.vm.box = "lucid_ext3_openvz"
+      config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
+      config.vm.host_name = "host"
+
+      config.vm.share_folder "nova", "/src", "../../"
+      if ENV['REDDWARF_EXTRA']
+        reddwarf_extra_dir = ENV['REDDWARF_EXTRA']
+        if File.directory?(reddwarf_extra_dir)
+            config.vm.share_folder "extra", "/extra", reddwarf_extra_dir
+        end
+      end
+  end
+
+  # Volume Config
+  global_config.vm.define :volume do |config|
+    config.vm.box = "volumeserver"
+    config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
+    config.vm.host_name = "volume"
+    config.vm.network "33.33.33.10"
+  end
+end
