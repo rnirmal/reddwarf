@@ -173,12 +173,12 @@ class CreateContainer(unittest.TestCase):
         self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
         
         # checks to be sure these are not found in the result
-        for attr in ["hostId", "imageRef", "metadata", "adminPass", "uuid",
-                     "volumes", "addresses"]:
+        for attr in ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
+                     'volumes', 'addresses']:
             self.assertFalse(hasattr(result, attr),
                             "Create response should not contain %r." % attr)
         # checks to be sure these are found in the result
-        for attr in ["flavorRef", "id", "name", "status", "links", "volume"]:
+        for attr in ['flavorRef', 'id', 'name', 'status', 'links', 'volume']:
             self.assertTrue(hasattr(result, attr),
                             "Create response should contain %r attribute." % attr)
 

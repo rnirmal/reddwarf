@@ -262,8 +262,8 @@ class Controller(object):
         it is None the state is queried.
 
         """
-        server_only_keys = ["hostId", "imageRef", "metadata", "adminPass",
-                            "uuid", "volumes", "status", "addresses"]
+        server_only_keys = ['hostId', 'imageRef', 'metadata', 'adminPass',
+                            'uuid', 'volumes', 'status', 'addresses']
         dbcontainer = dict((key, server[key]) for key in server.keys()
                            if key not in server_only_keys)
         # Add DNS hostname
