@@ -218,7 +218,7 @@ class Controller(object):
         """Update the volume description with the available dbcontainer info"""
         description = FLAGS.reddwarf_volume_description \
                             % (volume_ref['id'], dbcontainer['id'])
-        self.volume_api.update(context, volume_ref["id"],
+        self.volume_api.update(context, volume_ref['id'],
                                {'display_description': description})
 
     def _try_create_server(self, req, body):
