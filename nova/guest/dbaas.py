@@ -151,7 +151,11 @@ class DBaaSAgent(object):
         client = LocalSqlClient(get_engine())
         with client:
             mysql_user = models.MySQLUser()
-            t = text("""show databases where `Database` not in ('mysql', 'information_schema');""")
+            # If you have an external volume mounted at /var/lib/mysql
+            # the lost+found directory will show up in mysql as a database
+            # which will create errors if you try to do any database ops
+            # on it.  So we remove it here if it exists.
+            t = text("""show databases where `Database` not in ('mysql', 'information_schema', '#mysql50#lost+found');""")
             database_names = client.execute(t)
             t = text('''
             SELECT
