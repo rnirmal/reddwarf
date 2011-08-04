@@ -130,7 +130,10 @@ dbaas_new_install_glance() {
     then
         echo " " | sudo -E tee /tmp/build/glance/etc/glance.conf.sample
     fi
-    
+
+    #Stop the tests from running in the build since they are FLAKY
+    echo "" | sudo -E tee run_tests.sh > /dev/null
+
     sudo -E DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     pkg_remove python-swift
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid glance
