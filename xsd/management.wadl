@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <application 
-   xmlns="http://wadl.dev.java.net/2009/02" 
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-   xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-   xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0"
-   xmlns:dbaasmanagement="http://docs.rackspacecloud.com/database/api/mgmt/v1.0">
+   xmlns="http://wadl.dev.java.net/2009/02"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+   xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0">
+
   <grammars>
     <include href="dbaas.xsd"/>
     <include href="management.xsd"/>
@@ -52,8 +52,8 @@
   </method>
   <method name="GET" id="gethosts">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaasmanagement:Hosts"/>
-      <representation mediaType="application/json" element="dbaasmanagement:Hosts"/>
+      <representation mediaType="application/xml" element="dbaas:Hosts"/>
+      <representation mediaType="application/json" element="dbaas:Hosts"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -62,8 +62,8 @@
   </method>
   <method name="GET" id="gethostbyid">
       <response status="200">
-      <representation mediaType="application/xml" element="dbaasmanagement:Host"/>
-      <representation mediaType="application/json" element="dbaasmanagement:Host"/>
+      <representation mediaType="application/xml" element="dbaas:Host"/>
+      <representation mediaType="application/json" element="dbaas:Host"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -72,8 +72,8 @@
   </method>
   <method name="GET" id="showdbcontainers">
       <response status="200">
-      <representation mediaType="application/xml" element="dbaas:dbcontainers"/>
-      <representation mediaType="application/json" element="dbaas:dbcontainers"/>
+      <representation mediaType="application/xml" element="dbaas:DatabaseContainers"/>
+      <representation mediaType="application/json" element="dbaas:DatabaseContainers"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
