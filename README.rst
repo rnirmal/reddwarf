@@ -49,8 +49,9 @@ is a file called 'VagrantFile'. This is a script that runs with Vagrant
    of glance (the bzr checkout folder) and the glance images (path to directory 
    of ubuntu-10.04-x86_64-openvz.tar.gz)::
 
-    [nix:~/dev]$ echo "GLANCESRC=~/dev/glance" >> ~/.bashrc
-    [nix:~/dev]$ echo "GLANCEIMAGES=~/dev/glanceimg" >> ~/.bashrc
+    [nix:~/dev]$ echo "export GLANCESRC=~/dev/glance" >> ~/.bashrc
+    [nix:~/dev]$ echo "export GLANCEIMAGES=~/dev/glanceimg" >> ~/.bashrc
+    [nix:~/dev]$ . ~/.bashrc
 
 #. Fresh check out from github.::
 
@@ -70,6 +71,13 @@ is a file called 'VagrantFile'. This is a script that runs with Vagrant
 
     [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant up
 
+*Note: There is a known bug with Vagrant and the first time you do the
+'vagrant up' the downloads work correctly but when starting up the machines
+there are problems. To resolve this issue just run the follow commands.:
+
+    [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant destroy
+    [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant up
+    
 Command Downloads the necessary files and starts up a Virtual Box image to
 start using.
 
