@@ -23,6 +23,7 @@ class Host(base.Resource):
     def __repr__(self):
         return "<Host: %s>" % self.name
 
+
 class Hosts(base.ManagerWithFind):
     """
     Manage :class:`Host` resources.

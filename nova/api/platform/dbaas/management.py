@@ -16,20 +16,16 @@
 from webob import exc
 
 from nova import compute
-from nova import db
-from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import utils
 from nova import volume
-from nova.api.openstack import flavors
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.compute import power_state
 from nova.exception import InstanceNotFound, InstanceNotRunning
 from nova.guest import api as guest
-from nova.utils import poll_until
 from reddwarf.db import api as dbapi
 
 LOG = logging.getLogger('nova.api.platform.dbaas.management')

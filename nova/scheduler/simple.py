@@ -22,7 +22,6 @@ Simple Scheduler
 """
 
 from nova import db
-from nova import exception
 from nova import flags
 from nova import utils
 from nova import log as logging
@@ -38,8 +37,6 @@ flags.DEFINE_integer("max_cores", 16,
                      "maximum number of instance cores to allow per host")
 flags.DEFINE_integer("max_gigabytes", 10000,
                      "maximum number of volume gigabytes to allow per host")
-flags.DEFINE_integer("max_instance_memory_mb", 1024 * 15,
-                     "maximum amount of memory a host can use on instances")
 flags.DEFINE_integer("max_networks", 1000,
                      "maximum number of networks to allow per host")
 

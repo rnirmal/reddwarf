@@ -396,3 +396,6 @@ DEFINE_string('dns_instance_entry_factory',
               'Method used to create entries for instances')
 DEFINE_string('build_plan_encryption_key', None,
         '128bit (hex) encryption key for scheduler build plans.')
+
+DEFINE_integer("max_instance_memory_mb", 1024 * 15,
+                     "maximum amount of memory a host can use on instances")

@@ -22,7 +22,7 @@ from nova.api.openstack import faults
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from nova.db.sqlalchemy.api import service_get_all_compute_sorted
-from reddwarf.db.api import show_containers_on_host
+from reddwarf.db import api as dbapi
 
 LOG = logging.getLogger('nova.api.platform.dbaas.hosts')
 LOG.setLevel(logging.DEBUG)
@@ -55,14 +55,22 @@ class Controller(object):
     def show(self, req, id):
         """List all the dbcontainers on the host given"""
         try:
-            LOG.info("List all the nova-compute hosts in the system")
+            LOG.info("List the info on nova-compute '%s'" % id)
             LOG.debug("%s - %s", req.environ, req.body)
             ctxt = req.environ['nova.context']
-            containers = show_containers_on_host(ctxt,id)
+            containers = dbapi.show_containers_on_host(ctxt, id)
             dbcontainers = [{'id':c.id} for c in containers]
-            return {'host': {'name':id, 'dbcontainers':dbcontainers}}
+            total_ram = FLAGS.max_instance_memory_mb
+            used_ram = dbapi.instance_get_memory_sum_by_host(ctxt, id)
+            percent = int(round((used_ram / total_ram) * 100))
+            return {'host': {'name': id,
+                             'percentUsed': percent,
+                             'totalRAM': total_ram,
+                             'usedRAM': int(used_ram),
+                             'dbcontainers': dbcontainers}}
         except exception.HostNotFound:
             return faults.Fault(exc.HTTPNotFound())
+
 
 def create_resource(version='1.0'):
     controller = {
@@ -71,7 +79,8 @@ def create_resource(version='1.0'):
 
     metadata = {
         "attributes": {
-            "host": ["name","instanceCount"],
+            "host": ["name", "instanceCount", "percentUsed",
+                     "totalRAM", "usedRAM"],
             "dbcontainer": ["id"],
         },
     }

@@ -7,6 +7,10 @@
          xmlns="http://www.w3.org/2001/XMLSchema"
          xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0"
          xmlns:xsdxt="http://docs.rackspacecloud.com/xsd-ext/v1.0">
+  <xsd:import schemaLocation="./dbaas.xsd"
+              id="dbaas"
+              namespace="http://docs.rackspacecloud.com/database/api/v1.0" />
+
   <annotation>
     <xsd:appinfo xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
       <xsdxt:title>Dbaas Management</xsdxt:title>
@@ -78,6 +82,27 @@
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>The name of the Host.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="percentUsed" type="xsd:float" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The percent of the used RAM on the Host.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="totalRAM" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The total amount of RAM on the Host.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="usedRAM" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The used amount of RAM on the Host.</p>
         </xsd:documentation>
       </annotation>
     </attribute>

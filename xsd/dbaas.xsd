@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--(C) 2011 Rackspace Hosting, All Rights Reserved-->
 <schema  elementFormDefault="qualified" 
-         attributeFormDefault="unqualified" 
+         attributeFormDefault="unqualified"
          targetNamespace="http://docs.rackspacecloud.com/database/api/v1.0" 
-         xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
          xmlns="http://www.w3.org/2001/XMLSchema" 
          xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0" 
          xmlns:xsdxt="http://docs.rackspacecloud.com/xsd-ext/v1.0">
