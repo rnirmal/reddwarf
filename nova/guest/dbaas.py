@@ -155,7 +155,7 @@ class DBaaSAgent(object):
             # the lost+found directory will show up in mysql as a database
             # which will create errors if you try to do any database ops
             # on it.  So we remove it here if it exists.
-            t = text("""show databases where `Database` not in ('mysql', 'information_schema', '#mysql50#lost+found');""")
+            t = text("""show databases where `Database` not in ('mysql', 'information_schema', 'lost+found');""")
             database_names = client.execute(t)
             t = text('''
             SELECT
