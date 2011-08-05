@@ -229,10 +229,13 @@ class Controller(object):
         """
         try:
             server = self.server_controller.create(req, body)
-            if not server or isinstance(server, faults.Fault):
+            if not server or isinstance(server, faults.Fault) \
+                          or isinstance(server, exc.HTTPClientError):
                 if isinstance(server, faults.Fault):
                     LOG.error("%s: %s", server.wrapped_exc,
                               server.wrapped_exc.detail)
+                if isinstance(server, exc.HTTPClientError):
+                    LOG.error("a 400 error occurred %s" % server)
                 raise exception.Error("Could not complete the request. " \
                                       "Please try again later or contact " \
                                       "Customer Support")
@@ -366,13 +369,13 @@ class Controller(object):
     def _validate(body):
         """Validate that the request has all the required parameters"""
         if not body:
-            return faults.Fault(exc.HTTPUnprocessableEntity())
+            raise exc.HTTPUnprocessableEntity()
 
         try:
             body['dbcontainer']
             body['dbcontainer']['flavorRef']
             volume_size = body['dbcontainer']['volume']['size']
-            if int(volume_size) != abs(volume_size) or int(volume_size) < 1:
+            if int(volume_size) != abs(int(volume_size)) or int(volume_size) < 1:
                 msg = "Volume 'size' needs to be a positive integer value, %s"\
                       " cannot be accepted." % volume_size
                 raise exception.ApiError(msg)

@@ -65,4 +65,4 @@ def instance_exists(ctxt, id, compute_api):
     try:
         return compute_api.get(ctxt, id)
     except exception.NotFound:
-        raise faults.Fault(exc.HTTPNotFound())
+        raise exc.HTTPNotFound()

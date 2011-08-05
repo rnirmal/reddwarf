@@ -397,7 +397,7 @@ class TestContainerListing(unittest.TestCase):
 
     def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)
-        attrs = ['name', 'links', 'id', 'flavorRef', 'rootEnabled', 'status',
+        attrs = ['name', 'links', 'id', 'flavor', 'rootEnabled', 'status',
                  'volume']
         self._check_attr_in_dbcontainers(container, attrs)
         if rsdns:

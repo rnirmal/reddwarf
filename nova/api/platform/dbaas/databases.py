@@ -41,7 +41,7 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def show(self, req, dbcontainer_id, id):
-        return faults.Fault(exc.HTTPNotImplemented())
+        raise exc.HTTPNotImplemented()
 
     def index(self, req, dbcontainer_id):
         """ Returns a list of Databases for the DBContainer """
@@ -88,7 +88,7 @@ class Controller(object):
     def _validate(self, body):
         """Validate that the request has all the required parameters"""
         if not body:
-            return faults.Fault(exc.HTTPUnprocessableEntity())
+            raise exc.HTTPUnprocessableEntity()
 
         if not body.get('databases', ''):
             raise exception.ApiError("Required element/key 'databases' " \
