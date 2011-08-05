@@ -55,6 +55,24 @@
     </annotation>
   </element>
 
+  <element name="storage" type="dbaas:Storage">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Information about storage.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/user.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+
   <!--Complex Types-->
   <complexType name="Hosts">
     <sequence>
@@ -103,6 +121,56 @@
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>The used amount of RAM on the Host.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+
+  <complexType name="Storage">
+    <sequence>
+      <element name="device" type="dbaas:Device" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>A database containers that are on the Host.</p>
+          </xsd:documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+
+  <complexType name="Device">
+    <attribute name="id" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The id of the storage device.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="name" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The name of the storage device.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="type" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The type of the storage device.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="availablesize" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The available size of the storage device.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="totalsize" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The total size of the storage device.</p>
         </xsd:documentation>
       </annotation>
     </attribute>

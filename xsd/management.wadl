@@ -35,6 +35,9 @@
             </resource>
          </resource>
       </resource>
+      <resource id="storage" path="storage">
+          <method href="#indexstorage"/>
+      </resource>
     </resource>
   </resources>
   <!--Methods-->
@@ -63,7 +66,7 @@
     </response>
   </method>
   <method name="GET" id="gethostbyid">
-      <response status="200">
+    <response status="200">
       <representation mediaType="application/xml" element="dbaas:Host"/>
       <representation mediaType="application/json" element="dbaas:Host"/>
     </response>
@@ -73,9 +76,19 @@
     </response>
   </method>
   <method name="GET" id="showdbcontainers">
-      <response status="200">
+    <response status="200">
       <representation mediaType="application/xml" element="dbaas:DatabaseContainers"/>
       <representation mediaType="application/json" element="dbaas:DatabaseContainers"/>
+    </response>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+  <method name="GET" id="indexstorage">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Storage"/>
+      <representation mediaType="application/json" element="dbaas:Storage"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>

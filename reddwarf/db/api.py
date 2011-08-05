@@ -18,18 +18,18 @@ API Interface for reddwarf datastore operations
 
 import datetime
 
-from nova import exception
+from nova import exception, flags, volume
 from nova import log as logging
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 from nova.db.sqlalchemy.api import require_admin_context
-from nova.db.sqlalchemy.api import require_context
 from nova.db.sqlalchemy.models import Instance
 from nova.db.sqlalchemy.models import Service
 from nova.db.sqlalchemy.session import get_session
 from nova.compute import power_state
 from reddwarf.db import models
 
+FLAGS = flags.FLAGS
 LOG = logging.getLogger('reddwarf.db.api')
 
 def guest_status_create(instance_id):
@@ -141,3 +141,8 @@ def instance_get_memory_sum_by_host(context, hostname):
     if not result:
         return 0
     return result
+
+@require_admin_context
+def storage_device_info(context):
+    client = volume.Client()
+    return client.get_storage_device_info()

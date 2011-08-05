@@ -73,11 +73,11 @@ is a file called 'VagrantFile'. This is a script that runs with Vagrant
 
 *Note: There is a known bug with Vagrant and the first time you do the
 'vagrant up' the downloads work correctly but when starting up the machines
-there are problems. To resolve this issue just run the follow commands.:
+there are problems. To resolve this issue just run the follow commands::
 
     [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant destroy
     [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant up
-    
+
 Command Downloads the necessary files and starts up a Virtual Box image to
 start using.
 

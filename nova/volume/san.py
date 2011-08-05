@@ -509,25 +509,8 @@ class HpSanISCSIDriver(SanISCSIDriver):
     def check_for_available_space(self, size):
         """Check for available volume space"""
         cluster_info = self._cliq_get_cluster_info(FLAGS.san_clustername)
-        space_total = int(cluster_info['spaceTotal'])
-        space_avail = int(cluster_info['spaceAvail'])
-        LOG.debug("HpSan Volume space Total : %sGBs" % space_total)
-        LOG.debug("HpSan Volume space Avail : %sGBs" % space_avail)
-        # Calculate the available space and total space based on factors
-        factor_total = 1.0*space_total/int(FLAGS.san_network_raid_factor)/\
-                      1024/1024/1024
-        factor_avail = 1.0*space_avail/int(FLAGS.san_network_raid_factor)/\
-                      1024/1024/1024
-        LOG.debug("HpSan Volume factor Total : %sGBs" % factor_total)
-        LOG.debug("HpSan Volume factor Avail : %sGBs" % factor_avail)
-        percent = int(FLAGS.san_max_provision_percent)/100.0
-        prov_total = int(factor_total * percent)
-        prov_used =  (factor_total - factor_avail)/1024/1024/1024
-        LOG.debug("HpSan Volume total space size : %sGBs" % prov_total)
-        LOG.debug("HpSan Volume used space size : %sGBs" % prov_used)
-        available_space =  prov_total - prov_used
-        LOG.debug("HpSan Volume available_space : %sGBs" % available_space)
-        return (size <= available_space)
+        calc_info = self._calc_factors_space(cluster_info)
+        return (size <= calc_info['prov_avail'])
 
     def create_volume(self, volume_ref):
         """Creates a volume."""
@@ -565,6 +548,39 @@ class HpSanISCSIDriver(SanISCSIDriver):
     def ensure_export(self, context, volume):
         """Ensure export is not applicable unlike other drivers."""
         pass
+
+    def _calc_factors_space(self, cluster_info):
+        space_total = int(cluster_info['spaceTotal'])
+        space_avail = int(cluster_info['spaceAvail'])
+        LOG.debug("HpSan Volume space Total : %sGBs" % space_total)
+        LOG.debug("HpSan Volume space Avail : %sGBs" % space_avail)
+        # Calculate the available space and total space based on factors
+        factor_total = 1.0*space_total/int(FLAGS.san_network_raid_factor)/\
+                      1024/1024/1024
+        factor_avail = 1.0*space_avail/int(FLAGS.san_network_raid_factor)/\
+                      1024/1024/1024
+        LOG.debug("HpSan Volume factor Total : %sGBs" % factor_total)
+        LOG.debug("HpSan Volume factor Avail : %sGBs" % factor_avail)
+        percent = int(FLAGS.san_max_provision_percent)/100.0
+        prov_total = int(factor_total * percent)
+        prov_used =  (factor_total - factor_avail)/1024/1024/1024
+        LOG.debug("HpSan Volume total space size : %sGBs" % prov_total)
+        LOG.debug("HpSan Volume used space size : %sGBs" % prov_used)
+        prov_avail =  prov_total - prov_used
+        LOG.debug("HpSan Volume available_space : %sGBs" % prov_avail)
+        return {'name': cluster_info['name'],
+                'type': 'HP SAN',
+                'raw_avail': cluster_info['spaceAvail'],
+                'raw_total': cluster_info['spaceTotal'],
+                'prov_avail': prov_avail,
+                'prov_total': prov_total,
+                'prov_used': prov_used,
+                'percent': percent}
+
+    def get_storage_device_info(self):
+        """Returns the storage device information."""
+        cluster_info = self._cliq_get_cluster_info(FLAGS.san_clustername)
+        return self._calc_factors_space(cluster_info)
 
     def create_export(self, context, volume):
         """Create export is not applicable unlike other drivers.
@@ -647,8 +663,11 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         """Nothing to assign here."""
         pass
 
+    def _get_available_space(self):
+        return 20/2*(int(FLAGS.san_max_provision_percent)/100.0)
+
     def check_for_available_space(self, size):
-        avail = 20/2*(int(FLAGS.san_max_provision_percent)/100.0)
+        avail = self._get_available_space()
         LOG.debug("checking_for_available_space %r : %r" % (size, avail))
         return size <= avail
     
@@ -702,6 +721,17 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise
+
+    def get_storage_device_info(self):
+        """Returns the storage device information."""
+        return {'name': 'ISCSI test class',
+                'type': self.__class__.__name__,
+                'raw_avail': 20,
+                'raw_total': 20,
+                'prov_avail': self._get_available_space(),
+                'prov_total': 20/2,
+                'prov_used': 20/2-self._get_available_space(),
+                'percent': round((1.0*20/2-self._get_available_space())/(20/2)*100)}
 
     def remove_export(self, context, volume):
         """Remove the export on the storage server"""

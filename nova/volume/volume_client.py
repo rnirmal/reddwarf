@@ -45,6 +45,10 @@ class VolumeClient(Base):
         """Check the device for available space for a Volume"""
         return self.driver.check_for_available_space(size)
 
+    def get_storage_device_info(self):
+        """Returns the storage device information."""
+        return self.driver.get_storage_device_info()
+
     def get_uuid(self, device_path):
         """Returns a UUID for a device given its mount point."""
         return self.driver.get_volume_uuid(device_path)
