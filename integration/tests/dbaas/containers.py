@@ -1,3 +1,18 @@
+# Copyright 2011 OpenStack LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import gettext
 import os
 import json
@@ -46,6 +61,7 @@ class ContainerTestInfo(object):
 
     def __init__(self):
         self.dbaas = None  # The rich client instance used by these tests.
+        self.dbaas_flavor = None # The flavor used to create the container.
         self.dbaas_flavor_href = None  # The flavor of the container.
         self.dbaas_image = None  # The image used to create the container.
         self.dbaas_image_href = None  # The link of the image.
@@ -103,6 +119,7 @@ class Setup(unittest.TestCase):
     def test_create_container_name(self):
         container_info.name = "TEST_" + str(datetime.now())
 
+
 @test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class ContainerHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
@@ -111,36 +128,45 @@ class ContainerHostCheck(unittest.TestCase):
         host_index_result = dbaas.hosts.index()
         self.assertNotEqual(host_index_result, None,
                             "list hosts call should not be empty")
-        print("result : %s" % str(host_index_result))
+        print("result : %r" % str(host_index_result))
         self.assertTrue(len(host_index_result) > 0,
                         "list hosts length should not be empty")
-        print("test_index_host_list result: %s" % str(host_index_result[0]))
-        print("instance count for host : %d" % int(host_index_result[0].instanceCount))
+        print("test_index_host_list result: %r" % host_index_result[0])
+        print("instance count for host : %r" % host_index_result[0].instanceCount)
         self.assertEquals(int(host_index_result[0].instanceCount), 0,
                           "instance count of 'host' should have 0 running instances")
-        print("test_index_host_list result instance_count: %s" %
-              str(host_index_result[0].instanceCount))
+        print("test_index_host_list result instance_count: %r" %
+              host_index_result[0].instanceCount)
         self.assertEquals(len(host_index_result), 1,
-                          "The result list is expected to be of length 1")
+                          "The host result list is expected to be of length 1")
         for host in list(enumerate(host_index_result, start=1)):
-            print("%d host: %s" % (host[0], host[1]))
+            print("%r host: %r" % (host[0], host[1]))
             container_info.host = host[1]
 
     def test_empty_index_host_list_single(self):
+        print("container_info.host : %r" %container_info.host)
         host_index_result = dbaas.hosts.get(container_info.host)
         self.assertNotEqual(host_index_result, None,
                             "list hosts should not be empty")
-        print("test_index_host_list_single result: %s" %
-              str(host_index_result))
+        print("test_index_host_list_single result: %r" %
+              host_index_result.__dict__)
+        self.assertTrue(host_index_result.percentUsed == 0,
+                        "percentUsed should be 0 : %r" % host_index_result.percentUsed)
+        self.assertTrue(host_index_result.totalRAM,
+                        "totalRAM should exist > 0 : %r" % host_index_result.totalRAM)
+        self.assertTrue(host_index_result.usedRAM == 0,
+                        "usedRAM should be 0 : %r" % host_index_result.usedRAM)
         self.assertTrue(container_info.name
                         not in [dbc.name for dbc
                                 in host_index_result.dbcontainers])
+        container_info.host_info = host_index_result
         for container in list(enumerate(host_index_result.dbcontainers, start=1)):
-            print("%d dbcontainer: %s" % (container[0], container[1]))
+            print("%r dbcontainer: %r" % (container[0], container[1]))
             
     @expect_exception(NotFound)
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
+
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
@@ -171,11 +197,12 @@ class CreateContainer(unittest.TestCase):
         self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
         
         # checks to be sure these are not found in the result
-        for attr in ["hostId","imageRef","metadata","adminPass"]:
+        for attr in ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
+                     'volumes', 'addresses']:
             self.assertFalse(hasattr(result, attr),
                             "Create response should not contain %r." % attr)
         # checks to be sure these are found in the result
-        for attr in ["flavor","id","name","status","addresses","links","volume"]:
+        for attr in ['flavor', 'id', 'name', 'status', 'links', 'volume']:
             self.assertTrue(hasattr(result, attr),
                             "Create response should contain %r attribute." % attr)
 
@@ -299,24 +326,32 @@ class TestVolume(unittest.TestCase):
         volumes = db.volume_get_all_by_instance(context.get_admin_context(), 
                                                 container_info.id)
         self.assertEqual(1, len(volumes))
+        description = "Volume ID: %s assigned to Instance: %s" \
+                        % (volumes[0]['id'], container_info.id)
+        self.assertEqual(description, volumes[0]['display_description'])
+
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START, "dbaas.listing"])
-class TestContainListing(unittest.TestCase):
+class TestContainerListing(unittest.TestCase):
     """ Test the listing of the container information """
 
     def test_detail_list(self):
         containers = dbaas.dbcontainers.details()
         for container in containers:
             self._detail_dbcontainers_exist(container)
+            self._dbcontainers_attributes_should_not_exist(container)
 
     def test_index_list(self):
         containers = dbaas.dbcontainers.index()
         for container in containers:
             self._index_dbcontainers_exist(container)
+            self._index_dbcontainers_attrs_should_not_exist(container)
+            self._dbcontainers_attributes_should_not_exist(container)
 
     def test_get_container(self):
         container = dbaas.dbcontainers.get(container_info.id)
         self._assert_dbcontainers_exist(container)
+        self._dbcontainers_attributes_should_not_exist(container)
 
     def test_get_container_status(self):
         result = dbaas.dbcontainers.get(container_info.id)
@@ -332,15 +367,29 @@ class TestContainListing(unittest.TestCase):
     def _check_attr_in_dbcontainers(self, container, attrs):
         for attr in attrs:
             msg = "Missing attribute %r" % attr
-            self.assertTrue(hasattr(container, attr), msg)
+            self.assertTrue(container._info.has_key(attr), msg)
+
+    def _check_should_not_show_attr_in_dbcontainers(self, container, attrs):
+        for attr in attrs:
+            msg = "Attribute %r should not be returned" % attr
+            self.assertFalse(container._info.has_key(attr), msg)
 
     def _detail_dbcontainers_exist(self, container):
-        attrs = ['status', 'name', 'addresses', 'links', 'id']
+        attrs = ['status', 'name', 'links', 'id', 'volume', 'rootEnabled']
         self._check_attr_in_dbcontainers(container, attrs)
 
+    def _dbcontainers_attributes_should_not_exist(self, container):
+        attrs = ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
+                 'volumes', 'addresses']
+        self._check_should_not_show_attr_in_dbcontainers(container, attrs)
+
     def _index_dbcontainers_exist(self, container):
-        attrs = ['id', 'name', 'links']
+        attrs = ['id', 'name', 'links', 'status']
         self._check_attr_in_dbcontainers(container, attrs)
+
+    def _index_dbcontainers_attrs_should_not_exist(self, container):
+        attrs = ['flavorRef', 'rootEnabled', 'volume']
+        self._check_should_not_show_attr_in_dbcontainers(container, attrs)
 
     def test_volume_found(self):
         container = dbaas.dbcontainers.get(container_info.id)
@@ -348,11 +397,13 @@ class TestContainListing(unittest.TestCase):
 
     def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)
-        attrs = ['name', 'links']
+        attrs = ['name', 'links', 'id', 'flavorRef', 'rootEnabled', 'status',
+                 'volume']
         self._check_attr_in_dbcontainers(container, attrs)
         if rsdns:
             dns_entry = container_info.expected_dns_entry()
             self.assertEqual(dns_entry.name, container.hostname)
+
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, "dbaas.mgmt.listing"])
 class MgmtHostCheck(unittest.TestCase):
@@ -381,10 +432,22 @@ class MgmtHostCheck(unittest.TestCase):
               str(myresult))
         self.assertTrue(len(myresult.dbcontainers) > 0,
                         "dbcontainer list on the host should not be empty")
+        self.assertTrue(myresult.totalRAM == container_info.host_info.totalRAM,
+                        "totalRAM should be the same as before : %r == %r" %
+                        (myresult.totalRAM, container_info.host_info.totalRAM))
+        diff = container_info.host_info.usedRAM + container_info.dbaas_flavor.ram
+        self.assertTrue(myresult.usedRAM == diff,
+                        "usedRAM should be : %r == %r" %
+                        (myresult.usedRAM, diff))
+        calc = round(1.0 * myresult.usedRAM / myresult.totalRAM * 100)
+        self.assertTrue(myresult.percentUsed == calc,
+                        "percentUsed should be : %r == %r" %
+                        (myresult.percentUsed, calc))
         print("test_index_host_list_single result dbcontainers: %s" %
               str(myresult.dbcontainers))
         for index, container in enumerate(myresult.dbcontainers, start=1):
             print("%d dbcontainer: %s" % (index, container))
+
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
       never_skip=True)
@@ -412,6 +475,7 @@ class DeleteContainer(unittest.TestCase):
             self.fail("A failure occured when trying to GET container %s"
                       " for the %d time: %s" %
                       (str(container_info.id), attempts, str(ex)))
+
 
 @test(depends_on_classes=[DeleteContainer], groups=[GROUP, GROUP_STOP])
 class ContainerHostCheck2(ContainerHostCheck):

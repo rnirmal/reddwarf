@@ -518,19 +518,18 @@ class HpSanISCSIDriver(SanISCSIDriver):
         LOG.debug("HpSan Volume available_space : %sGBs" % available_space)
         return (size < available_space)
 
-    def create_volume(self, volume):
+    def create_volume(self, volume_ref):
         """Creates a volume."""
         cliq_args = {}
         cliq_args['clusterName'] = FLAGS.san_clustername
         cliq_args['thinProvision'] = '1' if FLAGS.san_thin_provision else '0'
         # Using volume id for name to guarantee uniqueness
-        cliq_args['volumeName'] = volume['id']
-        volume_size = int(volume['size'])
+        cliq_args['volumeName'] = volume_ref['id']
+        volume_size = int(volume_ref['size'])
         if volume_size <= 0:
             raise ValueError("Invalid volume size.")
         cliq_args['size'] = '%sGB' % volume_size
-        cliq_args['description'] = '"Volume ID:%s assigned to Instance:%s"' \
-                                    % (volume['id'], volume['instance_id'])
+        cliq_args['description'] = '"%s"' % volume_ref['display_description']
 
         self._cliq_run_xml("createVolume", cliq_args)
 
@@ -616,6 +615,13 @@ class HpSanISCSIDriver(SanISCSIDriver):
         except utils.PollTimeOut:
             raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
 
+    def update_info(self, volume_ref):
+        """Update Volume description"""
+        cliq_args = {}
+        cliq_args['volumeName'] = volume_ref['id']
+        cliq_args['description'] = '"%s"' % volume_ref['display_description']
+        self._cliq_run_xml("modifyVolume", cliq_args)
+
 
 class ISCSILiteDriver(HpSanISCSIDriver):
     """ISCSILite Driver, basic ISCSI target features
@@ -700,4 +706,8 @@ class ISCSILiteDriver(HpSanISCSIDriver):
 
     def unassign_volume(self, volume_id, host):
         """Nothing to un-assign here."""
+        pass
+
+    def update_info(self, volume_ref):
+        """Nothing to update"""
         pass

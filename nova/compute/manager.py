@@ -255,8 +255,9 @@ class ComputeManager(manager.SchedulerDependentManager):
         self.wait_until_volume_is_ready(context, volume)
         #TODO(tim.simpson): This may not be able to be the self.host name.
         # Needs to be something that can identify the compute node.
-        self.volume_client.initialize(context, volume["id"], self.host)
-        self.db.volume_attached(context, volume["id"], instance_id, mount_point)
+        self.volume_client.initialize(context, volume['id'], self.host)
+        self.db.volume_attached(context, volume['id'], instance_id, mount_point)
+        self.volume_api.update(context, volume['id'], {})
 
     @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     def refresh_provider_fw_rules(self, context, **_kwargs):

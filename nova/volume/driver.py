@@ -308,6 +308,10 @@ class VolumeDriver(object):
             child = pexpect.spawn(cmd)
             child.expect(pexpect.EOF)
 
+    def update_info(self, volume_ref):
+        """Update any provided volume info like name or description"""
+        pass
+
 
 class LoggingVolumeDriver(VolumeDriver):
     """Logs and records calls, for unit tests."""
