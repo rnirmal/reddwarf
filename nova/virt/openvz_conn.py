@@ -854,7 +854,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         self._start(instance)
 
-    def destroy(self, instance):
+    def destroy(self, instance, network_info=None):
         """
         Destroy (shutdown and delete) the specified instance.
 
