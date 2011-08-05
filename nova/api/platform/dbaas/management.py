@@ -46,7 +46,7 @@ def create_resource(version='1.0'):
     metadata = {
         'application/xml': {
             'attributes': {
-                'dbcontainer': ['account_id', 'flavorRef', 'host', 'id', 'name'],
+                'dbcontainer': ['account_id', 'flavor', 'host', 'id', 'name'],
                 'link': ['rel', 'type', 'href'],
                 'database': ['name', 'collate', 'character_set'],
                 'user': ['name'],
@@ -124,7 +124,7 @@ class Controller(object):
             # The server controller has a habit of returning exceptions
             # instead of raising them.
             return server
-        flavorRef = server['server']['flavorRef']
+        flavorRef = server['server']['flavor']['id']
 
         resp = {
             'dbcontainer': {
@@ -132,7 +132,7 @@ class Controller(object):
                 'name': instance['display_name'],
                 'host': instance['host'],
                 'account_id': instance['user_id'],
-                'flavorRef': flavorRef,
+                'flavor': flavorRef,
                 'databases': dbs,
                 'users': users,
                 'volume': volume,

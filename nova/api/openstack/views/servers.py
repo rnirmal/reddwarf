@@ -59,6 +59,25 @@ class ViewBuilder(object):
         """Return a simple model of a server."""
         return dict(server=dict(id=inst['id'], name=inst['display_name']))
 
+
+    @staticmethod
+    def get_status_from_state(state):
+        """Given the state of an instance, returns the status of the server."""
+        power_mapping = {
+            None: 'BUILD',
+            power_state.NOSTATE: 'BUILD',
+            power_state.RUNNING: 'ACTIVE',
+            power_state.BLOCKED: 'ACTIVE',
+            power_state.SUSPENDED: 'SUSPENDED',
+            power_state.PAUSED: 'PAUSED',
+            power_state.SHUTDOWN: 'SHUTDOWN',
+            power_state.SHUTOFF: 'SHUTOFF',
+            power_state.CRASHED: 'ERROR',
+            power_state.FAILED: 'ERROR',
+            power_state.BUILDING: 'BUILD',
+        }
+        return power_mapping[state]
+
     def _build_detail(self, inst):
         """Returns a detailed model of a server."""
         power_mapping = {
@@ -99,6 +118,7 @@ class ViewBuilder(object):
         self._build_image(inst_dict, inst)
         self._build_flavor(inst_dict, inst)
         self._build_addresses(inst_dict, inst)
+        self._build_volume(inst_dict, inst)
 
         return dict(server=inst_dict)
 
@@ -189,6 +209,18 @@ class ViewBuilderV11(ViewBuilder):
                 ]
             }
 
+    def _build_volume(self, response, inst):
+        volumes = inst['volumes']
+        if volumes:
+            response["volumes"] = []
+            for volume in volumes:
+                vol = {}
+                vol['id'] = volume.id
+                vol['name'] = volume.display_name
+                vol['description'] = volume.display_description
+                vol['size'] = volume.size
+                response["volumes"].append(vol)
+
     def _build_addresses(self, response, inst):
         interfaces = inst.get('virtual_interfaces', [])
         response['addresses'] = self.addresses_builder.build(interfaces)
@@ -222,3 +254,5 @@ class ViewBuilderV11(ViewBuilder):
         """Create an url that refers to a specific flavor id."""
         return os.path.join(common.remove_version_from_href(self.base_url),
             "servers", str(server_id))
+
+    

@@ -246,7 +246,6 @@ class ComputeManager(manager.SchedulerDependentManager):
                 raise exception.VolumeProvisioningError(volume_id=volume['id'])
         return LoopingCall(get_status, volume['id']).start(3).wait()
 
-    @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     def ensure_volume_is_ready(self, context, instance_id):
         volume, mount_point = self.get_volume_info_for_instance_id(context,
                                                                    instance_id)
@@ -334,13 +333,11 @@ class ComputeManager(manager.SchedulerDependentManager):
     def _run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options."""
         try:
-            LOG.info("remove this")
             self.ensure_volume_is_ready(context, instance_id)
         except exception.VolumeProvisioningError as ex:
             LOG.error(ex)
             msg = ("Volume for Instance '%(instance_id)s' failed to create. "
                     "Details: %(ex)s")
-            LOG.exception(msg)
             self._update_state(context, instance_id, power_state.FAILED)
             return 
 

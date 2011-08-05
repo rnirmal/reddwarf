@@ -175,7 +175,7 @@ class CreateContainer(unittest.TestCase):
             self.assertFalse(hasattr(result, attr),
                             "Create response should not contain %r." % attr)
         # checks to be sure these are found in the result
-        for attr in ["flavorRef","id","name","status","addresses","links","volume"]:
+        for attr in ["flavor","id","name","status","addresses","links","volume"]:
             self.assertTrue(hasattr(result, attr),
                             "Create response should contain %r attribute." % attr)
 
@@ -463,7 +463,8 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
             'id': str(ir.id),
             'name': ir.name,
             'account_id': info.user.auth_user,
-            'flavorRef': info.dbaas_flavor_href,
+            # TODO(hub-cap): fix this since its a flavor object now
+            #'flavorRef': info.dbaas_flavor_href,
             'databases': [{
                 'name': 'firstdb',
                 'character_set': 'latin2',

@@ -120,17 +120,18 @@ echo "--flat_network_dns=$dns_ip" >> /home/vagrant/nova.conf
 #nova_manage network create 10.0.2.0/24 1 256
 
 # Can't figure out the CIDR rules, so I'm giving it 256 ips.
-nova_manage network create usernet $ip_startbr100.0/24 1 256 0 0 0 0 br100 eth0
-nova_manage network create infranet $ip_startbr200.0/24 1 256 0 0 0 0 br200 eth1
+nova_manage network create --label=usernet --fixed_range_v4=$ip_startbr100.0/24 --num_networks=1 --network_size=256 --bridge=br100 --bridge_interface=eth0 --dns1=$dns_ip
+nova_manage network create --label=infranet --fixed_range_v4=$ip_startbr200.0/24 --num_networks=1 --network_size=256 --bridge=br200 --bridge_interface=eth1 --dns1=$dns_ip 
+
 # This for some reason is not being added, nor is it a option in nova manage.
 # We NEED to get the project associated w/ the network and this is a nasty hack
 # TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
 mysql -u root -pnova -e "update nova.networks set project_id = 'dbaas';"
-
+hostname=`hostname`
 
 # Assume there is only one network and `update all rows.
 mysql -u root -pnova -e "UPDATE nova.networks SET gateway='$gateway_ip';"
-mysql -u root -pnova -e "UPDATE nova.networks SET dns='$dns_ip';"
+mysql -u root -pnova -e "UPDATE nova.networks SET host='$hostname';"
 
 # Delete all extra IPs grabbed by Nova.
 delete_extra_ips() {
@@ -156,6 +157,16 @@ sudo service rabbitmq-server restart
 # Restart apt-proxy.... sometimes it's flaky
 sudo service apt-proxy restart
 
+# Stop glance services
+#sudo glance-api stop
+#sudo glance-registry stop
+
+# Remove vz private area
+for i in `sudo vzlist --all --output ctid --no-header` ; do sudo vzctl stop $i && sudo vzctl destroy $i ; done
+sudo rm -fr /var/lib/vz/private/*
+
+# Just in case of failures return a-ok
+exit 0
 # TODO: It may be necessary to delete all other instances of this.
 
 # TODO: Add the fake LVM stuff so nova volumes doesnt complain (see baz' wiki article)

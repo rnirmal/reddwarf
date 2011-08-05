@@ -64,3 +64,7 @@ def fanout_cast(context, topic, msg):
 
 def multicall(context, topic, msg):
     return RPCIMPL.multicall(context, topic, msg)
+
+
+def cast_with_consumer(context, topic, msg):
+    return RPCIMPL.cast_with_consumer(context, topic, msg)
