@@ -29,7 +29,17 @@ test_instance = {
     "image_id": 1,
     "name": "instance-0000001",
     "instance_type_id": 1,
-    "id": 1002
+    "id": 1002,
+    "volumes": [
+        {
+            "uuid": "776E384C-47FF-433D-953B-61272EFDABE1",
+            "mount": "/var/lib/mysql"
+        },
+        {
+            "uuid": "B7110CFF-F0C8-4567-8DF6-821214D781A7",
+            "mount": "/var/tmp"
+        }
+    ]
 }
 
 percent_resource = .50
@@ -675,3 +685,5 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(conn, '_container_script_modify')
         conn._container_script_modify(test_instance, None, None, '/mnt/test',
                                       'add')
+        self.mox.ReplayAll()
+        conn._attach_volumes(test_instance)
