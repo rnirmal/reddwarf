@@ -184,7 +184,7 @@ class CreateContainer(unittest.TestCase):
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
-        container_info.volume = {"size":1}
+        container_info.volume = {'size': 2}
 
         container_info.initial_result = dbaas.dbcontainers.create(
                                             container_info.name,

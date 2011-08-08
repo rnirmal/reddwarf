@@ -122,12 +122,11 @@ class TestDatabases(unittest.TestCase):
     """
 
     dbname = "third #?@some_-"
-    dbname_regex = "third\s\#\?\@some\_\-"
     dbname_urlencoded = "third%20%23%3F%40some_-"
 
     dbname2 = "seconddb"
     created_dbs = [dbname, dbname2]
-    system_dbs = ['information_schema','mysql']
+    system_dbs = ['information_schema','mysql', 'lost+found']
 
     def test_create_database(self):
         databases = list()
@@ -137,11 +136,6 @@ class TestDatabases(unittest.TestCase):
 
         dbaas.databases.create(container_info.id, databases)
         time.sleep(5)
-
-        if container_info.check_database(self.dbname_regex):
-            self.assertTrue(True)
-        else:
-            self.assertFalse(True)
 
     def test_create_database_list(self):
         databases = dbaas.databases.list(container_info.id)
