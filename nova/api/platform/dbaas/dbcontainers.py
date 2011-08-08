@@ -371,8 +371,8 @@ class Controller(object):
         try:
             body['dbcontainer']
             body['dbcontainer']['flavorRef']
-            volume_size = body['dbcontainer']['volume']['size']
-            if int(volume_size) != abs(volume_size) or int(volume_size) < 1:
+            volume_size = float(body['dbcontainer']['volume']['size'])
+            if int(volume_size) != volume_size or int(volume_size) < 1:
                 msg = "Volume 'size' needs to be a positive integer value, %s"\
                       " cannot be accepted." % volume_size
                 raise exception.ApiError(msg)

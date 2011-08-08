@@ -105,7 +105,7 @@ class DBContainerXMLDeserializer(XMLDeserializer):
         """Deserialize an xml formatted server create request"""
         dom = minidom.parseString(string)
         dbcontainer = self._extract_dbcontainer(dom)
-        return {'dbcontainer': dbcontainer}
+        return {'body': {'dbcontainer': dbcontainer}}
 
     def _extract_dbcontainer(self, node):
         """Marshal the dbcontainer attributes of a parsed request"""
@@ -150,7 +150,7 @@ class DatabaseXMLDeserializer(XMLDeserializer):
     def create(self, string):
         """Deserialize an xml formatted create databases request"""
         dom = minidom.parseString(string)
-        return {'databases': self._extract_databases(dom)}
+        return {'body': {'databases': self._extract_databases(dom)}}
 
 
 class UserXMLDeserializer(XMLDeserializer):
@@ -161,4 +161,4 @@ class UserXMLDeserializer(XMLDeserializer):
     def create(self, string):
         """Deserialize an xml formatted create users request"""
         dom = minidom.parseString(string)
-        return {'users': self._extract_users(dom)}
+        return {'body': {'users': self._extract_users(dom)}}
