@@ -16,6 +16,7 @@ mysql_query () {
 # Drop these in case this command is being run again.
 mysql -u root -pnova -e "DROP DATABASE nova;"
 mysql -u root -pnova -e "DROP DATABASE glance;"
+mysql -u root -pnova -e "DROP DATABASE keystone;"
 sudo rm -rf /var/lib/glance
 sudo mkdir -p /var/lib/glance/images
 sudo rm -rf /vz/template/cache/*
@@ -25,6 +26,7 @@ sudo rm -rf /vz/template/cache/*
 mysql -u root -pnova -e "CREATE USER 'nova'@'%';"
 mysql -u root -pnova -e "CREATE DATABASE nova;"
 mysql -u root -pnova -e "CREATE DATABASE glance;"
+mysql -u root -pnova -e "CREATE DATABASE keystone;"
 mysql -u root -pnova -e "UPDATE mysql.user SET Password=PASSWORD('novapass') WHERE User='nova';"
 mysql -u root -pnova -e "GRANT ALL PRIVILEGES ON *.* TO 'nova'@'%' WITH GRANT OPTION;"
 mysql -u root -pnova -e "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost';"
@@ -61,6 +63,11 @@ reddwarf_manage () {
     /src/bin/reddwarf-manage --sql_connection=mysql://nova:novapass@localhost/nova $@
 }
 
+keystone_manage () {
+    echo keystone-manage $@
+    sudo keystone-manage $@
+}
+
 cd ~/
 glance_manage version_control
 glance_manage db_sync
@@ -70,6 +77,23 @@ nova_manage user admin admin admin admin
 nova_manage project create dbaas admin
 
 reddwarf_manage db sync
+
+# Keystone values
+K_TENANT="dbaas"
+K_USER="admin"
+K_PASSWD="admin"
+K_ROLE="ADMIN"
+K_SERVICE="reddwarf"
+K_REGION="ci"
+K_URL="http://localhost:8775/v1.0/"
+keystone_manage tenant add $K_TENANT
+keystone_manage user add $K_USER $K_PASSWD $K_TENANT
+keystone_manage role add $K_ROLE
+keystone_manage role grant $K_ROLE $K_USER
+keystone_manage role grant $K_ROLE $K_USER $K_TENANT
+keystone_manage service add $K_SERVICE
+keystone_manage endpointTemplates add $K_REGION $K_SERVICE $K_URL $K_URL $K_URL 1 0
+keystone_manage endpoint add $K_TENANT 1
 
 exclaim Creating Nova certs.
 

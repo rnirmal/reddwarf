@@ -36,7 +36,8 @@ then
     if [ $? -ne 0 ]; then exit 1; fi
     dbaas_pkg_install_novaclient
     if [ $? -ne 0 ]; then exit 1; fi
-    
+    dbaas_pkg_setup_keystone
+    if [ $? -ne 0 ]; then exit 1; fi
 else
     echo Dependencies are not installed.
     exit 1
