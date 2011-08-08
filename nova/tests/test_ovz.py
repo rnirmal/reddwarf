@@ -669,3 +669,9 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._set_diskspace, test_instance)
+
+    def test_attach_volumes(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_container_script_modify')
+        conn._container_script_modify(test_instance, None, None, '/mnt/test',
+                                      'add')
