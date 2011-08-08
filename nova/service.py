@@ -134,7 +134,7 @@ class Service(object):
     def start(self):
         vcs_string = version.version_string_with_vcs()
         logging.audit(_('Starting %(topic)s node (version %(vcs_string)s)'),
-                      {'topic': self.topic, 'vcs_string': vcs_string})
+                {'topic': self.topic, 'vcs_string': vcs_string})
         self.manager.init_host()
         self.model_disconnected = False
         ctxt = context.get_admin_context()
@@ -155,20 +155,20 @@ class Service(object):
 
         # Share this same connection for these Consumers
         consumer_all = rpc.TopicAdapterConsumer(
-                connection=self.conn,
-                topic=self.topic,
-                proxy=self)
+            connection=self.conn,
+            topic=self.topic,
+            proxy=self)
         consumer_node = rpc.TopicAdapterConsumer(
-                connection=self.conn,
-                topic='%s.%s' % (self.topic, self.host),
-                proxy=self)
+            connection=self.conn,
+            topic='%s.%s' % (self.topic, self.host),
+            proxy=self)
         fanout = rpc.FanoutAdapterConsumer(
-                connection=self.conn,
-                topic=self.topic,
-                proxy=self)
+            connection=self.conn,
+            topic=self.topic,
+            proxy=self)
         consumer_set = rpc.ConsumerSet(
-                connection=self.conn,
-                consumer_list=[consumer_all, consumer_node, fanout])
+            connection=self.conn,
+            consumer_list=[consumer_all, consumer_node, fanout])
 
         # Wait forever, processing these consumers
         def _wait():
@@ -192,11 +192,11 @@ class Service(object):
     def _create_service_ref(self, context):
         zone = FLAGS.node_availability_zone
         service_ref = db.service_create(context,
-                                        {'host': self.host,
-                                         'binary': self.binary,
-                                         'topic': self.topic,
-                                         'report_count': 0,
-                                         'availability_zone': zone})
+                {'host': self.host,
+                 'binary': self.binary,
+                 'topic': self.topic,
+                 'report_count': 0,
+                 'availability_zone': zone})
         self.service_id = service_ref['id']
 
     def __getattr__(self, key):
@@ -278,8 +278,8 @@ class Service(object):
                 service_ref = db.service_get(ctxt, self.service_id)
 
             db.service_update(ctxt,
-                             self.service_id,
-                             {'report_count': service_ref['report_count'] + 1})
+                              self.service_id,
+                    {'report_count': service_ref['report_count'] + 1})
 
             # TODO(termie): make this pattern be more elegant.
             if getattr(self, 'model_disconnected', False):

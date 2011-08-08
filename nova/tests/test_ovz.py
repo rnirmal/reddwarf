@@ -33,11 +33,11 @@ test_instance = {
     "volumes": [
         {
             "uuid": "776E384C-47FF-433D-953B-61272EFDABE1",
-            "mount": "/var/lib/mysql"
+            "mountpoint": "/var/lib/mysql"
         },
         {
-            "uuid": "B7110CFF-F0C8-4567-8DF6-821214D781A7",
-            "mount": "/var/tmp"
+            "dev": "/dev/sda1",
+            "mountpoint": "/var/tmp"
         }
     ]
 }
@@ -680,10 +680,26 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._set_diskspace, test_instance)
 
-    def test_attach_volumes(self):
+    def test_attach_volumes_success(self):
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_container_script_modify')
-        conn._container_script_modify(test_instance, None, None, '/mnt/test',
-                                      'add')
+        conn._container_script_modify(test_instance, None, mox.IgnoreArg(),
+                                      mox.IgnoreArg(), 'add')
         self.mox.ReplayAll()
         conn._attach_volumes(test_instance)
+
+    def test_attach_volume_success(self):
+        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
+        openvz_conn.context.get_admin_context()
+        self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
+        openvz_conn.db.instance_get()
+
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_find_by_name')
+        conn._find_by_name('instance-0000001').AndReturn(test_instance)
+        self.mox.StubOutWithMock(conn, '_container_script_modify')
+        conn._container_script_modify(test_instance, '/dev/sdb1',
+                                      mox.IgnoreArg(), mox.IgnoreArg(), 'add')
+        self.mox.ReplayAll()
+        conn.attach_volume('instance-0000001', '/dev/sdb1', '/var/tmp')
+

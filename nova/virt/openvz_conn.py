@@ -902,6 +902,11 @@ class OpenVzConnection(driver.ComputeDriver):
                                                   volume['mountpoint'], 'add')
                     LOG.debug('Added volume %s to %s' % (volume['uuid'],
                                                          instance['id']))
+                else:
+                    self._container_script_modify(instance, volume['dev'],
+                                                  None, 'add')
+                    LOG.debug('Added volume %s to %s' % (volume['dev'],
+                                                         instance['id']))
 
     def attach_volume(self, instance_name, device_path, mountpoint):
         """Attach the disk at device_path to the instance at mountpoint"""
