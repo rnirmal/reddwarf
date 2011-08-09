@@ -381,6 +381,9 @@ class TestContainerListing(unittest.TestCase):
     def test_get_legacy_status_notfound(self):
         self.assertRaises(NotFound, dbaas.dbcontainers.get, -2)
 
+    # Calling has_key on the container triggers a lazy load.
+    # We don't want that here, so the next two methods use the _info dict.
+
     def _check_attr_in_dbcontainers(self, container, attrs):
         for attr in attrs:
             msg = "Missing attribute %r" % attr
@@ -480,8 +483,7 @@ class MgmtHostCheck(unittest.TestCase):
         self.assertEquals(storage.availablesize, avail)
 
 
-@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
-      never_skip=True)
+@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
 class DeleteContainer(unittest.TestCase):
     """ Delete the created container """
 
