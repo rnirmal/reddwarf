@@ -155,20 +155,20 @@ class Service(object):
 
         # Share this same connection for these Consumers
         consumer_all = rpc.TopicAdapterConsumer(
-            connection=self.conn,
-            topic=self.topic,
-            proxy=self)
+                connection=self.conn,
+                topic=self.topic,
+                proxy=self)
         consumer_node = rpc.TopicAdapterConsumer(
-            connection=self.conn,
-            topic='%s.%s' % (self.topic, self.host),
-            proxy=self)
+                connection=self.conn,
+                topic='%s.%s' % (self.topic, self.host),
+                proxy=self)
         fanout = rpc.FanoutAdapterConsumer(
-            connection=self.conn,
-            topic=self.topic,
-            proxy=self)
+                connection=self.conn,
+                topic=self.topic,
+                proxy=self)
         consumer_set = rpc.ConsumerSet(
-            connection=self.conn,
-            consumer_list=[consumer_all, consumer_node, fanout])
+                connection=self.conn,
+                consumer_list=[consumer_all, consumer_node, fanout])
 
         # Wait forever, processing these consumers
         def _wait():
