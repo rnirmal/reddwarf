@@ -1,4 +1,4 @@
 #!/bin/bash
 export PYTHON_NOVACLIENT_VERSION=28
 export GLANCE_VERSION=139
-
+export KEYSTONE_VERSION="1bfcb5c00c11c91561768dd9e1ceb66fd6d57ceb"

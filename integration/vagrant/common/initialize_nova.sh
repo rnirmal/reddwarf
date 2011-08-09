@@ -79,21 +79,21 @@ nova_manage project create dbaas admin
 reddwarf_manage db sync
 
 # Keystone values
-K_TENANT="dbaas"
-K_USER="admin"
-K_PASSWD="admin"
-K_ROLE="ADMIN"
-K_SERVICE="reddwarf"
-K_REGION="ci"
-K_URL="http://localhost:8775/v1.0/"
-keystone_manage tenant add $K_TENANT
-keystone_manage user add $K_USER $K_PASSWD $K_TENANT
-keystone_manage role add $K_ROLE
-keystone_manage role grant $K_ROLE $K_USER
-keystone_manage role grant $K_ROLE $K_USER $K_TENANT
-keystone_manage service add $K_SERVICE
-keystone_manage endpointTemplates add $K_REGION $K_SERVICE $K_URL $K_URL $K_URL 1 0
-keystone_manage endpoint add $K_TENANT 1
+AUTH_TENANT="dbaas"
+AUTH_USER="admin"
+AUTH_PASSWD="admin"
+AUTH_ROLE="ADMIN"
+AUTH_REGION="ci"
+SERVICE_NAME="reddwarf"
+SERVICE_URL="http://localhost:8775/v1.0/"
+keystone_manage tenant add $AUTH_TENANT
+keystone_manage user add $AUTH_USER $AUTH_PASSWD $AUTH_TENANT
+keystone_manage role add $AUTH_ROLE
+keystone_manage role grant $AUTH_ROLE $AUTH_USER
+keystone_manage role grant $AUTH_ROLE $AUTH_USER $AUTH_TENANT
+keystone_manage service add $SERVICE_NAME
+keystone_manage endpointTemplates add $AUTH_REGION $SERVICE_NAME $SERVICE_URL $SERVICE_URL $SERVICE_URL 1 0
+keystone_manage endpoint add $AUTH_TENANT 1
 
 exclaim Creating Nova certs.
 

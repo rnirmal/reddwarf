@@ -82,6 +82,7 @@ dbaas_pkg_setup_keystone() {
     sudo rm -rf /keystone
     sudo -E git clone https://github.com/openstack/keystone.git /keystone
     cd /keystone
+    sudo git checkout -b stable $KEYSTONE_VERSION
 
     # Install Dependenciens
     pkg_install python-eventlet python-lxml python-paste python-pastedeploy python-pastescript python-pysqlite2
