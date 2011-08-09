@@ -1085,7 +1085,7 @@ class OpenVzConnection(driver.ComputeDriver):
             _, err = utils.execute('sudo', 'touch', filename)
             if err:
                 LOG.error(err)
-        except Exception as err:
+        except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Error touching file %s' % (filename,))
         
