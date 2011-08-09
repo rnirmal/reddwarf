@@ -896,7 +896,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         if instance['volumes']:
             for volume in instance['volumes']:
-                if volume['uuid']:
+                if volume.has_key('uuid'):
                     self._container_script_modify(instance, None,
                                                   volume['uuid'],
                                                   volume['mountpoint'], 'add')
@@ -918,7 +918,7 @@ class OpenVzConnection(driver.ComputeDriver):
         instance = db.instance_get(context.get_admin_context(), meta['id'])
         if instance['volumes']:
             for vol in instance['volumes']:
-                if vol['mountpoint'] == mountpoint and vol['uuid']:
+                if vol['mountpoint'] == mountpoint and vol.has_key('uuid'):
                     # Volume has a UUID so do all the mount magic using the
                     # UUID instead of the device name.
                     self._container_script_modify(instance, None, vol['uuid'],
