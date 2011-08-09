@@ -19,8 +19,10 @@
           </resource>
       </resource>
       <resource id="dbcontainers" path="dbcontainers">
-        <param name="containerId" style="template" type="xsd:string"/>
-        <method href="#showdbcontainers"/>
+        <resource id="containerId" path="{containerId}">
+          <param name="containerId" style="template" type="xsd:string"/>
+          <method href="#showdbcontainers"/>
+        </resource>
       </resource>
       <resource id="guests" path="guests">
          <resource id="guestUpgradeAll" path="upgradeall">
