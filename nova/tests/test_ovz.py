@@ -692,8 +692,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
         openvz_conn.context.get_admin_context()
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
-        openvz_conn.db.instance_get()
-
+        openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_find_by_name')
         conn._find_by_name('instance-0000001').AndReturn(test_instance)
@@ -703,3 +702,57 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn.attach_volume('instance-0000001', '/dev/sdb1', '/var/tmp')
 
+    def test_detach_volume_success(self):
+        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
+        openvz_conn.context.get_admin_context()
+        self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
+        openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_find_by_name')
+        conn._find_by_name('instance-0000001').AndReturn(test_instance)
+        self.mox.StubOutWithMock(conn, '_container_script_modify')
+        conn._container_script_modify(test_instance, '/dev/sdb1',
+                                      mox.IgnoreArg(), mox.IgnoreArg(),
+                                      'del').MultipleTimes()
+        self.mox.ReplayAll()
+        conn.detach_volume('instance-0000001', '/var/tmp')
+
+    def test_container_script_modify_add(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg()).MultipleTimes()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_touch_file')
+        conn._touch_file()
+        self.mox.StubOutWithMock(conn, '_set_perms')
+        conn._set_perms(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_read_file')
+        conn._read_file(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_correct_shell_scripts')
+        conn._correct_shell_scripts(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_make_directory')
+        conn._make_directory(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_write_to_file')
+        conn._write_to_file(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.ReplayAll()
+        conn._container_script_modify(test_instance, '/dev/sdb1', None, 'add')
+
+    def test_container_script_modify_del(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg()).MultipleTimes()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_touch_file')
+        conn._touch_file()
+        self.mox.StubOutWithMock(conn, '_set_perms')
+        conn._set_perms(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_read_file')
+        conn._read_file(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_correct_shell_scripts')
+        conn._correct_shell_scripts(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_make_directory')
+        conn._make_directory(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_write_to_file')
+        conn._write_to_file(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.ReplayAll()
+        conn._container_script_modify(test_instance, '/dev/sdb1', None, 'del')
