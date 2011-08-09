@@ -14,7 +14,7 @@ Vagrant::Config.run do |global_config|
       # via the IP. The IP for the volume vm is "33.33.33.10"
       config.vm.network "33.33.33.11"
 
-      config.vm.box = "lucid_ext3_openvz"
+      config.vm.box = "lucid_ext3_openvz_multinic"
       config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
       config.vm.host_name = "host"
       #config.vm.memory_size = 512
@@ -33,7 +33,7 @@ Vagrant::Config.run do |global_config|
 
   # Volume Config
   global_config.vm.define :volume do |config|
-    config.vm.box = "volumeserver"
+    config.vm.box = "volumeserver_1"
     config.vm.box_url = @BOX_URL + "/#{config.vm.box}.box"
     config.vm.host_name = "volume"
     #config.vm.memory_size = 512

@@ -81,7 +81,7 @@ class TestClient(object):
         return image, image_href
 
     def __getattr__(self, item):
-        if item in ['ipgroups', 'servers', 'zones', 'accounts']:
+        if item in ['ipgroups', 'servers', 'zones']:
             preferred_client = self.os
         else:
             preferred_client = self.dbaas

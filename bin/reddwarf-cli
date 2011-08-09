@@ -288,6 +288,14 @@ class MgmtCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def accounts(self, options, acct):
+        """List details for the account provided"""
+        dbaas = _get_client(options)
+        try:
+            _pretty_print(dbaas.accounts.show(acct)._info)
+        except:
+            print sys.exc_info()[1]
+
 
 def methods_of(obj):
     """Get all callable methods of an object that don't start with underscore
