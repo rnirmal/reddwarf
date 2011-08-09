@@ -559,17 +559,17 @@ class HpSanISCSIDriver(SanISCSIDriver):
                       1024/1024/1024
         factor_avail = 1.0*space_avail/int(FLAGS.san_network_raid_factor)/\
                       1024/1024/1024
-        LOG.debug("HpSan Volume factor Total : %sGBs" % factor_total)
-        LOG.debug("HpSan Volume factor Avail : %sGBs" % factor_avail)
+        LOG.debug("Volume factor Total : %sGBs" % factor_total)
+        LOG.debug("Volume factor Avail : %sGBs" % factor_avail)
         percent = int(FLAGS.san_max_provision_percent)/100.0
         prov_total = int(factor_total * percent)
-        prov_used =  (factor_total - factor_avail)/1024/1024/1024
-        LOG.debug("HpSan Volume total space size : %sGBs" % prov_total)
-        LOG.debug("HpSan Volume used space size : %sGBs" % prov_used)
+        prov_used =  (factor_total - factor_avail)
+        LOG.debug("Volume total space size : %sGBs" % prov_total)
+        LOG.debug("Volume used space size : %sGBs" % prov_used)
         prov_avail =  prov_total - prov_used
-        LOG.debug("HpSan Volume available_space : %sGBs" % prov_avail)
+        LOG.debug("Volume available_space : %sGBs" % prov_avail)
         return {'name': cluster_info['name'],
-                'type': 'HP SAN',
+                'type': self.__class__.__name__,
                 'raw_avail': cluster_info['spaceAvail'],
                 'raw_total': cluster_info['spaceTotal'],
                 'prov_avail': prov_avail,
@@ -663,13 +663,13 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         """Nothing to assign here."""
         pass
 
-    def _get_available_space(self):
-        return 20/2*(int(FLAGS.san_max_provision_percent)/100.0)
-
     def check_for_available_space(self, size):
-        avail = self._get_available_space()
-        LOG.debug("checking_for_available_space %r : %r" % (size, avail))
-        return size <= avail
+        """Check for available volume space"""
+        device_info = self._get_device_info()
+        calc_info = self._calc_factors_space(device_info)
+        LOG.debug("calculated info about space : %r" % calc_info)
+        LOG.debug("checking_for_available_space %r : %r" % (size, calc_info['prov_avail']))
+        return (size <= calc_info['prov_avail'])
     
     def check_for_setup_error(self):
         """Check for any errors at setup for fast fail"""
@@ -724,15 +724,27 @@ class ISCSILiteDriver(HpSanISCSIDriver):
 
     def get_storage_device_info(self):
         """Returns the storage device information."""
-        return {'name': 'ISCSI test class',
-                'type': self.__class__.__name__,
-                'raw_avail': 20,
-                'raw_total': 20,
-                'prov_avail': self._get_available_space(),
-                'prov_total': 20/2,
-                'prov_used': 20/2-self._get_available_space(),
-                'percent': round((1.0*20/2-self._get_available_space())/(20/2)*100)}
+        device_info = self._get_device_info()
+        calc_info = self._calc_factors_space(device_info)
+        LOG.debug("returning : %r" % calc_info)
+        return calc_info
 
+    def _get_device_info(self):
+        """Get the raw data from the volume server"""
+        # Value hard coded to 20Gbs (could change to a flag value)
+        space_total = 20*1024*1024*1024
+
+        # Find out how much space is used on volume server
+        (std_out, std_err) = self._run_ssh("sudo du -m /san")
+        cmd_list = std_out.split('\t')
+        raw_used = int(cmd_list[0])/128*1024*1024*1024*2
+        LOG.debug("raw_space_used : %r" % raw_used)
+
+        return { 'name': 'ISCSI test class',
+                        'type': self.__class__.__name__,
+                        'spaceTotal': space_total,
+                        'spaceAvail': space_total-raw_used}
+        
     def remove_export(self, context, volume):
         """Remove the export on the storage server"""
         tid = self.db.volume_get_iscsi_target_num(context, volume['id'])

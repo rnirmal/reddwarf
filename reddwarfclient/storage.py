@@ -15,21 +15,18 @@
 
 from novaclient import base
 
+class Device(base.Resource):
+    """
+    Storage is an opaque container used to hold storage information.
+    """
+    def __repr__(self):
+        return "<Device: %s>" % self.name
 
-class Storage(base.ManagerWithFind):
+class StorageInfo(base.ManagerWithFind):
     """
     Manage :class:`Storage` resources.
     """
-    resource_class = Storage
-
-    def __repr__(self):
-        return "<Storage: %s>" % self.name
-
-    def _list(self, url, response_key):
-        resp, body = self.api.client.get(url)
-        if not body:
-            raise Exception("Call to " + url + " did not return a body.")
-        return [self.resource_class(self, res) for res in body[response_key]]
+    resource_class = Device
 
     def index(self):
         """
@@ -37,4 +34,4 @@ class Storage(base.ManagerWithFind):
 
         :rtype: list of :class:`Storages`.
         """
-        return self._list("/mgmt/storage", "storage")
+        return self._get("/mgmt/storage", "storage")

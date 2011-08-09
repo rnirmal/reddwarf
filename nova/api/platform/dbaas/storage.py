@@ -22,7 +22,7 @@ from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
 from reddwarf.db import api as dbapi
 
-LOG = logging.getLogger('nova.api.platform.dbaas.hosts')
+LOG = logging.getLogger('nova.api.platform.dbaas.storage')
 LOG.setLevel(logging.DEBUG)
 
 
@@ -36,14 +36,14 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def index(self, req):
-        """List all the hosts on the system"""
+        """List all the storage devices in the system"""
         LOG.info("List all the storage devices in the system")
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         storage_info = dbapi.storage_device_info(ctxt)
-        return { 'name': storage_info['name'],
-                 'availablesize': storage_info['prov_avail'],
-                 'totalsize': storage_info['prov_total']}
+        return {'storage': { 'name': storage_info['name'],
+                             'availablesize': storage_info['prov_avail'],
+                             'totalsize': storage_info['prov_total']}}
 
 
 def create_resource(version='1.0'):

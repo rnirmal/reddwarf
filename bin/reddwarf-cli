@@ -281,6 +281,14 @@ class MgmtCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def storage(self, options):
+        """\tList details for the storage devices"""
+        dbaas = _get_client(options)
+        try:
+            _pretty_print(dbaas.storage.index())
+        except:
+            print sys.exc_info()[1]
+
 
 def methods_of(obj):
     """Get all callable methods of an object that don't start with underscore

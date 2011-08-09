@@ -44,6 +44,7 @@ class StoryDetails(object):
         self.volume = None
         self.host = socket.gethostname()
         self.original_uuid = None
+        self.device_info = None
 
     def get_volume(self):
         return self.api.get(self.context, self.volume_id)
@@ -108,29 +109,41 @@ class SetUp(VolumeTest):
         # Give some time for the services to startup
         time.sleep(10)
 
+    def test_30_mgmt_volume_check(self):
+        """Get the volume information from the mgmt API"""
+        device_info = self.story.client.get_storage_device_info()
+        print("device_info : %r" % device_info)
+        self.assertNotEqual(device_info, None, "the storage device information should exist")
+        self.story.device_info = device_info
+
+    def test_31_mgmt_volume_info(self):
+        """Check the available space against the mgmt API info."""
+        device_info = self.story.client.get_storage_device_info()
+        info = {'spaceTotal': device_info['raw_total'],
+                'spaceAvail': device_info['raw_avail']}
+        self._assert_avilable_space(info)
+
     def test_check_available_space(self):
         """Check for available space on SAN"""
         if FLAGS.volume_driver == 'nova.volume.san.HpSanISCSIDriver':
             driver = volume.san.HpSanISCSIDriver()
             info = driver._cliq_get_cluster_info(FLAGS.san_clustername)
-            self._assert_avilable_space(info)
-        info = {'spaceTotal':20*1024*1024*1024,
-                'spaceAvail':20*1024*1024*1024}
+        elif FLAGS.volume_driver == 'nova.volume.san.ISCSILiteDriver':
+            driver = volume.san.ISCSILiteDriver()
+            info = driver._get_device_info()
+        else:
+            info = {'name': 'hard coded test',
+                    'spaceTotal':20*1024*1024*1024,
+                    'spaceAvail':20*1024*1024*1024}
+        print("info : %r" % info)
         self._assert_avilable_space(info)
-        info = {'spaceTotal':20*1024*1024*1024,
-                'spaceAvail':19*1024*1024*1024}
-        self._assert_avilable_space(info)
-        info = {'spaceTotal':20*1024*1024*1024,
-                'spaceAvail':14*1024*1024*1024}
-        self._assert_avilable_space(info)
-        self.fail('fail')
 
-    def _assert_avilable_space(self, info, fail=False):
-        """Give the SAN info(fake or not) and get the asserts for free"""
-        print("INFO on SAN : %r" % info)
+    def _assert_avilable_space(self, device_info, fail=False):
+        """Give the SAN device_info(fake or not) and get the asserts for free"""
+        print("DEVICE_INFO on SAN : %r" % device_info)
         gbs = 1.0/1024/1024/1024/2
-        total = int(info['spaceTotal'])*gbs
-        free = int(info['spaceAvail'])*gbs
+        total = int(device_info['spaceTotal'])*gbs
+        free = int(device_info['spaceAvail'])*gbs
         used = total - free
         usable = round(total * (FLAGS.san_max_provision_percent * 1.0/100))
         real_free = round((usable - used))
@@ -190,6 +203,14 @@ class AfterVolumeFailureIsAdded(VolumeTest):
         self.assertEqual(volume["status"], "error")
         self.assertTrue(volume["attach_status"], "detached")
 
+    def test_mgmt_volume_check(self):
+        """Get the volume information from the mgmt API"""
+        info = self.story.client.get_storage_device_info()
+        print("device_info : %r" % info)
+        self.assertNotEqual(info, None, "the storage device information should exist")
+        self.assertEqual(self.story.device_info['raw_total'], info['raw_total'])
+        self.assertEqual(self.story.device_info['raw_avail'], info['raw_avail'])
+
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
 class AddVolume(VolumeTest):
@@ -227,6 +248,13 @@ class AfterVolumeIsAdded(VolumeTest):
         self.assertEqual(volume["status"], "available")
         self.assert_volume_as_expected(volume)
         self.assertTrue(volume["attach_status"], "detached")
+
+    def test_mgmt_volume_check(self):
+        """Get the volume information from the mgmt API"""
+        info = self.story.client.get_storage_device_info()
+        print("device_info : %r" % info)
+        self.assertNotEqual(info, None, "the storage device information should exist")
+        self.assertEqual(self.story.device_info['raw_total'], info['raw_total'])
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[AfterVolumeIsAdded])

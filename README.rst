@@ -77,7 +77,7 @@ there are problems. To resolve this issue just run the follow commands::
 
     [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant destroy
     [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant up
-
+    
 Command Downloads the necessary files and starts up a Virtual Box image to
 start using.
 
