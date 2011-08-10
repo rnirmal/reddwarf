@@ -1,5 +1,20 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
+# Copyright 2010 OpenStack LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import mox
 
 from nova import exception
@@ -14,7 +29,17 @@ test_instance = {
     "image_id": 1,
     "name": "instance-0000001",
     "instance_type_id": 1,
-    "id": 1002
+    "id": 1002,
+    "volumes": [
+        {
+            "uuid": "776E384C-47FF-433D-953B-61272EFDABE1",
+            "mountpoint": "/var/lib/mysql"
+        },
+        {
+            "dev": "/dev/sda1",
+            "mountpoint": "/var/tmp"
+        }
+    ]
 }
 
 percent_resource = .50
@@ -102,6 +127,24 @@ Power of the node: 758432
 vzcpucheck_return_nocontainers = """Current CPU utilization: 51000
 Power of the node: 758432
 """
+
+file_contents = """mount UUID=FEE52433-F693-448E-B6F6-AA6D0124118B /mnt/foo
+        mount --bind /mnt/foo /vz/private/1/mnt/foo
+        """
+
+class FakeFile(object):
+    def __init__(self, file_contents):
+        self.writelines(file_contents)
+
+    def readlines(self):
+        return self.file_contents
+
+    def writelines(self, contents):
+        self.file_contents = contents.split()
+
+    def close(self):
+        pass
+
 class OpenVzConnTestCase(test.TestCase):
     def setUp(self):
         super(OpenVzConnTestCase, self).setUp()
@@ -654,3 +697,169 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._set_diskspace, test_instance)
+
+    def test_attach_volumes_success(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_container_script_modify')
+        conn._container_script_modify(test_instance, None, mox.IgnoreArg(),
+                                      mox.IgnoreArg(), 'add')
+        self.mox.ReplayAll()
+        conn._attach_volumes(test_instance)
+
+    def test_attach_volume_success(self):
+        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
+        openvz_conn.context.get_admin_context()
+        self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
+        openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_find_by_name')
+        conn._find_by_name('instance-0000001').AndReturn(test_instance)
+        self.mox.StubOutWithMock(conn, '_container_script_modify')
+        conn._container_script_modify(test_instance, '/dev/sdb1',
+                                      mox.IgnoreArg(), mox.IgnoreArg(), 'add')
+        self.mox.ReplayAll()
+        conn.attach_volume('instance-0000001', '/dev/sdb1', '/var/tmp')
+
+    def test_detach_volume_success(self):
+        self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
+        openvz_conn.context.get_admin_context()
+        self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
+        openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_find_by_name')
+        conn._find_by_name('instance-0000001').AndReturn(test_instance)
+        self.mox.StubOutWithMock(conn, '_container_script_modify')
+        conn._container_script_modify(test_instance, '/dev/sdb1',
+                                      mox.IgnoreArg(), mox.IgnoreArg(),
+                                      'del').MultipleTimes()
+        self.mox.ReplayAll()
+        conn.detach_volume('instance-0000001', '/var/tmp')
+
+    def test_container_script_modify_add(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg()).MultipleTimes().AndReturn(
+            ('',''))
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_touch_file')
+        conn._touch_file()
+        self.mox.StubOutWithMock(conn, '_set_perms')
+        conn._set_perms(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_read_file')
+        conn._read_file(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_correct_shell_scripts')
+        conn._correct_shell_scripts(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_make_directory')
+        conn._make_directory(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_write_to_file')
+        conn._write_to_file(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.ReplayAll()
+        conn._container_script_modify(test_instance, '/dev/sdb1', None, 'add')
+
+    def test_container_script_modify_del(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute(mox.IgnoreArg(),
+                                  mox.IgnoreArg()).MultipleTimes().AndReturn(
+            ('',''))
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_touch_file')
+        conn._touch_file()
+        self.mox.StubOutWithMock(conn, '_set_perms')
+        conn._set_perms(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_read_file')
+        conn._read_file(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_correct_shell_scripts')
+        conn._correct_shell_scripts(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_make_directory')
+        conn._make_directory(mox.IgnoreArg()).MultipleTimes()
+        self.mox.StubOutWithMock(conn, '_write_to_file')
+        conn._write_to_file(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
+        self.mox.ReplayAll()
+        conn._container_script_modify(test_instance, '/dev/sdb1', None, 'del')
+
+    def test_make_directory_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'mkdir', '-p', '/tmp/foo').AndReturn(
+            ('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._make_directory('/tmp/foo')
+
+    def test_make_directory_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'mkdir', '-p', '/tmp/foo').AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._make_directory, '/tmp/foo')
+
+    def test_touch_file_success(self):
+        self.mox.StubOutClassWithMocks(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'touch', '/tmp/foo').AndReturn(
+            ('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn. OpenVzConnection(False)
+        conn._touch_file('/tmp/foo')
+
+    def test_touch_file_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz.utils.execute('sudo', 'touch', '/tmp/foo').AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._touch_file('/tmp/foo')
+
+    def test_read_file_success(self):
+        file_contents = FakeFile(file_contents)
+        self.mox.StubOutWithMock(openvz_conn, 'open')
+        openvz_conn.open('/tmp/foo', 'r').AndReturn(file_contents)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        resp = conn._read_file('/tmp/foo')
+        self.assertTrue(isinstance(resp, list))
+
+    def test_read_file_failure(self):
+        self.mox.StubOutWithMock(openvz_conn, 'open')
+        openvz_conn.open('/tmp/foo', 'r').AndRaise(Exception)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._read_file, '/tmp/foo')
+
+    def test_correct_shell_scripts(self):
+        file_contents = FakeFile(file_contents)
+        conn = openvz_conn.OpenVzConnection(False)
+        contents = conn._correct_shell_scripts(file_contents.readlines())
+        self.assertTrue(isinstance(contents, list))
+        self.assertEqual(contents[0], '#!/bin/sh')
+
+    def test_write_to_file_success(self):
+        filehandle = FakeFile(file_contents)
+        self.mox.StubOutWithMock(openvz_conn, 'open')
+        openvz_conn.open('/tmp/foo', 'w').AndReturn(filehandle)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._write_to_file('/tmp/foo', file_contents)
+
+    def test_write_to_file_failure(self):
+        self.mox.StubOutWithMock(openvz_conn, 'open')
+        openvz_conn.open('/tmp/foo', 'w').AndRaise(Exception)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._write_to_file,
+                          '/tmp/foo', file_contents)
+
+    def test_set_perms_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'chmod', 755, '/tmp/foo').AndReturn(
+            ('','')
+        )
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_perms('/tmp/foo', 755)
+
+    def test_set_perms_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'chmod', 755, '/tmp/foo').AndRaise(
+            exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_perms('/tmp/foo', 755))
