@@ -18,8 +18,10 @@ API Interface for reddwarf datastore operations
 
 import datetime
 
-from nova import exception, flags, volume
+from nova import exception
+from nova import flags
 from nova import log as logging
+from nova import volume
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 from nova.db.sqlalchemy.api import require_admin_context
@@ -141,8 +143,3 @@ def instance_get_memory_sum_by_host(context, hostname):
     if not result:
         return 0
     return result
-
-@require_admin_context
-def storage_device_info(context):
-    client = volume.Client()
-    return client.get_storage_device_info()

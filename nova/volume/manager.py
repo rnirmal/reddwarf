@@ -227,6 +227,14 @@ class VolumeManager(manager.SchedulerDependentManager):
         for volume in instance_ref['volumes']:
             self.driver.check_for_export(context, volume['id'])
 
+    def check_for_available_space(self, context, size):
+        """Check the device for available space for a Volume"""
+        return self.driver.check_for_available_space(size)
+
+    def get_storage_device_info(self, context):
+        """Returns the storage device information."""
+        return self.driver.get_storage_device_info()
+
     def unassign_volume(self, context, volume_id, host):
         """Un-Assigns an existing volume from a host (usually a compute node)."""
         self.driver.unassign_volume(volume_id, host)

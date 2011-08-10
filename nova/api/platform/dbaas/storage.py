@@ -17,6 +17,7 @@
 from webob import exc
 
 from nova import flags
+from nova import rpc
 from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.platform.dbaas import common
@@ -40,7 +41,10 @@ class Controller(object):
         LOG.info("List all the storage devices in the system")
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        storage_info = dbapi.storage_device_info(ctxt)
+        storage_info = rpc.call(ctxt,
+                                 FLAGS.volume_topic,
+                                 {"method": "get_storage_device_info",
+                                  "args": {}})
         return {'storage': { 'name': storage_info['name'],
                              'availablesize': storage_info['prov_avail'],
                              'totalsize': storage_info['prov_total']}}

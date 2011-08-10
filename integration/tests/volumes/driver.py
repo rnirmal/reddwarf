@@ -44,7 +44,7 @@ class StoryDetails(object):
         self.volume = None
         self.host = socket.gethostname()
         self.original_uuid = None
-        self.device_info = None
+        self.original_device_info = None
 
     def get_volume(self):
         return self.api.get(self.context, self.volume_id)
@@ -111,14 +111,15 @@ class SetUp(VolumeTest):
 
     def test_30_mgmt_volume_check(self):
         """Get the volume information from the mgmt API"""
-        device_info = self.story.client.get_storage_device_info()
+        device_info = self.story.api.get_storage_device_info(self.story.context)
         print("device_info : %r" % device_info)
         self.assertNotEqual(device_info, None, "the storage device information should exist")
-        self.story.device_info = device_info
+        self.story.original_device_info = device_info
 
     def test_31_mgmt_volume_info(self):
         """Check the available space against the mgmt API info."""
-        device_info = self.story.client.get_storage_device_info()
+        device_info = self.story.api.get_storage_device_info(self.story.context)
+        print("device_info : %r" % device_info)
         info = {'spaceTotal': device_info['raw_total'],
                 'spaceAvail': device_info['raw_avail']}
         self._assert_avilable_space(info)
@@ -141,6 +142,7 @@ class SetUp(VolumeTest):
     def _assert_avilable_space(self, device_info, fail=False):
         """Give the SAN device_info(fake or not) and get the asserts for free"""
         print("DEVICE_INFO on SAN : %r" % device_info)
+        # Calculate the gbs and divide by 2 for the FLAGS.san_network_raid_factor
         gbs = 1.0/1024/1024/1024/2
         total = int(device_info['spaceTotal'])*gbs
         free = int(device_info['spaceAvail'])*gbs
@@ -154,17 +156,17 @@ class SetUp(VolumeTest):
         print("usable : %r" % usable)
         print("real_free : %r" % real_free)
 
-        self.assertFalse(self.story.client.check_for_available_space(context, 500))
-        self.assertFalse(self.story.client.check_for_available_space(context, real_free+1))
+        self.assertFalse(self.story.api.check_for_available_space(self.story.context, 500))
+        self.assertFalse(self.story.api.check_for_available_space(self.story.context, real_free+1))
 
         if fail:
-            self.assertFalse(self.story.client.check_for_available_space(context, real_free))
-            self.assertFalse(self.story.client.check_for_available_space(context, real_free-1))
-            self.assertFalse(self.story.client.check_for_available_space(context, 1))
+            self.assertFalse(self.story.api.check_for_available_space(self.story.context, real_free))
+            self.assertFalse(self.story.api.check_for_available_space(self.story.context, real_free-1))
+            self.assertFalse(self.story.api.check_for_available_space(self.story.context, 1))
         else:
-            self.assertTrue(self.story.client.check_for_available_space(context, real_free))
-            self.assertTrue(self.story.client.check_for_available_space(context, real_free-1))
-            self.assertTrue(self.story.client.check_for_available_space(context, 1))
+            self.assertTrue(self.story.api.check_for_available_space(self.story.context, real_free))
+            self.assertTrue(self.story.api.check_for_available_space(self.story.context, real_free-1))
+            self.assertTrue(self.story.api.check_for_available_space(self.story.context, 1))
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
@@ -205,11 +207,11 @@ class AfterVolumeFailureIsAdded(VolumeTest):
 
     def test_mgmt_volume_check(self):
         """Get the volume information from the mgmt API"""
-        info = self.story.client.get_storage_device_info()
+        info = self.story.api.get_storage_device_info(self.story.context)
         print("device_info : %r" % info)
         self.assertNotEqual(info, None, "the storage device information should exist")
-        self.assertEqual(self.story.device_info['raw_total'], info['raw_total'])
-        self.assertEqual(self.story.device_info['raw_avail'], info['raw_avail'])
+        self.assertEqual(self.story.original_device_info['raw_total'], info['raw_total'])
+        self.assertEqual(self.story.original_device_info['raw_avail'], info['raw_avail'])
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
@@ -251,10 +253,17 @@ class AfterVolumeIsAdded(VolumeTest):
 
     def test_mgmt_volume_check(self):
         """Get the volume information from the mgmt API"""
-        info = self.story.client.get_storage_device_info()
+        print("self.story.original_device_info : %r" % self.story.original_device_info)
+        info = self.story.api.get_storage_device_info(self.story.context)
         print("device_info : %r" % info)
         self.assertNotEqual(info, None, "the storage device information should exist")
-        self.assertEqual(self.story.device_info['raw_total'], info['raw_total'])
+        self.assertEqual(self.story.original_device_info['raw_total'], info['raw_total'])
+        volume_size = int(self.story.volume['size'])*1024**3*2
+        print("volume_size: %r" % volume_size)
+        print("self.story.volume['size']: %r" % self.story.volume['size'])
+        avail = int(self.story.original_device_info['raw_avail']) - volume_size
+        print("avail space: %r" % avail)
+        self.assertEqual(int(info['raw_avail']), avail)
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[AfterVolumeIsAdded])

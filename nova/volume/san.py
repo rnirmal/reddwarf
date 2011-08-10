@@ -22,7 +22,6 @@ controller on the SAN hardware.  We expect to access it over SSH or some API.
 """
 
 import os
-from collections import namedtuple
 import re
 import paramiko
 import pexpect
@@ -550,28 +549,43 @@ class HpSanISCSIDriver(SanISCSIDriver):
         pass
 
     def _calc_factors_space(self, cluster_info):
-        space_total = int(cluster_info['spaceTotal'])
-        space_avail = int(cluster_info['spaceAvail'])
-        LOG.debug("HpSan Volume space Total : %sGBs" % space_total)
-        LOG.debug("HpSan Volume space Avail : %sGBs" % space_avail)
+        """Calculate the given the cluster_info of space total and available"""
+        space_total = float(cluster_info['spaceTotal'])
+        space_avail = float(cluster_info['spaceAvail'])
+        LOG.debug("Volume space Total : %r" % space_total)
+        LOG.debug("Volume space Avail : %r" % space_avail)
+
         # Calculate the available space and total space based on factors
-        factor_total = 1.0*space_total/int(FLAGS.san_network_raid_factor)/\
-                      1024/1024/1024
-        factor_avail = 1.0*space_avail/int(FLAGS.san_network_raid_factor)/\
-                      1024/1024/1024
-        LOG.debug("Volume factor Total : %sGBs" % factor_total)
-        LOG.debug("Volume factor Avail : %sGBs" % factor_avail)
-        percent = int(FLAGS.san_max_provision_percent)/100.0
-        prov_total = int(factor_total * percent)
+        G = 1024 ** 3
+        raid_factor = float(FLAGS.san_network_raid_factor) * G
+        LOG.debug("Volume raid factor : %s" % raid_factor)
+
+        # Use the calculated factor to determine total/avail
+        factor_total = space_total / raid_factor
+        factor_avail = space_avail / raid_factor
+        LOG.debug("Volume factor Total : %rGBs" % factor_total)
+        LOG.debug("Volume factor Avail : %rGBs" % factor_avail)
+
+        # Take the max provisional percent of device into calculation
+        percent = float(FLAGS.san_max_provision_percent)/100.0
+        LOG.debug("Volume san_max_provision_percent : %r" % percent)
+
+        # How much are we allowed to use?
+        # Total calculated provisional space for the device
+        prov_total = float(factor_total * percent)
+        # Total calculated used space on the device
         prov_used =  (factor_total - factor_avail)
-        LOG.debug("Volume total space size : %sGBs" % prov_total)
-        LOG.debug("Volume used space size : %sGBs" % prov_used)
+        LOG.debug("Volume total space size : %rGBs" % prov_total)
+        LOG.debug("Volume used space size : %rGBs" % prov_used)
+        # Total calculated available space on the device
         prov_avail =  prov_total - prov_used
-        LOG.debug("Volume available_space : %sGBs" % prov_avail)
+        LOG.debug("Volume available_space : %rGBs" % prov_avail)
+
+        # Create the dictionary of values to return
         return {'name': cluster_info['name'],
                 'type': self.__class__.__name__,
-                'raw_avail': cluster_info['spaceAvail'],
-                'raw_total': cluster_info['spaceTotal'],
+                'raw_total': space_total,
+                'raw_avail': space_avail,
                 'prov_avail': prov_avail,
                 'prov_total': prov_total,
                 'prov_used': prov_used,
@@ -731,14 +745,21 @@ class ISCSILiteDriver(HpSanISCSIDriver):
 
     def _get_device_info(self):
         """Get the raw data from the volume server"""
-        # Value hard coded to 20Gbs (could change to a flag value)
-        space_total = 20*1024*1024*1024
+        # Value hard coded to 20GBs (could change to a constant value if needed)
+        space_total = 20*1024**3
 
         # Find out how much space is used on volume server
         (std_out, std_err) = self._run_ssh("sudo du -m /san")
         cmd_list = std_out.split('\t')
-        raw_used = int(cmd_list[0])/128*1024*1024*1024*2
+        LOG.debug("cmd_list : %r" % cmd_list)
+
+        # Offset only applies to the ISCSI Lite Driver per create_volume(128MB)
+        offset = (1024**3)*2
+        LOG.debug("offset : %r" % offset)
+        raw_used = (int(cmd_list[0])/128)*offset
         LOG.debug("raw_space_used : %r" % raw_used)
+        LOG.debug("space_total : %r" % space_total)
+        LOG.debug("spaceAvail : %r" % (space_total-raw_used))
 
         return { 'name': 'ISCSI test class',
                         'type': self.__class__.__name__,
