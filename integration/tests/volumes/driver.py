@@ -147,7 +147,7 @@ class SetUp(VolumeTest):
         total = int(device_info['spaceTotal'])*gbs
         free = int(device_info['spaceAvail'])*gbs
         used = total - free
-        usable = round(total * (FLAGS.san_max_provision_percent * 100.0))
+        usable = round(total * (FLAGS.san_max_provision_percent * 0.01))
         real_free = round((usable - used))
 
         print("total : %r" % total)

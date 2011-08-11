@@ -189,8 +189,7 @@ class CreateCommands(object):
             print sys.exc_info()[1]
 
     def user(self, options, id, username, password, dbname, *args):
-        """Create a user within the specified dbcontainer.
-        \t\tSpecify one or more databases to which the user should be granted permissions"""
+        """Create a user in dbcontainer, with access to one or more databases"""
         dbaas = _get_client(options)
         try:
             databases = [{'name': dbname}]
@@ -282,7 +281,7 @@ class MgmtCommands(object):
             print sys.exc_info()[1]
 
     def storage(self, options):
-        """\tList details for the storage devices"""
+        """List details for the storage devices"""
         dbaas = _get_client(options)
         try:
             _pretty_print(dbaas.storage.index()._info)
