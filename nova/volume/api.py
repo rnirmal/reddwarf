@@ -23,7 +23,6 @@ Handles all requests relating to volumes.
 
 from eventlet import greenthread
 
-from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
@@ -129,6 +128,26 @@ class API(base.Base):
         if context.is_admin:
             return self.db.volume_get_all(context)
         return self.db.volume_get_all_by_project(context, context.project_id)
+
+    def check_for_available_space(self, context, size):
+        """Check the device for available space for a Volume"""
+        #TODO(cp16net) scheduler does not support rpc call with scheduler topic
+        # scheduler changes the rpc call to a cast when forwarding the msg.
+        # We will have to revisit this when we add multiple volume managers.
+        return rpc.call(context,
+                         FLAGS.volume_topic,
+                         {"method": "check_for_available_space",
+                          "args": {'size': size}})
+
+    def get_storage_device_info(self, context):
+        """Returns the storage device information for Admins."""
+        if context.is_admin:
+            LOG.debug("calling the method get_storage_device_info")
+            return rpc.call(context,
+                             FLAGS.volume_topic,
+                             {"method": "get_storage_device_info",
+                              "args": {}})
+        raise exception.AdminRequired()
 
     def get_snapshot(self, context, snapshot_id):
         rv = self.db.snapshot_get(context, snapshot_id)

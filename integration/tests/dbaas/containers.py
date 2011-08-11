@@ -61,7 +61,7 @@ class ContainerTestInfo(object):
 
     def __init__(self):
         self.dbaas = None  # The rich client instance used by these tests.
-        self.dbaas_flavor = None # The flavor used to create the container.
+        self.dbaas_flavor = None # The flavor object of the container.
         self.dbaas_flavor_href = None  # The flavor of the container.
         self.dbaas_image = None  # The image used to create the container.
         self.dbaas_image_href = None  # The link of the image.
@@ -74,6 +74,7 @@ class ContainerTestInfo(object):
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the container.
         self.volume = None # The volume the container will have.
+        self.storage = None # The storage device info for the volumes.
 
     def check_database(self, dbname):
         return check_database(self.id, dbname)
@@ -166,6 +167,17 @@ class ContainerHostCheck(unittest.TestCase):
     @expect_exception(NotFound)
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
+
+    def test_storage_on_host(self):
+        storage = dbaas.storage.index()
+        print("storage : %r" % storage)
+        self.assertTrue(hasattr(storage, 'name'))
+        self.assertTrue(hasattr(storage, 'availablesize'))
+        self.assertTrue(hasattr(storage, 'totalsize'))
+        print("storage.name : %r" % storage.name)
+        print("storage.availablesize : %r" % storage.availablesize)
+        print("storage.totalsize : %r" % storage.totalsize)
+        container_info.storage = storage
 
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
@@ -452,6 +464,20 @@ class MgmtHostCheck(unittest.TestCase):
               str(myresult.dbcontainers))
         for index, container in enumerate(myresult.dbcontainers, start=1):
             print("%d dbcontainer: %s" % (index, container))
+
+    def test_storage_on_host(self):
+        storage = dbaas.storage.index()
+        print("storage : %r" % storage)
+        self.assertTrue(hasattr(storage, 'name'))
+        self.assertTrue(hasattr(storage, 'availablesize'))
+        self.assertTrue(hasattr(storage, 'totalsize'))
+        print("storage : %r" % storage.__dict__)
+        print("container_info.dbaas_flavor : %r" % container_info.dbaas_flavor.__dict__)
+        print("container_info.storage : %r" % container_info.storage.__dict__)
+        self.assertEquals(storage.name, container_info.storage.name)
+        self.assertEquals(storage.totalsize, container_info.storage.totalsize)
+        avail = container_info.storage.availablesize - container_info.volume['size']
+        self.assertEquals(storage.availablesize, avail)
 
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],

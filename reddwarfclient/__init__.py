@@ -19,6 +19,7 @@ from reddwarfclient.dbcontainers import DbContainers
 from reddwarfclient.databases import Databases
 from reddwarfclient.hosts import Hosts
 from reddwarfclient.management import Management
+from reddwarfclient.storage import StorageInfo
 from reddwarfclient.users import Users
 from reddwarfclient.root import Root
 
@@ -52,4 +53,5 @@ class Dbaas(OpenStack):
         self.users = Users(self)
         self.root = Root(self)
         self.hosts = Hosts(self)
+        self.storage = StorageInfo(self)
         self.management = Management(self)

@@ -22,7 +22,6 @@ controller on the SAN hardware.  We expect to access it over SSH or some API.
 """
 
 import os
-from collections import namedtuple
 import re
 import paramiko
 import pexpect
@@ -54,8 +53,8 @@ flags.DEFINE_integer('san_ssh_port', 22,
                     'SSH port to use with SAN')
 flags.DEFINE_integer('san_network_raid_factor', 2,
                      'San network RAID factor')
-flags.DEFINE_integer('san_available_size_offset', 1,
-                     'San available size offset')
+flags.DEFINE_integer('san_max_provision_percent', 70,
+                     'Max percentage of the total SAN space to be provisioned.')
 
 
 class DiscoveryInfo(object):
@@ -509,14 +508,8 @@ class HpSanISCSIDriver(SanISCSIDriver):
     def check_for_available_space(self, size):
         """Check for available volume space"""
         cluster_info = self._cliq_get_cluster_info(FLAGS.san_clustername)
-        available_space = int(cluster_info['spaceAvail'])/ \
-                       int(FLAGS.san_network_raid_factor)
-        # convert space to GBs and take size offset into account
-        available_space = (available_space/1024/1024/1024)- \
-                       FLAGS.san_available_size_offset
-        LOG.debug("HpSan Volume Size requested : %sGBs" % size)
-        LOG.debug("HpSan Volume available_space : %sGBs" % available_space)
-        return (size < available_space)
+        calc_info = self._calc_factors_space(cluster_info)
+        return (size <= calc_info['prov_avail'])
 
     def create_volume(self, volume_ref):
         """Creates a volume."""
@@ -554,6 +547,54 @@ class HpSanISCSIDriver(SanISCSIDriver):
     def ensure_export(self, context, volume):
         """Ensure export is not applicable unlike other drivers."""
         pass
+
+    def _calc_factors_space(self, cluster_info):
+        """Calculate the given the cluster_info of space total and available"""
+        space_total = float(cluster_info['spaceTotal'])
+        space_avail = float(cluster_info['spaceAvail'])
+        LOG.debug("Volume space Total : %r" % space_total)
+        LOG.debug("Volume space Avail : %r" % space_avail)
+
+        # Calculate the available space and total space based on factors
+        G = 1024 ** 3
+        raid_factor = float(FLAGS.san_network_raid_factor) * G
+        LOG.debug("Volume raid factor : %.2f" % raid_factor)
+
+        # Use the calculated factor to determine total/avail
+        factor_total = space_total / raid_factor
+        factor_avail = space_avail / raid_factor
+        LOG.debug("Volume factor Total : %rGBs" % factor_total)
+        LOG.debug("Volume factor Avail : %rGBs" % factor_avail)
+
+        # Take the max provisional percent of device into calculation
+        percent = float(FLAGS.san_max_provision_percent)/100.0
+        LOG.debug("Volume san_max_provision_percent : %r" % percent)
+
+        # How much are we allowed to use?
+        # Total calculated provisional space for the device
+        prov_total = float(factor_total * percent)
+        # Total calculated used space on the device
+        prov_used =  (factor_total - factor_avail)
+        LOG.debug("Volume total space size : %rGBs" % prov_total)
+        LOG.debug("Volume used space size : %rGBs" % prov_used)
+        # Total calculated available space on the device
+        prov_avail =  prov_total - prov_used
+        LOG.debug("Volume available_space : %rGBs" % prov_avail)
+
+        # Create the dictionary of values to return
+        return {'name': cluster_info['name'],
+                'type': self.__class__.__name__,
+                'raw_total': space_total,
+                'raw_avail': space_avail,
+                'prov_avail': prov_avail,
+                'prov_total': prov_total,
+                'prov_used': prov_used,
+                'percent': percent}
+
+    def get_storage_device_info(self):
+        """Returns the storage device information."""
+        cluster_info = self._cliq_get_cluster_info(FLAGS.san_clustername)
+        return self._calc_factors_space(cluster_info)
 
     def create_export(self, context, volume):
         """Create export is not applicable unlike other drivers.
@@ -637,7 +678,12 @@ class ISCSILiteDriver(HpSanISCSIDriver):
         pass
 
     def check_for_available_space(self, size):
-        return size <= 10
+        """Check for available volume space"""
+        device_info = self._get_device_info()
+        calc_info = self._calc_factors_space(device_info)
+        LOG.debug("calculated info about space : %r" % calc_info)
+        LOG.debug("checking_for_available_space %r : %r" % (size, calc_info['prov_avail']))
+        return (size <= calc_info['prov_avail'])
     
     def check_for_setup_error(self):
         """Check for any errors at setup for fast fail"""
@@ -690,6 +736,36 @@ class ISCSILiteDriver(HpSanISCSIDriver):
             LOG.error(err)
             raise
 
+    def get_storage_device_info(self):
+        """Returns the storage device information."""
+        device_info = self._get_device_info()
+        calc_info = self._calc_factors_space(device_info)
+        LOG.debug("returning : %r" % calc_info)
+        return calc_info
+
+    def _get_device_info(self):
+        """Get the raw data from the volume server"""
+        # Value hard coded to 20GBs (could change to a constant value if needed)
+        space_total = 20 * (1024**3)
+
+        # Find out how much space is used on volume server
+        (std_out, std_err) = self._run_ssh("sudo du -m /san")
+        cmd_list = std_out.split('\t')
+        LOG.debug("cmd_list : %r" % cmd_list)
+
+        # Offset only applies to the ISCSI Lite Driver per create_volume(128MB)
+        offset = (1024**3)*2
+        LOG.debug("offset : %r" % offset)
+        raw_used = (int(cmd_list[0])/128)*offset
+        LOG.debug("raw_space_used : %r" % raw_used)
+        LOG.debug("space_total : %r" % space_total)
+        LOG.debug("spaceAvail : %r" % (space_total-raw_used))
+
+        return { 'name': 'ISCSI test class',
+                        'type': self.__class__.__name__,
+                        'spaceTotal': space_total,
+                        'spaceAvail': space_total-raw_used}
+        
     def remove_export(self, context, volume):
         """Remove the export on the storage server"""
         tid = self.db.volume_get_iscsi_target_num(context, volume['id'])
