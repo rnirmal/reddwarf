@@ -896,16 +896,16 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         if instance['volumes']:
             for volume in instance['volumes']:
-                if volume.has_key('uuid'):
+                if volume.uuid:
                     self._container_script_modify(instance, None,
-                                                  volume['uuid'],
-                                                  volume['mountpoint'], 'add')
-                    LOG.debug('Added volume %s to %s' % (volume['uuid'],
+                                                  volume.uuid,
+                                                  volume.mountpoint, 'add')
+                    LOG.debug('Added volume %s to %s' % (volume.uuid,
                                                          instance['id']))
                 else:
-                    self._container_script_modify(instance, volume['dev'],
+                    self._container_script_modify(instance, volume.export_device,
                                                   None, 'add')
-                    LOG.debug('Added volume %s to %s' % (volume['dev'],
+                    LOG.debug('Added volume %s to %s' % (volume.export_device,
                                                          instance['id']))
 
     def attach_volume(self, instance_name, device_path, mountpoint):
