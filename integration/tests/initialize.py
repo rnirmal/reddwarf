@@ -48,6 +48,9 @@ def glance_api_conf():
 def glance_reg_conf():
     return str(test_config.values.get("glance_reg_conf"))
 
+def keystone_reg_conf():
+    return "/etc/keystone/keystone.conf"
+
 def nova_conf():
     return str(test_config.values.get("nova_conf"))
 
@@ -209,6 +212,25 @@ class PlatformApi(unittest.TestCase):
     def test_start(self):
         if not self.service.is_service_alive():
             self.service.start(time_out=60)
+
+
+@test(groups=["services.initialize"],
+      depends_on_classes=[PlatformApi])
+class Keystone(unittest.TestCase):
+    """Starts the Keystone Service and Admin API"""
+
+    def setUp(self):
+        default_path = "/usr/local/bin/keystone"
+        if os.path.exists(default_path):
+            path = default_path
+        else:
+            path = "/keystone/bin/keystone"
+        self.service = Service(python_cmd_list() +
+                               [path, "-c %s" % keystone_reg_conf()])
+
+    def test_start(self):
+        if not self.service.is_service_alive():
+            self.service.start()
 
 
 @test(groups=["services.initialize"],
