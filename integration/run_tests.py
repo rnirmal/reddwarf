@@ -115,6 +115,8 @@ if __name__ == '__main__':
     from tests.volumes import driver
     from tests.volumes import VOLUMES_DRIVER
 
+    from tests import util
+
     host_ovz_groups = [
         "dbaas.guest",
         "dbaas.guest.dns",
@@ -122,8 +124,9 @@ if __name__ == '__main__':
         pkg_tests.GROUP,
         VOLUMES_DRIVER
     ]
-    if FLAGS.dns_driver == "rsdns.driver.RsDnsDriver":
+    if util.should_run_rsdns_tests():
         host_ovz_groups += ["rsdns.conversion", "rsdns.domains"]
+
     proboscis.register(groups=["host.ovz"], depends_on_groups=host_ovz_groups)
 
     atexit.register(_clean_up)

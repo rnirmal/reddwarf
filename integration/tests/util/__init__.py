@@ -37,7 +37,7 @@ from sqlalchemy.sql.expression import text
 from nova import exception
 from nova import flags
 from nova import utils
-from nose.tools import assert_true
+from nose.tools import assert_false
 from reddwarfclient import Dbaas
 
 FLAGS = flags.FLAGS
@@ -109,8 +109,8 @@ def create_dns_entry(user_name, container_id):
     # is None, does nothing. That's actually how the contract for this class
     # works. But we want to make sure that if the RsDnsDriver is defined in the
     # flags we are returning something other than None and running those tests.
-    if FLAGS.dns_driver == "rsdns.driver.RsDnsDriver":
-        assert_true(entry is not None, "RsDnsDriver needs real entries.")
+    if should_run_rsdns_tests():
+        assert_false(entry is None, "RsDnsDriver needs real entries.")
     return entry
 
 
@@ -140,6 +140,11 @@ def process(cmd):
                                stderr=subprocess.PIPE)
     result = process.communicate()
     return result
+
+
+def should_run_rsdns_tests():
+    """If true, then the RS DNS tests should also be run."""
+    return FLAGS.dns_driver == "rsdns.driver.RsDnsDriver"
 
 
 def string_in_list(str, substr_list):
