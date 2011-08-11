@@ -38,7 +38,7 @@ class Controller(object):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
-    def upgrade(self, req, id, body):
+    def upgrade(self, req, id):
         """Upgrade the guest for a specific container"""
         LOG.info("Upgrade of nova-guest issued for instance : %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
@@ -48,7 +48,7 @@ class Controller(object):
         self.guest_api.upgrade(ctxt, id)
         return exc.HTTPAccepted()
 
-    def upgradeall(self, req, body):
+    def upgradeall(self, req):
         """Upgrade the guests for all the containers"""
         LOG.info("Upgrade all nova-guest issued")
         LOG.debug("%s - %s", req.environ, req.body)
@@ -79,6 +79,12 @@ def create_resource(version='1.0'):
                                                   xmlns=xmlns),
     }
 
-    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+    deserializers = {
+        'application/xml': wsgi.TextDeserializer(),
+        'application/json': wsgi.TextDeserializer(),
+    }
 
-    return wsgi.Resource(controller, serializer=response_serializer)
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+    request_deserializer = wsgi.RequestDeserializer(deserializers)
+    return wsgi.Resource(controller, deserializer=request_deserializer,
+                         serializer=response_serializer)

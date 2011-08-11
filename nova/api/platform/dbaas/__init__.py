@@ -63,22 +63,23 @@ class APIRouter(wsgi.Router):
         container_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
             LOG.debug(_("Including admin operations in API."))
-            mapper.resource("guest", "guests",
-                            controller=guests.create_resource(),
-                            collection={'upgradeall': 'POST'},
-                            member={'upgrade': 'POST'})
+            with mapper.submapper(path_prefix="/mgmt/guests",
+                                  controller=guests.create_resource()) as m:
+                m.connect("/upgradeall", action="upgradeall",
+                          conditions=dict(method=["POST"]))
+                m.connect("/{id}/upgrade", action="upgrade",
+                          conditions=dict(method=["POST"]))
 
             mapper.resource("image", "images",
                             controller=images.create_resource(FLAGS.nova_api_version),
                             collection={'detail': 'GET'})
 
-            mapper.connect("/mgmt/hosts",
-                       controller=hosts.create_resource(),
-                       action="index", conditions=dict(method=["GET"]))
-
-            mapper.connect("/mgmt/hosts/{id}",
-                       controller=hosts.create_resource(),
-                       action="show", conditions=dict(method=["GET"]))
+            with mapper.submapper(path_prefix="/mgmt/hosts",
+                                  controller=hosts.create_resource()) as m:
+                m.connect("", action="index",
+                          conditions=dict(method=["GET"]))
+                m.connect("/{id}", action="show",
+                          conditions=dict(method=["GET"]))
 
             mapper.connect("/mgmt/dbcontainers/{id}",
                             controller=management.create_resource(),
