@@ -26,10 +26,9 @@ from proboscis import test
 from proboscis.decorators import expect_exception
 
 import rsdns
-from rsdns import driver as drivermod
-from rsdns.driver import RsDnsDriver
-from rsdns.driver import RsDnsZone
-from rsdns.driver import DnsEntry
+from nova.dns.driver import DnsEntry
+from nova.dns.rsdns.driver import RsDnsDriver
+from nova.dns.rsdns.driver import RsDnsZone
 
 driver = None
 
@@ -54,7 +53,6 @@ class RandomClientTests(unittest.TestCase):
 
     def test_zone(self):
         global driver
-        drivermod.FLAGS.dns_domain_id = 1
         driver = RsDnsDriver()
         client = driver.dns_client
         hostname = "blueparrakars.com"

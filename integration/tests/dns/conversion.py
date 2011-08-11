@@ -20,9 +20,9 @@ from proboscis import test
 from proboscis.decorators import expect_exception
 
 from rsdns.client.records import Record
-from rsdns.driver import EntryToRecordConverter
-from rsdns.driver import RsDnsInstanceEntryFactory
-from rsdns.driver import RsDnsZone
+from nova.dns.rsdns.driver import EntryToRecordConverter
+from nova.dns.rsdns.driver import RsDnsInstanceEntryFactory
+from nova.dns.rsdns.driver import RsDnsZone
 
 driver = None
 

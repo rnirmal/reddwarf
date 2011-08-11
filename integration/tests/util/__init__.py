@@ -144,7 +144,7 @@ def process(cmd):
 
 def should_run_rsdns_tests():
     """If true, then the RS DNS tests should also be run."""
-    return FLAGS.dns_driver == "rsdns.driver.RsDnsDriver"
+    return FLAGS.dns_driver == "nova.dns.rsdns.driver.RsDnsDriver"
 
 
 def string_in_list(str, substr_list):
