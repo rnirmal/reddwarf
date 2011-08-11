@@ -838,6 +838,7 @@ def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
                  all()
     if not rv:
         raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
+    return rv
 
 
 @require_context
