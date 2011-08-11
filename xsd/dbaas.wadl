@@ -43,6 +43,16 @@
          </resource>
       </resource>
     </resource>
+    <resource id="flavors" path="flavors">
+      <method href="#getFlavors"/>
+      <resource id="flavorDetails" path="detail">
+        <method href="#getFlavorDetails"/>
+      </resource>
+      <resource id="flavorId" path="{flavorId}">
+        <param name="flavorId" style="template" type="xsd:string"/>
+        <method href="#getFlavorById"/>
+      </resource>
+    </resource>
   </resources>
 
   <!--Token Methods...-->
@@ -157,18 +167,6 @@
     </response>
   </method>
 
-  <!-- Flavor -->
-  <method name="GET" id="getFlavors">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Flavors"/>
-      <representation mediaType="application/json" element="dbaas:Flavors"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
-
   <method name="GET" id="getContainerDetails">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:DatabaseContainers"/>
@@ -261,6 +259,40 @@
       <representation mediaType="application/json" element="dbaas:RootEnabled"/>
     </response>
     <response status="400 401 403 404 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+
+   <!-- Flavor -->
+  <method name="GET" id="getFlavors">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Flavors"/>
+      <representation mediaType="application/json" element="dbaas:Flavors"/>
+    </response>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+
+  <method name="GET" id="getFlavorDetails">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Flavors"/>
+      <representation mediaType="application/json" element="dbaas:Flavors"/>
+    </response>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+
+  <method name="GET" id="getFlavorById">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Flavor"/>
+      <representation mediaType="application/json" element="dbaas:Flavor"/>
+    </response>
+    <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
       <representation mediaType="application/json"/>
     </response>
