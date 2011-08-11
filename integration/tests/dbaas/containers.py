@@ -267,7 +267,12 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
             guest_status = dbapi.guest_status_get(container_info.id)
             if guest_status.state != power_state.RUNNING:
                 result = dbaas.dbcontainers.get(container_info.id)
-                self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
+                # I think there's a small race condition which can occur
+                # between the time you grab "guest_status" and "result," so
+                # RUNNING is allowed in addition to BUILDING.
+                self.assertTrue(
+                    result.status == _dbaas_mapping[power_state.BUILDING] or
+                    result.status == _dbaas_mapping[power_state.RUNNING])
                 time.sleep(5)
             else:
                 break
