@@ -558,7 +558,7 @@ class HpSanISCSIDriver(SanISCSIDriver):
         # Calculate the available space and total space based on factors
         G = 1024 ** 3
         raid_factor = float(FLAGS.san_network_raid_factor) * G
-        LOG.debug("Volume raid factor : %s" % raid_factor)
+        LOG.debug("Volume raid factor : %.2f" % raid_factor)
 
         # Use the calculated factor to determine total/avail
         factor_total = space_total / raid_factor
@@ -746,7 +746,7 @@ class ISCSILiteDriver(HpSanISCSIDriver):
     def _get_device_info(self):
         """Get the raw data from the volume server"""
         # Value hard coded to 20GBs (could change to a constant value if needed)
-        space_total = 20*1024**3
+        space_total = 20 * (1024**3)
 
         # Find out how much space is used on volume server
         (std_out, std_err) = self._run_ssh("sudo du -m /san")

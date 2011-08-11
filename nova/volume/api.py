@@ -147,7 +147,7 @@ class API(base.Base):
                              FLAGS.volume_topic,
                              {"method": "get_storage_device_info",
                               "args": {}})
-        return None
+        raise exception.AdminRequired()
 
     def get_snapshot(self, context, snapshot_id):
         rv = self.db.snapshot_get(context, snapshot_id)

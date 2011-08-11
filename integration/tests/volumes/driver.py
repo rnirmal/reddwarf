@@ -147,7 +147,7 @@ class SetUp(VolumeTest):
         total = int(device_info['spaceTotal'])*gbs
         free = int(device_info['spaceAvail'])*gbs
         used = total - free
-        usable = round(total * (FLAGS.san_max_provision_percent * 1.0/100))
+        usable = round(total * (FLAGS.san_max_provision_percent * 100.0))
         real_free = round((usable - used))
 
         print("total : %r" % total)
@@ -258,7 +258,7 @@ class AfterVolumeIsAdded(VolumeTest):
         print("device_info : %r" % info)
         self.assertNotEqual(info, None, "the storage device information should exist")
         self.assertEqual(self.story.original_device_info['raw_total'], info['raw_total'])
-        volume_size = int(self.story.volume['size'])*1024**3*2
+        volume_size = int(self.story.volume['size']) * (1024**3) * 2
         print("volume_size: %r" % volume_size)
         print("self.story.volume['size']: %r" % self.story.volume['size'])
         avail = int(self.story.original_device_info['raw_avail']) - volume_size
