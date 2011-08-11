@@ -158,7 +158,7 @@
   </method>
 
   <!-- Flavor -->
-  <method name="GET" id="getFlavor">
+  <method name="GET" id="getFlavors">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Flavors"/>
       <representation mediaType="application/json" element="dbaas:Flavors"/>
