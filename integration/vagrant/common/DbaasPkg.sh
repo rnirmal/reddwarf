@@ -222,32 +222,6 @@ dbaas_pkg_install_nova() {
     echo "Finished installing nova"
 }
 
-dbaas_pkg_install_rsdns() {
-    if [ -d /rsdns ]
-    then
-        echo Installing RS DNS.
-        sudo rm -rf ~/rsdns
-        echo Creating temporary copy.
-        sudo cp -rf /rsdns ~/rsdns
-        if [ $? -ne 0 ]
-        then
-            echo "Could not copy RSDNS directory to temporary local location."
-            exit 1
-        fi
-        echo Installing RSDNS.
-        cd /home/vagrant/rsdns
-        sudo python setup.py install
-        if [ $? -ne 0 ]
-        then
-            echo "Failure to install RSDNS."
-            exit 1
-        fi
-        echo Installed successfully.
-    else
-        echo "Not installing RS DNS because it wasn't found."
-    fi
-}
-
 dbaas_pkg_upload_release() {
     # Installs the release. Assumes the /tmp/build stuff is already done and exists
     cd /tmp/build/dbaas

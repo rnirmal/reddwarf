@@ -36,9 +36,9 @@ mysql -u root -pnova -e "FLUSH PRIVILEGES;"
 exclaim Initializing Nova database.
 
 cat /vagrant-common/nova.conf.template > /home/vagrant/nova.conf
-if [ -d /rsdns ]
+if [ -d /extra ]
 then
-    cat /rsdns/nova.conf >> /home/vagrant/nova.conf
+    cat /extra/nova.conf >> /home/vagrant/nova.conf
 fi
 
 glance_manage () {

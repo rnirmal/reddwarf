@@ -30,6 +30,7 @@ GROUP_STOP="dbaas.guest.shutdown"
 
 from datetime import datetime
 from nose.plugins.skip import SkipTest
+from nose.tools import assert_true
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
@@ -420,8 +421,8 @@ class TestContainerListing(unittest.TestCase):
         attrs = ['name', 'links', 'id', 'flavor', 'rootEnabled', 'status',
                  'volume']
         self._check_attr_in_dbcontainers(container, attrs)
-        if rsdns:
-            dns_entry = container_info.expected_dns_entry()
+        dns_entry = container_info.expected_dns_entry()
+        if dns_entry:
             self.assertEqual(dns_entry.name, container.hostname)
 
 
@@ -576,7 +577,8 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
                 },
             }
 
-        if rsdns is not None:
+        expected_entry = info.expected_dns_entry()
+        if expected_entry:
             expected['hostname'] = info.expected_dns_entry().name
 
         self.assertTrue(mgmt_details is not None)

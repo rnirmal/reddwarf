@@ -1,0 +1,121 @@
+# Copyright 2011 OpenStack LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+"""
+Records interface.
+"""
+
+
+from novaclient import base
+from rsdns.client.future import FutureResource
+
+
+class FutureRecord(FutureResource):
+
+    def convert_callback(self, resp, body):
+        try:
+            list = body['records']
+        except NameError:
+            raise RuntimeError('Body was missing "records" or "record" key.')
+        if len(list) != 1:
+            raise RuntimeError('Return result had ' + str(len(list)) + \
+                               'records, not 1.')
+        return Record(self, list[0])
+
+
+class Record(base.Resource):
+    """
+    A Record is a individual dns record (Cname, A, MX, etc..)
+    """
+    def __repr__(self):
+        # @TODO(mbasnight): fix this once the API changes
+        return "OK"
+
+# class RecordsManager(base.ManagerWithFind):
+class RecordsManager(base.ManagerWithFind):
+    """
+    Manage :class:`Record` resources.
+    """
+    resource_class = Record
+
+    # def get(self, domain, record):
+    #     """
+    #     Get a specific record owned by a specific domain.
+    # 
+    #     :param domain: The ID of the :class:`Domain` to get.
+    #     :param record: The ID of the :class:`Record` to get.
+    #     :rtype: :class:`Record`
+    #     """
+    #     return self._list("/domains/%s/records/%s" % (base.getid(domain), base.getid(record)), "records")
+
+    def create(self, domain, record_name, record_data, record_type, record_ttl):
+        """
+        Create a new Record on the given domain
+
+        :param domain: The ID of the :class:`Domain` to get.
+        :param record: The ID of the :class:`Record` to get.
+        :rtype: :class:`Record`
+        """
+        data = {"records":[{"type": record_type, "name": record_name,
+                            "data": record_data, "ttl": record_ttl }]}
+        resp, body = self.api.client.post("/domains/%s/records" % \
+                                          base.getid(domain), body=data)
+        if resp.status == 202:
+            return FutureRecord(self, **body)
+        raise RuntimeError("Did not expect response " + str(resp.status))
+#        try:
+#            records = body['records']
+#            list = records['record']
+#        except NameError:
+#            raise RuntimeError('Body was missing "records" or "record" key.')
+#        if len(list) != 1:
+#            raise RuntimeError('Return result had ' + str(len(list)) + \
+#                               'records, not 1.')
+#        return self.resource_class(self, list[0])
+        #return self._create("/domains/%s/records" % base.getid(domain), data, "record")
+
+    def delete(self, domain_id, record_id):
+        self._delete("/domains/%s/records/%s" % (domain_id, record_id))
+
+    def match_record(self, record, name=None, address=None, type=None):
+        assert(isinstance(record, Record))
+        return (not name or record.name == name) and \
+               (not address or record.data == address) and \
+               (not type or record.type == type)
+
+
+    def list(self, domain_id, record_name=None, record_address=None,
+             record_type=None):
+        """
+        Get a list of all records under a domain.
+
+        :rtype: list of :class:`Record`
+        """
+        resp, body = self.api.client.get("/domains/%s/records" % domain_id)
+        try:
+            list = body['records']
+            # list = records['record']
+        except NameError:
+            raise RuntimeError('Body was missing "records" or "record" key.')
+        all_records = [self.resource_class(self, res) for res in list]
+        return [record for record in all_records
+                if self.match_record(record, record_name, record_address,
+                                     record_type)]
+#
+#        if record_name:
+#            records = (record for record in records \
+#                       if match_record(record, record_name, record_address,
+#                                       record_type))
+#        return records

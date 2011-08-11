@@ -102,8 +102,10 @@ if __name__ == '__main__':
     from tests import initialize
     from tests.dbaas import dbaas_ovz
     from tests.dbaas import dns
-
     from tests.dbaas import flavors
+
+    from tests.dns import check_domain
+    from tests.dns import conversion
 
     from tests.guest import dbaas_tests
     from tests.guest import pkg_tests
@@ -113,13 +115,16 @@ if __name__ == '__main__':
     from tests.volumes import driver
     from tests.volumes import VOLUMES_DRIVER
 
-    proboscis.register(groups=["host.ovz"], depends_on_groups=[
+    host_ovz_groups = [
         "dbaas.guest",
         "dbaas.guest.dns",
         SCHEDULER_DRIVER_GROUP,
         pkg_tests.GROUP,
         VOLUMES_DRIVER
-        ])
+    ]
+    if FLAGS.dns_driver == "rsdns.driver.RsDnsDriver":
+        host_ovz_groups += ["rsdns.conversion", "rsdns.domains"]
+    proboscis.register(groups=["host.ovz"], depends_on_groups=host_ovz_groups)
 
     atexit.register(_clean_up)
     proboscis.TestProgram(argv=nose_args, groups=groups).run_and_exit()

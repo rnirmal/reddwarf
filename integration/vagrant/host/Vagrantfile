@@ -21,10 +21,10 @@ Vagrant::Config.run do |global_config|
 
       
       config.vm.share_folder "nova", "/src", "../../../"
-      if ENV['RSDNS']
-        rsdns_dir = ENV['RSDNS']
-        if File.directory?(rsdns_dir)
-            config.vm.share_folder "rsdns", "/rsdns", ENV['RSDNS']
+      if ENV['REDDWARF_EXTRA']
+        reddwarf_extra_dir = ENV['REDDWARF_EXTRA']
+        if File.directory?(reddwarf_extra_dir)
+            config.vm.share_folder "extra", "/extra", reddwarf_extra_dir
         end
       end
       config.vm.share_folder "vagrant-common", "/vagrant-common", "./../common"
