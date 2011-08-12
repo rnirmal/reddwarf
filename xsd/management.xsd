@@ -203,7 +203,7 @@
       </annotation>
     </attribute>
     <sequence>
-      <element name="device" type="dbaas:Hosts" minOccurs="0" maxOccurs="unbounded">
+      <element name="hosts" type="dbaas:Hosts" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>List of hosts that the Account has containers running on.</p>
