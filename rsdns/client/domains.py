@@ -17,8 +17,8 @@
 Domains interface.
 """
 
-
 from novaclient import base
+
 import rsdns
 from rsdns.client.future import FutureResource
 
@@ -46,16 +46,6 @@ class DomainsManager(base.ManagerWithFind):
     """
     resource_class = Domain
 
-    # def get(self, domain, record):
-    #     """
-    #     Get a specific record owned by a specific domain.
-    # 
-    #     :param domain: The ID of the :class:`Domain` to get.
-    #     :param record: The ID of the :class:`Record` to get.
-    #     :rtype: :class:`Record`
-    #     """
-    #     return self._list("/domains/%s/records/%s" % (base.getid(domain), base.getid(record)), "records")
-    
     def create(self, name):
         """Not implemented / needed yet."""
         if rsdns.ADD_DOMAINS:

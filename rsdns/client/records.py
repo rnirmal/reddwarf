@@ -43,22 +43,12 @@ class Record(base.Resource):
         # @TODO(mbasnight): fix this once the API changes
         return "OK"
 
-# class RecordsManager(base.ManagerWithFind):
+
 class RecordsManager(base.ManagerWithFind):
     """
     Manage :class:`Record` resources.
     """
     resource_class = Record
-
-    # def get(self, domain, record):
-    #     """
-    #     Get a specific record owned by a specific domain.
-    # 
-    #     :param domain: The ID of the :class:`Domain` to get.
-    #     :param record: The ID of the :class:`Record` to get.
-    #     :rtype: :class:`Record`
-    #     """
-    #     return self._list("/domains/%s/records/%s" % (base.getid(domain), base.getid(record)), "records")
 
     def create(self, domain, record_name, record_data, record_type, record_ttl):
         """
@@ -75,16 +65,6 @@ class RecordsManager(base.ManagerWithFind):
         if resp.status == 202:
             return FutureRecord(self, **body)
         raise RuntimeError("Did not expect response " + str(resp.status))
-#        try:
-#            records = body['records']
-#            list = records['record']
-#        except NameError:
-#            raise RuntimeError('Body was missing "records" or "record" key.')
-#        if len(list) != 1:
-#            raise RuntimeError('Return result had ' + str(len(list)) + \
-#                               'records, not 1.')
-#        return self.resource_class(self, list[0])
-        #return self._create("/domains/%s/records" % base.getid(domain), data, "record")
 
     def delete(self, domain_id, record_id):
         self._delete("/domains/%s/records/%s" % (domain_id, record_id))
@@ -105,17 +85,10 @@ class RecordsManager(base.ManagerWithFind):
         """
         resp, body = self.api.client.get("/domains/%s/records" % domain_id)
         try:
-            list = body['records']
-            # list = records['record']
+            list = body['records']            
         except NameError:
             raise RuntimeError('Body was missing "records" or "record" key.')
         all_records = [self.resource_class(self, res) for res in list]
         return [record for record in all_records
                 if self.match_record(record, record_name, record_address,
                                      record_type)]
-#
-#        if record_name:
-#            records = (record for record in records \
-#                       if match_record(record, record_name, record_address,
-#                                       record_type))
-#        return records

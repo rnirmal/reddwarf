@@ -9,9 +9,6 @@ class FutureResource(object):
         self.callbackUrl = unicode(callbackUrl)
         self.result = None
         management_url = unicode(self.manager.api.client.management_url)
-        import sys
-        sys.__stdout__.write("AU:" + management_url + "\n")
-        sys.__stdout__.write("CBURL:" + self.callbackUrl + "\n")
         if self.callbackUrl.startswith(management_url):
             self.callbackUrl = self.callbackUrl[len(management_url):]
 
@@ -36,4 +33,3 @@ class FutureResource(object):
     @property
     def resource(self):
         return self.result or self.poll()
-

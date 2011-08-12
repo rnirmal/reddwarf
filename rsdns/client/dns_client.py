@@ -50,7 +50,6 @@ class DNSaasClient(OpenStackClient):
         headers = {'X-Auth-User': self.user, 'X-Auth-Key': self.apikey}
         resp, body = self.request(self.auth_url, 'GET', headers=headers)
         self.management_url = self.management_base_url + str(self.accountId)
-        # self.management_url = "https://qa.dnsaas.rackspace.net/v1.0/%s" % self.accountIda
         self.auth_token = resp['x-auth-token']
 
     def _munge_get_url(self, url):
