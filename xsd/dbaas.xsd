@@ -84,7 +84,7 @@
       </xsd:appinfo>
     </annotation>
   </element>
-  <element name="flavors" type="dbaas:Flavors">
+  <element name="flavor" type="dbaas:Flavor">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>Settings such as memory used to create a database container.</p>
@@ -96,6 +96,23 @@
             </xsdxt:sample>
             <xsdxt:sample>
               <xsdxt:code type="application/json" href="../samples/flavor.json"/>
+            </xsdxt:sample>
+          </xsdxt:samples>
+        </xsd:appinfo>
+      </annotation>
+    </element>
+  <element name="flavors" type="dbaas:Flavors">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A list of flavors.</p>
+        </xsd:documentation>
+        <xsd:appinfo>
+          <xsdxt:samples>
+            <xsdxt:sample>
+              <xsdxt:code type="application/xml" href="../samples/flavors.xml"/>
+            </xsdxt:sample>
+            <xsdxt:sample>
+              <xsdxt:code type="application/json" href="../samples/flavors.json"/>
             </xsdxt:sample>
           </xsdxt:samples>
         </xsd:appinfo>
