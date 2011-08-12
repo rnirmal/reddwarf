@@ -40,7 +40,8 @@ class Record(base.Resource):
     A Record is a individual dns record (Cname, A, MX, etc..)
     """
     def __repr__(self):
-        # @TODO(mbasnight): fix this once the API changes
+        # The DNS API sometimes returns codes other than 200 even though
+        # the result is still what Nova client would consider "OK".
         return "OK"
 
 

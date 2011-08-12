@@ -38,8 +38,6 @@ class FutureDomain(FutureResource):
         return Domain(self.manager, body)
 
 
-
-# class RecordsManager(base.ManagerWithFind):
 class DomainsManager(base.ManagerWithFind):
     """
     Manage :class:`Domain` resources.

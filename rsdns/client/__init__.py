@@ -28,19 +28,6 @@ from novaclient.exceptions import (OpenStackException, BadRequest,
 class DNSaas(object):
     """
     Top-level object to access the DNSaas service
-
-    Create an instance with your creds::
-
-        >>> os = DNSaas(USERNAME, API_KEY, AUTH_URL)
-
-    Then call methods on its managers::
-
-        >>> os.@TODO Fix this
-        ...
-        >>> os.@TODO Fix this
-        ...
-
-    &c.
     """
 
     def __init__(self, accountId, username, apikey,
