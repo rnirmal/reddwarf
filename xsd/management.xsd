@@ -73,6 +73,24 @@
     </annotation>
   </element>
 
+  <element name="account" type="dbaas:Account">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Information about Account.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/account.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/account.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+
   <!--Complex Types-->
   <complexType name="Hosts">
     <sequence>
@@ -174,6 +192,25 @@
         </xsd:documentation>
       </annotation>
     </attribute>
+  </complexType>
+
+  <complexType name="Account">
+    <attribute name="name" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The name of the account.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <sequence>
+      <element name="device" type="dbaas:Hosts" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>List of hosts that the Account has containers running on.</p>
+          </xsd:documentation>
+        </annotation>
+      </element>
+    </sequence>
   </complexType>
 
 </schema>
