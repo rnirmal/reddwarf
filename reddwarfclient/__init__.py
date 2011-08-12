@@ -13,7 +13,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from novaclient import OpenStack
+import time
+import urlparse
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+
+from novaclient.client import HTTPClient
+from novaclient.v1_1.client import Client
+
 
 from reddwarfclient.accounts import Accounts
 from reddwarfclient.databases import Databases
@@ -28,27 +39,72 @@ from reddwarfclient.users import Users
 # similar to the CloudServers one.
 # For now we will work on it here.
 
-class Dbaas(OpenStack):
+
+class ReddwarfHTTPClient(HTTPClient):
+    """
+    Class for overriding the HTTP authenticate call and making it specific to
+    reddwarf
+    """
+
+    def __init__(self, user, apikey, tenant, auth_url, service,
+                 timeout=None):
+        super(ReddwarfHTTPClient, self).__init__(user, apikey, tenant,
+                                                 auth_url, timeout=timeout)
+        assert service in ['reddwarf', 'nova']
+        self.tenant = tenant
+        self.service = service
+
+    def authenticate(self):
+        scheme, netloc, path, query, frag = urlparse.urlsplit(self.auth_url)
+        path_parts = path.split('/')
+        for part in path_parts:
+            if len(part) > 0 and part[0] == 'v':
+                self.version = part
+                break
+
+        if self.version == "v2.0":
+            body = {'passwordCredentials': {'username': self.user,
+                                            'password': self.apikey,
+                                            'tenantId': self.tenant}}
+
+            token_url = urlparse.urljoin(self.auth_url, "tokens")
+            resp, body = self.request(token_url, "POST", body=body)
+
+            self.management_url = body['auth']['serviceCatalog'] \
+                                      [self.service][0]['publicURL']
+            self.auth_token = body['auth']['token']['id']
+
+        elif self.version == "v1.1":
+            # TODO(rnirmal): Add the logic for 1.1 auth api
+            raise NotImplementedError()
+        else:
+            raise NotImplementedError("Version %s is not supported"
+                                      % self.version)
+
+
+class Dbaas(Client):
     """
     Top-level object to access the Rackspace Database as a Service API.
 
     Create an instance with your creds::
 
-        >>> cs = Dbaas(USERNAME, API_KEY [, AUTH_URL])
+        >>> red = Dbaas(USERNAME, API_KEY, TENANT, AUTH_URL, SERVICE)
 
     Then call methods on its managers::
 
-        >>> cs.servers.list()
+        >>> red.dbcontainers.list()
         ...
-        >>> cs.flavors.list()
+        >>> red.flavors.list()
         ...
 
     &c.
     """
 
-    def __init__(self, username, apikey,
+    def __init__(self, username, apikey, tenant=None,
                  auth_url='https://auth.api.rackspacecloud.com/v1.1'):
-        OpenStack.__init__(self, username, apikey, auth_url)
+        super(Dbaas, self).__init__(self, username, apikey, tenant, auth_url)
+        self.client = ReddwarfHTTPClient(username, apikey, tenant, auth_url,
+                                         "reddwarf")
         self.databases = Databases(self)
         self.dbcontainers = DbContainers(self)
         self.users = Users(self)

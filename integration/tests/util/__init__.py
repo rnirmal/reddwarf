@@ -30,11 +30,9 @@
 import re
 import subprocess
 
-from novaclient import OpenStack
+from novaclient.v1_1.client import Client
 from sqlalchemy import create_engine
-from sqlalchemy.sql.expression import text
 
-from nova import exception
 from nova import flags
 from nova import utils
 from nose.tools import assert_false
@@ -94,7 +92,8 @@ def count_notifications(priority, event_type):
 def create_dbaas_client(user):
     """Creates a rich client for the RedDwarf API using the test config."""
     test_config.nova.ensure_started()
-    dbaas = Dbaas(user.auth_user, user.auth_key, test_config.dbaas.url)
+    dbaas = Dbaas(user.auth_user, user.auth_key,
+                  user.tenant, test_config.auth_url)
     dbaas.authenticate()
     return dbaas
 
@@ -117,7 +116,8 @@ def create_dns_entry(user_name, container_id):
 def create_openstack_client(user):
     """Creates a rich client for the OpenStack API using the test config."""
     test_config.nova.ensure_started()
-    openstack = OpenStack(user.auth_user, user.auth_key, test_config.nova.url)
+    openstack = Client(user.auth_user, user.auth_key,
+                       user.tenant, test_config.auth_url)
     openstack.authenticate()
     return openstack
 
@@ -126,6 +126,7 @@ def create_test_client(user):
     """Creates a test client loaded with asserts that works with both APIs."""
     os_client = create_openstack_client(user)
     dbaas_client = create_dbaas_client(user)
+    assert dbaas_client.client.auth_token is not None
     return TestClient(dbaas_client=dbaas_client, os_client=os_client)
 
 

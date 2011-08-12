@@ -108,6 +108,12 @@ class Setup(unittest.TestCase):
         container_info.user = test_config.users.find_user(Requirements(is_admin=True))
         dbaas = create_test_client(container_info.user)
 
+    def test_auth_token(self):
+        print("Auth Token: %s" % dbaas.client.auth_token)
+        print("Service URL: %s" % dbaas.client.management_url)
+        self.assertNotEqual(dbaas.client.auth_token, None)
+        self.assertEquals(dbaas.client.management_url, test_config.dbaas_url)
+
     def test_find_image(self):
         result = dbaas.find_image_and_self_href(test_config.dbaas_image)
         container_info.dbaas_image, container_info.dbaas_image_href = result
@@ -120,7 +126,7 @@ class Setup(unittest.TestCase):
         container_info.name = "TEST_" + str(datetime.now())
 
 
-@test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
+@test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class ContainerHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
 
@@ -186,7 +192,7 @@ class ContainerHostCheck(unittest.TestCase):
         account_info = dbaas.accounts.show(container_info.user.auth_user)
         self.assertEqual(0, len(account_info.hosts))
 
-@test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
+@test(depends_on_classes=[ContainerHostCheck], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
     """Test to create a Database Container
 

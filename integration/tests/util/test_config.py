@@ -21,6 +21,7 @@ import os
 from tests.util.services import WebService
 
 __all__ = [
+    "auth_url",
     "dbaas",
     "dbaas_image",
     "glance_code_root",
@@ -73,6 +74,16 @@ def nova_code_root():
     return str(values.get("nova_code_root"))
 
 
+def keystone_bin(service):
+    """The path of the specific keystone service"""
+    default_path = os.path.join("/usr/local/bin/", service)
+    if os.path.exists(default_path):
+        path = default_path
+    else:
+        path = os.path.join("/keystone/bin/", service)
+    return path
+
+
 def python_cmd_list():
     """The start of a command list to use when running Python scripts."""
     global use_venv
@@ -88,6 +99,7 @@ def python_cmd_list():
 def _setup():
     """Initializes the module."""
     from tests.util.users import Users
+    global auth_url
     global dbaas
     global nova
     global users
@@ -95,8 +107,10 @@ def _setup():
     global typical_nova_image_name
     global use_venv
     global values
+    global dbaas_url
     values = load_configuration()
     use_venv = values.get("use_venv", True)
+    auth_url = str(values.get("auth_url", "http://localhost:5000/v2.0"))
     dbaas_url = str(values.get("dbaas_url", "http://localhost:8775/v1.0"))
     nova_url = str(values.get("nova_url", "http://localhost:8774/v1.1"))
     nova_code_root = str(values["nova_code_root"])
