@@ -32,7 +32,7 @@ class RequestContext(object):
 
     def __init__(self, user_id, project_id, is_admin=None, read_deleted=False,
                  roles=None, remote_address=None, timestamp=None,
-                 request_id=None):
+                 request_id=None, auth_token=None):
         self.user_id = user_id
         self.project_id = project_id
         self.roles = roles or []
@@ -49,6 +49,7 @@ class RequestContext(object):
         if not request_id:
             request_id = unicode(uuid.uuid4())
         self.request_id = request_id
+        self.auth_token = auth_token
 
     def to_dict(self):
         return {'user_id': self.user_id,
