@@ -19,15 +19,13 @@
 Dns Driver that uses Rackspace DNSaaS.
 """
 
-
-#from nova.dns.driver import DnsEntry
-#from nova.dns.driver import DnsZone
 from novaclient.exceptions import NotFound
 from rsdns.client import DNSaas
 
 from nova import flags
-from nova import utils
 from nova.dns.driver import DnsEntry
+
+
 flags.DEFINE_string('dns_hostname', 'dbaas-test-domain.com',
                      'Hostname base for hosts thru DNSaas')
 flags.DEFINE_string('dns_account_id', 0,
@@ -62,11 +60,6 @@ class EntryToRecordConverter(object):
         return long_name
 
     def record_to_entry(self, record, dns_zone):
-        # end_index = len(record.name) - (len(dns_zone.name) + 1)
-        # if end_index >= 0:
-        #    entry_name = record.name[0:end_index]
-        #else:
-        #    entry_name = None
         entry_name = record.name
         return DnsEntry(name=entry_name, content=record.data, type=record.type,
                         ttl=record.ttl, dns_zone=dns_zone)
@@ -101,7 +94,7 @@ def find_default_zone(dns_client, raise_if_zone_missing=True):
         return RsDnsZone(id = None, name = domain_name)
     raise RuntimeError("The dns_domain_name from the FLAG values (%s) "
                        "does not exist!  account_id=%s, username=%s, LIST=%s"
-        % (domain_name, FLAGS.dns_account_id, FLAGS.dns_username, str(domains)) )
+        % (domain_name, FLAGS.dns_account_id, FLAGS.dns_username, domains))
 
 class RsDnsDriver(object):
     """Uses RS DNSaaS"""
@@ -161,18 +154,7 @@ class RsDnsDriver(object):
 
 
 class RsDnsInstanceEntryFactory(object):
-    """Defines how instance DNS entries are created for instances.
-
-    {user_id}-{display_name}.{NAMED_BASE_URL}
-    NAMED_BASE_URL, As per Bartels, is created like so:
-
-    {DC}.{PRODUCT}.rackspace.net
-
-    example:
-    ord1.lbaas.rackspace.net
-    ord1.dnsaas.rackspace.net
-
-    """
+    """Defines how instance DNS entries are created for instances."""
 
     def __init__(self):
         dns_client = create_client_with_flag_values()
@@ -186,37 +168,20 @@ class RsDnsInstanceEntryFactory(object):
         #                   ovz conn can use it.
         # TODO (mbasnight): This, as-is wont work unless we are very strict with
         #                   what constitutes a valid display_name
-        #hostname = "%s-%s.%s" % (instance['user_id'], instance['display_name'],
-        #                         FLAGS.dns_hostname)
         user_id = instance.get('user_id', None)
         id = instance.get('id', None)
         if not user_id:
             raise ValueError('"user_id" not found or empty in instance.')
         if not id:
             raise ValueError('"id" not found or empty in instance.')
-        hostname = ("%s-%s" % (user_id, id)) + "." + self.default_dns_zone.name
+        hostname = ("%s-%s.%s" % (user_id, id, self.default_dns_zone.name))
         # TODO (mbasnight): Figure out what to do with the initial TTLs
         # TODO (mbasnight): Remove this hack by fixing the code above it so the
         #                   ip can be gotten without a sleep, ugh
         import time
         time.sleep(1)
-        #ip = self.db_api.instance_get_fixed_address(ctxt, int(server_id))
-        # No longer necessary- the manager will add the ip as the content.
-        #LOG.info("returned ip %s" % ip)
         return DnsEntry(name=hostname, content=None, type="A",
                         priority=3600, dns_zone=self.default_dns_zone)
-
-        # FLAGS.dns_domain_id)
-        ##result = self.dns_client.records.create(FLAGS.dns_domain_id, hostname,
-        ##                                        ip, "A", 3600)
-        ### TODO (mbasnight): Do a verification check on the result == OK
-        #                    (for now)
-        ### TODO (mbasnight): This will eventually be a nicer object returned
-        #                     that we can validate
-        ##LOG.info("finished result for dns create %s" %result)
-        ### TODO (mbasnight): Put the hostname in the return object
-
-        ##return DnsEntry(name=instance.name, content=None, type="CNAME")
 
 
 class RsDnsZone(object):

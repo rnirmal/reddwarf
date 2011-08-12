@@ -44,39 +44,6 @@ def create_domain_if_needed():
         self.fail("Could not find default dns zone.")
 
 
-@test(groups=["ignore"], enabled=False)
-class RandomClientTests(unittest.TestCase):
-    """Random tests using the client. Useful for finding how the API works."""
-
-    def setUp(self):
-        set_test_flags()
-
-    def test_zone(self):
-        global driver
-        driver = RsDnsDriver()
-        client = driver.dns_client
-        hostname = "blueparrakars.com"
-        future = client.domains.create(hostname)
-        while not future.ready:
-            import time
-            time.sleep(1)
-        domain = future.resource
-        domains = client.domains.list()
-        domain = None
-        for d in domains:
-            if d.name == hostname:
-                domain = d
-        self.assertNotEqual(None, domain)
-
-        record_future = client.records.create(domain, "admin-1." + hostname,
-                                              "128.1.1.1", "A", 300)
-        while not record_future.ready:
-            import time
-            time.sleep(1)
-        record = record_future.resource
-        self.assertEqual("admin-1." + hostname, record.name)
-
-
 @test(groups=["rsdns.domains"])
 class ConfirmDomainIsValid(unittest.TestCase):
     """Makes sure the domain (specified by the FLAG settings) is valid."""

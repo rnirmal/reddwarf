@@ -30,7 +30,7 @@ class FutureRecord(FutureResource):
         except NameError:
             raise RuntimeError('Body was missing "records" or "record" key.')
         if len(list) != 1:
-            raise RuntimeError('Return result had ' + str(len(list)) + \
+            raise RuntimeError('Return result had ' + str(len(list)) +
                                'records, not 1.')
         return Record(self, list[0])
 

@@ -579,7 +579,7 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
 
         expected_entry = info.expected_dns_entry()
         if expected_entry:
-            expected['hostname'] = info.expected_dns_entry().name
+            expected['hostname'] = expected_entry.name
 
         self.assertTrue(mgmt_details is not None)
         failures = []
