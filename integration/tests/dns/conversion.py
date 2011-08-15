@@ -14,7 +14,7 @@
 #    under the License.
 """Tests classes which convert RS style-entries to Nova DNS entries."""
 
-
+import os
 import unittest
 from proboscis import test
 from proboscis.decorators import expect_exception
