@@ -30,6 +30,7 @@ GROUP_STOP="dbaas.guest.shutdown"
 
 from datetime import datetime
 from nose.plugins.skip import SkipTest
+from nose.tools import assert_true
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
@@ -381,6 +382,9 @@ class TestContainerListing(unittest.TestCase):
     def test_get_legacy_status_notfound(self):
         self.assertRaises(NotFound, dbaas.dbcontainers.get, -2)
 
+    # Calling has_key on the container triggers a lazy load.
+    # We don't want that here, so the next two methods use the _info dict.
+
     def _check_attr_in_dbcontainers(self, container, attrs):
         for attr in attrs:
             msg = "Missing attribute %r" % attr
@@ -417,8 +421,8 @@ class TestContainerListing(unittest.TestCase):
         attrs = ['name', 'links', 'id', 'flavor', 'rootEnabled', 'status',
                  'volume']
         self._check_attr_in_dbcontainers(container, attrs)
-        if rsdns:
-            dns_entry = container_info.expected_dns_entry()
+        dns_entry = container_info.expected_dns_entry()
+        if dns_entry:
             self.assertEqual(dns_entry.name, container.hostname)
 
 
@@ -480,8 +484,7 @@ class MgmtHostCheck(unittest.TestCase):
         self.assertEquals(storage.availablesize, avail)
 
 
-@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP],
-      never_skip=True)
+@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
 class DeleteContainer(unittest.TestCase):
     """ Delete the created container """
 
@@ -574,8 +577,9 @@ class VerifyContainerMgmtInfo(unittest.TestCase):
                 },
             }
 
-        if rsdns is not None:
-            expected['hostname'] = info.expected_dns_entry().name
+        expected_entry = info.expected_dns_entry()
+        if expected_entry:
+            expected['hostname'] = expected_entry.name
 
         self.assertTrue(mgmt_details is not None)
         failures = []

@@ -37,6 +37,7 @@ from sqlalchemy.sql.expression import text
 from nova import exception
 from nova import flags
 from nova import utils
+from nose.tools import assert_false
 from reddwarfclient import Dbaas
 
 FLAGS = flags.FLAGS
@@ -103,7 +104,14 @@ def create_dns_entry(user_name, container_id):
     instance = {'user_id':user_name,
                     'id':str(container_id)}
     entry_factory = get_dns_entry_factory()
-    return entry_factory.create_entry(instance)
+    entry = entry_factory.create_entry(instance)
+    # There is a lot of test code which calls this and then, if the entry
+    # is None, does nothing. That's actually how the contract for this class
+    # works. But we want to make sure that if the RsDnsDriver is defined in the
+    # flags we are returning something other than None and running those tests.
+    if should_run_rsdns_tests():
+        assert_false(entry is None, "RsDnsDriver needs real entries.")
+    return entry
 
 
 def create_openstack_client(user):
@@ -132,6 +140,11 @@ def process(cmd):
                                stderr=subprocess.PIPE)
     result = process.communicate()
     return result
+
+
+def should_run_rsdns_tests():
+    """If true, then the RS DNS tests should also be run."""
+    return FLAGS.dns_driver == "nova.dns.rsdns.driver.RsDnsDriver"
 
 
 def string_in_list(str, substr_list):

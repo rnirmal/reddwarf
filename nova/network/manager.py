@@ -733,7 +733,11 @@ class NetworkManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         address = self._find_address_used_for_dns(context, instance_id)
         if address:
+            LOG.debug(_("Creating DNS entry for instance_id %i, address %s") %
+                      (instance_id, address))
             self.dns_api.create_instance_entry(context, instance_ref, address)
+        else:
+            LOG.debug(_("No address found for instance_id %i") % instance_id)
 
 
     def _allocate_fixed_ips(self, context, instance_id, host, networks,

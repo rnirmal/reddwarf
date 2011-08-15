@@ -1,11 +1,13 @@
 import time
 import unittest
 
+from proboscis import test
+from proboscis.decorators import time_out
+
 from reddwarfclient import Dbaas
 from nova import flags
 from nova import utils
-from proboscis import test
-from proboscis.decorators import time_out
+import rsdns
 from tests.dbaas.containers import container_info
 from tests.dbaas.containers import GROUP_START as CONTAINER_START
 from tests.dbaas.containers import GROUP_TEST
@@ -15,15 +17,9 @@ dns_driver = None
 
 FLAGS = flags.FLAGS
 GROUP = "dbaas.guest.dns"
-ENABLED = True
-
-try:
-    import rsdns
-except Exception:
-    ENABLED = False
 
 
-@test(groups=[GROUP, GROUP_TEST], enabled=ENABLED)
+@test(groups=[GROUP, GROUP_TEST])
 class Setup(unittest.TestCase):
     """Creates the DNS Driver and entry factory used in subsequent tests."""
 
@@ -34,8 +30,7 @@ class Setup(unittest.TestCase):
 
 @test(depends_on_classes=[Setup],
       depends_on_groups=[CONTAINER_START],
-      groups=[GROUP, GROUP_TEST],
-      enabled=ENABLED)
+      groups=[GROUP, GROUP_TEST])
 class WhenContainerIsCreated(unittest.TestCase):
     """Make sure the DNS name was provisioned.
 
@@ -46,18 +41,18 @@ class WhenContainerIsCreated(unittest.TestCase):
 
     def test_dns_entry_should_exist(self):
         entry = container_info.expected_dns_entry()
-        entries = dns_driver.get_entries_by_name(entry.name)
-        if len(entries) < 1:
-            self.fail("Did not find name " + entry.name + \
-                      " in the entries, which were as follows:"
-                      + str(dns_driver.get_entries()))
-        self.assertTrue(len(entries) > 0)
+        if entry:
+            entries = dns_driver.get_entries_by_name(entry.name)
+            if len(entries) < 1:
+                self.fail("Did not find name " + entry.name + \
+                          " in the entries, which were as follows:"
+                          + str(dns_driver.get_entries()))
+            self.assertTrue(len(entries) > 0)
 
 
 @test(depends_on_classes=[Setup, WhenContainerIsCreated],
       depends_on_groups=[CONTAINER_STOP],
-      groups=[GROUP],
-      enabled=ENABLED)
+      groups=[GROUP])
 class AfterContainerIsDestroyed(unittest.TestCase):
     """Make sure the DNS name is removed along with a container.
 
@@ -68,6 +63,10 @@ class AfterContainerIsDestroyed(unittest.TestCase):
 
     def test_dns_entry_exist_should_be_removed_shortly_thereafter(self):
         entry = container_info.expected_dns_entry()
+
+        if not entry:
+            return
+
         def get_entries():
             return dns_driver.get_entries_by_name(entry.name)
 
