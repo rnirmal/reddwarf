@@ -24,7 +24,7 @@ mkdir /tmp/build
 cd /tmp/build
 cp -R /src /tmp/build/dbaas
 rm -rf /tmp/build/dbaas/.bzr
-http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/nova/ubuntu dbaas
+http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/nova/ubuntu dbaas
 cd dbaas
 
 #get the git rev # to put in for the revision
@@ -33,19 +33,20 @@ echo "$gitversion" > /tmp/build/dbaas/_version.txt
 
 # add the packages to the control file to make sure we also build our packages
 # Build package section, adding in the platform api and nova guest!
+echo '' >> debian/control
 echo 'Package: reddwarf-api
 Architecture: all
-Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Depends: ${ostack-lsb-base}, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
 Description: Red Dwarf - Nova - API frontend' >> debian/control
 echo '' >> debian/control
 echo 'Package: nova-guest
 Architecture: all
-Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Depends: ${ostack-lsb-base}, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
 Description: Red Dwarf - Nova - Guest agent' >> debian/control
 echo '' >> debian/control
 echo 'Package: nova-dns
 Architecture: all
-Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Depends: ${ostack-lsb-base}, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
 Description: Red Dwarf - Nova - DNS' >> debian/control
 
 echo "nova ($gitversion) lucid; urgency=low
@@ -68,6 +69,11 @@ do
    cp debian/$file "debian/reddwarf-api."`echo $file|cut -d'.' -f2`
    cp debian/$file "debian/nova-dns."`echo $file|cut -d'.' -f2`
 done
+
+cp debian/mans/nova-api.8 debian/mans/nova-guest.8
+cp debian/mans/nova-api.8 debian/mans/reddwarf-api.8
+cp debian/mans/nova-api.8 debian/mans/nova-dns.8
+
 sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
 sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
 sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
