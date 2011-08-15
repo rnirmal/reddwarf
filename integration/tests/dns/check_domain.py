@@ -19,7 +19,6 @@ they will create the domain if its not found (see below for details).
 
 """
 import os
-import sys
 import time
 import unittest
 from proboscis import test
@@ -38,10 +37,12 @@ TEST_NAME="hiwassup.dbaas.rackspace.org"
 
 
 def create_domain_if_needed():
-    if rsdns.ADD_DOMAINS:
+    if os.environ.get("ADD_DOMAINS", "False") == 'True':
+        print("Creating domain %s" % driver.default_dns_zone.name)
         driver.dns_client.domains.create(driver.default_dns_zone.name)
+        print("The domain should have been created.")
     else:
-        self.fail("Could not find default dns zone.")
+        raise RuntimeError("Could not find default dns zone.")
 
 
 @test(groups=["rsdns.domains"])
@@ -54,7 +55,9 @@ class ConfirmDomainIsValid(unittest.TestCase):
         self.assertNotEqual(None, driver.default_dns_zone)
         def zone_found():
             zones = driver.get_dns_zones()
+            print("Retrieving zones.")
             for zone in zones:
+                print("zone %s" % zone)
                 if zone.name == driver.default_dns_zone.name:
                     driver.default_dns_zone.id = zone.id
                     return True
@@ -73,8 +76,8 @@ class ConfirmDomainIsValid(unittest.TestCase):
                   record.""")
 
 
-@test(depends_on_classes=[ConfirmDomainIsValid], groups=["show_entries",
-                                                         "rsdns.domains"])
+@test(depends_on_classes=[ConfirmDomainIsValid],
+      groups=["show_entries", "rsdns.domains"], enabled=False)
 class AtFirstNoEntriesExist(unittest.TestCase):
     """Assert no entries with given names exist before proceeding."""
 
@@ -89,7 +92,8 @@ class AtFirstNoEntriesExist(unittest.TestCase):
         self.assertEqual(0, len(list))
 
 
-@test(depends_on_classes=[AtFirstNoEntriesExist], groups=["rsdns.domains"])
+@test(depends_on_classes=[AtFirstNoEntriesExist], groups=["rsdns.domains"],
+      enabled=False)
 class WhenCreatingAWellFormedEntry(unittest.TestCase):
     """Create an entry with the driver and assert it can be retrieved."""
 
