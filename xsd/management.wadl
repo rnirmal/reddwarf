@@ -36,10 +36,17 @@
          </resource>
       </resource>
       <resource id="storage" path="storage">
-          <method href="#indexstorage"/>
+        <method href="#indexstorage"/>
+      </resource>
+      <resource id="accounts" path="accounts">
+        <resource id="accountid" path="{accountid}">
+          <param name="accountid" style="template" type="xsd:string"/>
+          <method href="#getaccountbyid"/>
+        </resource>
       </resource>
     </resource>
   </resources>
+
   <!--Methods-->
   <method name="POST" id="guestUpgradeAll">
     <response status="202"/>
@@ -89,6 +96,16 @@
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Storage"/>
       <representation mediaType="application/json" element="dbaas:Storage"/>
+    </response>
+    <response status="400 401 403 409 500 503">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+  </method>
+  <method name="GET" id="getaccountbyid">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Account"/>
+      <representation mediaType="application/json" element="dbaas:Account"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
