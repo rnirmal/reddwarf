@@ -1427,8 +1427,8 @@ class OVZMountFile(OVZMounts):
         return mount_line
     
     def container_mount_line(self):
-        return 'mount --bind %s %s' % 
-                    (self.host_mount, self.container_root_mount)
+        return 'mount --bind %s %s' % \
+               (self.host_mount, self.container_root_mount)
     
     def delete_mount_lines(self):
         self.delete(self.host_mount_line())
