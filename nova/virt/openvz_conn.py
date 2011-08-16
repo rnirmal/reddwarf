@@ -893,11 +893,17 @@ class OpenVzConnection(driver.ComputeDriver):
         Iterate through all volumes and attach them all.  This is just a helper
         method for self.spawn so that all volumes in the db get added to a
         container before it gets started.
+
+        This will only attach volumes that have a filesystem uuid.  This is
+        a limitation that is currently imposed by nova not storing the device
+        name in the volumes table so we have no point of reference for which
+        device goes where.
         """
         if instance['volumes']:
             for volume in instance['volumes']:
-                self.attach_volume(instance['name'], volume['dev'], 
-                                    volume['mountpoint'])
+                if volume['uuid']:
+                    self.attach_volume(instance['name'], None,
+                                       volume['mountpoint'])
     
     def attach_volume(self, instance_name, device_path, mountpoint):
         """Attach the disk at device_path to the instance at mountpoint"""
@@ -909,18 +915,18 @@ class OpenVzConnection(driver.ComputeDriver):
         instance = db.instance_get(context.get_admin_context(), meta['id'])
         if instance['volumes']:
             for vol in instance['volumes']:
-                if vol['mountpoint'] == mountpoint and vol.has_key('uuid'):
+                if vol['mountpoint'] == mountpoint and vol['uuid']:
                     # Volume has a UUID so do all the mount magic using the
                     # UUID instead of the device name.
                     self._mount_script_modify(instance, None, vol['uuid'],
                                                   mountpoint, 'add')
                     LOG.debug('Added volume %s to %s' % 
                                 (volume['uuid'], instance['id']))
-                elif vol['mountpoint'] == mountpoint:
+                elif vol['mountpoint'] == mountpoint and device_path:
                     self._mount_script_modify(instance, device_path, None,
                                                   mountpoint, 'add')
                     LOG.debug('Added volume %s to %s' % 
-                                (volume['dev'], instance['id']))
+                                (device_path, instance['id']))
         else:
             LOG.error('No volume in the db for this instance')
             LOG.error('Instance: %s' % (instance_name,))
