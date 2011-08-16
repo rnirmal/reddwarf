@@ -70,13 +70,17 @@ do
    cp debian/$file "debian/nova-dns."`echo $file|cut -d'.' -f2`
 done
 
+sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
+sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
+sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
+
 cp debian/mans/nova-api.8 debian/mans/nova-guest.8
 cp debian/mans/nova-api.8 debian/mans/reddwarf-api.8
 cp debian/mans/nova-api.8 debian/mans/nova-dns.8
 
-sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
-sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
-sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
+sed -i.bak -e 's/api/guest/g' debian/mans/nova-guest.8
+sed -i.bak -e 's/nova/reddwarf/g' debian/mans/reddwarf-api.8
+sed -i.bak -e 's/api/dns/g' debian/mans/nova-dns.8
 
 #Fix the api paste config
 sed -i.bak -e 's/api-paste\.ini/reddwarf-api-paste\.ini/g' debian/reddwarf-api.install
