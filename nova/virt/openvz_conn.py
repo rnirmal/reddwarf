@@ -1360,9 +1360,13 @@ class OVZFile(object):
             raise exception.Error('Failed to touch %s' % (self.filename,))
     
     def append(self, contents):
+        if isinstance(contents, str):
+            contents = [contents]
         self.contents = self.contents + contents
     
     def prepend(self, contents):
+        if isinstance(contents, str):
+            contents = [contents]
         self.contents = contents + self.contents
     
     def delete(self, contents):
@@ -1401,7 +1405,7 @@ class OVZFile(object):
     
 class OVZMounts(OVZFile):
     def __init__(self, filename, mount, instance_id, device=None, uuid=None):
-        super(filename)
+        super(OVZMounts, self).__init__(filename)
         self.device = device
         self.uuid = uuid
         
@@ -1418,7 +1422,10 @@ class OVZMounts(OVZFile):
         self.host_mount = os.path.abspath(self.host_mount)
         
     def format(self):
-        if not self.contents[0] == '#!/bin/sh':
+        if len(self.contents) > 0:
+            if not self.contents[0] == '#!/bin/sh':
+                self.prepend('#!/bin/sh')
+        else:
             self.prepend('#!/bin/sh')
    
 class OVZMountFile(OVZMounts):
