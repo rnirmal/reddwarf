@@ -1454,13 +1454,13 @@ class OVZMountFile(OVZMounts):
         self.append(self.host_mount_line())
     
     def make_host_mount_point(self):
-        self.make_path(host_mount)
+        self.make_path(self.host_mount)
     
     def make_container_mount_point(self):
-        self.make_path(container_mount)
+        self.make_path(self.container_mount)
     
     def make_container_root_mount_point(self):
-        self.make_path(container_root_mount)
+        self.make_path(self.container_root_mount)
     
 class OVZUmountFile(OVZMounts):
     def host_umount_line(self):
@@ -1479,8 +1479,8 @@ class OVZUmountFile(OVZMounts):
         self.append(self.container_umount_line())
         
     def delete_umounts(self):
-        self.delete(container_umount_line())
-        self.delete(host_umount_line())
+        self.delete(self.container_umount_line())
+        self.delete(self.host_umount_line())
         
     def unmount_all(self):
         # Unmount the container mount
