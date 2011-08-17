@@ -921,7 +921,7 @@ class OpenVzConnection(driver.ComputeDriver):
                     self._mount_script_modify(instance, None, vol['uuid'],
                                                   mountpoint, 'add')
                     LOG.debug('Added volume %s to %s' % 
-                                (volume['uuid'], instance['id']))
+                                (vol['uuid'], instance['id']))
                 elif vol['mountpoint'] == mountpoint and device_path:
                     self._mount_script_modify(instance, device_path, None,
                                                   mountpoint, 'add')
@@ -953,67 +953,67 @@ class OpenVzConnection(driver.ComputeDriver):
         are and should be owned by root.
         """
         # TODO(imsplitbit): Find a way to make this less of a hack with sudo
-        mount = '%s/%s.mount' % (FLAGS.ovz_config_dir, instance['id'])
-        umount = '%s/%s.umount' % (FLAGS.ovz_config_dir, instance['id'])
+        mountfile = '%s/%s.mount' % (FLAGS.ovz_config_dir, instance['id'])
+        umountfile = '%s/%s.umount' % (FLAGS.ovz_config_dir, instance['id'])
         
         # Create the file handles
-        mount = OVZMountFile(mount, mount, dev, uuid)
-        umount = OVZUmountFile(umount, mount, dev, uuid)
+        mountfh = OVZMountFile(mountfile, mount, instance['id'], dev, uuid)
+        umountfh = OVZUmountFile(umountfile, mount, instance['id'], dev, uuid)
 
         # Create the files if they don't exist
-        mount.touch()
-        umount.touch()
+        mountfh.touch()
+        umountfh.touch()
         
         # Fixup perms to allow for this script to edit files.
-        mount.set_permissions(777)
-        umount.set_permissions(777)
+        mountfh.set_permissions(777)
+        umountfh.set_permissions(777)
 
         # Next open the start / stop files for reading.
-        mount.read()
-        umount.read()
+        mountfh.read()
+        umountfh.read()
 
         # Fixup the mount and umount files to have the proper shell script
         # header otherwise vzctl rejects it.
-        mount.format()
-        umount.format()
+        mountfh.format()
+        umountfh.format()
 
         # Make the magic happen.
         if action == 'add':
             # Create a mount point for the device outside the root of the
             # container.
-            mount.make_path()
-            umount.make_path()
+            mountfh.make_path()
+            umountfh.make_path()
 
             # Create a mount point for the device inside the root of the
             # container.
-            mount.make_host_mount_point()
-            mount.make_container_mount_point()
+            mountfh.make_host_mount_point()
+            mountfh.make_container_mount_point()
 
             # Add the outside and inside mount lines to the start script
-            mount.add_host_mount_line()
-            mount.add_container_mount_line()
+            mountfh.add_host_mount_line()
+            mountfh.add_container_mount_line()
 
             # Add umount lines to the stop script
-            umount.add_container_umount_line()
-            umount.add_host_umount_line()
+            umountfh.add_container_umount_line()
+            umountfh.add_host_umount_line()
             
         elif action == 'del':
             # Unmount the storage
-            umount.unmount_all()
+            umountfh.unmount_all()
 
             # If the lines of the mount and unmount statements are in
             # the CTID.mount and CTID.umount files remove them.
-            mount.delete_mounts()
-            umount.delete_umounts()
+            mountfh.delete_mounts()
+            umountfh.delete_umounts()
 
         # Now reopen the files for writing and dump the contents into the
         # files.
-        mount.write()
-        umount.write()
+        mountfh.write()
+        umountfh.write()
 
         # Close by setting more secure permissions on the start and stop scripts
-        mount.set_permissions(755)
-        umount.set_permissions(755)
+        mountfh.set_permissions(755)
+        umountfh.set_permissions(755)
 
     def get_info(self, instance_name):
         """
