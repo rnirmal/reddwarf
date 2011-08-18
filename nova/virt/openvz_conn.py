@@ -1396,9 +1396,12 @@ class OVZFile(object):
         basedir = os.path.dirname(path)
         try:
             if not os.path.exists(basedir):
+                LOG.debug('Path %s doesnt exist, creating now' % (basedir,))
                 _, err = utils.execute('sudo', 'mkdir', '-p', basedir)
                 if err:
                     LOG.error(err)
+            else:
+                LOG.debug('Path %s exists, skipping' % (basedir,))
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Unable to make %s' % (basedir,))
