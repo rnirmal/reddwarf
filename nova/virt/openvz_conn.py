@@ -979,14 +979,10 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Make the magic happen.
         if action == 'add':
-            # Create a mount point for the device outside the root of the
-            # container.
-            mountfh.make_path()
-            umountfh.make_path()
-
+            # Create a mount point on the host node
+            mountfh.make_host_mount_point()
             # Create a mount point for the device inside the root of the
             # container.
-            mountfh.make_host_mount_point()
             mountfh.make_container_mount_point()
 
             # Add the outside and inside mount lines to the start script
@@ -1351,6 +1347,7 @@ class OVZFile(object):
             raise exception.Error('Failed to write %s' % (self.filename,))
         
     def touch(self):
+        self.make_path()
         try:
             _, err = utils.execute('sudo', 'touch', self.filename)
             if err:
@@ -1394,17 +1391,20 @@ class OVZFile(object):
         if not path:
             path = self.filename
         basedir = os.path.dirname(path)
+        self.make_dir(basedir)
+
+    def make_dir(self, path):
         try:
-            if not os.path.exists(basedir):
-                LOG.debug('Path %s doesnt exist, creating now' % (basedir,))
-                _, err = utils.execute('sudo', 'mkdir', '-p', basedir)
+            if not os.path.exists(path):
+                LOG.debug('Path %s doesnt exist, creating now' % (path,))
+                _, err = utils.execute('sudo', 'mkdir', '-p', path)
                 if err:
                     LOG.error(err)
             else:
-                LOG.debug('Path %s exists, skipping' % (basedir,))
+                LOG.debug('Path %s exists, skipping' % (path,))
         except ProcessExecutionError as err:
             LOG.error(err)
-            raise exception.Error('Unable to make %s' % (basedir,))
+            raise exception.Error('Unable to make %s' % (path,))
     
 class OVZMounts(OVZFile):
     def __init__(self, filename, mount, instance_id, device=None, uuid=None):
@@ -1457,13 +1457,13 @@ class OVZMountFile(OVZMounts):
         self.append(self.host_mount_line())
     
     def make_host_mount_point(self):
-        self.make_path(self.host_mount)
+        self.make_dir(self.host_mount)
     
     def make_container_mount_point(self):
-        self.make_path(self.container_mount)
+        self.make_dir(self.container_mount)
     
     def make_container_root_mount_point(self):
-        self.make_path(self.container_root_mount)
+        self.make_dir(self.container_root_mount)
     
 class OVZUmountFile(OVZMounts):
     def host_umount_line(self):
