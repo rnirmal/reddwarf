@@ -1462,7 +1462,7 @@ class OVZVolumes(object):
         # Create the file objects
         self.mountfh = OVZMountFile(self.mountfile, self.mountpoint,
                                     self.instance_id, self.device, self.uuid)
-        self.umountfh = OVZUmountFile(self.mountfile, self.mountpoint,
+        self.umountfh = OVZUmountFile(self.umountfile, self.mountpoint,
                                       self.instance_id, self.device, self.uuid)
 
         # Create the files if they don't exist
