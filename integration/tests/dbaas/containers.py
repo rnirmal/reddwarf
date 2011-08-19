@@ -180,12 +180,11 @@ class ContainerHostCheck(unittest.TestCase):
 
     @expect_exception(NotFound)
     def test_no_details_bogus_account(self):
-        account_info = dbaas.accounts.show('asd#4#@fasdf')
-        self.assertEqual(0, len(account_info.hosts))
+        dbaas.accounts.show('asd#4#@fasdf')
 
     def test_no_details_empty_account(self):
         account_info = dbaas.accounts.show(container_info.user.auth_user)
-        self.assertEqual(0, len(account_info.hosts))
+        self.assertEqual([], account_info.hosts)
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
