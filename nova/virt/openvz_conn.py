@@ -33,9 +33,6 @@ from nova.network import linux_net
 from nova.compute import power_state
 from nova.compute import instance_types
 from nova.exception import ProcessExecutionError
-# Commenting out as we aren't using this yet and I don't want to pollute
-# namespace.  This is being left in because we *will* at some point use it.
-#from nova.virt import disk
 from nova.virt import images
 from nova.virt import driver
 
