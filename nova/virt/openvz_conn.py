@@ -918,14 +918,14 @@ class OpenVzConnection(driver.ComputeDriver):
                 if vol['mountpoint'] == mountpoint and vol['uuid']:
                     # Volume has a UUID so do all the mount magic using the
                     # UUID instead of the device name.
-                    self._mount_script_modify(instance, None, vol['uuid'],
-                                                  mountpoint, 'add')
-                    LOG.debug('Added volume %s to %s' % 
+                    volumes = OVZVolumes(instance['id'], mountpoint, None,
+                                         vol['uuid'])
+                    LOG.debug('Adding volume %s to %s' %
                                 (vol['uuid'], instance['id']))
                 elif vol['mountpoint'] == mountpoint and device_path:
-                    self._mount_script_modify(instance, device_path, None,
-                                                  mountpoint, 'add')
-                    LOG.debug('Added volume %s to %s' % 
+                    volumes = OVZVolumes(instance['id'], mountpoint,
+                                         device_path, None)
+                    LOG.debug('Adding volume %s to %s' %
                                 (device_path, instance['id']))
         else:
             LOG.error('No volume in the db for this instance')
@@ -933,6 +933,10 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error('Device: %s' % (device_path,))
             LOG.error('Mount: %s' % (mountpoint,))
             raise exception.Error('No volume in the db for this instance')
+        # Run all the magic to make the mounts happen
+        volumes.setup()
+        volumes.attach()
+        volumes.teardown()
 
     def detach_volume(self, instance_name, mountpoint):
         """Detach the disk attached to the instance at mountpoint"""
@@ -942,74 +946,10 @@ class OpenVzConnection(driver.ComputeDriver):
         meta = self._find_by_name(instance_name)
         instance = db.instance_get(context.get_admin_context(), meta['id'])
         self._mount_script_modify(instance, None, None, mountpoint, 'del')
-
-    def _mount_script_modify(self, instance, dev=None, uuid=None,
-                                 mount=None, action='add'):
-        """
-        This method is for the start/stop scripts for a container to make
-        filesystems available to the container at 'boot'.  We have to do quite
-        a bit of sudo 'magic' here just to make all this go as nova runs
-        typically as an unprivileged user and we are modifying files that
-        are and should be owned by root.
-        """
-        # TODO(imsplitbit): Find a way to make this less of a hack with sudo
-        mountfile = '%s/%s.mount' % (FLAGS.ovz_config_dir, instance['id'])
-        umountfile = '%s/%s.umount' % (FLAGS.ovz_config_dir, instance['id'])
-        
-        # Create the file handles
-        mountfh = OVZMountFile(mountfile, mount, instance['id'], dev, uuid)
-        umountfh = OVZUmountFile(umountfile, mount, instance['id'], dev, uuid)
-
-        # Create the files if they don't exist
-        mountfh.touch()
-        umountfh.touch()
-        
-        # Fixup perms to allow for this script to edit files.
-        mountfh.set_permissions(777)
-        umountfh.set_permissions(777)
-
-        # Next open the start / stop files for reading.
-        mountfh.read()
-        umountfh.read()
-
-        # Fixup the mount and umount files to have the proper shell script
-        # header otherwise vzctl rejects it.
-        mountfh.format()
-        umountfh.format()
-
-        # Make the magic happen.
-        if action == 'add':
-            # Create a mount point on the host node
-            mountfh.make_host_mount_point()
-            # Create a mount point for the device inside the root of the
-            # container.
-            mountfh.make_container_mount_point()
-
-            # Add the outside and inside mount lines to the start script
-            mountfh.add_host_mount_line()
-            mountfh.add_container_mount_line()
-
-            # Add umount lines to the stop script
-            umountfh.add_container_umount_line()
-            umountfh.add_host_umount_line()
-            
-        elif action == 'del':
-            # Unmount the storage
-            umountfh.unmount_all()
-
-            # If the lines of the mount and unmount statements are in
-            # the CTID.mount and CTID.umount files remove them.
-            mountfh.delete_mounts()
-            umountfh.delete_umounts()
-
-        # Now reopen the files for writing and dump the contents into the
-        # files.
-        mountfh.write()
-        umountfh.write()
-
-        # Close by setting more secure permissions on the start and stop scripts
-        mountfh.set_permissions(755)
-        umountfh.set_permissions(755)
+        volumes = OVZVolumes(instance['id'], mountpoint, None, None)
+        volumes.setup()
+        volumes.detach()
+        volumes.teardown()
 
     def get_info(self, instance_name):
         """
@@ -1473,7 +1413,7 @@ class OVZUmountFile(OVZMounts):
         return self._umount_line(self.container_root_mount)
 
     def _umount_line(self, mount):
-        return 'umount %s' % (mount,)
+        return 'umount -l -f %s' % (mount,)
         
     def add_host_umount_line(self):
         self.append(self.host_umount_line())
@@ -1500,3 +1440,80 @@ class OVZUmountFile(OVZMounts):
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Failed to umount: "%s"' % (mount_line,))
+
+class OVZVolumes(object):
+    """
+    This Class is a helper class to manage the mount and umount files
+    for a given container.
+    """
+    def __init__(self, instance_id, mount, dev=None, uuid=None):
+        self.instance_id = instance_id
+        self.mountpoint = mount
+        self.device = dev
+        self.uuid = uuid
+        self.mountfile = '%s/%s.mount' % (FLAGS.ovz_config_dir,
+                                          self.instance_id)
+        self.umountfile = '%s/%s.umount' % (FLAGS.ovz_config_dir,
+                                            self.instance_id)
+        self.mountfile = os.path.abspath(self.mountfile)
+        self.umountfile = os.path.abspath(self.umountfile)
+
+    def setup(self):
+        """
+        Prep the paths and files for manipulation.
+        """
+        # Create the file objects
+        self.mountfh = OVZMountFile(self.mountfile, self.mountpoint,
+                                    self.instance_id, self.device, self.uuid)
+        self.umountfh = OVZUmountFile(self.mountfile, self.mountpoint,
+                                      self.instance_id, self.device, self.uuid)
+
+        # Create the files if they don't exist
+        self.mountfh.touch()
+        self.umountfh.touch()
+
+        # Fix the permissions on the files to allow this script to edit them
+        self.mountfh.set_permissions(777)
+        self.umountfh.set_permissions(777)
+
+        # Now open the mount/umount files and read their contents
+        self.mountfh.read()
+        self.umountfh.read()
+
+        # Fixup the mount and umount files to have proper shell script
+        # header otherwise it will be rejected by vzctl
+        self.mountfh.format()
+        self.umountfh.format()
+        
+    def attach(self):
+        # Create the mount point on the host node
+        self.mountfh.make_host_mount_point()
+        # Create a mount point for the device inside the root of the container
+        self.mountfh.make_container_mount_point()
+
+        # Add the host and container mount lines to the mount script
+        self.mountfh.add_host_mount_line()
+        self.mountfh.add_container_mount_line()
+
+        # Add umount lines to the umount script
+        self.umountfh.add_container_umount_line()
+        self.umountfh.add_host_umount_line()
+
+    def detach(self):
+        # Unmount the storage if possible
+        self.umountfh.unmount_all()
+
+        # If the lines of the mount and unmount statements are in the
+        # container mount and umount files, remove them.
+        self.mountfh.delete_mounts()
+        self.umountfh.delete_umounts()
+
+    def teardown(self):
+        # Reopen the files and write the contents to them
+        self.mountfh.write()
+        self.umountfh.write()
+
+        # Finish by setting the permissions back to more secure permissions
+        self.mountfh.set_permissions(755)
+        self.umountfh.set_permissions(755)
+        
