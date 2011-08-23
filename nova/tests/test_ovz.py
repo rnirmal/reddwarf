@@ -776,39 +776,31 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'r').AndReturn(file_contents)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        resp = conn._read_file('/tmp/foo')
-        self.assertTrue(isinstance(resp, list))
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        fh.read()
 
     def test_read_file_failure(self):
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'r').AndRaise(Exception)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._read_file, '/tmp/foo')
-
-    def test_correct_shell_scripts(self):
-        file_contents = FakeFile(file_contents)
-        conn = openvz_conn.OpenVzConnection(False)
-        contents = conn._correct_shell_scripts(file_contents.readlines())
-        self.assertTrue(isinstance(contents, list))
-        self.assertEqual(contents[0], '#!/bin/sh')
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        self.assertRaises(exception.Error, fh.read)
 
     def test_write_to_file_success(self):
         filehandle = FakeFile(file_contents)
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'w').AndReturn(filehandle)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        conn._write_to_file('/tmp/foo', file_contents)
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        fh.write()
 
     def test_write_to_file_failure(self):
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'w').AndRaise(Exception)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._write_to_file,
-                          '/tmp/foo', file_contents)
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        self.assertRaises(exception.Error, fh.write)
+
 
     def test_set_perms_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -816,13 +808,13 @@ class OpenVzConnTestCase(test.TestCase):
             ('','')
         )
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        conn._set_perms('/tmp/foo', 755)
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        fh.set_permissions(755)
 
     def test_set_perms_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('sudo', 'chmod', 755, '/tmp/foo').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._set_perms('/tmp/foo', 755))
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        self.assertRaises(exception.Error, fh.set_permissions, 755)
