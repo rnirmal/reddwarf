@@ -44,7 +44,7 @@ def create_resource(version='1.0'):
         "attributes": {
             "account": ["name"],
             "hosts": ["id", "hostname", "name"],
-            "dbcontainers": ["id"],
+            "dbcontainers": ["id", "status"],
         },
     }
 
@@ -62,7 +62,7 @@ def create_resource(version='1.0'):
 
 
 class Controller(object):
-    """ The DBContainer API controller for the Management API """
+    """ The Account API controller for the Management API """
 
     def __init__(self):
         self.compute_api = compute.API()
@@ -78,8 +78,7 @@ class Controller(object):
             LOG.debug("%s - %s", req.environ, req.body)
             context = req.environ['nova.context']
 
-            # Get all the hosts, via /mgmt/hosts/
-            # For each one, get all the hosts that mention this account
+            # Check that the account exists by looking for its projects
             projects = db.project_get_by_user(context, id)
             LOG.debug("projects - %s", projects)
             if not projects:
@@ -91,7 +90,7 @@ class Controller(object):
             LOG.debug("containers - %s", containers)
 
             # Prune away all the columns but the ones in key_list
-            key_list = ['id', 'display_name', 'host']
+            key_list = ['id', 'display_name', 'host', 'state']
             containers = [dict([(k, c[k]) for k in key_list])
                 for c in containers]
             LOG.debug("containers - %s", containers)
@@ -106,6 +105,7 @@ class Controller(object):
                     if c['host'] == hostname]
                 hosts_containers = [{'id': c['id'],
                                      'name': c['display_name'],
+                                     'status': c['state'],
                                     } for c in hosts_containers]
                 hosts_containers = [{'dbcontainer': c}
                     for c in hosts_containers]

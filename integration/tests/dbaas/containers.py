@@ -123,7 +123,7 @@ class Setup(unittest.TestCase):
 @test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class ContainerHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
-    
+
     def test_empty_index_host_list(self):
         host_index_result = dbaas.hosts.index()
         self.assertNotEqual(host_index_result, None,
@@ -184,7 +184,7 @@ class ContainerHostCheck(unittest.TestCase):
 
     def test_no_details_empty_account(self):
         account_info = dbaas.accounts.show(container_info.user.auth_user)
-        self.assertEqual([], account_info.hosts)
+        self.assertEqual(0, len(account_info.hosts))
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
@@ -230,8 +230,8 @@ class CreateContainer(unittest.TestCase):
 
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
-class NewAccountMgmtData(unittest.TestCase):
-    def test_new_account_details_available(self):
+class AccountMgmtData(unittest.TestCase):
+    def test_account_details_available(self):
         account_info = dbaas.accounts.show(container_info.user.auth_user)
         self.assertNotEqual(0, len(account_info.hosts))
         # Now check the results.
@@ -504,7 +504,7 @@ class MgmtHostCheck(unittest.TestCase):
         avail = container_info.storage.availablesize - container_info.volume['size']
         self.assertEquals(storage.availablesize, avail)
 
-    def test_new_account_details_available(self):
+    def test_account_details_available(self):
         account_info = dbaas.accounts.show(container_info.user.auth_user)
         self.assertNotEqual(0, len(account_info.hosts))
 
@@ -546,6 +546,12 @@ class ContainerHostCheck2(ContainerHostCheck):
     @expect_exception(Exception)
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
+
+    def test_no_details_empty_account(self):
+        account_info = dbaas.accounts.show(container_info.user.auth_user)
+        # Containers were created and then deleted or crashed.
+        # In the process, one host was created.
+        self.assertEqual(1, len(account_info.hosts))
 
 
 @test(depends_on_classes=[CreateContainer, VerifyGuestStarted,

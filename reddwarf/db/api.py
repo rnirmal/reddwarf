@@ -148,11 +148,12 @@ def instance_get_memory_sum_by_host(context, hostname):
 def show_containers_by_account(context, id):
     """Show all the containers that are on the given account id."""
     LOG.debug("show_containers_by_account id = %s" % str(id))
+    # This is the management API, so we want all the containers,
+    # regardless of status.
     session = get_session()
     with session.begin():
         return session.query(Instance).\
                         filter_by(user_id=id).\
                         filter_by(deleted=False).\
-                        filter(~Instance.state.in_([power_state.FAILED, power_state.CRASHED])).\
                         order_by(Instance.host).all()
     raise exception.UserNotFound(user_id=id)
