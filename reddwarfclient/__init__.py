@@ -15,13 +15,14 @@
 
 from novaclient import OpenStack
 
-from reddwarfclient.dbcontainers import DbContainers
+from reddwarfclient.accounts import Accounts
 from reddwarfclient.databases import Databases
+from reddwarfclient.dbcontainers import DbContainers
 from reddwarfclient.hosts import Hosts
 from reddwarfclient.management import Management
+from reddwarfclient.root import Root
 from reddwarfclient.storage import StorageInfo
 from reddwarfclient.users import Users
-from reddwarfclient.root import Root
 
 # To write this test from an end user perspective, we have to create a client
 # similar to the CloudServers one.
@@ -55,3 +56,4 @@ class Dbaas(OpenStack):
         self.hosts = Hosts(self)
         self.storage = StorageInfo(self)
         self.management = Management(self)
+        self.accounts = Accounts(self)

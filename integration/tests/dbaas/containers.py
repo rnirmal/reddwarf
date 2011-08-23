@@ -38,7 +38,6 @@ from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
-from tests.util import test_config
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from proboscis import test
@@ -49,7 +48,6 @@ from tests.util import create_test_client
 from tests.util import process
 from tests.util.users import Requirements
 from tests.util import string_in_list
-from tests.util import TestClient
 
 try:
     import rsdns
@@ -125,7 +123,7 @@ class Setup(unittest.TestCase):
 @test(depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class ContainerHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
-    
+
     def test_empty_index_host_list(self):
         host_index_result = dbaas.hosts.index()
         self.assertNotEqual(host_index_result, None,
@@ -146,7 +144,7 @@ class ContainerHostCheck(unittest.TestCase):
             container_info.host = host[1]
 
     def test_empty_index_host_list_single(self):
-        print("container_info.host : %r" %container_info.host)
+        print("container_info.host : %r" % container_info.host)
         host_index_result = dbaas.hosts.get(container_info.host)
         self.assertNotEqual(host_index_result, None,
                             "list hosts should not be empty")
@@ -164,7 +162,7 @@ class ContainerHostCheck(unittest.TestCase):
         container_info.host_info = host_index_result
         for container in list(enumerate(host_index_result.dbcontainers, start=1)):
             print("%r dbcontainer: %r" % (container[0], container[1]))
-            
+
     @expect_exception(NotFound)
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
@@ -180,6 +178,13 @@ class ContainerHostCheck(unittest.TestCase):
         print("storage.totalsize : %r" % storage.totalsize)
         container_info.storage = storage
 
+    @expect_exception(NotFound)
+    def test_no_details_bogus_account(self):
+        dbaas.accounts.show('asd#4#@fasdf')
+
+    def test_no_details_empty_account(self):
+        account_info = dbaas.accounts.show(container_info.user.auth_user)
+        self.assertEqual(0, len(account_info.hosts))
 
 @test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START])
 class CreateContainer(unittest.TestCase):
@@ -223,6 +228,22 @@ class CreateContainer(unittest.TestCase):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
             self.assertFalse(True, "Security groups did not get created")
 
+
+@test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
+class AccountMgmtData(unittest.TestCase):
+    def test_account_details_available(self):
+        account_info = dbaas.accounts.show(container_info.user.auth_user)
+        self.assertNotEqual(0, len(account_info.hosts))
+        # Now check the results.
+        self.assertEqual(account_info.name, container_info.user.auth_user)
+        # Containers: Here we know we've only created one host.
+        self.assertEqual(1, len(account_info.hosts))
+        self.assertEqual(1, len(account_info.hosts[0]['dbcontainers']))
+        # We know that the host should contain only one container.
+        container = account_info.hosts[0]['dbcontainers'][0]['dbcontainer']
+        print("dbcontainers in account: %s" % container)
+        self.assertEqual(container['id'], container_info.id)
+        self.assertEqual(container['name'], container_info.name)
 
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START])
 class VerifyGuestStarted(unittest.TestCase):
@@ -483,6 +504,9 @@ class MgmtHostCheck(unittest.TestCase):
         avail = container_info.storage.availablesize - container_info.volume['size']
         self.assertEquals(storage.availablesize, avail)
 
+    def test_account_details_available(self):
+        account_info = dbaas.accounts.show(container_info.user.auth_user)
+        self.assertNotEqual(0, len(account_info.hosts))
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
 class DeleteContainer(unittest.TestCase):
@@ -522,6 +546,12 @@ class ContainerHostCheck2(ContainerHostCheck):
     @expect_exception(Exception)
     def test_host_not_found(self):
         container_info.myresult = dbaas.hosts.get('host@$%3dne')
+
+    def test_no_details_empty_account(self):
+        account_info = dbaas.accounts.show(container_info.user.auth_user)
+        # Containers were created and then deleted or crashed.
+        # In the process, one host was created.
+        self.assertEqual(1, len(account_info.hosts))
 
 
 @test(depends_on_classes=[CreateContainer, VerifyGuestStarted,
