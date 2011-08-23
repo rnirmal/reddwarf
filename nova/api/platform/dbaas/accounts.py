@@ -65,10 +65,6 @@ class Controller(object):
     """ The Account API controller for the Management API """
 
     def __init__(self):
-        self.compute_api = compute.API()
-        self.server_controller = servers.ControllerV11()
-        self.volume_api = volume.API()
-        self.guest_api = guest.API()
         super(Controller, self).__init__()
 
     def show(self, req, id):
