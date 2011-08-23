@@ -27,7 +27,7 @@ FLAGS = flags.FLAGS
 
 test_instance = {
     "image_id": 1,
-    "name": "instance-0000001",
+    "name": "instance-00001002",
     "instance_type_id": 1,
     "id": 1002,
     "volumes": [
@@ -44,12 +44,13 @@ test_instance = {
 
 percent_resource = .50
 
-vz_list = "\t1001\n\t1002\n\t1003\n\t1004\n"
+vz_list = "\t1001\n\t%d\n\t1003\n\t1004\n" % (test_instance['id'],)
 
 vz_name = """\tinstance-00001001\n"""
 
-vz_names = """\tinstance-00001001\n\tinstance-00001002
-              \tinstance-00001003\n\tinstance-00001004\n"""
+vz_names = """\tinstance-00001001\n\t%s
+              \tinstance-00001003\n\tinstance-00001004\n""" % (
+    test_instance['name'],)
 
 good_status = {
     'state': power_state.RUNNING,
@@ -710,18 +711,19 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
         openvz_conn.context.get_admin_context()
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
-        openvz_conn.db.instance_get(mox.IgnoreArg(), 1002).AndReturn(
+        openvz_conn.db.instance_get(mox.IgnoreArg(),
+                                    test_instance['id']).AndReturn(
             test_instance)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_find_by_name')
-        conn._find_by_name('instance-0000001').AndReturn(test_instance)
+        conn._find_by_name(test_instance['name']).AndReturn(test_instance)
         mock_volumes = self.mox.CreateMock(openvz_conn.OVZVolumes)
         self.mox.StubOutWithMock(openvz_conn, 'OVZVolumes')
         openvz_conn.OVZVolumes(test_instance['id'], mox.IgnoreArg(),
                                mox.IgnoreArg(), mox.IgnoreArg()).AndReturn(
             mock_volumes)
         self.mox.ReplayAll()
-        conn.attach_volume('instance-0000001', '/dev/sdb1', '/var/tmp')
+        conn.attach_volume(test_instance['name'], '/dev/sdb1', '/var/tmp')
 
     def test_detach_volume_success(self):
         self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
@@ -730,14 +732,14 @@ class OpenVzConnTestCase(test.TestCase):
         openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_find_by_name')
-        conn._find_by_name('instance-0000001').AndReturn(test_instance)
+        conn._find_by_name(test_instance['name']).AndReturn(test_instance)
         mock_volumes = self.mox.CreateMock(openvz_conn.OVZVolumes)
         self.mox.StubOutWithMock(openvz_conn, 'OVZVolumes')
         openvz_conn.OVZVolumes(test_instance['id'], mox.IgnoreArg(),
                                mox.IgnoreArg(), mox.IgnoreArg()).AndReturn(
             mock_volumes)
         self.mox.ReplayAll()
-        conn.detach_volume('instance-0000001', '/var/tmp')
+        conn.detach_volume(test_instance['name'], '/var/tmp')
 
     def test_make_directory_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
