@@ -933,7 +933,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # Run all the magic to make the mounts happen
         volumes.setup()
         volumes.attach()
-        volumes.teardown()
+        volumes.write_and_close()
 
     def detach_volume(self, instance_name, mountpoint):
         """Detach the disk attached to the instance at mountpoint"""
@@ -946,7 +946,7 @@ class OpenVzConnection(driver.ComputeDriver):
         volumes = OVZVolumes(instance['id'], mountpoint, None, None)
         volumes.setup()
         volumes.detach()
-        volumes.teardown()
+        volumes.write_and_close()
 
     def get_info(self, instance_name):
         """
@@ -1505,7 +1505,7 @@ class OVZVolumes(object):
         self.mountfh.delete_mounts()
         self.umountfh.delete_umounts()
 
-    def teardown(self):
+    def write_and_close(self):
         # Reopen the files and write the contents to them
         self.mountfh.write()
         self.umountfh.write()
