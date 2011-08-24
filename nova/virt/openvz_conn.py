@@ -1371,7 +1371,8 @@ class OVZFile(object):
         basedir = os.path.dirname(path)
         self.make_dir(basedir)
 
-    def make_dir(self, path):
+    @staticmethod
+    def make_dir(path):
         """
         This is the method that actually creates directories.  This is used by
         make_path and can be called directly as a utility to create directories.
@@ -1517,7 +1518,8 @@ class OVZUmountFile(OVZMounts):
         """
         return self._umount_line(self.container_root_mount)
 
-    def _umount_line(self, mount):
+    @staticmethod
+    def _umount_line(mount):
         """
         Helper method to assemble a umount line for CTID.umount.  This uses
         lazy and force to unmount the filesystem because in the condition that
@@ -1558,8 +1560,9 @@ class OVZUmountFile(OVZMounts):
         
         # Now unmount the host mount
         self.unmount(self.host_umount_line)
-    
-    def unmount(self, mount_line):
+
+    @staticmethod
+    def unmount(mount_line):
         """
         Helper method to use nova commandline utilities to unmount the
         filesystem given as an argument.
