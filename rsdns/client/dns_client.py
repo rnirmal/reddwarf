@@ -19,8 +19,7 @@ We have to duplicate a lot of code from the OpenStack client since so much
 is different here.
 """
 
-from novaclient.client import OpenStackClient
-from novaclient.exceptions import OpenStackException
+from novaclient.client import HTTPClient
 from novaclient import exceptions
 import httplib2
 try:
@@ -40,9 +39,10 @@ except ImportError:
     LOG = FakeLog()
     
 
-class DNSaasClient(OpenStackClient):
+class DNSaasClient(HTTPClient):
     def __init__(self, accountId, user, apikey, auth_url, management_base_url):
-        super(DNSaasClient, self).__init__(user, apikey, auth_url)
+        tenant = "dbaas"
+        super(DNSaasClient, self).__init__(user, apikey, tenant, auth_url)
         self.accountId = accountId
         self.management_base_url = management_base_url
     
@@ -64,7 +64,7 @@ class DNSaasClient(OpenStackClient):
 
        if httplib2.debuglevel == 1:
            LOG.debug("ARGS:" + str(args))
-       resp, body = super(OpenStackClient, self).request(*args, **kwargs)
+       resp, body = super(HTTPClient, self).request(*args, **kwargs)
        if httplib2.debuglevel == 1:
            LOG.debug("RESPONSE:" + str(resp))
            LOG.debug("BODY:" + str(body))
@@ -95,7 +95,7 @@ def exception_from_response(response, body):
         if resp.status != 200:
             raise exception_from_response(resp, body)
     """
-    cls = exceptions._code_map.get(response.status, exceptions.OpenStackException)
+    cls = exceptions._code_map.get(response.status, exceptions.ClientException)
     if body:
         message = "n/a"
         details = "n/a"

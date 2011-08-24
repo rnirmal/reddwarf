@@ -47,9 +47,9 @@ glance_manage () {
     # just checking if the 'known' glance-manage exists
     if [ -f /glance/bin/glance-manage ]
     then
-        /glance/bin/glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+        /glance/bin/glance-manage --config-file=/vagrant/glance-reg.conf $@
     else
-        glance-manage --sql-connection=mysql://nova:novapass@localhost/glance $@
+        glance-manage --config-file=/vagrant/glance-reg.conf $@
     fi
 }
 
@@ -73,51 +73,40 @@ glance_manage version_control
 glance_manage db_sync
 
 nova_manage db sync
-nova_manage user admin admin admin admin
-nova_manage project create dbaas admin
 
 reddwarf_manage db sync
 
-# Keystone values
+# Keystone - Add a regular system admin
 AUTH_TENANT="dbaas"
 AUTH_USER="admin"
-AUTH_PASSWD="admin"
-AUTH_ROLE="ADMIN"
-AUTH_REGION="ci"
-SERVICE_NAME="reddwarf"
-SERVICE_URL="http://localhost:8775/v1.0/"
+AUTH_PASSWORD="admin"
+AUTH_ADMIN_ROLE="Admin"
 keystone_manage tenant add $AUTH_TENANT
-keystone_manage user add $AUTH_USER $AUTH_PASSWD $AUTH_TENANT
-keystone_manage role add $AUTH_ROLE
-keystone_manage role grant $AUTH_ROLE $AUTH_USER
-keystone_manage role grant $AUTH_ROLE $AUTH_USER $AUTH_TENANT
-keystone_manage service add $SERVICE_NAME
-keystone_manage endpointTemplates add $AUTH_REGION $SERVICE_NAME $SERVICE_URL $SERVICE_URL $SERVICE_URL 1 0
+keystone_manage user add $AUTH_USER $AUTH_PASSWORD $AUTH_TENANT
+keystone_manage role add $AUTH_ADMIN_ROLE
+keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
+keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
+
+SERVICE_REGION="ci"
+REDDWARF_SERVICE_NAME="reddwarf"
+NOVA_SERVICE_NAME="nova"
+REDDWARF_SERVICE_URL="http://localhost:8775/v1.0"
+NOVA_SERVICE_URL="http://localhost:8774/v1.1"
+keystone_manage service add $REDDWARF_SERVICE_NAME
+keystone_manage service add $NOVA_SERVICE_NAME
+keystone_manage endpointTemplates add $SERVICE_REGION $REDDWARF_SERVICE_NAME $REDDWARF_SERVICE_URL $REDDWARF_SERVICE_URL $REDDWARF_SERVICE_URL 1 0
+keystone_manage endpointTemplates add $SERVICE_REGION $NOVA_SERVICE_NAME $NOVA_SERVICE_URL $NOVA_SERVICE_URL $NOVA_SERVICE_URL 1 0
 keystone_manage endpoint add $AUTH_TENANT 1
+keystone_manage endpoint add $AUTH_TENANT 2
 
-exclaim Creating Nova certs.
+# Adding a service admin token here temporarily
+SERVICE_ADMIN_TOKEN="3967a20d-d929-4377-a196-728ff4148e8f"
+keystone_manage token add $SERVICE_ADMIN_TOKEN $AUTH_USER $AUTH_TENANT 2015-02-05T00:00
 
-# Setup the certs.
-create_dir () {
-    if [ -d $1 ]
-    then
-        echo $1 already exists.
-    else
-        mkdir $1
-    fi
-}
-
-
-
-create_dir /src/nova/CA/private
-# Entering the director seems to be required.
-cd /src/nova/CA
-./genrootca.sh
-create_dir /src/nova/CA/newcerts
-
-
-cd ~/
-nova_manage project zipfile dbaas admin
+# Copy and update the paste.ini files
+cp /src/etc/nova/api-paste_keystone.ini /home/vagrant
+cp /src/etc/nova/reddwarf-api-paste.ini /home/vagrant
+sed -i "s/admin_token = service_admin_token/admin_token = $SERVICE_ADMIN_TOKEN/g" /home/vagrant/*.ini
 
 exclaim Starting tests...
 cd /tests
@@ -141,7 +130,6 @@ gateway_ip=`route -n|grep ^0.0.0.0|sed 's/ \+/ /g'|cut -d' ' -f2`
 dns_ip=`grep -m1 nameserver /etc/resolv.conf |cut -d' ' -f2`
 
 echo "--flat_network_dns=$dns_ip" >> /home/vagrant/nova.conf
-#nova_manage network create 10.0.2.0/24 1 256
 
 # Can't figure out the CIDR rules, so I'm giving it 256 ips.
 nova_manage network create --label=usernet --fixed_range_v4=$ip_startbr100.0/24 --num_networks=1 --network_size=256 --bridge=br100 --bridge_interface=eth0 --dns1=$dns_ip
@@ -150,7 +138,7 @@ nova_manage network create --label=infranet --fixed_range_v4=$ip_startbr200.0/24
 # This for some reason is not being added, nor is it a option in nova manage.
 # We NEED to get the project associated w/ the network and this is a nasty hack
 # TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
-mysql -u root -pnova -e "update nova.networks set project_id = 'dbaas';"
+mysql -u root -pnova -e "update nova.networks set project_id = '$AUTH_TENANT';"
 hostname=`hostname`
 
 # Assume there is only one network and `update all rows.

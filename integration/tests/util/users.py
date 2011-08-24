@@ -44,10 +44,12 @@ class ServiceUser(object):
 
     """
 
-    def __init__(self, auth_user=None, auth_key=None, requirements=None):
+    def __init__(self, auth_user=None, auth_key=None,
+                 tenant=None, requirements=None):
         """Creates info on a user."""
         self.auth_user = auth_user
         self.auth_key = auth_key
+        self.tenant = tenant
         self.requirements = requirements
         self.test_count = 0
 
@@ -61,6 +63,7 @@ class Users(object):
             reqs = Requirements(**user_dict["requirements"])            
             user = ServiceUser(auth_user=user_dict["auth_user"],
                                auth_key=user_dict["auth_key"],
+                               tenant=user_dict["tenant"],
                                requirements=reqs)
             self.users.append(user)
 

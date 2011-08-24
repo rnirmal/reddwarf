@@ -49,7 +49,8 @@ def _get_client(options):
     try:
         with open(APITOKEN, 'rb') as token:
             apitoken = pickle.load(token)
-            dbaas = Dbaas(apitoken._user, apitoken._apikey, options.url)
+            dbaas = Dbaas(apitoken._user, apitoken._apikey,
+                          apitoken._tenant, options.url)
             dbaas.client.auth_token = apitoken._token
             return dbaas
     except IOError:
@@ -69,9 +70,10 @@ class APIToken(object):
     """A token object containing the user, apikey and token which
        is pickleable."""
 
-    def __init__(self, user, apikey, token):
+    def __init__(self, user, apikey, tenant, token):
         self._user = user
         self._apikey = apikey
+        self._tenant = tenant
         self._token = token
 
 
@@ -81,12 +83,12 @@ class Auth(object):
     def __init__(self):
         pass
 
-    def login(self, options, user, apikey):
+    def login(self, options, user, apikey, tenant):
         """Login to retrieve an auth token to use for other api calls"""
         try:
-            dbaas = Dbaas(user, apikey, options.url)
+            dbaas = Dbaas(user, apikey, tenant, options.url)
             dbaas.authenticate()
-            apitoken = APIToken(user, apikey, dbaas.client.auth_token)
+            apitoken = APIToken(user, apikey, tenant, dbaas.client.auth_token)
 
             with open(APITOKEN, 'wb') as token:
                 pickle.dump(apitoken, token, protocol=2)
@@ -309,9 +311,9 @@ def methods_of(obj):
 
 def config_options():
     global oparser
-    oparser.add_option("-u", "--url", default="http://localhost:8775/v1.0",
-                       help="API endpoint URL with port and version. \
-                            Default: http://localhost:8775/v1.0")
+    oparser.add_option("-u", "--url", default="http://localhost:5000/v2.0",
+                       help="Auth API endpoint URL with port and version. \
+                            Default: http://localhost:5000/v2.0")
 
 
 def print_actions(cmd, actions):
