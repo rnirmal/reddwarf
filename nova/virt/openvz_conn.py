@@ -1309,13 +1309,13 @@ class OVZFile(object):
     def delete(self, contents):
         if isinstance(contents, list):
             for line in contents:    
-                self._del(line)
+                self.remove_line(line)
         else:
-            self._del(contents)
+            self.remove_line(contents)
     
-    def _del(self, contents):
-        if contents in self.contents:
-            self.contents.remove(contents)
+    def remove_line(self, line):
+        if line in self.contents:
+            self.contents.remove(line)
     
     def set_permissions(self, permissions):
         try:
