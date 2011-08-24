@@ -1272,18 +1272,16 @@ class OVZFile(object):
 
     def read(self):
         try:
-            fh = open(self.filename, 'r')
-            self.contents = fh.readlines()
-            fh.close()
+            with open(self.filename, 'r') as fh:
+                self.contents = fh.readlines()
         except Exception as err:
             LOG.error(err)
             raise exception.Error('Failed to read %s' % (self.filename,))
     
     def write(self):
         try:
-            fh = open(self.filename, 'w')
-            fh.writelines('\n'.join(self.contents) + '\n')
-            fh.close()
+            with open(self.filename, 'w') as fh:
+                fh.writelines('\n'.join(self.contents) + '\n')
         except Exception as err:
             LOG.error(err)
             raise exception.Error('Failed to write %s' % (self.filename,))
