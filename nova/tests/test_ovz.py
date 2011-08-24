@@ -737,7 +737,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn, 'OVZVolumes')
         openvz_conn.OVZVolumes(test_instance['id'], mox.IgnoreArg(),
                                mox.IgnoreArg(), mox.IgnoreArg()).AndReturn(
-            mock_volumes)
+                               mock_volumes)
         self.mox.ReplayAll()
         conn.detach_volume(test_instance['name'], '/var/tmp')
 
