@@ -910,6 +910,9 @@ class OpenVzConnection(driver.ComputeDriver):
         # set.
         meta = self._find_by_name(instance_name)
         instance = db.instance_get(context.get_admin_context(), meta['id'])
+
+        # Set volumes to none to account for the case that no volume is found
+        volumes = None
         if instance['volumes']:
             for vol in instance['volumes']:
                 if vol['mountpoint'] == mountpoint and vol['uuid']:
@@ -924,16 +927,18 @@ class OpenVzConnection(driver.ComputeDriver):
                                          device_path, None)
                     LOG.debug('Adding volume %s to %s' %
                                 (device_path, instance['id']))
-        else:
+        # If volumes is None we have problems.
+        if volumes is None:
             LOG.error('No volume in the db for this instance')
             LOG.error('Instance: %s' % (instance_name,))
             LOG.error('Device: %s' % (device_path,))
             LOG.error('Mount: %s' % (mountpoint,))
             raise exception.Error('No volume in the db for this instance')
-        # Run all the magic to make the mounts happen
-        volumes.setup()
-        volumes.attach()
-        volumes.write_and_close()
+        else:
+            # Run all the magic to make the mounts happen
+            volumes.setup()
+            volumes.attach()
+            volumes.write_and_close()
 
     def detach_volume(self, instance_name, mountpoint):
         """Detach the disk attached to the instance at mountpoint"""
