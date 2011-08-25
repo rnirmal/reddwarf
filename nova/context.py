@@ -59,7 +59,8 @@ class RequestContext(object):
                 'roles': self.roles,
                 'remote_address': self.remote_address,
                 'timestamp': utils.strtime(self.timestamp),
-                'request_id': self.request_id}
+                'request_id': self.request_id,
+                'auth_token': self.auth_token}
 
     @classmethod
     def from_dict(cls, values):
@@ -75,7 +76,8 @@ class RequestContext(object):
                               roles=self.roles,
                               remote_address=self.remote_address,
                               timestamp=self.timestamp,
-                              request_id=self.request_id)
+                              request_id=self.request_id,
+                              auth_token=self.auth_token)
 
 
 def get_admin_context(read_deleted=False):
