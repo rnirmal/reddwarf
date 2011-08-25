@@ -1,0 +1,105 @@
+From a609182e7ed506ed6753c48962fcc4cd6a50997b Mon Sep 17 00:00:00 2001
+From: Nirmal Ranganathan <rnirmal@gmail.com>
+Date: Tue, 23 Aug 2011 11:09:57 -0500
+Subject: [PATCH 2/3] Refactoring the legacy_token_auth to perform both 1.0 and 1.1 authentication
+
+---
+ keystone/frontends/legacy_token_auth.py |   60 ++++++++++++++++++++++---------
+ 1 files changed, 43 insertions(+), 17 deletions(-)
+
+diff --git a/keystone/frontends/legacy_token_auth.py b/keystone/frontends/legacy_token_auth.py
+index fce2f11..7c51caa 100644
+--- a/keystone/frontends/legacy_token_auth.py
++++ b/keystone/frontends/legacy_token_auth.py
+@@ -42,6 +42,8 @@ if os.path.exists(os.path.join(POSSIBLE_TOPDIR, 'keystone', '__init__.py')):
+ 
+ import keystone.utils as utils
+ 
++from keystone.logic.types import fault
++
+ PROTOCOL_NAME = "Legacy Authentication"
+ 
+ 
+@@ -60,30 +62,54 @@ class AuthProtocol(object):
+     def __call__(self, env, start_response):
+         """ Handle incoming request. Transform. And send downstream. """
+         request = Request(env)
+-        if env['KEYSTONE_API_VERSION'] in ['1.0', '1.1']:
+-            params = {"passwordCredentials":
+-                {"username": utils.get_auth_user(request),
+-                    "password": utils.get_auth_key(request)}}
++        api_version = env['KEYSTONE_API_VERSION']
++        if api_version in ['1.0', '1.1']:
++            if api_version is "1.0":
++                params = self._transform_1_0_request(request)
++            else:
++                params = self._transform_1_1_request(request)
+             #Make request to keystone
+-            new_request = Request.blank('/tokens')
+-            new_request.method = 'POST'
+-            new_request.headers['Content-type'] = 'application/json'
+-            new_request.accept = 'text/json'
+-            new_request.body = json.dumps(params)
+-            response = new_request.get_response(self.app)
++            response = self._make_request_to_keystone(params)
+             #Handle failures.
+             if not str(response.status).startswith('20'):
+                 return response(env, start_response)
+-            headers = self.__transform_headers(
+-                json.loads(response.body))
+-            resp = utils.send_legacy_result(204, headers)
+-            return resp(env, start_response)
++            if api_version is "1.0":
++                legacy_response = self._transform_to_1_0_response(response)
++            else:
++                legacy_response = response
++            return legacy_response(env, start_response)
+         else:
+             # Other calls pass to downstream WSGI component
+             return self.app(env, start_response)
+ 
+-    def __transform_headers(self, content):
+-        """Transform Keystone auth to legacy headers"""
++    def _make_request_to_keystone(self, body):
++        """Make the request to the Keystone 2.0 api and return the response"""
++        new_request = Request.blank('/tokens')
++        new_request.method = 'POST'
++        new_request.headers['Content-type'] = 'application/json'
++        new_request.accept = 'text/json'
++        new_request.body = json.dumps(body)
++        return new_request.get_response(self.app)
++
++    def _transform_1_0_request(self, request):
++        """Transform incoming 1.0 request to Keystone 2.0"""
++        return {"passwordCredentials":
++                 {"username": utils.get_auth_user(request),
++                  "password": utils.get_auth_key(request)}}
++
++    def _transform_1_1_request(self, request):
++        """Transform incoming 1.1 request to Keystone 2.0"""
++        try:
++            body = json.loads(request.body)
++            return {"passwordCredentials":
++                       {"username": body["credentials"]["username"],
++                        "password": body["credentials"]["key"]}}
++        except:
++            raise fault.BadRequestFault("Invalid request body")
++
++    def _transform_to_1_0_response(self, response):
++        """Transform Keystone auth to legacy 1.0 headers"""
++        content = json.loads(response.body)
+         headers = {}
+         if "auth" in content:
+             auth = content["auth"]
+@@ -108,7 +134,7 @@ class AuthProtocol(object):
+                             #For Services that are not mapped,
+                             #use X- prefix followed by service name.
+                             headers['X-' + service_name.upper()] = service_urls
+-        return headers
++        return utils.send_legacy_result(204, headers)
+ 
+ 
+ def filter_factory(global_conf, **local_conf):
+-- 
+1.7.1
+

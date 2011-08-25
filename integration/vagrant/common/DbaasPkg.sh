@@ -84,6 +84,9 @@ dbaas_pkg_setup_keystone() {
     cd /keystone
     sudo git checkout -b stable $KEYSTONE_VERSION
 
+    # Apply any patches if necessary
+    git am -3 /vagrant-common/patches/keystone/*
+
     # Install Dependenciens
     pkg_install python-eventlet python-lxml python-paste python-pastedeploy python-pastescript python-pysqlite2
     pkg_install python-sqlalchemy python-webob python-routes python-httplib2 python-memcache

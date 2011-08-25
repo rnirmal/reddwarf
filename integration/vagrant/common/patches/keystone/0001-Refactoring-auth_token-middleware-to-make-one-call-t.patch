@@ -1,0 +1,106 @@
+From 1bb77fe8d43d7754d544d97df8c12ea2d727341b Mon Sep 17 00:00:00 2001
+From: Nirmal Ranganathan <rnirmal@gmail.com>
+Date: Wed, 24 Aug 2011 11:14:54 -0500
+Subject: [PATCH 1/3] Refactoring auth_token middleware to make one call to keystone instead of the 2 calls that are made now.
+
+---
+ keystone/middleware/auth_token.py |   50 ++++++++++++------------------------
+ 1 files changed, 17 insertions(+), 33 deletions(-)
+
+diff --git a/keystone/middleware/auth_token.py b/keystone/middleware/auth_token.py
+index e0e993d..bc8d124 100755
+--- a/keystone/middleware/auth_token.py
++++ b/keystone/middleware/auth_token.py
+@@ -143,7 +143,8 @@ class AuthProtocol(object):
+                 return self._reject_request(env, start_response)
+         else:
+             # this request is presenting claims. Let's validate them
+-            valid = self._validate_claims(claims)
++            data, status = self._validate_token(claims)
++            valid = self._validate_status(status)
+             if not valid:
+                 # Keystone rejected claim
+                 if self.delay_auth_decision:
+@@ -159,7 +160,7 @@ class AuthProtocol(object):
+ 
+             #Collect information about valid claims
+             if valid:
+-                claims = self._expound_claims(claims)
++                claims = self._expound_claims(data)
+ 
+                 # Store authentication data
+                 if claims:
+@@ -221,9 +222,13 @@ class AuthProtocol(object):
+         return HTTPUnauthorized()(env,
+             start_response)
+ 
+-    def _validate_claims(self, claims):
+-        """Validate claims, and provide identity information isf applicable """
+-
++    def _validate_token(self, claims):
++        """Make the call to Keystone and get the return code and data"""
++        # TODO(ziad):we need to figure out how to auth to keystone
++        # since validate_token is a priviledged call
++        #Khaled's version uses creds to get a token
++        # "X-Auth-Token": admin_token}
++        # we're using a test token from the ini file for now
+         # Step 1: We need to auth with the keystone service, so get an
+         # admin token
+         #TODO(ziad): Need to properly implement this, where to store creds
+@@ -237,46 +242,25 @@ class AuthProtocol(object):
+         headers = {"Content-type": "application/json",
+                     "Accept": "text/json",
+                     "X-Auth-Token": self.admin_token}
+-                    ##TODO(ziad):we need to figure out how to auth to keystone
+-                    #since validate_token is a priviledged call
+-                    #Khaled's version uses creds to get a token
+-                    # "X-Auth-Token": admin_token}
+-                    # we're using a test token from the ini file for now
++
+         conn = http_connect(self.auth_host, self.auth_port, 'GET',
+                             '/v2.0/tokens/%s' % claims, headers=headers)
+         resp = conn.getresponse()
+-        # data = resp.read()
++        data = resp.read()
+         conn.close()
++        return data, str(resp.status)
+ 
+-        if not str(resp.status).startswith('20'):
++    def _validate_status(self, status):
++        """Validate claims, and provide identity information isf applicable """
++        if not status.startswith('20'):
+             # Keystone rejected claim
+             return False
+         else:
+-            #TODO(Ziad): there is an optimization we can do here. We have just
+-            #received data from Keystone that we can use instead of making
+-            #another call in _expound_claims
+             return True
+ 
+-    def _expound_claims(self, claims):
++    def _expound_claims(self, data):
+         # Valid token. Get user data and put it in to the call
+         # so the downstream service can use it
+-        headers = {"Content-type": "application/json",
+-                    "Accept": "text/json",
+-                    "X-Auth-Token": self.admin_token}
+-                    ##TODO(ziad):we need to figure out how to auth to keystone
+-                    #since validate_token is a priviledged call
+-                    #Khaled's version uses creds to get a token
+-                    # "X-Auth-Token": admin_token}
+-                    # we're using a test token from the ini file for now
+-        conn = http_connect(self.auth_host, self.auth_port, 'GET',
+-                            '/v2.0/tokens/%s' % claims, headers=headers)
+-        resp = conn.getresponse()
+-        data = resp.read()
+-        conn.close()
+-
+-        if not str(resp.status).startswith('20'):
+-            raise LookupError('Unable to locate claims: %s' % resp.status)
+-
+         token_info = json.loads(data)
+         roles = []
+         role_refs = token_info["auth"]["user"]["roleRefs"]
+-- 
+1.7.1
+
