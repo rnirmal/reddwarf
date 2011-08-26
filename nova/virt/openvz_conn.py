@@ -488,7 +488,26 @@ class OpenVzConnection(driver.ComputeDriver):
         ip address given to a new container.  We need to send a gratuitous arp
         on each interface for the address assigned.
         """
-        
+        # TODO(imsplitbit): refactor all networking stuff into a class/object
+
+    def _ip_addresses(self, instance):
+        """
+        There are several instances in this codebase where we will need
+        to iterate through the assigned ip addresses for a given container.
+        This is a factory method used to generate an iterable list of ips and
+        their related network info.
+        """
+        for eth_id, network in enumerate(network_info):
+            bridge = network[0]["bridge"]
+            netif = network[0]["bridge_interface"] \
+                        if network[0].has_key("bridge_interface") \
+                        else "eth%s" % eth_id
+            ip = network[1]["ips"][0]["ip"]
+            netmask = network[1]["ips"][0]["netmask"]
+            gateway = network[1]["gateway"]
+            dns = network[1]["dns"][0]
+            yield {'bridge': bridge, 'netif': netif, 'ip': ip,
+                   'netmask': netmask, 'gateway': gateway, 'dns': dns}
 
     def _set_nameserver(self, instance, dns):
         """
