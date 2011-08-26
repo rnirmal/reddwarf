@@ -47,7 +47,7 @@ dbaas_pkg_install_glance() {
     then
         dbaas_old_install_glance
     else
-        dbaas_new_install_glance
+        dbaas_trunk_install_glance
     fi
 
     sudo -E mkdir /glance_images/
@@ -127,6 +127,15 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
     sudo -E rm -fr /etc/apt/preferences.d/temp-local-ppa-pin
     sudo -E rm -fr /etc/apt/sources.list.d/temp-local-ppa-lucid.list
     sudo -E apt-get update
+}
+
+dbaas_trunk_install_glance() {
+    sudo -E add-apt-repository ppa:glance-core/trunk
+    sudo -E apt-get update
+    sudo -E apt-get install glance
+    
+    sudo -E service glance-registry stop
+    sudo -E service glance-api stop
 }
 
 dbaas_new_install_glance() {
