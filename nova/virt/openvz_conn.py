@@ -482,6 +482,14 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Error adding IP')
 
+    def _send_garp(self, instance):
+        """
+        I exist because it is possible in nova to have a recently released
+        ip address given to a new container.  We need to send a gratuitous arp
+        on each interface for the address assigned.
+        """
+        
+
     def _set_nameserver(self, instance, dns):
         """
         Get the nameserver for the assigned network and set it using
