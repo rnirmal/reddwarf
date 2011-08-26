@@ -497,6 +497,8 @@ class OpenVzConnection(driver.ComputeDriver):
         This is a factory method used to generate an iterable list of ips and
         their related network info.
         """
+        network_info = db.network_get_all_by_instance(
+            context.get_admin_context(), instance['id'])
         for eth_id, network in enumerate(network_info):
             bridge = network[0]["bridge"]
             netif = network[0]["bridge_interface"] \
