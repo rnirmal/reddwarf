@@ -397,7 +397,8 @@ class OpenVzConnection(driver.ComputeDriver):
             _, err = utils.execute('sudo', 'vzctl', 'stop', instance['id'])
             if err:
                 LOG.error(err)
-        except ProcessExecutionError:
+        except ProcessExecutionError as pe:
+            LOG.error(pe)
             raise exception.Error('Failed to stop %s' % instance['id'])
 
         # Update instance state

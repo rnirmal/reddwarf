@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+import json
 from webob import exc
 
 from nova import compute
@@ -54,9 +56,9 @@ _dbaas_mapping = {
     power_state.NOSTATE: 'BUILD',
     power_state.RUNNING: 'ACTIVE',
     power_state.SHUTDOWN: 'SHUTDOWN',
-    power_state.BUILDING: 'BUILD'
+    power_state.BUILDING: 'BUILD',
+    power_state.FAILED: 'FAILED'
 }
-
 
 class Controller(object):
     """ The DBContainer API controller for the Platform API """
@@ -159,20 +161,16 @@ class Controller(object):
                                     FLAGS.default_firewall_rule_name,
                                     FLAGS.default_guest_mysql_port)
 
-        databases = common.populate_databases(
-                                    body['dbcontainer'].get('databases', ''))
+        server = self._create_server_dict(body['dbcontainer'],
+                                          volume_ref['id'],
+                                          FLAGS.reddwarf_mysql_data_dir)
 
         # Add any extra data that's required by the servers api
-        self._append_on_create(body, volume_ref['id'],
-                               FLAGS.reddwarf_mysql_data_dir)
-        server_req_body = self._rename_to_server(body)
+        server_req_body = {'server':server}
         server_resp = self._try_create_server(req, server_req_body)
         server_id = str(server_resp['server']['id'])
         dbapi.guest_status_create(server_id)
 
-        # Send the prepare call to Guest
-        self.guest_api.prepare(context,
-                               server_id, databases)
         dbcontainer = self._create_dbcontainer_dict(context,
                                                     server_resp['server'])
         # Update volume description
@@ -182,26 +180,6 @@ class Controller(object):
         LOG.debug("adding the volume information to the response...")
         dbcontainer['volume'] = {'size': volume_ref['size']}
         return { 'dbcontainer': dbcontainer }
-
-    @staticmethod
-    def _append_on_create(body, volume_id, mount_point):
-        """Append additional stuff to create"""
-        # Add image_ref
-        body['dbcontainer']['imageRef'] = FLAGS.reddwarf_imageRef
-        # Add Firewall rules
-        firewall_rules = [FLAGS.default_firewall_rule_name]
-        body['dbcontainer']['firewallRules'] = firewall_rules
-        # Add volume id
-        if not 'metadata' in body['dbcontainer']:
-            body['dbcontainer']['metadata'] = {}
-        body['dbcontainer']['metadata']['volume_id'] = str(volume_id)
-        # Add mount point
-        body['dbcontainer']['metadata']['mount_point'] = str(mount_point)
-
-    @staticmethod
-    def _rename_to_server(body):
-        """Rename dbcontainer to server"""
-        return {'server': body['dbcontainer']}
 
     def create_volume(self, context, body):
         """Creates the volume for the container and returns its ID."""
@@ -317,6 +295,30 @@ class Controller(object):
         if enabled is not None:
             dbcontainer['rootEnabled'] = enabled
         return dbcontainer
+
+    @staticmethod
+    def _create_server_dict(dbcontainer, volume_id, mount_point):
+        """Creates a server dict from the request dbcontainer dict."""
+        server = copy.copy(dbcontainer)
+        # Append additional stuff to create.
+        # Add image_ref
+        server['imageRef'] = FLAGS.reddwarf_imageRef
+        # Add Firewall rules
+        firewall_rules = [FLAGS.default_firewall_rule_name]
+        server['firewallRules'] = firewall_rules
+        # Add volume id
+        if not 'metadata' in dbcontainer:
+            server['metadata'] = {}
+        server['metadata']['volume_id'] = str(volume_id)
+        # Add mount point
+        server['metadata']['mount_point'] = str(mount_point)
+        # Add databases
+        db_list = dbcontainer.get('databases', [])
+        # We create these once and throw away the result to take advantage
+        # of the validators.
+        common.populate_databases(db_list)
+        server['metadata']['database_list'] = json.dumps(db_list)
+        return server
 
     def _setup_security_groups(self, context, group_name, port):
         """ Setup a default firewall rule for reddwarf.

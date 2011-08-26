@@ -102,6 +102,7 @@ if __name__ == '__main__':
     from tests import initialize
     from tests.dbaas import dbaas_ovz
     from tests.dbaas import dns
+    from tests.dbaas import guest_initialize_failure
     from tests.dbaas import flavors
 
     from tests.dns import check_domain

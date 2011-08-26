@@ -20,7 +20,6 @@ from webob import exc
 
 
 from nova import exception
-from nova.api.openstack import faults
 from nova.guest.db import models
 
 
