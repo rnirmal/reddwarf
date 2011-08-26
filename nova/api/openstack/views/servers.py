@@ -59,24 +59,6 @@ class ViewBuilder(object):
         return dict(server=dict(id=inst['id'], name=inst['display_name']))
 
 
-    @staticmethod
-    def get_status_from_state(state):
-        """Given the state of an instance, returns the status of the server."""
-        power_mapping = {
-            None: 'BUILD',
-            power_state.NOSTATE: 'BUILD',
-            power_state.RUNNING: 'ACTIVE',
-            power_state.BLOCKED: 'ACTIVE',
-            power_state.SUSPENDED: 'SUSPENDED',
-            power_state.PAUSED: 'PAUSED',
-            power_state.SHUTDOWN: 'SHUTDOWN',
-            power_state.SHUTOFF: 'SHUTOFF',
-            power_state.CRASHED: 'ERROR',
-            power_state.FAILED: 'ERROR',
-            power_state.BUILDING: 'BUILD',
-        }
-        return power_mapping[state]
-
     def _build_detail(self, inst):
         """Returns a detailed model of a server."""
 

@@ -24,6 +24,7 @@ from nova import flags
 from nova import log as logging
 from nova import utils
 from nova import volume
+from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
@@ -84,7 +85,7 @@ class Controller(object):
                                                           context.user_id)
         for server in server_list:
             state = server_states[server['id']]
-            server['status'] = servers_view.get_status_from_state(state)
+            server['status'] = nova_common.status_from_power_state(state)
 
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
