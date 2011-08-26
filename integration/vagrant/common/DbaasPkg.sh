@@ -139,18 +139,21 @@ dbaas_trunk_install_glance() {
 }
 
 dbaas_new_install_glance() {
-    # Builds and installs the novaclient based on a config'd version
+    # Builds and installs glance based on a config'd version
     pkg_remove glance
     pkg_remove python-glance
     sudo -E mkdir -p /tmp/build/
     sudo -E rm -fr /tmp/build/glance*
     sudo -E rm -fr /tmp/build/python-glance*
     # GLANCE_VERSION is sourced from Exports
-    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:glance -r $GLANCE_VERSION /tmp/build/glance
+    # sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:glance -r $GLANCE_VERSION /tmp/build/glance
+    sudo -E git clone https://github.com/openstack/glance.git /tmp/build/glance
+    cd /tmp/build/glance
+    sudo git checkout -b stable $GLANCE_VERSION
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/glance/ubuntu /tmp/build/glancepkg
     sudo -E mv /tmp/build/glancepkg/debian /tmp/build/glance
     pkg_install cdbs python-mock
-    cd /tmp/build/glance
+
     sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
     # for some reason glance needs swift core to build
     add-apt-repository ppa:swift-core/trunk
