@@ -199,7 +199,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         return infos
 
-    def spawn(self, instance, network_info=None, block_device_mapping=None):
+    def spawn(self, context, instance, network_info=None, block_device_mapping=None):
         """
         Create a new virtual environment on the container platform.
 
@@ -219,7 +219,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
 
         # Update state to inform the nova stack that the VE is launching
-        db.instance_set_state(context.get_admin_context(),
+        db.instance_set_state(context,
                               instance['id'],
                               power_state.NOSTATE,
                               'launching')
@@ -232,7 +232,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # TODO(imsplitbit): Need to add conditionals around this stuff to make
         # it more durable during failure. And roll back changes made leading
         # up to the error.
-        self._cache_image(instance)
+        self._cache_image(context, instance)
         self._create_vz(instance)
         self._set_vz_os_hint(instance)
         self._configure_vz(instance)
@@ -266,7 +266,7 @@ class OpenVzConnection(driver.ComputeDriver):
         def _wait_for_boot():
             try:
                 state = self.get_info(instance['name'])['state']
-                db.instance_set_state(context.get_admin_context(),
+                db.instance_set_state(context,
                                       instance['id'], state)
                 if state == power_state.RUNNING:
                     LOG.debug('instance %s: booted' % instance['name'])
@@ -275,7 +275,7 @@ class OpenVzConnection(driver.ComputeDriver):
             except:
                 LOG.exception('instance %s: failed to boot' %
                               instance['name'])
-                db.instance_set_state(context.get_admin_context(),
+                db.instance_set_state(context,
                                       instance['id'],
                                       power_state.SHUTDOWN)
                 timer.stop()
@@ -318,7 +318,7 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Unable to set ostemplate to \'%s\' for %s' %
                                   (ostemplate, instance['id']))
 
-    def _cache_image(self, instance):
+    def _cache_image(self, context, instance):
         """
         Create the disk image for the virtual environment.
         """
@@ -335,7 +335,7 @@ class OpenVzConnection(driver.ComputeDriver):
             project = manager.AuthManager().get_project(instance['project_id'])
 
             # Grab image and place it in the image cache
-            images.fetch(instance['image_ref'], full_image_path, user, project)
+            images.fetch(context, instance['image_ref'], full_image_path, user, project)
             return True
         else:
             return False
