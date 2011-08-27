@@ -274,7 +274,7 @@ class TopicAdapterConsumer(AdapterConsumer):
         self.queue = topic
         self.routing_key = topic
         self.exchange = FLAGS.control_exchange
-        self.durable = False
+        self.durable = FLAGS.rabbit_durable_queues
         super(TopicAdapterConsumer, self).__init__(connection=connection,
                                     topic=topic, proxy=proxy)
 
@@ -362,7 +362,7 @@ class TopicPublisher(Publisher):
     def __init__(self, connection=None, topic='broadcast'):
         self.routing_key = topic
         self.exchange = FLAGS.control_exchange
-        self.durable = False
+        self.durable = FLAGS.rabbit_durable_queues
         super(TopicPublisher, self).__init__(connection=connection)
 
 
@@ -390,6 +390,7 @@ class DirectConsumer(Consumer):
         self.queue = msg_id
         self.routing_key = msg_id
         self.exchange = msg_id
+        self.durable = False
         self.auto_delete = True
         self.exclusive = True
         super(DirectConsumer, self).__init__(connection=connection)
@@ -403,6 +404,7 @@ class DirectPublisher(Publisher):
     def __init__(self, connection=None, msg_id=None):
         self.routing_key = msg_id
         self.exchange = msg_id
+        self.durable = False
         self.auto_delete = True
         super(DirectPublisher, self).__init__(connection=connection)
 
@@ -599,7 +601,7 @@ def send_message(topic, message, wait=True):
 
     publisher = messaging.Publisher(connection=Connection.instance(),
                                     exchange=FLAGS.control_exchange,
-                                    durable=False,
+                                    durable=FLAGS.rabbit_durable_queues,
                                     exchange_type='topic',
                                     routing_key=topic)
     publisher.send(message)
