@@ -691,7 +691,7 @@ class ISCSIDriver(VolumeDriver):
         (out, err) = self._execute('iscsiadm', '-m', 'node', '-T',
                                    iscsi_properties['target_iqn'],
                                    '-p', iscsi_properties['target_portal'],
-                                   iscsi_command, run_as_root=True, attempts=num_tries)
+                                   *iscsi_command, run_as_root=True, attempts=num_tries)
         LOG.debug("iscsiadm %s: stdout=%s stderr=%s" %
                   (iscsi_command, out, err))
         return (out, err)
@@ -739,13 +739,39 @@ class ISCSIDriver(VolumeDriver):
         mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
                         (iscsi_properties['target_portal'],
                          iscsi_properties['target_iqn']))
+
+        # The /dev/disk/by-path/... node is not always present immediately
+        # TODO(justinsb): This retry-with-delay is a pattern, move to utils?
+        tries = 0
+        while not os.path.exists(mount_device):
+            if tries >= FLAGS.num_iscsi_scan_tries:
+                raise exception.Error(_("iSCSI device not found at %s") %
+                                      (mount_device))
+
+            LOG.warn(_("ISCSI volume not yet found at: %(mount_device)s. "
+                       "Will rescan & retry.  Try number: %(tries)s") %
+                     locals())
+
+            # The rescan isn't documented as being necessary(?), but it helps
+            self._run_iscsiadm(iscsi_properties, ("--rescan", ))
+
+            tries = tries + 1
+            if not os.path.exists(mount_device):
+                time.sleep(tries ** 2)
+
+        if tries != 0:
+            LOG.debug(_("Found iSCSI node %(mount_device)s "
+                        "(after %(tries)s rescans)") %
+                      locals())
+
         return mount_device
 
     def undiscover_volume(self, volume):
         """Undiscover volume on a remote host."""
         iscsi_properties = self.get_iscsi_properties_for_volume(None, volume)
         self._iscsiadm_update(iscsi_properties, "node.startup", "manual")
-        self._run_iscsiadm(iscsi_properties, "--logout")
+        self._run_iscsiadm(iscsi_properties, ("--logout", ))
+        self._run_iscsiadm(iscsi_properties, ('--op', 'delete'))
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""

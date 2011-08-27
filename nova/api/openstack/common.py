@@ -169,13 +169,20 @@ def get_id_from_href(href):
     Returns: 123
 
     """
-    if re.match(r'\d+$', str(href)):
+    LOG.debug(_("Attempting to treat %(href)s as an integer ID.") % locals())
+
+    try:
         return int(href)
+    except ValueError:
+        pass
+
+    LOG.debug(_("Attempting to treat %(href)s as a URL.") % locals())
+
     try:
         return int(urlparse.urlsplit(href).path.split('/')[-1])
-    except ValueError, e:
-        LOG.debug(_("Error extracting id from href: %s") % href)
-        raise ValueError(_('could not parse id from href'))
+    except ValueError as error:
+        LOG.debug(_("Failed to parse ID from %(href)s: %(error)s") % locals())
+        raise
 
 
 def remove_version_from_href(href):
@@ -234,7 +241,8 @@ def check_img_metadata_quota_limit(context, metadata):
     quota_metadata = quota.allowed_metadata_items(context, num_metadata)
     if quota_metadata < num_metadata:
         expl = _("Image metadata limit exceeded")
-        raise webob.exc.HTTPBadRequest(explanation=expl)
+        raise webob.exc.HTTPRequestEntityTooLarge(explanation=expl,
+                                                headers={'Retry-After': 0})
 
 
 class MetadataXMLDeserializer(wsgi.XMLDeserializer):

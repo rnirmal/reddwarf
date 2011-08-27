@@ -27,6 +27,7 @@ LOG = logging.getLogger('nova.tests.integrated')
 
 
 class ServersTest(integrated_helpers._IntegratedTestBase):
+
     def test_get_servers(self):
         """Simple check that listing servers works."""
         servers = self.api.get_servers()
@@ -50,7 +51,7 @@ class ServersTest(integrated_helpers._IntegratedTestBase):
                           self.api.post_server, post)
 
         # With an invalid imageRef, this throws 500.
-        server['imageRef'] = self.user.get_invalid_image()
+        server['imageRef'] = self.get_invalid_image()
         # TODO(justinsb): Check whatever the spec says should be thrown here
         self.assertRaises(client.OpenStackApiException,
                           self.api.post_server, post)
@@ -103,6 +104,10 @@ class ServersTest(integrated_helpers._IntegratedTestBase):
         # It should be available...
         # TODO(justinsb): Mock doesn't yet do this...
         #self.assertEqual('available', found_server['status'])
+        servers = self.api.get_servers(detail=True)
+        for server in servers:
+            self.assertTrue("image" in server)
+            self.assertTrue("flavor" in server)
 
         self._delete_server(created_server_id)
 
@@ -188,7 +193,7 @@ class ServersTest(integrated_helpers._IntegratedTestBase):
         # rebuild the server with metadata
         post = {}
         post['rebuild'] = {
-            "imageRef": "https://localhost/v1.1/32278/images/2",
+            "imageRef": "https://localhost/v1.1/32278/images/3",
             "name": "blah",
         }
 
@@ -200,6 +205,7 @@ class ServersTest(integrated_helpers._IntegratedTestBase):
         self.assertEqual(created_server_id, found_server['id'])
         self.assertEqual({}, found_server.get('metadata'))
         self.assertEqual('blah', found_server.get('name'))
+        self.assertEqual('3', found_server.get('image')['id'])
 
         # Cleanup
         self._delete_server(created_server_id)
