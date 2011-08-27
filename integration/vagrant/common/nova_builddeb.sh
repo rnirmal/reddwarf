@@ -15,8 +15,11 @@ cd $home
 
 source Utils.sh
 
-pkg_install python-m2crypto python-twisted-web python-mox python-carrot python-boto python-amqplib python-ipy python-routes python-webob python-tempita python-migrate python-glance
-
+pkg_install python-m2crypto python-twisted-web python-mox python-carrot python-boto python-amqplib python-ipy python-routes python-webob python-tempita python-migrate python-glance 
+#TODO(hub-cap): Remvoe this silly ppa once we migrate to the natty narwhal.
+sudo add-apt-repository ppa:chris-lea/python-unittest2
+sudo apt-get update
+pkg_install python-unittest2
 
 #prepare the build dir
 rm -rf /tmp/build
