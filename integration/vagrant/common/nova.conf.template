@@ -12,10 +12,14 @@
 --max_instance_memory_mb=6144
 
 # Nova Volume
+# Volume configuration for vagrant vm
 --volume_driver=nova.volume.san.ISCSILiteDriver
 --san_ip=33.33.33.10
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
+
+# Reddwarf Compute Manager
+--compute_manager=reddwarf.compute.manager.ComputeManager
 
 # Nova Compute
 --connection_type=openvz

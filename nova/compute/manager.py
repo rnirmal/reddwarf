@@ -786,9 +786,9 @@ class ComputeManager(manager.SchedulerDependentManager):
         self._update_state(context, instance_id)
 
     @staticmethod
-    def _update_state_callback(self, context, instance_id, result):
+    def _update_state_callback(self, context, instance_id, result=None):
         """Update instance state when async task completes."""
-        self._update_state(context, instance_id)
+        self._update_state(context, instance_id, result)
 
     @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     @checks_instance_lock

@@ -312,7 +312,8 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
                 # RUNNING is allowed in addition to BUILDING.
                 self.assertTrue(
                     result.status == _dbaas_mapping[power_state.BUILDING] or
-                    result.status == _dbaas_mapping[power_state.RUNNING])
+                    result.status == _dbaas_mapping[power_state.RUNNING],
+                    "Result status was %s" % result.status)
                 time.sleep(5)
             else:
                 break
