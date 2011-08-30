@@ -190,33 +190,7 @@ class Volume(unittest.TestCase):
 
 
 @test(groups=["services.initialize"],
-      depends_on_classes=[Compute, Network, Scheduler, Volume])
-class Api(unittest.TestCase):
-    """Starts the compute service."""
-
-    def setUp(self):
-        self.service = test_config.nova
-
-    def test_start(self):
-        if not self.service.is_service_alive():
-            self.service.start(time_out=60)
-
-
-@test(groups=["services.initialize"],
-      depends_on_classes=[Compute, Network, Scheduler, Volume])
-class PlatformApi(unittest.TestCase):
-    """Starts the compute service."""
-
-    def setUp(self):
-        self.service = test_config.dbaas
-
-    def test_start(self):
-        if not self.service.is_service_alive():
-            self.service.start(time_out=60)
-
-
-@test(groups=["services.initialize"],
-      depends_on_classes=[PlatformApi])
+      depends_on_classes=[Volume])
 class KeystoneAPI(unittest.TestCase):
     """Starts the Keystone Service API"""
 
@@ -243,6 +217,34 @@ class KeystoneAdmin(unittest.TestCase):
     def test_start(self):
         if not self.service.is_service_alive():
             self.service.start()
+
+
+@test(groups=["services.initialize"],
+      depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
+                          KeystoneAPI])
+class Api(unittest.TestCase):
+    """Starts the compute service."""
+
+    def setUp(self):
+        self.service = test_config.nova
+
+    def test_start(self):
+        if not self.service.is_service_alive():
+            self.service.start(time_out=60)
+
+
+@test(groups=["services.initialize"],
+      depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
+                          KeystoneAPI])
+class PlatformApi(unittest.TestCase):
+    """Starts the compute service."""
+
+    def setUp(self):
+        self.service = test_config.dbaas
+
+    def test_start(self):
+        if not self.service.is_service_alive():
+            self.service.start(time_out=60)
 
 
 @test(groups=["services.initialize"],

@@ -84,6 +84,9 @@ dbaas_pkg_setup_keystone() {
     cd /keystone
     sudo git checkout -b stable $KEYSTONE_VERSION
 
+    # Apply any patches if necessary
+    sudo git am -3 /vagrant-common/patches/keystone/*
+
     # Install Dependenciens
     pkg_install python-eventlet python-lxml python-paste python-pastedeploy python-pastescript python-pysqlite2
     pkg_install python-sqlalchemy python-webob python-routes python-httplib2 python-memcache
@@ -92,10 +95,7 @@ dbaas_pkg_setup_keystone() {
     sudo -E python setup.py install
     sudo -E mkdir -p /etc/keystone
     sudo -E mkdir -p /var/log/keystone
-    sudo -E cp /keystone/etc/keystone.conf $KEYSTONE_CONF
-    sudo -E sed -i 's/sql_connection = sqlite:\/\/\/keystone.db/sql_connection = mysql:\/\/nova:novapass@10.0.4.15\/keystone/g' $KEYSTONE_CONF
-    sudo -E sed -i 's/log_file = keystone.log/log_file = \/var\/log\/keystone\/keystone.log/g' $KEYSTONE_CONF
-    sudo -E sed -i 's/default_store = sqlite/default_store = mysql/g' $KEYSTONE_CONF
+    sudo -E cp /vagrant/keystone.conf $KEYSTONE_CONF
 }
 
 dbaas_pkg_install_novaclient() {

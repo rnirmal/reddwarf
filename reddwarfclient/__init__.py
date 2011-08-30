@@ -62,24 +62,28 @@ class ReddwarfHTTPClient(HTTPClient):
                 self.version = part
                 break
 
+        # Auth against Keystone version 2.0
         if self.version == "v2.0":
-            body = {'passwordCredentials': {'username': self.user,
-                                            'password': self.apikey,
-                                            'tenantId': self.tenant}}
-
-            token_url = urlparse.urljoin(self.auth_url, "tokens")
-            resp, body = self.request(token_url, "POST", body=body)
-
-            self.management_url = body['auth']['serviceCatalog'] \
-                                      [self.service][0]['publicURL']
-            self.auth_token = body['auth']['token']['id']
-
+            req_body = {'passwordCredentials': {'username': self.user,
+                                                'password': self.apikey,
+                                                'tenantId': self.tenant}}
+            self._get_token("/v2.0/tokens", req_body)
+        # Auth against Keystone version 1.1
         elif self.version == "v1.1":
-            # TODO(rnirmal): Add the logic for 1.1 auth api
-            raise NotImplementedError()
+            req_body = {'credentials': {'username': self.user,
+                                        'key': self.apikey}}
+            self._get_token("/v1.1/auth", req_body)
         else:
             raise NotImplementedError("Version %s is not supported"
                                       % self.version)
+
+    def _get_token(self, path, req_body):
+        """Set the management url and auth token"""
+        token_url = urlparse.urljoin(self.auth_url, path)
+        resp, body = self.request(token_url, "POST", body=req_body)
+        self.management_url = body['auth']['serviceCatalog'] \
+                              [self.service][0]['publicURL']
+        self.auth_token = body['auth']['token']['id']
 
 
 class Dbaas(Client):

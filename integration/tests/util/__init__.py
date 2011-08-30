@@ -93,7 +93,7 @@ def create_dbaas_client(user):
     """Creates a rich client for the RedDwarf API using the test config."""
     test_config.nova.ensure_started()
     dbaas = Dbaas(user.auth_user, user.auth_key,
-                  user.tenant, test_config.auth_url)
+                  user.tenant, test_config.reddwarf_auth_url)
     dbaas.authenticate()
     return dbaas
 
@@ -117,7 +117,7 @@ def create_openstack_client(user):
     """Creates a rich client for the OpenStack API using the test config."""
     test_config.nova.ensure_started()
     openstack = Client(user.auth_user, user.auth_key,
-                       user.tenant, test_config.auth_url)
+                       user.tenant, test_config.nova_auth_url)
     openstack.authenticate()
     return openstack
 

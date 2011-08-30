@@ -1,0 +1,120 @@
+From faee1b1d2bb4de5b9a7eeeac8169bdc75d47a200 Mon Sep 17 00:00:00 2001
+From: Nirmal Ranganathan <rnirmal@gmail.com>
+Date: Sun, 28 Aug 2011 16:27:32 -0500
+Subject: [PATCH 3/3] Adding legacy admin frontend for admin auth 1.1
+
+---
+ keystone/frontends/legacy_admin_auth.py |  101 +++++++++++++++++++++++++++++++
+ 1 files changed, 101 insertions(+), 0 deletions(-)
+ create mode 100644 keystone/frontends/legacy_admin_auth.py
+
+diff --git a/keystone/frontends/legacy_admin_auth.py b/keystone/frontends/legacy_admin_auth.py
+new file mode 100644
+index 0000000..2f29fb6
+--- /dev/null
++++ b/keystone/frontends/legacy_admin_auth.py
+@@ -0,0 +1,101 @@
++# Copyright (c) 2010-2011 OpenStack, LLC.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#    http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
++# implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++"""
++RACKSPACE LEGACY ADMIN AUTH
++
++This WSGI component
++- transforms rackspace auth header credentials to keystone credentials
++and makes an authentication call on keystone.- transforms response it
++receives into custom headers defined in properties and returns
++the response for version 1.1
++"""
++
++import json
++import string
++import sys
++
++from webob.exc import Request
++
++
++PROTOCOL_NAME = "Legacy Admin Authentication"
++
++
++class AuthProtocol(object):
++    """Legacy Auth Middleware that handles authenticating client calls"""
++
++    def __init__(self, app, conf):
++        """ Common initialization code """
++        print "Starting the %s component" % PROTOCOL_NAME
++        self.conf = conf
++        self.app = app
++
++    # Handle 1.1 calls via middleware.
++    # Right now the only supported 1.1 calls are for /token and /auth
++    def __call__(self, env, start_response):
++        """ Handle incoming request. Transform. And send downstream. """
++        if env['REQUEST_METHOD'] == "POST":
++            request_type = "auth"
++        else:
++            request_type = "tokens"
++        api_version = env['KEYSTONE_API_VERSION']
++        if api_version == '1.1':
++            if request_type == "auth":
++                env['PATH_INFO'] = string.replace(env['PATH_INFO'], "auth",
++                                                  "tokens")
++            else:
++                env['PATH_INFO'] = string.replace(env['PATH_INFO'], "token",
++                                                  "tokens")
++
++            #Make request to keystone
++            response = Request(env).get_response(self.app)
++
++            #Handle failures.
++            if not str(response.status).startswith('20'):
++                return response(env, start_response)
++
++            if request_type == "auth":
++                # Nothing to transform for the auth request, return same as 2.0
++                return response(env, start_response)
++            else:
++                legacy_response = self._transform_response(response)
++                return legacy_response(env, start_response)
++        else:
++            # Other calls pass to downstream WSGI component
++            return self.app(env, start_response)
++
++    def _transform_response(self, response):
++        """Transform Keystone admin auth to legacy 1.1 response"""
++        content = json.loads(response.body)
++        body = {'token': {}}
++        body['token']['id'] = content['auth']['token']['id']
++        username = content['auth']['user']['username']
++        body['token']['userId'] = username
++        body['token']['userURL'] = "/users/%s" % username
++        body['token']['created'] = content['auth']['token']['expires']
++        body['token']['expires'] = content['auth']['token']['expires']
++        response.body = json.dumps(body)
++        return response
++
++
++def filter_factory(global_conf, **local_conf):
++    """Returns a WSGI filter app for use with paste.deploy."""
++    conf = global_conf.copy()
++    conf.update(local_conf)
++
++    def auth_filter(app):
++        """Closure to return"""
++        return AuthProtocol(app, conf)
++    return auth_filter
+-- 
+1.7.1
+

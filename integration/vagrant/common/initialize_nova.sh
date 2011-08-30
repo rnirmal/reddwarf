@@ -73,6 +73,8 @@ glance_manage version_control
 glance_manage db_sync
 
 nova_manage db sync
+nova_manage user admin admin admin admin
+nova_manage project create dbaas admin
 
 reddwarf_manage db sync
 
@@ -87,6 +89,13 @@ keystone_manage role add $AUTH_ADMIN_ROLE
 keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
 keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
 
+SERVICE_ADMIN_USER="service-admin"
+SERVICE_ADMIN_PASSWORD="serviceadmin"
+SERVICE_ADMIN_ROLE="KeystoneServiceAdmin"
+keystone_manage user add $SERVICE_ADMIN_USER $SERVICE_ADMIN_PASSWORD
+keystone_manage role add $SERVICE_ADMIN_ROLE
+keystone_manage role grant $SERVICE_ADMIN_ROLE $SERVICE_ADMIN_USER
+
 SERVICE_REGION="ci"
 REDDWARF_SERVICE_NAME="reddwarf"
 NOVA_SERVICE_NAME="nova"
@@ -99,14 +108,9 @@ keystone_manage endpointTemplates add $SERVICE_REGION $NOVA_SERVICE_NAME $NOVA_S
 keystone_manage endpoint add $AUTH_TENANT 1
 keystone_manage endpoint add $AUTH_TENANT 2
 
-# Adding a service admin token here temporarily
-SERVICE_ADMIN_TOKEN="3967a20d-d929-4377-a196-728ff4148e8f"
-keystone_manage token add $SERVICE_ADMIN_TOKEN $AUTH_USER $AUTH_TENANT 2015-02-05T00:00
-
 # Copy and update the paste.ini files
 cp /src/etc/nova/api-paste_keystone.ini /home/vagrant
 cp /src/etc/nova/reddwarf-api-paste.ini /home/vagrant
-sed -i "s/admin_token = service_admin_token/admin_token = $SERVICE_ADMIN_TOKEN/g" /home/vagrant/*.ini
 
 exclaim Starting tests...
 cd /tests
