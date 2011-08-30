@@ -363,7 +363,6 @@ class VolumeTypeExtraSpecs(BASE, NovaBase):
                  'VolumeTypeExtraSpecs.volume_type_id == VolumeTypes.id,'
                  'VolumeTypeExtraSpecs.deleted == False)')
 
->>>>>>> master
 
 class Quota(BASE, NovaBase):
     """Represents a single quota override for a project.
