@@ -311,9 +311,9 @@ def methods_of(obj):
 
 def config_options():
     global oparser
-    oparser.add_option("-u", "--url", default="http://localhost:5000/v2.0",
+    oparser.add_option("-u", "--url", default="http://localhost:5000/v1.1",
                        help="Auth API endpoint URL with port and version. \
-                            Default: http://localhost:5000/v2.0")
+                            Default: http://localhost:5000/v1.1")
 
 
 def print_actions(cmd, actions):

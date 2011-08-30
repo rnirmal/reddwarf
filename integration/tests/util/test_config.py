@@ -99,7 +99,8 @@ def python_cmd_list():
 def _setup():
     """Initializes the module."""
     from tests.util.users import Users
-    global auth_url
+    global nova_auth_url
+    global reddwarf_auth_url
     global dbaas
     global nova
     global users
@@ -110,7 +111,8 @@ def _setup():
     global dbaas_url
     values = load_configuration()
     use_venv = values.get("use_venv", True)
-    auth_url = str(values.get("auth_url", "http://localhost:5000/v2.0"))
+    nova_auth_url = str(values.get("nova_auth_url", "http://localhost:5000/v2.0"))
+    reddwarf_auth_url = str(values.get("reddwarf_auth_url", "http://localhost:5000/v1.1"))
     dbaas_url = str(values.get("dbaas_url", "http://localhost:8775/v1.0"))
     nova_url = str(values.get("nova_url", "http://localhost:8774/v1.1"))
     nova_code_root = str(values["nova_code_root"])
