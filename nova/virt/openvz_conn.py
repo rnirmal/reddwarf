@@ -256,6 +256,7 @@ class OpenVzConnection(driver.ComputeDriver):
             
         self._start(instance)
         self._initial_secure_host(instance)
+        self._gratuitous_arp_all_addresses(instance, network_info)
         
         # Begin making our looping async call
         timer = utils.LoopingCall(f=None)
@@ -482,13 +483,36 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Error adding IP')
 
-    def _send_garp(self, instance):
+    def _gratuitous_arp_all_addresses(self, instance, network_info):
+        """
+        Iterate through all addresses assigned to the container and send
+        a gratuitous arp over it's interface to make sure arp caches have
+        the proper mac address.
+        """
+        #TODO(imsplitbit): refactor all networking stuff into a class/object
+        for network in network_info:
+            bridge_info = network[0]
+            address_info = network[1]
+            for address in address_info['ips']:
+                if address['enabled'] == 1:
+                    self._send_garp(instance['id'], address['ip'],
+                                    bridge_info['bridge_interface'])
+
+    def _send_garp(self, instance_id, ip_address, interface):
         """
         I exist because it is possible in nova to have a recently released
         ip address given to a new container.  We need to send a gratuitous arp
         on each interface for the address assigned.
         """
         # TODO(imsplitbit): refactor all networking stuff into a class/object
+        try:
+            _, err = utils.execute('sudo', 'vzctl', 'exec', instance_id,
+                                   'arping', '-U', '-I', interface, ip_address)
+            if err:
+                LOG.error(err)
+        except ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error('Failed arping through VE')
 
     def _ip_addresses(self, instance):
         """
