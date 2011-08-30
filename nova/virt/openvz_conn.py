@@ -500,6 +500,8 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.debug('network label: %s' % (address_info['label']))
             for address in address_info['ips']:
                 LOG.debug('Address enabled: %s' % (address['enabled'],))
+                LOG.debug('Address enabled type: %s' %
+                          (type(address['enabled'],)))
                 if address['enabled'] == 1:
                     LOG.debug('Address: %s' % (address['ip'],))
                     LOG.debug('Running _send_garp(%s, %s, %s)' %
