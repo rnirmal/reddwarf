@@ -119,7 +119,7 @@ class WhenCowsayIsInstalled(PkgTest):
 
 
 @test(groups=[GROUP], depends_on_classes=[WhenCowsayIsInstalled],
-      never_skip=True)
+      always_run=True)
 class Conclusion(PkgTest):
     """
     If the test machine originally had the program "cowsay" reinstall it before
