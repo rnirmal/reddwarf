@@ -521,7 +521,8 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.debug('Sending a gratuitous arp for %s over %s' %
                       (ip_address, interface))
             _, err = utils.execute('sudo', 'vzctl', 'exec', instance_id,
-                                   'arping', '-U', '-I', interface, ip_address)
+                                   'arping', '-c', '5', '-w', '5', '-U',
+                                   '-I', interface, ip_address)
             LOG.debug('Gratuitous arp sent for %s over %s' %
                       (ip_address, interface))
             if err:
