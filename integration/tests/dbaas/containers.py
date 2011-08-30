@@ -424,7 +424,7 @@ class TestContainerListing(unittest.TestCase):
             self.assertFalse(container._info.has_key(attr), msg)
 
     def _detail_dbcontainers_exist(self, container):
-        attrs = ['status', 'name', 'links', 'id', 'volume', 'rootEnabled']
+        attrs = ['status', 'name', 'links', 'id', 'volume']
         self._check_attr_in_dbcontainers(container, attrs)
 
     def _dbcontainers_attributes_should_not_exist(self, container):
@@ -446,8 +446,7 @@ class TestContainerListing(unittest.TestCase):
 
     def _assert_dbcontainers_exist(self, container):
         self.assertEqual(container_info.id, container.id)
-        attrs = ['name', 'links', 'id', 'flavor', 'rootEnabled', 'status',
-                 'volume']
+        attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume']
         self._check_attr_in_dbcontainers(container, attrs)
         dns_entry = container_info.expected_dns_entry()
         if dns_entry:
