@@ -492,9 +492,19 @@ class OpenVzConnection(driver.ComputeDriver):
         #TODO(imsplitbit): refactor all networking stuff into a class/object
         for network in network_info:
             bridge_info = network[0]
+            LOG.debug('bridge interface: %s' %
+                      (bridge_info['bridge_interface'],))
+            LOG.debug('bridge: %s' % (bridge_info['bridge'],))
+            LOG.debug('address block: %s' % (bridge_info['cidr']))
             address_info = network[1]
+            LOG.debug('network label: %s' % (address_info['label']))
             for address in address_info['ips']:
+                LOG.debug('Address enabled: %s' % (address['enabled'],))
                 if address['enabled'] == 1:
+                    LOG.debug('Address: %s' % (address['ip'],))
+                    LOG.debug('Running _send_garp(%s, %s, %s)' %
+                              (instance['id'], address['ip'],
+                               bridge_info['bridge_interface']))
                     self._send_garp(instance['id'], address['ip'],
                                     bridge_info['bridge_interface'])
 
@@ -506,8 +516,12 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         # TODO(imsplitbit): refactor all networking stuff into a class/object
         try:
+            LOG.debug('Sending a gratuitous arp for %s over %s' %
+                      (ip_address, interface))
             _, err = utils.execute('sudo', 'vzctl', 'exec', instance_id,
                                    'arping', '-U', '-I', interface, ip_address)
+            LOG.debug('Gratuitous arp sent for %s over %s' %
+                      (ip_address, interface))
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
