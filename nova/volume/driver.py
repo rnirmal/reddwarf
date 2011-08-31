@@ -691,7 +691,7 @@ class ISCSIDriver(VolumeDriver):
         (out, err) = self._execute('iscsiadm', '-m', 'node', '-T',
                                    iscsi_properties['target_iqn'],
                                    '-p', iscsi_properties['target_portal'],
-                                   *iscsi_command, run_as_root=True, attempts=num_tries)
+                                   iscsi_command, run_as_root=True, attempts=num_tries)
         LOG.debug("iscsiadm %s: stdout=%s stderr=%s" %
                   (iscsi_command, out, err))
         return (out, err)
@@ -722,31 +722,30 @@ class ISCSIDriver(VolumeDriver):
                                   iscsi_properties['auth_password'])
 
     def discover_volume(self, context, volume):
-           """Discover volume on a remote host."""
+        """Discover volume on a remote host."""
 
-           iscsi_properties = self.get_iscsi_properties_for_volume(context, volume)
-           self.set_iscsi_auth(iscsi_properties)
+        iscsi_properties = self.get_iscsi_properties_for_volume(context, volume)
+        self.set_iscsi_auth(iscsi_properties)
 
-           try:
-               self._run_iscsiadm(iscsi_properties, "--login",
-                                  num_tries=FLAGS.num_shell_tries)
-               self._iscsiadm_update(iscsi_properties, "node.startup", "automatic")
-           except exception.ProcessExecutionError as err:
-               LOG.error(err)
-               raise exception.Error(_("iSCSI device %s not found") %
-                                       iscsi_properties['target_iqn'])
+        try:
+            self._run_iscsiadm(iscsi_properties, "--login",
+                               num_tries=FLAGS.num_shell_tries)
+            self._iscsiadm_update(iscsi_properties, "node.startup", "automatic")
+        except exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise exception.Error(_("iSCSI device %s not found") %
+                                    iscsi_properties['target_iqn'])
 
-           mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
-                           (iscsi_properties['target_portal'],
-                            iscsi_properties['target_iqn']))
-           return mount_device
+        mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
+                        (iscsi_properties['target_portal'],
+                         iscsi_properties['target_iqn']))
+        return mount_device
 
     def undiscover_volume(self, volume):
         """Undiscover volume on a remote host."""
         iscsi_properties = self.get_iscsi_properties_for_volume(None, volume)
         self._iscsiadm_update(iscsi_properties, "node.startup", "manual")
-        self._run_iscsiadm(iscsi_properties, ("--logout", ))
-        self._run_iscsiadm(iscsi_properties, ('--op', 'delete'))
+        self._run_iscsiadm(iscsi_properties, "--logout")
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
