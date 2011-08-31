@@ -39,8 +39,6 @@ flags.DEFINE_string('aoe_eth_dev', 'eth0',
                     'Which device to export the volumes on')
 flags.DEFINE_integer('num_shell_tries', 3,
                     'number of times to attempt to run flakey shell commands')
-flags.DEFINE_string('num_iscsi_scan_tries', 3,
-                    'number of times to rescan iSCSI target to find volume')                    
 flags.DEFINE_integer('num_shelves',
                     100,
                     'Number of vblade shelves')
@@ -469,7 +467,10 @@ class AOEDriver(VolumeDriver):
             return
 
     def undiscover_volume(self, _volume):
-        """Undiscover volume on a remote host."""
+        """Undef host."""(self, arg):
+            """docstring for host.""""""
+            pass
+        """
         pass
 
     def check_for_export(self, context, volume_id):
@@ -724,49 +725,24 @@ class ISCSIDriver(VolumeDriver):
                                   iscsi_properties['auth_password'])
 
     def discover_volume(self, context, volume):
-        """Discover volume on a remote host."""
+           """Discover volume on a remote host."""
 
-        iscsi_properties = self.get_iscsi_properties_for_volume(context, volume)
-        self.set_iscsi_auth(iscsi_properties)
+           iscsi_properties = self.get_iscsi_properties_for_volume(context, volume)
+           self.set_iscsi_auth(iscsi_properties)
 
-        try:
-            self._run_iscsiadm(iscsi_properties, "--login",
-                               num_tries=FLAGS.num_shell_tries)
-            self._iscsiadm_update(iscsi_properties, "node.startup", "automatic")
-        except exception.ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error(_("iSCSI device %s not found") %
-                                    iscsi_properties['target_iqn'])
+           try:
+               self._run_iscsiadm(iscsi_properties, "--login",
+                                  num_tries=FLAGS.num_shell_tries)
+               self._iscsiadm_update(iscsi_properties, "node.startup", "automatic")
+           except exception.ProcessExecutionError as err:
+               LOG.error(err)
+               raise exception.Error(_("iSCSI device %s not found") %
+                                       iscsi_properties['target_iqn'])
 
-        mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
-                        (iscsi_properties['target_portal'],
-                         iscsi_properties['target_iqn']))
-
-        # The /dev/disk/by-path/... node is not always present immediately
-        # TODO(justinsb): This retry-with-delay is a pattern, move to utils?
-        tries = 0
-        while not os.path.exists(mount_device):
-            if tries >= FLAGS.num_iscsi_scan_tries:
-                raise exception.Error(_("iSCSI device not found at %s") %
-                                      (mount_device))
-
-            LOG.warn(_("ISCSI volume not yet found at: %(mount_device)s. "
-                       "Will rescan & retry.  Try number: %(tries)s") %
-                     locals())
-
-            # The rescan isn't documented as being necessary(?), but it helps
-            self._run_iscsiadm(iscsi_properties, ("--rescan", ))
-
-            tries = tries + 1
-            if not os.path.exists(mount_device):
-                time.sleep(tries ** 2)
-
-        if tries != 0:
-            LOG.debug(_("Found iSCSI node %(mount_device)s "
-                        "(after %(tries)s rescans)") %
-                      locals())
-
-        return mount_device
+           mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
+                           (iscsi_properties['target_portal'],
+                            iscsi_properties['target_iqn']))
+           return mount_device
 
     def undiscover_volume(self, volume):
         """Undiscover volume on a remote host."""
