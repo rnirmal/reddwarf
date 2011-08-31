@@ -179,7 +179,7 @@ class CreateInstanceHelper(object):
                                   access_ip_v6=server_dict.get('accessIPv6'),
                                   injected_files=injected_files,
                                   admin_password=password,
-                                  security_group=body['server'].get('firewallRules', None),
+                                  # security_group=body['server'].get('firewallRules', None),
                                   zone_blob=zone_blob,
                                   reservation_id=reservation_id,
                                   min_count=min_count,
