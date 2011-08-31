@@ -34,6 +34,8 @@ import nova.utils
 
 from nova import flags
 from nova import log as logging
+from nova import service
+from nova import utils
 from nova import version
 from nova import wsgi
 
@@ -66,24 +68,14 @@ for flag in FLAGS:
     flag_get = FLAGS.get(flag, None)
     LOG.debug("%(flag)s : %(flag_get)s" % locals())
 
-
-def main():
-    """Launch reddwarf api services."""
-    nova.utils.Bootstrapper.bootstrap_binary(sys.argv)
-
-    launcher = nova.service.Launcher()
-
-    loader = wsgi.Loader(config_path=FLAGS.reddwarf_api_paste_config)
-    service = nova.service.WSGIService("dbaasapi", loader=loader)
-    launcher.launch_service(service)
-
-    signal.signal(signal.SIGTERM, lambda *_: launcher.stop())
-
-    try:
-        launcher.wait()
-    except KeyboardInterrupt:
-        launcher.stop()
-
-
 if __name__ == '__main__':
-    sys.exit(main())
+    utils.default_flagfile()
+    flags.FLAGS(sys.argv)
+    logging.setup()
+    utils.monkey_patch()
+    servers = []
+    loader = wsgi.Loader(config_path=FLAGS.reddwarf_api_paste_config)
+    servers.append(service.WSGIService("dbaasapi", loader=loader))
+    service.serve(*servers)
+    service.wait()
+

@@ -467,10 +467,7 @@ class AOEDriver(VolumeDriver):
             return
 
     def undiscover_volume(self, _volume):
-        """Undef host."""(self, arg):
-            """docstring for host.""""""
-            pass
-        """
+        """Undiscover volume on a remote host."""
         pass
 
     def check_for_export(self, context, volume_id):
