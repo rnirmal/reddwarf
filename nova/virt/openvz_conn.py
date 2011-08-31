@@ -300,8 +300,11 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # This will actually drop the os from the local image cache
         try:
-            utils.execute('sudo', 'vzctl', 'create', instance['id'],
-                          '--ostemplate', instance['image_ref'])
+            out, err = utils.execute('sudo', 'vzctl', 'create', instance['id'],
+                                     '--ostemplate', instance['image_ref'])
+            LOG.debug(out)
+            if err:
+                LOG.error(err)
         except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Failed creating VE %s from image cache' %
@@ -312,8 +315,11 @@ class OpenVzConnection(driver.ComputeDriver):
         # This sets the distro hint for OpenVZ to later use for the setting
         # of resolver, hostname and the like
         try:
-            utils.execute('sudo', 'vzctl', 'set', instance['id'], '--save',
-                          '--ostemplate', ostemplate)
+            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
+                                     '--save', '--ostemplate', ostemplate)
+            LOG.debug(out)
+            if err:
+                LOG.error(err)
         except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Unable to set ostemplate to \'%s\' for %s' %
@@ -353,14 +359,15 @@ class OpenVzConnection(driver.ComputeDriver):
             # basic config.
             # TODO(imsplitbit): add guest flavor support here
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--applyconfig', config)
+                                     '--save', '--applyconfig', config)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
 
         except ProcessExecutionError:
             raise exception.Error('Failed to add %s to OpenVz' % instance['id'])
 
-        
+
     def _start(self, instance):
         """
         Method to start the instance, I don't believe there is a nova-ism
@@ -373,6 +380,7 @@ class OpenVzConnection(driver.ComputeDriver):
             # if it isn't valid.  This is logged in LOG.error and is not
             # an indication of failure.
             out, err = utils.execute('sudo', 'vzctl', 'start', instance['id'])
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -393,6 +401,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         try:
             out, err = utils.execute('sudo', 'vzctl', 'stop', instance['id'])
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError:
@@ -462,7 +471,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
         if_file_path = net_path + '/' + if_file
-        
+
         try:
             os.chdir(net_path)
             with open(FLAGS.ovz_network_template) as fh:
@@ -521,8 +530,9 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.debug('Sending a gratuitous arp for %s over %s' %
                       (ip_address, interface))
             out, err = utils.execute('sudo', 'vzctl', 'exec', instance_id,
-                                   'arping', '-c', '5', '-w', '5', '-U',
-                                   '-I', interface, ip_address)
+                                     'arping', '-c', '5', '-w', '5', '-U', '-I',
+                                     interface, ip_address)
+            LOG.debug(out)
             LOG.debug('Gratuitous arp sent for %s over %s' %
                       (ip_address, interface))
             if err:
@@ -538,7 +548,8 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--nameserver', dns)
+                                     '--save', '--nameserver', dns)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except Exception as err:
@@ -552,7 +563,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--hostname', hostname)
+                                     '--save', '--hostname', hostname)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError:
@@ -565,10 +577,11 @@ class OpenVzConnection(driver.ComputeDriver):
         # accepts an instance name.
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--name', instance['name'])
+                                     '--save', '--name', instance['name'])
+            LOG.debug(out)
             if err:
                 LOG.error(err)
-                
+
         except Exception as err:
             LOG.error(err)
             raise exception.Error('Unable to save metadata for %s' %
@@ -580,6 +593,7 @@ class OpenVzConnection(driver.ComputeDriver):
         try:
             out, err = utils.execute('sudo', 'vzlist', '-H', '--all',
                                      '--name', instance_name)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except Exception as err:
@@ -662,7 +676,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err =  utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                    '--save', '--vmguarpages', vmguarpages)
+                                      '--save', '--vmguarpages', vmguarpages)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -681,7 +696,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--privvmpages', privvmpages)
+                                     '--save', '--privvmpages', privvmpages)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -710,7 +726,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--cpuunits', units)
+                                     '--save', '--cpuunits', units)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -739,7 +756,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--cpulimit', cpulimit)
+                                     '--save', '--cpulimit', cpulimit)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -763,7 +781,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--cpus', cpus)
+                                     '--save', '--cpus', cpus)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -784,7 +803,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--ioprio', ioprio)
+                                     '--save', '--ioprio', ioprio)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -817,8 +837,9 @@ class OpenVzConnection(driver.ComputeDriver):
 
         try:
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                   '--save', '--diskspace',
-                                   '%s:%s' % (soft, hard))
+                                     '--save', '--diskspace', '%s:%s' %
+                                                              (soft, hard))
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
@@ -855,12 +876,13 @@ class OpenVzConnection(driver.ComputeDriver):
         try:
             out, err = utils.execute('sudo', 'vzctl', 'restart',
                                      instance['id'])
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError:
             raise exception.Error('Failed to restart container: %d' %
                                   instance['id'])
-        
+
 
     def set_admin_password(self, instance, new_pass):
         """
@@ -928,7 +950,9 @@ class OpenVzConnection(driver.ComputeDriver):
         self._stop(instance)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'destroy', instance['id'])
+            out, err = utils.execute('sudo', 'vzctl', 'destroy',
+                                     instance['id'])
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError:
@@ -950,7 +974,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 if volume['uuid']:
                     self.attach_volume(instance['name'], None,
                                        volume['mountpoint'])
-    
+
     def attach_volume(self, instance_name, device_path, mountpoint):
         """Attach the disk at device_path to the instance at mountpoint"""
 
@@ -1215,7 +1239,7 @@ class OpenVzConnection(driver.ComputeDriver):
             return 1
         else:
             return cont_mem_mb
-    
+
     def _get_memory(self):
         """
         Gets the overall memory capacity of the host machine to be able to
@@ -1225,6 +1249,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         try:
             out, err = utils.execute('sudo', 'cat', '/proc/meminfo')
+            LOG.debug(out)
             if err:
                 LOG.error(err)
             for line in out.splitlines():
@@ -1233,7 +1258,7 @@ class OpenVzConnection(driver.ComputeDriver):
                     LOG.debug('Total memory for host %s MB' % (line[1],))
                     self.utility['MEMORY_MB'] = int(line[1]) / 1024
             return True
-        
+
         except ProcessExecutionError as err:
             LOG.error('Cannot get memory info for host')
             LOG.error(err)
@@ -1250,6 +1275,7 @@ class OpenVzConnection(driver.ComputeDriver):
         proc_count = 0
         try:
             out, err = utils.execute('sudo', 'cat', '/proc/cpuinfo')
+            LOG.debug(out)
             if err:
                 LOG.error(err)
 
@@ -1266,7 +1292,7 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error('Cannot get host node cpulimit')
             LOG.error(err)
             raise exception.Error(err)
-    
+
     def _get_cpuunits_capability(self):
         """
         Use openvz tools to discover the total processing capability of the
@@ -1274,6 +1300,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         try:
             out, err = utils.execute('sudo', 'vzcpucheck')
+            LOG.debug(out)
             if err:
                 LOG.error(err)
 
@@ -1295,6 +1322,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         try:
             out, err = utils.execute('sudo', 'vzcpucheck', '-v')
+            LOG.debug(out)
             if err:
                 LOG.error(err)
 
@@ -1334,7 +1362,7 @@ class OVZFile(object):
         except Exception as err:
             LOG.error(err)
             raise exception.Error('Failed to read %s' % (self.filename,))
-    
+
     def write(self):
         """
         Because self.contents may or may not get manipulated throughout the
@@ -1347,7 +1375,7 @@ class OVZFile(object):
         except Exception as err:
             LOG.error(err)
             raise exception.Error('Failed to write %s' % (self.filename,))
-        
+
     def touch(self):
         """
         There are certain conditions where we create an OVZFile object but that
@@ -1357,12 +1385,13 @@ class OVZFile(object):
         self.make_path()
         try:
             out, err = utils.execute('sudo', 'touch', self.filename)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Failed to touch %s' % (self.filename,))
-    
+
     def append(self, contents):
         """
         Add the argument contents to the end of self.contents
@@ -1370,7 +1399,7 @@ class OVZFile(object):
         if isinstance(contents, str):
             contents = [contents]
         self.contents = self.contents + contents
-    
+
     def prepend(self, contents):
         """
         Add the argument contents to the beginning of self.contents
@@ -1378,38 +1407,40 @@ class OVZFile(object):
         if isinstance(contents, str):
             contents = [contents]
         self.contents = contents + self.contents
-    
+
     def delete(self, contents):
         """
         Delete the argument contents from self.contents if they exist.
         """
         if isinstance(contents, list):
-            for line in contents:    
+            for line in contents:
                 self.remove_line(line)
         else:
             self.remove_line(contents)
-    
+
     def remove_line(self, line):
         """
         Simple helper method to actually do the removal of a line from an array
         """
         if line in self.contents:
             self.contents.remove(line)
-    
+
     def set_permissions(self, permissions):
         """
         Because nova runs as an unprivileged user we need a way to mangle
         permissions on files that may be owned by root for manipulation
         """
         try:
-            out, err = utils.execute('sudo', 'chmod', permissions, self.filename)
+            out, err = utils.execute('sudo', 'chmod', permissions,
+                                     self.filename)
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except exception.Error as err:
             LOG.error(err)
-            raise exception.Error('Unable to set permissions on %s' % 
+            raise exception.Error('Unable to set permissions on %s' %
             (self.filename,))
-    
+
     def make_path(self, path=None):
         """
         Helper method for an OVZFile object to be able to create the path for
@@ -1430,6 +1461,7 @@ class OVZFile(object):
             if not os.path.exists(path):
                 LOG.debug('Path %s doesnt exist, creating now' % (path,))
                 out, err = utils.execute('sudo', 'mkdir', '-p', path)
+                LOG.debug(out)
                 if err:
                     LOG.error(err)
             else:
@@ -1437,7 +1469,7 @@ class OVZFile(object):
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Unable to make %s' % (path,))
-    
+
 class OVZMounts(OVZFile):
     """
     OVZMounts is a sub-class of OVZFile that applies mount/umount file specific
@@ -1447,7 +1479,7 @@ class OVZMounts(OVZFile):
         super(OVZMounts, self).__init__(filename)
         self.device = device
         self.uuid = uuid
-        
+
         # Generate the mountpoint paths
         self.container_mount = '%s/%s/%s' % \
                        (FLAGS.ovz_ve_private_dir, instance_id, mount)
@@ -1459,7 +1491,7 @@ class OVZMounts(OVZFile):
         self.container_mount = os.path.abspath(self.container_mount)
         self.container_root_mount = os.path.abspath(self.container_root_mount)
         self.host_mount = os.path.abspath(self.host_mount)
-        
+
     def format(self):
         """
         OpenVz mount and umount files must be properly formatted scripts.  I
@@ -1470,7 +1502,7 @@ class OVZMounts(OVZFile):
                 self.prepend('#!/bin/sh')
         else:
             self.prepend('#!/bin/sh')
-   
+
 class OVZMountFile(OVZMounts):
     """
     methods used to specifically interact with the /etc/vz/conf/CTID.mount file
@@ -1494,7 +1526,7 @@ class OVZMountFile(OVZMounts):
             LOG.error('No device or uuid given')
             raise exception.Error('No device or uuid given')
         return mount_line
-    
+
     def container_mount_line(self):
         """
         Generate a mount line that will allow OpenVz to mount a filesystem
@@ -1503,7 +1535,7 @@ class OVZMountFile(OVZMounts):
         """
         return 'mount --bind %s %s' % \
                (self.host_mount, self.container_root_mount)
-    
+
     def delete_mounts(self):
         """
         When detaching a volume from a container we need to also remove the
@@ -1511,26 +1543,26 @@ class OVZMountFile(OVZMounts):
         """
         self.delete(self.host_mount_line())
         self.delete(self.container_mount_line())
-    
+
     def add_container_mount_line(self):
         """
         Add the generated container mount line to the CTID.mount script
         """
         self.append(self.container_mount_line())
-    
+
     def add_host_mount_line(self):
         """
         Add the generated host mount line to the CTID.mount script
         """
         self.append(self.host_mount_line())
-    
+
     def make_host_mount_point(self):
         """
         Create the host mount point if it doesn't exist.  This is required
         to allow for container startup.
         """
         self.make_dir(self.host_mount)
-    
+
     def make_container_mount_point(self):
         """
         Create the container private mount point if it doesn't exist.  This is
@@ -1538,7 +1570,7 @@ class OVZMountFile(OVZMounts):
         in /vz/root/CTID the path will exist to match container_root_mount
         """
         self.make_dir(self.container_mount)
-    
+
     def make_container_root_mount_point(self):
         """
         Unused at the moment but exists in case we reach a condition that the
@@ -1548,7 +1580,7 @@ class OVZMountFile(OVZMounts):
         # process is very prescibed so it doesn't appear necessary just yet.
         # We will need this in the future when we do more dynamic operations.
         self.make_dir(self.container_root_mount)
-    
+
 class OVZUmountFile(OVZMounts):
     """
     methods to be used for manipulating the CTID.umount files
@@ -1578,19 +1610,19 @@ class OVZUmountFile(OVZMounts):
         lazy forced unmount has no adverse affect.
         """
         return 'umount -l -f %s' % (mount,)
-        
+
     def add_host_umount_line(self):
         """
         Add the host umount line to the CTID.umount file
         """
         self.append(self.host_umount_line())
-    
+
     def add_container_umount_line(self):
         """
         Add the container umount line to the CTID.umount file
         """
         self.append(self.container_umount_line())
-        
+
     def delete_umounts(self):
         """
         In the case that we need to detach a volume from a container we need to
@@ -1598,7 +1630,7 @@ class OVZUmountFile(OVZMounts):
         """
         self.delete(self.container_umount_line())
         self.delete(self.host_umount_line())
-        
+
     def unmount_all(self):
         """
         Wrapper for unmounting both the container mounted filesystem and the
@@ -1606,7 +1638,7 @@ class OVZUmountFile(OVZMounts):
         """
         # Unmount the container mount
         self.unmount(self.container_umount_line())
-        
+
         # Now unmount the host mount
         self.unmount(self.host_umount_line)
 
@@ -1618,6 +1650,7 @@ class OVZUmountFile(OVZMounts):
         """
         try:
             out, err = utils.execute(mount_line.split())
+            LOG.debug(out)
             if err:
                 LOG.error(err)
         except ProcessExecutionError as err:
