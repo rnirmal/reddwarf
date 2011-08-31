@@ -900,7 +900,8 @@ class OpenVzConnTestCase(test.TestCase):
     def test_send_garp(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('sudo', 'vzctl', 'exec', test_instance['id'],
-                                  'arping', '-U', '-I', 'eth0', '1.1.1.1')
+                                  'arping', '-c', '5', '-w', '5', '-U', '-I',
+                                  'eth0', '1.1.1.1')
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         conn._send_garp(test_instance['id'], '1.1.1.1', 'eth0')
