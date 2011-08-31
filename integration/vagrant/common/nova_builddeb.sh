@@ -16,7 +16,10 @@ cd $home
 source Utils.sh
 
 pkg_install python-m2crypto python-twisted-web python-mox python-carrot python-boto python-amqplib python-ipy python-routes python-webob python-tempita python-migrate python-glance python-kombu
-
+#TODO(hub-cap): Remvoe this silly ppa once we migrate to the natty narwhal.
+sudo add-apt-repository ppa:chris-lea/python-unittest2
+sudo apt-get update
+pkg_install python-unittest2
 
 #prepare the build dir
 rm -rf /tmp/build
@@ -70,13 +73,17 @@ do
    cp debian/$file "debian/nova-dns."`echo $file|cut -d'.' -f2`
 done
 
+sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
+sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
+sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
+
 cp debian/mans/nova-api.8 debian/mans/nova-guest.8
 cp debian/mans/nova-api.8 debian/mans/reddwarf-api.8
 cp debian/mans/nova-api.8 debian/mans/nova-dns.8
 
-sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
-sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
-sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
+sed -i.bak -e 's/api/guest/g' debian/mans/nova-guest.8
+sed -i.bak -e 's/nova/reddwarf/g' debian/mans/reddwarf-api.8
+sed -i.bak -e 's/api/dns/g' debian/mans/nova-dns.8
 
 #Fix the api paste config
 sed -i.bak -e 's/api-paste\.ini/reddwarf-api-paste\.ini/g' debian/reddwarf-api.install

@@ -22,8 +22,7 @@ __version__ = '2.4'
 from rsdns.client.dns_client import DNSaasClient
 from rsdns.client.domains import DomainsManager
 from rsdns.client.records import RecordsManager
-from novaclient.exceptions import (OpenStackException, BadRequest,
-        Unauthorized, Forbidden, NotFound, OverLimit)
+
 
 class DNSaas(object):
     """

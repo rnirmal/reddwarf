@@ -1,29 +1,36 @@
---sql_connection=mysql://nova:novapass@10.0.4.15/nova
---rabbit_host=10.0.4.15
---dhcpbridge_flagfile=/tests/vagrant/host/nova.conf
-#--dhcpbridge=/opt/nova_src/nova/bin/nova-dhcpbridge
+# Glance
 --image_service=nova.image.glance.GlanceImageService
+
+# Nova Network
 --network_manager=nova.network.manager.FlatManager
 --fixed_range=10.0.0.0/26
 --network_size=1
---logfile=/vagrant/nova.log
---verbose
---connection_type=openvz
---ovz_ve_private_dir=/var/lib/vz/private/
---allow_admin_api=True
 --flat_network_bridge=br100
---lock_path=/tmp
---max_instance_memory_mb=6144
---notification_driver=nova.notifier.log_notifier
---scheduler_driver=nova.scheduler.simple.UnforgivingMemoryScheduler
 
+# Nova Scheduler
+--scheduler_driver=nova.scheduler.simple.UnforgivingMemoryScheduler
+--max_instance_memory_mb=6144
+
+# Nova Volume
 # Volume configuration for vagrant vm
 --volume_driver=nova.volume.san.ISCSILiteDriver
 --san_ip=33.33.33.10
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
 
+# Reddwarf Compute Manager
+--compute_manager=reddwarf.compute.manager.ComputeManager
+
+# Nova Compute
+--connection_type=openvz
+--ovz_ve_private_dir=/var/lib/vz/private/
+--lock_path=/tmp
+
+# API
+--api_paste_config=/home/vagrant/api-paste_keystone.ini
+--reddwarf_api_paste_config=/home/vagrant/reddwarf-api-paste.ini
 --enabled_apis=osapi
+--allow_admin_api=True
 
 # Quota Limits
 --quota_instances=10
@@ -33,6 +40,14 @@
 --quota_gigabytes=1000
 --quota_floating_ips=10
 
-#Extra ending line needed so that other conf files can be appended to this one.
+# Infrastructure Services
+--sql_connection=mysql://nova:novapass@10.0.4.15/nova
+--rabbit_host=10.0.4.15
 
+# Logging
+--logfile=/vagrant/nova.log
+--verbose
+--notification_driver=nova.notifier.log_notifier
+
+#Extra ending line needed so that other conf files can be appended to this one.
 

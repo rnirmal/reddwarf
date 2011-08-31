@@ -31,6 +31,7 @@ from tests.util.services import start_proc
 from tests.util.services import WebService
 from tests.util.test_config import glance_bin_root
 from tests.util.test_config import glance_images_directory
+from tests.util.test_config import keystone_bin
 from tests.util.test_config import nova_code_root
 from tests.util.test_config import python_cmd_list
 
@@ -48,7 +49,7 @@ def glance_api_conf():
 def glance_reg_conf():
     return str(test_config.values.get("glance_reg_conf"))
 
-def keystone_reg_conf():
+def keystone_conf():
     return "/etc/keystone/keystone.conf"
 
 def nova_conf():
@@ -189,7 +190,38 @@ class Volume(unittest.TestCase):
 
 
 @test(groups=["services.initialize"],
-      depends_on_classes=[Compute, Network, Scheduler, Volume])
+      depends_on_classes=[Volume])
+class KeystoneAPI(unittest.TestCase):
+    """Starts the Keystone Service API"""
+
+    def setUp(self):
+        path = keystone_bin("keystone-auth")
+        self.service = Service(python_cmd_list() +
+                               [path, "-c %s" % keystone_conf()])
+
+    def test_start(self):
+        if not self.service.is_service_alive():
+            self.service.start()
+
+
+@test(groups=["services.initialize"],
+      depends_on_classes=[KeystoneAPI])
+class KeystoneAdmin(unittest.TestCase):
+    """Starts the Keystone Admin API"""
+
+    def setUp(self):
+        path = keystone_bin("keystone-admin")
+        self.service = Service(python_cmd_list() +
+                               [path, "-c %s" % keystone_conf()])
+
+    def test_start(self):
+        if not self.service.is_service_alive():
+            self.service.start()
+
+
+@test(groups=["services.initialize"],
+      depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
+                          KeystoneAPI])
 class Api(unittest.TestCase):
     """Starts the compute service."""
 
@@ -202,7 +234,8 @@ class Api(unittest.TestCase):
 
 
 @test(groups=["services.initialize"],
-      depends_on_classes=[Compute, Network, Scheduler, Volume])
+      depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
+                          KeystoneAPI])
 class PlatformApi(unittest.TestCase):
     """Starts the compute service."""
 
@@ -212,25 +245,6 @@ class PlatformApi(unittest.TestCase):
     def test_start(self):
         if not self.service.is_service_alive():
             self.service.start(time_out=60)
-
-
-@test(groups=["services.initialize"],
-      depends_on_classes=[PlatformApi])
-class Keystone(unittest.TestCase):
-    """Starts the Keystone Service and Admin API"""
-
-    def setUp(self):
-        default_path = "/usr/local/bin/keystone"
-        if os.path.exists(default_path):
-            path = default_path
-        else:
-            path = "/keystone/bin/keystone"
-        self.service = Service(python_cmd_list() +
-                               [path, "-c %s" % keystone_reg_conf()])
-
-    def test_start(self):
-        if not self.service.is_service_alive():
-            self.service.start()
 
 
 @test(groups=["services.initialize"],

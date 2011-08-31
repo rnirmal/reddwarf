@@ -107,7 +107,7 @@ class Controller(object):
         users = self.guest_api.list_users(context, id)
         users = [{'name': user['_name']} for user in users]
 
-        volume = self.volume_api.get(context, id)
+        volume = instance['volumes'][0]
         volume = {
             'id': volume['id'],
             'name': volume['display_name'],

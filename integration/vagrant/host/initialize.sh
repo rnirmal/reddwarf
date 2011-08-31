@@ -61,13 +61,6 @@ else
     echo '127.0.0.1    ppa.rackspace.com' >> ~/hosts_tmp
     sudo -E cp ~/hosts_tmp /etc/hosts
 
-    #sudo -E http_proxy=$http_proxy bash /vagrant-common/initialize_nova.sh
-    #if [ $? -ne 0 ]
-    #then
-    #    echo "An error occured initializing nova."
-    #    exit 1
-    #fi
-
     echo "Dependencies installed at `date`." >> ~/dependencies_are_installed
 
 fi

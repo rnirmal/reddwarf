@@ -27,7 +27,7 @@ FLAGS = flags.FLAGS
 
 test_instance = {
     "image_id": 1,
-    "name": "instance-0000001",
+    "name": "instance-00001002",
     "instance_type_id": 1,
     "id": 1002,
     "volumes": [
@@ -44,12 +44,13 @@ test_instance = {
 
 percent_resource = .50
 
-vz_list = "\t1001\n\t1002\n\t1003\n\t1004\n"
+vz_list = "\t1001\n\t%d\n\t1003\n\t1004\n" % (test_instance['id'],)
 
 vz_name = """\tinstance-00001001\n"""
 
-vz_names = """\tinstance-00001001\n\tinstance-00001002
-              \tinstance-00001003\n\tinstance-00001004\n"""
+vz_names = """\tinstance-00001001\n\t%s
+              \tinstance-00001003\n\tinstance-00001004\n""" % (
+    test_instance['name'],)
 
 good_status = {
     'state': power_state.RUNNING,
@@ -700,9 +701,9 @@ class OpenVzConnTestCase(test.TestCase):
 
     def test_attach_volumes_success(self):
         conn = openvz_conn.OpenVzConnection(False)
-        self.mox.StubOutWithMock(conn, '_container_script_modify')
-        conn._container_script_modify(test_instance, None, mox.IgnoreArg(),
-                                      mox.IgnoreArg(), 'add')
+        self.mox.StubOutWithMock(conn, 'attach_volume')
+        conn.attach_volume(test_instance['name'], None,
+                                      mox.IgnoreArg())
         self.mox.ReplayAll()
         conn._attach_volumes(test_instance)
 
@@ -710,15 +711,19 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
         openvz_conn.context.get_admin_context()
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_get')
-        openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
+        openvz_conn.db.instance_get(mox.IgnoreArg(),
+                                    test_instance['id']).AndReturn(
+            test_instance)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_find_by_name')
-        conn._find_by_name('instance-0000001').AndReturn(test_instance)
-        self.mox.StubOutWithMock(conn, '_container_script_modify')
-        conn._container_script_modify(test_instance, '/dev/sdb1',
-                                      mox.IgnoreArg(), mox.IgnoreArg(), 'add')
+        conn._find_by_name(test_instance['name']).AndReturn(test_instance)
+        mock_volumes = self.mox.CreateMock(openvz_conn.OVZVolumes)
+        self.mox.StubOutWithMock(openvz_conn, 'OVZVolumes')
+        openvz_conn.OVZVolumes(test_instance['id'], mox.IgnoreArg(),
+                               mox.IgnoreArg(), mox.IgnoreArg()).AndReturn(
+            mock_volumes)
         self.mox.ReplayAll()
-        conn.attach_volume('instance-0000001', '/dev/sdb1', '/var/tmp')
+        conn.attach_volume(test_instance['name'], '/dev/sdb1', '/var/tmp')
 
     def test_detach_volume_success(self):
         self.mox.StubOutWithMock(openvz_conn.context, 'get_admin_context')
@@ -727,125 +732,77 @@ class OpenVzConnTestCase(test.TestCase):
         openvz_conn.db.instance_get(mox.IgnoreArg(), 1002)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_find_by_name')
-        conn._find_by_name('instance-0000001').AndReturn(test_instance)
-        self.mox.StubOutWithMock(conn, '_container_script_modify')
-        conn._container_script_modify(test_instance, '/dev/sdb1',
-                                      mox.IgnoreArg(), mox.IgnoreArg(),
-                                      'del').MultipleTimes()
+        conn._find_by_name(test_instance['name']).AndReturn(test_instance)
+        mock_volumes = self.mox.CreateMock(openvz_conn.OVZVolumes)
+        self.mox.StubOutWithMock(openvz_conn, 'OVZVolumes')
+        openvz_conn.OVZVolumes(test_instance['id'], mox.IgnoreArg(),
+                               mox.IgnoreArg(), mox.IgnoreArg()).AndReturn(
+                               mock_volumes)
         self.mox.ReplayAll()
-        conn.detach_volume('instance-0000001', '/var/tmp')
-
-    def test_container_script_modify_add(self):
-        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg()).MultipleTimes().AndReturn(
-            ('',''))
-        conn = openvz_conn.OpenVzConnection(False)
-        self.mox.StubOutWithMock(conn, '_touch_file')
-        conn._touch_file()
-        self.mox.StubOutWithMock(conn, '_set_perms')
-        conn._set_perms(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_read_file')
-        conn._read_file(mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_correct_shell_scripts')
-        conn._correct_shell_scripts(mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_make_directory')
-        conn._make_directory(mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_write_to_file')
-        conn._write_to_file(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
-        self.mox.ReplayAll()
-        conn._container_script_modify(test_instance, '/dev/sdb1', None, 'add')
-
-    def test_container_script_modify_del(self):
-        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute(mox.IgnoreArg(),
-                                  mox.IgnoreArg()).MultipleTimes().AndReturn(
-            ('',''))
-        conn = openvz_conn.OpenVzConnection(False)
-        self.mox.StubOutWithMock(conn, '_touch_file')
-        conn._touch_file()
-        self.mox.StubOutWithMock(conn, '_set_perms')
-        conn._set_perms(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_read_file')
-        conn._read_file(mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_correct_shell_scripts')
-        conn._correct_shell_scripts(mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_make_directory')
-        conn._make_directory(mox.IgnoreArg()).MultipleTimes()
-        self.mox.StubOutWithMock(conn, '_write_to_file')
-        conn._write_to_file(mox.IgnoreArg(), mox.IgnoreArg()).MultipleTimes()
-        self.mox.ReplayAll()
-        conn._container_script_modify(test_instance, '/dev/sdb1', None, 'del')
+        conn.detach_volume(test_instance['name'], '/var/tmp')
 
     def test_make_directory_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('sudo', 'mkdir', '-p', '/tmp/foo').AndReturn(
             ('',''))
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        conn._make_directory('/tmp/foo')
+        fh = openvz_conn.OVZFile('/tmp/foo/file')
+        fh.make_path('/tmp/foo')
 
     def test_make_directory_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('sudo', 'mkdir', '-p', '/tmp/foo').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._make_directory, '/tmp/foo')
+        fh = openvz_conn.OVZFile('/tmp/foo/file')
+        self.assertRaises(exception.Error, fh.make_path)
 
     def test_touch_file_success(self):
         self.mox.StubOutClassWithMocks(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('sudo', 'touch', '/tmp/foo').AndReturn(
             ('',''))
         self.mox.ReplayAll()
-        conn = openvz_conn. OpenVzConnection(False)
-        conn._touch_file('/tmp/foo')
+        fh = openvz_conn.OVZFile('/tmp/foo/file')
+        fh.touch()
 
     def test_touch_file_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz.utils.execute('sudo', 'touch', '/tmp/foo').AndReturn(('',''))
+        openvz.utils.execute('sudo', 'touch', '/tmp/foo').AndRaise(
+            exception.ProcessExecutionError)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        conn._touch_file('/tmp/foo')
+        fh = openvz_conn.OVZFile('/tmp/foo/file')
+        self.assertRaises(exception.Error, fh.touch)
 
     def test_read_file_success(self):
         file_contents = FakeFile(file_contents)
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'r').AndReturn(file_contents)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        resp = conn._read_file('/tmp/foo')
-        self.assertTrue(isinstance(resp, list))
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        fh.read()
 
     def test_read_file_failure(self):
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'r').AndRaise(Exception)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._read_file, '/tmp/foo')
-
-    def test_correct_shell_scripts(self):
-        file_contents = FakeFile(file_contents)
-        conn = openvz_conn.OpenVzConnection(False)
-        contents = conn._correct_shell_scripts(file_contents.readlines())
-        self.assertTrue(isinstance(contents, list))
-        self.assertEqual(contents[0], '#!/bin/sh')
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        self.assertRaises(exception.Error, fh.read)
 
     def test_write_to_file_success(self):
         filehandle = FakeFile(file_contents)
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'w').AndReturn(filehandle)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        conn._write_to_file('/tmp/foo', file_contents)
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        fh.write()
 
     def test_write_to_file_failure(self):
         self.mox.StubOutWithMock(openvz_conn, 'open')
         openvz_conn.open('/tmp/foo', 'w').AndRaise(Exception)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._write_to_file,
-                          '/tmp/foo', file_contents)
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        self.assertRaises(exception.Error, fh.write)
+
 
     def test_set_perms_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -853,13 +810,13 @@ class OpenVzConnTestCase(test.TestCase):
             ('','')
         )
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        conn._set_perms('/tmp/foo', 755)
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        fh.set_permissions(755)
 
     def test_set_perms_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('sudo', 'chmod', 755, '/tmp/foo').AndRaise(
             exception.ProcessExecutionError)
         self.mox.ReplayAll()
-        conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._set_perms('/tmp/foo', 755))
+        fh = openvz_conn.OVZFile('/tmp/foo')
+        self.assertRaises(exception.Error, fh.set_permissions, 755)

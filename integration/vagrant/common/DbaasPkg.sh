@@ -47,7 +47,7 @@ dbaas_pkg_install_glance() {
     then
         dbaas_old_install_glance
     else
-        dbaas_new_install_glance
+        dbaas_trunk_install_glance
     fi
 
     sudo -E mkdir /glance_images/
@@ -84,6 +84,9 @@ dbaas_pkg_setup_keystone() {
     cd /keystone
     sudo git checkout -b stable $KEYSTONE_VERSION
 
+    # Apply any patches if necessary
+    sudo git am -3 /vagrant-common/patches/keystone/*
+
     # Install Dependenciens
     pkg_install python-eventlet python-lxml python-paste python-pastedeploy python-pastescript python-pysqlite2
     pkg_install python-sqlalchemy python-webob python-routes python-httplib2 python-memcache
@@ -92,10 +95,7 @@ dbaas_pkg_setup_keystone() {
     sudo -E python setup.py install
     sudo -E mkdir -p /etc/keystone
     sudo -E mkdir -p /var/log/keystone
-    sudo -E cp /keystone/etc/keystone.conf $KEYSTONE_CONF
-    sudo -E sed -i 's/sql_connection = sqlite:\/\/\/keystone.db/sql_connection = mysql:\/\/nova:novapass@10.0.4.15\/keystone/g' $KEYSTONE_CONF
-    sudo -E sed -i 's/log_file = keystone.log/log_file = \/var\/log\/keystone\/keystone.log/g' $KEYSTONE_CONF
-    sudo -E sed -i 's/default_store = sqlite/default_store = mysql/g' $KEYSTONE_CONF
+    sudo -E cp /vagrant/keystone.conf $KEYSTONE_CONF
 }
 
 dbaas_pkg_install_novaclient() {
@@ -129,19 +129,31 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
     sudo -E apt-get update
 }
 
+dbaas_trunk_install_glance() {
+    sudo -E add-apt-repository ppa:glance-core/trunk
+    sudo -E apt-get update
+    sudo -E apt-get install glance
+    
+    sudo -E service glance-registry stop
+    sudo -E service glance-api stop
+}
+
 dbaas_new_install_glance() {
-    # Builds and installs the novaclient based on a config'd version
+    # Builds and installs glance based on a config'd version
     pkg_remove glance
     pkg_remove python-glance
     sudo -E mkdir -p /tmp/build/
     sudo -E rm -fr /tmp/build/glance*
     sudo -E rm -fr /tmp/build/python-glance*
     # GLANCE_VERSION is sourced from Exports
-    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:glance -r $GLANCE_VERSION /tmp/build/glance
+    # sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr clone lp:glance -r $GLANCE_VERSION /tmp/build/glance
+    sudo -E git clone https://github.com/openstack/glance.git /tmp/build/glance
+    cd /tmp/build/glance
+    sudo git checkout -b stable $GLANCE_VERSION
     sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bzr checkout --lightweight lp:~openstack-ubuntu-packagers/ubuntu/natty/glance/ubuntu /tmp/build/glancepkg
     sudo -E mv /tmp/build/glancepkg/debian /tmp/build/glance
     pkg_install cdbs python-mock
-    cd /tmp/build/glance
+
     sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
     # for some reason glance needs swift core to build
     add-apt-repository ppa:swift-core/trunk

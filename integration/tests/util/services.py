@@ -170,7 +170,7 @@ class Service(object):
                                str(self.proc.pid))
         self.proc = None
         global _running_services
-        _running_services = (svc for svc in _running_services if svc != self)
+        _running_services = [svc for svc in _running_services if svc != self]
 
     def _wait_for_start(self, time_out):
         """Waits until time_out (in seconds) for service to appear."""
