@@ -39,6 +39,8 @@ flags.DEFINE_string('aoe_eth_dev', 'eth0',
                     'Which device to export the volumes on')
 flags.DEFINE_integer('num_shell_tries', 3,
                     'number of times to attempt to run flakey shell commands')
+flags.DEFINE_string('num_iscsi_scan_tries', 3,
+                    'number of times to rescan iSCSI target to find volume')                    
 flags.DEFINE_integer('num_shelves',
                     100,
                     'Number of vblade shelves')
