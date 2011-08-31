@@ -30,9 +30,8 @@ from nose.plugins.skip import SkipTest
 from nose.tools import assert_true
 from novaclient.exceptions import NotFound
 from nova import context, utils
-from nova import db
-from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
 from nova.compute import power_state
+from reddwarf.api.dbcontainers import _dbaas_mapping
 from reddwarf.db import api as dbapi
 from nova import flags
 

@@ -22,10 +22,10 @@ from nova import exception
 from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.openstack.flavors import Controller as OriginalController
-from nova.api.platform.dbaas import views
+from reddwarf.api import views
 
 
-LOG = logging.getLogger('nova.api.platform.dbaas.flavors')
+LOG = logging.getLogger('reddwarf.api.flavors')
 LOG.setLevel(logging.DEBUG)
 
 

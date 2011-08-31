@@ -18,7 +18,7 @@ from nova import log as logging
 from nova.api.openstack.views import flavors as os_flavors
 
 
-LOG = logging.getLogger('nova.api.platform.dbaas.flavors')
+LOG = logging.getLogger('reddwarf.api.flavors')
 LOG.setLevel(logging.DEBUG)
 
 

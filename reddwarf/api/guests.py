@@ -20,10 +20,10 @@ from nova import compute
 from nova import flags
 from nova import log as logging
 from nova.api.openstack import wsgi
-from nova.api.platform.dbaas import common
+from reddwarf.api import common
 from nova.guest import api
 
-LOG = logging.getLogger('nova.api.platform.dbaas.guests')
+LOG = logging.getLogger('reddwarf.api.guests')
 LOG.setLevel(logging.DEBUG)
 
 

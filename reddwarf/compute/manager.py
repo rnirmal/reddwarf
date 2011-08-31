@@ -19,7 +19,7 @@ import json
 
 from nova import flags
 from nova import log as logging
-from nova.api.platform.dbaas import common
+from reddwarf.api import common
 from nova.compute import power_state
 from nova.guest import api as guest_api
 from nova.notifier import api as notifier

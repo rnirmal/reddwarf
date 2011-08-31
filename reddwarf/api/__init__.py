@@ -25,18 +25,18 @@ from nova import flags
 from nova import log as logging
 from nova import wsgi
 from nova.api.openstack import images
-from nova.api.platform.dbaas import accounts
-from nova.api.platform.dbaas import databases
-from nova.api.platform.dbaas import dbcontainers
-from nova.api.platform.dbaas import guests
-from nova.api.platform.dbaas import hosts
-from nova.api.platform.dbaas import management
-from nova.api.platform.dbaas import root
-from nova.api.platform.dbaas import storage
-from nova.api.platform.dbaas import users
-from nova.api.platform.dbaas import flavors
+from reddwarf.api import accounts
+from reddwarf.api import databases
+from reddwarf.api import dbcontainers
+from reddwarf.api import guests
+from reddwarf.api import hosts
+from reddwarf.api import management
+from reddwarf.api import root
+from reddwarf.api import storage
+from reddwarf.api import users
+from reddwarf.api import flavors
 
-LOG = logging.getLogger('nova.api.platform.dbaas')
+LOG = logging.getLogger('reddwarf.api')
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('default_guest_mysql_port', 3306,

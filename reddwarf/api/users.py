@@ -22,13 +22,13 @@ from nova import exception
 from nova import log as logging
 from nova.api.openstack import faults
 from nova.api.openstack import wsgi
-from nova.api.platform.dbaas import common
-from nova.api.platform.dbaas import deserializer
+from reddwarf.api import common
+from reddwarf.api import deserializer
 from nova.guest import api as guest_api
 from nova.guest.db import models
 
 
-LOG = logging.getLogger('nova.api.platform.dbaas.users')
+LOG = logging.getLogger('reddwarf.api.users')
 LOG.setLevel(logging.DEBUG)
 
 
