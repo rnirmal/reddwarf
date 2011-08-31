@@ -531,27 +531,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             raise exception.Error('Failed arping through VE')
 
-    def _ip_addresses(self, instance):
-        """
-        There are several instances in this codebase where we will need
-        to iterate through the assigned ip addresses for a given container.
-        This is a factory method used to generate an iterable list of ips and
-        their related network info.
-        """
-        network_info = db.network_get_all_by_instance(
-            context.get_admin_context(), instance['id'])
-        for eth_id, network in enumerate(network_info):
-            bridge = network[0]["bridge"]
-            netif = network[0]["bridge_interface"] \
-                        if network[0].has_key("bridge_interface") \
-                        else "eth%s" % eth_id
-            ip = network[1]["ips"][0]["ip"]
-            netmask = network[1]["ips"][0]["netmask"]
-            gateway = network[1]["gateway"]
-            dns = network[1]["dns"][0]
-            yield {'bridge': bridge, 'netif': netif, 'ip': ip,
-                   'netmask': netmask, 'gateway': gateway, 'dns': dns}
-
     def _set_nameserver(self, instance, dns):
         """
         Get the nameserver for the assigned network and set it using
