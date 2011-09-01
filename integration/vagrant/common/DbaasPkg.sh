@@ -228,7 +228,7 @@ dbaas_pkg_install_nova() {
 
     echo Installing Nova packages into the local repo.
     cd /tmp/build
-    sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid nova_`echo $gitversion`_amd64.changes
+    sudo -E reprepro --ignore=wrongdistribution -Vb /var/www/ubuntu/ include lucid nova_2012.12~`echo $gitversion`_amd64.changes
     sudo service glance-api stop
     sudo service glance-registry stop
     echo "Finished installing nova"
