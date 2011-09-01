@@ -59,7 +59,7 @@ class Controller(object):
             LOG.debug("%s - %s", req.environ, req.body)
             ctxt = req.environ['nova.context']
             containers = dbapi.show_containers_on_host(ctxt, id)
-            dbcontainers = [{'id':c.id} for c in containers]
+            dbcontainers = [{'id':c.id, 'state': c.state_description} for c in containers]
             total_ram = FLAGS.max_instance_memory_mb
             used_ram = dbapi.instance_get_memory_sum_by_host(ctxt, id)
             percent = int(round((used_ram / total_ram) * 100))
