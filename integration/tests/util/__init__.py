@@ -36,11 +36,15 @@ from sqlalchemy import create_engine
 from nova import flags
 from nova import utils
 from nose.tools import assert_false
+from nova.utils import PollTimeOut
 from reddwarfclient import Dbaas
+from tests.util import test_config
+from tests.util.client import TestClient as TestClient
+from tests.util.topics import hosts_up
+
 
 FLAGS = flags.FLAGS
 
-from tests.util.client import TestClient as TestClient
 
 _dns_entry_factory = None
 def get_dns_entry_factory():
@@ -141,6 +145,23 @@ def process(cmd):
                                stderr=subprocess.PIPE)
     result = process.communicate()
     return result
+
+
+def restart_compute_service(extra_args=None):
+    extra_args = extra_args or []
+    test_config.compute_service.restart(extra_args=extra_args)
+    # Be absolutely certain the compute manager is ready before passing control
+    # back to caller.
+    utils.poll_until(lambda: hosts_up('compute'),
+                     sleep_time=1, time_out=60)
+    pid = test_config.compute_service.find_proc_id()
+    line = "Creating Consumer connection for Service compute from (pid=%d)" % \
+           pid
+    try:
+        utils.poll_until(lambda: check_logs_for_message(line),
+                         sleep_time=1, time_out=60)
+    except PollTimeOut:
+        raise RuntimeError("Could not find the line %s in the logs." % line)
 
 
 def should_run_rsdns_tests():

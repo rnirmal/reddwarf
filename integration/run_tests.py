@@ -123,7 +123,8 @@ if __name__ == '__main__':
         "dbaas.guest.dns",
         SCHEDULER_DRIVER_GROUP,
         pkg_tests.GROUP,
-        VOLUMES_DRIVER
+        VOLUMES_DRIVER,
+        guest_initialize_failure.GROUP
     ]
     if util.should_run_rsdns_tests():
         host_ovz_groups += ["rsdns.conversion", "rsdns.domains"]

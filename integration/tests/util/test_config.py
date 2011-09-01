@@ -18,10 +18,12 @@
 import json
 import os
 
+from tests.util.services import Service
 from tests.util.services import WebService
 
 __all__ = [
     "auth_url",
+    "compute_service",
     "dbaas",
     "dbaas_image",
     "glance_code_root",
@@ -32,6 +34,7 @@ __all__ = [
     "users",
     "use_venv",
     "values",
+    "volume_service"
 ]
 
 
@@ -101,6 +104,7 @@ def _setup():
     from tests.util.users import Users
     global nova_auth_url
     global reddwarf_auth_url
+    global compute_service
     global dbaas
     global nova
     global users
@@ -109,6 +113,7 @@ def _setup():
     global use_venv
     global values
     global dbaas_url
+    global volume_service
     values = load_configuration()
     use_venv = values.get("use_venv", True)
     nova_auth_url = str(values.get("nova_auth_url", "http://localhost:5000/v2.0"))
@@ -128,6 +133,13 @@ def _setup():
                           ["%s/bin/nova-api" % nova_code_root,
                            "--flagfile=%s" % nova_conf],
                       url=nova_url)
+    volume_service = Service(cmd=python_cmd_list() +
+                             ["%s/bin/nova-volume" % nova_code_root,
+                              "--flagfile=%s" % nova_conf ])
+    compute_service = Service(cmd=python_cmd_list() +
+                              ["%s/bin/nova-compute" % nova_code_root,
+                               "--flagfile=%s" % nova_conf ])
+
     users = Users(values["users"])
     dbaas_image = values.get("dbaas_image", None)
     typical_nova_image_name = values.get("typical_nova_image_name", None)

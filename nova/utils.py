@@ -826,7 +826,8 @@ class PollTimeOut(exception.NovaException):
     message = _("Polling request timed out.")
 
 
-def poll_until(retriever, condition, sleep_time=1, time_out=None):
+def poll_until(retriever, condition=lambda value : value,
+               sleep_time=1, time_out=None):
     """Retrieves object until it passes condition, then returns it.
 
     If time_out_limit is passed in, PollTimeOut will be raised once that
