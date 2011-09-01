@@ -202,14 +202,18 @@ dbaas_pkg_install_nova() {
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-api
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-common
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-compute
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-compute-kvm
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-compute-lxc
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-compute-uml
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-compute-xen
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-doc
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-dns
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-guest
-    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-instancemonitor
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-network
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-objectstore
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-scheduler
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-volume
+    sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid nova-vncproxy
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid reddwarf-api
     sudo -E reprepro -Vb /var/www/ubuntu/ remove lucid python-nova
 
