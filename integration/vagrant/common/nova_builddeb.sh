@@ -49,7 +49,7 @@ Architecture: all
 Depends: ${ostack-lsb-base}, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
 Description: Red Dwarf - Nova - DNS' >> debian/control
 
-echo "nova ($gitversion) lucid; urgency=low
+echo "nova (2012.12~$gitversion) lucid; urgency=low
 
   [aut-gen]
   * generated version from the integration build.
