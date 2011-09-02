@@ -187,13 +187,6 @@ class Controller(object):
     def create_volume(self, context, body):
         """Creates the volume for the container and returns its ID."""
         volume_size = body['dbcontainer']['volume']['size']
-        maxsize = FLAGS.reddwarf_max_accepted_volume_size
-        if int(volume_size) > FLAGS.reddwarf_max_accepted_volume_size:
-            msg = ("Volume size %d is larger than accepted max %d" %
-                      (int(volume_size), FLAGS.reddwarf_max_accepted_volume_size))
-            LOG.error(msg)
-            raise exception.ApiError(msg)
-        
         name = body['dbcontainer'].get('name', None)
         description = FLAGS.reddwarf_volume_description % (None, None)
 
@@ -390,6 +383,11 @@ class Controller(object):
             if int(volume_size) != volume_size or int(volume_size) < 1:
                 msg = "Volume 'size' needs to be a positive integer value, %s"\
                       " cannot be accepted." % volume_size
+                raise exception.ApiError(msg)
+            max_size = FLAGS.reddwarf_max_accepted_volume_size
+            if int(volume_size) > max_size:
+                msg = "Volume 'size' cannot exceed maximum of %d Gb, %s"\
+                      " cannot be accepted." % (max_size, volume_size)
                 raise exception.ApiError(msg)
         except KeyError as e:
             LOG.error("Create Container Required field(s) - %s" % e)
