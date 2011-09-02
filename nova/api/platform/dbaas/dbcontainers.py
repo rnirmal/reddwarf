@@ -51,6 +51,9 @@ flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
 flags.DEFINE_string('reddwarf_volume_description',
                     'Volume ID: %s assigned to Instance: %s',
                     'Default description populated for volumes')
+flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128,
+                    'Maximum accepted volume size (in gigabytes) when creating'
+                    ' a container.')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -184,6 +187,13 @@ class Controller(object):
     def create_volume(self, context, body):
         """Creates the volume for the container and returns its ID."""
         volume_size = body['dbcontainer']['volume']['size']
+        maxsize = FLAGS.reddwarf_max_accepted_volume_size
+        if int(volume_size) > FLAGS.reddwarf_max_accepted_volume_size:
+            msg = ("Volume size %d is larger than accepted max %d" %
+                      (int(volume_size), FLAGS.reddwarf_max_accepted_volume_size))
+            LOG.error(msg)
+            raise exception.ApiError(msg)
+        
         name = body['dbcontainer'].get('name', None)
         description = FLAGS.reddwarf_volume_description % (None, None)
 

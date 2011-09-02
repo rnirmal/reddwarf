@@ -30,10 +30,13 @@ GROUP_STOP="dbaas.guest.shutdown"
 
 from datetime import datetime
 from nose.plugins.skip import SkipTest
+from novaclient.exceptions import ClientException
 from novaclient.exceptions import NotFound
+from nose.tools import assert_true
 from nova import context
 from nova import db
 from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
+from nova.api.platform.dbaas.dbcontainers import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
@@ -211,11 +214,19 @@ class CreateContainer(unittest.TestCase):
 
     """
 
-    def test_create(self):
-        global dbaas
+    def test_before_containers_are_started(self):
         # give the services some time to start up
         time.sleep(2)
 
+    @expect_exception(ClientException)
+    def test_container_size_too_big(self):
+        too_big = dbaas_FLAGS.reddwarf_max_accepted_volume_size
+        dbaas.dbcontainers.create('way_too_large',
+                                  container_info.dbaas_flavor_href,
+                                  {'size': too_big + 1}, [])
+
+    def test_create(self):
+        global dbaas
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
