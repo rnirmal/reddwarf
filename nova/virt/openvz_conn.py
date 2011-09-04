@@ -35,6 +35,9 @@ from nova.compute import instance_types
 from nova.exception import ProcessExecutionError
 from nova.virt import images
 from nova.virt import driver
+from nova.virt.vif import VIFDriver
+from nova.network import linux_net
+from Cheetah.Template import Template
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('ovz_template_path',
@@ -58,9 +61,6 @@ flags.DEFINE_string('ovz_config_dir',
 flags.DEFINE_string('ovz_bridge_device',
                     'br100',
                     'Bridge device to map veth devices to')
-flags.DEFINE_string('ovz_network_template',
-                    utils.abspath('virt/openvz_interfaces.template'),
-                    'OpenVz network interface template file')
 flags.DEFINE_bool('ovz_use_cpuunit',
                   True,
                   'Use OpenVz cpuunits for guaranteed minimums')
@@ -88,6 +88,15 @@ flags.DEFINE_string('ovz_disk_space_increment',
 flags.DEFINE_bool('ovz_use_disk_quotas',
                   True,
                   'Use disk quotas to contain disk usage')
+flags.DEFINE_string('ovz_vif_driver',
+                    'nova.virt.openvz_conn.OVZNetworkBridgeDriver',
+                    'The openvz VIF driver to configures the VIFs')
+flags.DEFINE_bool('ovz_use_veth_devs',
+                  True,
+                  'Use veth devices rather than venet')
+flags.DEFINE_bool('ovz_use_dhcp',
+                  False,
+                  'Use dhcp for network configuration')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -106,6 +115,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 'CPULIMIT': 0
             }
         self.read_only = read_only
+        self.vif_driver = utils.import_object(FLAGS.ovz_vif_driver)
         LOG.debug("__init__ complete in OpenVzConnection")
 
     @classmethod
@@ -121,18 +131,18 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         ctxt = context.get_admin_context()
 
-        LOG.debug('Hostname: %s' % (host,))
-        LOG.debug('Instances: %s' % (db.instance_get_all_by_host(ctxt, host)))
+        LOG.debug(_('Hostname: %s'), host)
+        LOG.debug(_('Instances: %s'), db.instance_get_all_by_host(ctxt, host))
 
         for instance in db.instance_get_all_by_host(ctxt, host):
             try:
-                LOG.debug('Checking state of %s' % instance['name'])
+                LOG.debug(_('Checking state of %s'), instance['name'])
                 state = self.get_info(instance['name'])['state']
             except exception.NotFound:
                 state = power_state.SHUTOFF
 
-            LOG.debug('Current state of %s was %s.' %
-                      (instance['name'], state))
+            LOG.debug(_('Current state of %(name)s was %(state)s'),
+                    {'name': instance['name'], 'state': state})
             db.instance_set_state(ctxt, instance['id'], state)
 
             if state == power_state.SHUTOFF:
@@ -141,13 +151,13 @@ class OpenVzConnection(driver.ComputeDriver):
             if state != power_state.RUNNING:
                 continue
 
-        LOG.debug("Determining the computing power of the host")
+        LOG.debug(_('Determining the computing power of the host'))
 
         self._get_cpuunits_capability()
         self._get_cpulimit()
         self._get_memory()
 
-        LOG.debug("init_host complete in OpenVzConnection")
+        LOG.debug(_('init_host complete in OpenVzConnection'))
 
     def list_instances(self):
         """
@@ -240,7 +250,7 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_vz_os_hint(instance)
         self._configure_vz(instance)
         self._set_name(instance)
-        self._setup_networks(instance, network_info)
+        self.plug_vifs(instance, network_info)
         self._set_hostname(instance)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
@@ -419,82 +429,19 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Failed to update db for %s'
                                   % instance['id'])
 
-    def _setup_networks(self, instance, network_info):
-        """Setup all the provided networks
+    def _set_hostname(self, instance, hostname=False):
+        if not hostname:
+            hostname = instance['hostname']
 
-        Add the specified network interfaces.
-        Assign ips for those interfaces and bridge them.
-        Add nameserver information for all the interfaces
-        """
-        for eth_id, network in enumerate(network_info):
-            bridge = network[0]["bridge"]
-            netif = network[0]["bridge_interface"] \
-                        if "bridge_interface" in network[0] \
-                        else "eth%s" % eth_id
-            ip = network[1]["ips"][0]["ip"]
-            netmask = network[1]["ips"][0]["netmask"]
-            gateway = network[1]["gateway"]
-            dns = network[1]["dns"][0]
-
-            self._add_netif(instance, netif=netif, bridge=bridge)
-            self._add_ip(instance, ip, netmask, gateway, netif=netif)
-            self._set_nameserver(instance, dns)
-
-    def _add_netif(self, instance, netif="eth0",
-                   host_if=False,
-                   bridge=FLAGS.ovz_bridge_device):
-        """
-        This is more of a work around to add the eth devs
-        the way OpenVZ wants them. Currently only bridged networking
-        is supported in this driver.
-        """
-        # TODO(imsplitbit): fix this to be nova-ish i.e. async
         try:
-            # Command necessary to create a bridge networking setup.
-            # right now this is the only supported networking model
-            # in the openvz connector.
-            if not host_if:
-                host_if = 'veth%s.%s' % (instance['id'], netif)
-
             out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--netif_add',
-                                     '%s,,%s,,%s' % (netif, host_if, bridge))
+                                     '--save', '--hostname', hostname)
             LOG.debug(out)
             if err:
                 LOG.error(err)
-
         except ProcessExecutionError:
-            raise exception.Error(
-                    'Error adding network device to container %s' %
-                    instance['id'])
-
-    def _add_ip(self, instance, ip, netmask, gateway, netif='eth0',
-                if_file='etc/network/interfaces'):
-        """
-        Add an ip to the container
-        """
-        net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
-        if_file_path = net_path + '/' + if_file
-
-        try:
-            os.chdir(net_path)
-            with open(FLAGS.ovz_network_template) as fh:
-                network_file = fh.read() % {'gateway_dev': netif,
-                                            'address': ip,
-                                            'netmask': netmask,
-                                            'gateway': gateway}
-
-            # TODO(imsplitbit): Find a way to write to this file without
-            # mangling the perms.
-            utils.execute('sudo', 'chmod', '666', if_file_path)
-            fh = open(if_file_path, 'a')
-            fh.write(network_file)
-            fh.close()
-            utils.execute('sudo', 'chmod', '644', if_file_path)
-
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Error adding IP')
+            raise exception.Error('Cannot set the hostname on %s' %
+                                  instance['id'])
 
     def _gratuitous_arp_all_addresses(self, instance, network_info):
         """
@@ -502,7 +449,6 @@ class OpenVzConnection(driver.ComputeDriver):
         a gratuitous arp over it's interface to make sure arp caches have
         the proper mac address.
         """
-        #TODO(imsplitbit): refactor all networking stuff into a class/object
         for network in network_info:
             bridge_info = network[0]
             LOG.debug('bridge interface: %s' %
@@ -529,7 +475,6 @@ class OpenVzConnection(driver.ComputeDriver):
         ip address given to a new container.  We need to send a gratuitous arp
         on each interface for the address assigned.
         """
-        # TODO(imsplitbit): refactor all networking stuff into a class/object
         try:
             LOG.debug('Sending a gratuitous arp for %s over %s' %
                       (ip_address, interface))
@@ -545,35 +490,6 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(err)
             LOG.error('Failed arping through VE')
 
-    def _set_nameserver(self, instance, dns):
-        """
-        Get the nameserver for the assigned network and set it using
-        OpenVz's tools.
-        """
-        try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--nameserver', dns)
-            LOG.debug(out)
-            if err:
-                LOG.error(err)
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set nameserver for %s' %
-            instance['id'])
-
-    def _set_hostname(self, instance, hostname=None):
-        if not hostname:
-            hostname = instance['hostname']
-
-        try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--hostname', hostname)
-            LOG.debug(out)
-            if err:
-                LOG.error(err)
-        except ProcessExecutionError:
-            raise exception.Error('Cannot set the hostname on %s' %
-                                  instance['id'])
 
     def _set_name(self, instance):
         # This stores the nova 'name' of an instance in the name field for
@@ -851,6 +767,46 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Error setting diskspace quota for %s' %
                                   (instance['id'],))
 
+    def plug_vifs(self, instance, network_info):
+        """
+        I plug vifs into networks and configure devices in the container.
+        """
+        interfaces = []
+        interface_num = -1
+        for (network, mapping) in network_info:
+            self.vif_driver.plug(instance, network, mapping)
+            interface_num += 1
+
+            #TODO(imsplitbit): make this work for ipv6
+            address_v6 = None
+            gateway_v6 = None
+            netmask_v6 = None
+            if FLAGS.use_ipv6:
+                address_v6 = mapping['ip6s'][0]['ip']
+                netmask_v6 = mapping['ip6s'][0]['netmask']
+                gateway_v6 = mapping['gateway6']
+
+            interface_info = {
+                'id': instance['id'],
+                'interface_number': interface_num,
+                'bridge': network['bridge'],
+                'name': 'eth%d' % interface_num,
+                'mac': mapping['mac'],
+                'address': mapping['ips'][0]['ip'],
+                'netmask': mapping['ips'][0]['netmask'],
+                'gateway': mapping['gateway'],
+                'broadcast': mapping['broadcast'],
+                'dns': ' '.join(mapping['dns']),
+                'address_v6': address_v6,
+                'gateway_v6': gateway_v6,
+                'netmask_v6': netmask_v6
+            }
+
+            interfaces.append(interface_info)
+
+        ifaces_fh = OVZNetworkInterfaces(interfaces)
+        ifaces_fh.add()
+
     def snapshot(self, instance, name):
         """
         Snapshots the specified instance.
@@ -935,7 +891,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         self._start(instance)
 
-    def destroy(self, instance, network_info=None):
+    def destroy(self, instance, network_info, cleanup=True):
         """
         Destroy (shutdown and delete) the specified instance.
 
@@ -959,6 +915,9 @@ class OpenVzConnection(driver.ComputeDriver):
                 LOG.error(err)
         except ProcessExecutionError:
             raise exception.Error('Error destroying %d' % instance['id'])
+
+        for (network, mapping) in network_info:
+            self.vif_driver.unplug(instance, network, mapping)
 
     def _attach_volumes(self, instance):
         """
@@ -1344,7 +1303,6 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Problem getting cpuunits for host')
 
         return True
-
 
 class OVZFile(object):
     """
@@ -1741,3 +1699,194 @@ class OVZVolumes(object):
         # Finish by setting the permissions back to more secure permissions
         self.mountfh.set_permissions(755)
         self.umountfh.set_permissions(755)
+
+class OVZNetworkBridgeDriver(VIFDriver):
+    """
+    VIF driver for a Linux Bridge
+    """
+
+    def plug(self, instance, network, mapping):
+        """
+        Ensure that the bridge exists and add a vif to it.
+        """
+        if (not network.get('should_create_bridge') and
+            mapping.get('should_create_vlan')):
+            if mapping.get('should_create_vlan'):
+                LOG.debug(_('Ensuring bridge %(bridge)s and vlan %(vlan)s'),
+                        {'bridge': network['bridge'],
+                         'vlan': network['vlan']})
+                linux_net.LinuxBridgeInterfaceDriver.ensure_vlan_bridge(
+                        network['vlan'],
+                        network['bridge'],
+                        network['bridge_interface'])
+            else:
+                LOG.debug(_('Ensuring bridge %s'), network['bridge'])
+                linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
+                        network['bridge'],
+                        network['bridge_interface'])
+
+    def unplug(self, instance, network, mapping):
+        """
+        No manual unplugging required
+        """
+        pass
+
+class OVZNetworkInterfaces(object):
+    """
+    Helper class for managing interfaces in OpenVz
+    """
+    #TODO(imsplitbit): fix this to work with redhat based distros
+    def __init__(self, interface_info):
+        """
+        I exist to manage the network interfaces for your OpenVz containers.
+        """
+        self.interface_info = interface_info
+
+    def add(self):
+        """
+        I add all interfaces and addresses to the container.
+        """
+        if FLAGS.ovz_use_veth_devs:
+            for net_dev in self.interface_info:
+                self._add_netif(net_dev['id'], net_dev['name'],
+                                net_dev['bridge'], net_dev['mac'])
+
+            self._load_template()
+            self._fill_templates()
+        else:
+            for net_dev in self.interface_info:
+                self._add_ip(net_dev['id'], net_dev['address'])
+                self._set_nameserver(net_dev['id'], net_dev['dns'])
+
+    def _load_template(self):
+        """
+        I load templates needed for network interfaces.
+        """
+        if FLAGS.ovz_use_veth_devs:
+            if not FLAGS.ovz_use_dhcp:
+                self.template = open(FLAGS.injected_network_template).read()
+            else:
+                #TODO(imsplitbit): make a cheetah template for DHCP interfaces
+                # when using veth devices.
+                self.template = None
+        else:
+            self.template = None
+
+    def _fill_templates(self):
+        """
+        I iterate through each file necessary for creating interfaces on a
+        given platform, open the file and write the contents of the template
+        to the file.
+        """
+        for filename in self._filename_factory():
+            network_file = OVZNetworkFile(filename)
+            self.iface_file = str(
+                Template(self.template,
+                         searchList=[{'interfaces': self.interface_info,
+                                      'use_ipv6': FLAGS.use_ipv6}]))
+            network_file.append(self.iface_file.split('\n'))
+            network_file.write()
+
+    def _filename_factory(self):
+        """
+        I generate a path for the file needed to implement an interface
+        """
+        #TODO(imsplitbit): Figure out how to introduce OS hints into nova
+        # so we can generate support for redhat based distros.  This will
+        # require an os hint to be placed in glance to use for making
+        # decisions.  Then we can create a generator that will generate
+        # redhat style interface paths like:
+        #
+        # /etc/sysconfig/network-scripts/ifcfg-eth0
+        #
+        # for now, we just return the debian path.
+
+        redhat_path = '/etc/sysconfig/network-scripts/'
+        debian_path = '/etc/network/interfaces'
+        prefix = '/%(private_dir)s/%(instance_id)s' % \
+                 {'private_dir': FLAGS.ovz_ve_private_dir,
+                  'instance_id': self.interface_info[0]['id']}
+        prefix = os.path.abspath(prefix)
+
+        #TODO(imsplitbit): fix this placeholder for RedHat compatibility.
+        replace_me_use_redhat_variable = False
+        if replace_me_use_redhat_variable:
+            for net_dev in self.interface_info:
+                path = prefix + redhat_path + ('ifcfg-%s' % net_dev['name'])
+                path = os.path.abspath(path)
+                yield path
+        else:
+            path = prefix + debian_path
+            path = os.path.abspath(path)
+            yield path
+
+    def _add_netif(self, instance_id, netif, bridge, host_mac):
+        """
+        I am a work around to add the eth devices the way OpenVZ
+        wants them.
+
+        When I work, I run a command similar to this:
+        sudo vzctl set 1 --save --netif_add \
+            eth0,,veth1.eth0,11:11:11:11:11:11,br100
+        """
+        try:
+            # Command necessary to create a bridge networking setup.
+            # right now this is the only supported networking model
+            # in the openvz connector.
+            host_if = 'veth%s.%s' % (instance_id, netif)
+
+            out, err = utils.execute('sudo', 'vzctl', 'set', instance_id,
+                                     '--save', '--netif_add',
+                                     '%s,,%s,%s,%s' %
+                                     (netif, host_if, host_mac, bridge))
+            LOG.debug(out)
+            if err:
+                LOG.error(err)
+
+        except ProcessExecutionError:
+            raise exception.Error(
+                    'Error adding network device to container %s' %
+                    instance_id)
+
+    def _add_ip(self, instance_id, ip):
+        """
+        I add an IP address to a container if you are not using veth devices.
+        """
+        try:
+            out, err = utils.execute('sudo', 'vzctl', 'set', instance_id,
+                                     '--save', '--ipadd', ip)
+            LOG.debug(out)
+            if err:
+                LOG.error(err)
+
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error('Error adding IP')
+
+    def _set_nameserver(self, instance_id, dns):
+        """
+        Get the nameserver for the assigned network and set it using
+        OpenVz's tools.
+        """
+        try:
+            out, err = utils.execute('sudo', 'vzctl', 'set', instance_id,
+                                     '--save', '--nameserver', dns)
+            LOG.debug(out)
+            if err:
+                LOG.error(err)
+        except Exception as err:
+            LOG.error(err)
+            raise exception.Error('Unable to set nameserver for %s' %
+            instance_id)
+
+class OVZNetworkFile(OVZFile):
+    """
+    An abstraction for network files.  I am necessary for multi-platform
+    support.  OpenVz runs on all linux distros and can host all linux distros
+    but they don't all create interfaces the same way.  I make it easy to add
+    interface files to all flavors of linux.
+    """
+
+    def __init__(self, filename):
+        super(OVZNetworkFile, self).__init__(filename)
+		
