@@ -30,7 +30,6 @@ GROUP_STOP="dbaas.guest.shutdown"
 
 from datetime import datetime
 from nose.plugins.skip import SkipTest
-from nose.tools import assert_true
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
@@ -40,7 +39,13 @@ from reddwarf.db import api as dbapi
 
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
+from proboscis import before_class
 from proboscis import test
+from proboscis.asserts import assert_equal
+from proboscis.asserts import assert_not_equal
+from proboscis.asserts import assert_true
+
+
 from tests.util import test_config
 from tests.util import check_database
 from tests.util import create_dns_entry
@@ -95,34 +100,40 @@ dbaas = None  # Rich client used throughout this test.
 
 
 @test(groups=[GROUP, GROUP_START, 'dbaas.setup'], depends_on_groups=["services.initialize"])
-class Setup(unittest.TestCase):
+class Setup(object):
     """Makes sure the client can hit the ReST service.
 
     This test also uses the API to find the image and flavor to use.
 
     """
 
+    @before_class
     def setUp(self):
         """Sets up the client."""
         global dbaas
         container_info.user = test_config.users.find_user(Requirements(is_admin=True))
         dbaas = create_test_client(container_info.user)
 
-    def test_auth_token(self):
+    @test
+    def auth_token(self):
+        """Make sure Auth token is correct and config is set properly."""
         print("Auth Token: %s" % dbaas.client.auth_token)
         print("Service URL: %s" % dbaas.client.management_url)
-        self.assertNotEqual(dbaas.client.auth_token, None)
-        self.assertEquals(dbaas.client.management_url, test_config.dbaas_url)
+        assert_not_equal(dbaas.client.auth_token, None)
+        assert_equal(dbaas.client.management_url, test_config.dbaas_url)
 
-    def test_find_image(self):
+    @test
+    def find_image(self):
         result = dbaas.find_image_and_self_href(test_config.dbaas_image)
         container_info.dbaas_image, container_info.dbaas_image_href = result
 
+    @test
     def test_find_flavor(self):
         result = dbaas.find_flavor_and_self_href(flavor_id=2)
         container_info.dbaas_flavor, container_info.dbaas_flavor_href = result
 
-    def test_create_container_name(self):
+    @test
+    def create_container_name(self):
         container_info.name = "TEST_" + str(datetime.now())
 
 
