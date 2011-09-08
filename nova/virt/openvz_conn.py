@@ -497,7 +497,7 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Unable to set nameserver for %s' %
             instance['id'])
 
-    def _set_hostname(self, instance, hostname=False):
+    def _set_hostname(self, instance, hostname=None):
         if not hostname:
             hostname = instance['hostname']
 
