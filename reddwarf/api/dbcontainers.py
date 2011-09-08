@@ -31,15 +31,15 @@ from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.api.openstack.views.servers import ViewBuilder as servers_view
-from nova.api.platform.dbaas import common
-from nova.api.platform.dbaas import deserializer
+from reddwarf.api import common
+from reddwarf.api import deserializer
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
 from reddwarf.db import api as dbapi
 
 
-LOG = logging.getLogger('nova.api.platform.dbaas.dbcontainers')
+LOG = logging.getLogger('reddwarf.api.dbcontainers')
 LOG.setLevel(logging.DEBUG)
 
 

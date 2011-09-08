@@ -20,11 +20,11 @@ from nova import flags
 from nova import log as logging
 from nova.api.openstack import faults
 from nova.api.openstack import wsgi
-from nova.api.platform.dbaas import common
+from reddwarf.api import common
 from nova.db.sqlalchemy.api import service_get_all_compute_sorted
 from reddwarf.db import api as dbapi
 
-LOG = logging.getLogger('nova.api.platform.dbaas.hosts')
+LOG = logging.getLogger('reddwarf.api.hosts')
 LOG.setLevel(logging.DEBUG)
 
 

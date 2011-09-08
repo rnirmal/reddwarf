@@ -24,12 +24,12 @@ from nova import volume
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
-from nova.api.platform.dbaas import common
+from reddwarf.api import common
 from nova.exception import NotFound
 from nova.guest import api as guest
 from reddwarf.db import api as dbapi
 
-LOG = logging.getLogger('nova.api.platform.dbaas.accounts')
+LOG = logging.getLogger('reddwarf.api.accounts')
 LOG.setLevel(logging.DEBUG)
 
 

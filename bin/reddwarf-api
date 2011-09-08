@@ -40,7 +40,7 @@ from nova import version
 from nova import wsgi
 
 
-LOG = logging.getLogger('nova.api.platform')
+LOG = logging.getLogger('reddwarf.api')
 LOG.setLevel(logging.DEBUG)
 
 FLAGS = flags.FLAGS

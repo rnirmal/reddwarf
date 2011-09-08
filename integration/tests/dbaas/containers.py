@@ -37,8 +37,8 @@ from novaclient.exceptions import ClientException
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
-from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
-from nova.api.platform.dbaas.dbcontainers import FLAGS as dbaas_FLAGS
+from reddwarf.api.dbcontainers import _dbaas_mapping
+from reddwarf.api.dbcontainers import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
