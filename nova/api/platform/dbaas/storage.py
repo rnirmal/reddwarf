@@ -46,6 +46,7 @@ class Controller(object):
                                  {"method": "get_storage_device_info",
                                   "args": {}})
         return {'storage': { 'name': storage_info['name'],
+                             'type': storage_info['type'],
                              'availablesize': storage_info['prov_avail'],
                              'totalsize': storage_info['prov_total']}}
 

@@ -502,11 +502,13 @@ class MgmtHostCheck(unittest.TestCase):
         self.assertTrue(hasattr(storage, 'name'))
         self.assertTrue(hasattr(storage, 'availablesize'))
         self.assertTrue(hasattr(storage, 'totalsize'))
+        self.assertTrue(hasattr(storage, 'type'))
         print("storage : %r" % storage.__dict__)
         print("container_info.dbaas_flavor : %r" % container_info.dbaas_flavor.__dict__)
         print("container_info.storage : %r" % container_info.storage.__dict__)
         self.assertEquals(storage.name, container_info.storage.name)
         self.assertEquals(storage.totalsize, container_info.storage.totalsize)
+        self.assertEquals(storage.type, container_info.storage.type)
         avail = container_info.storage.availablesize - container_info.volume['size']
         self.assertEquals(storage.availablesize, avail)
 
