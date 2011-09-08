@@ -499,7 +499,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
     def _set_hostname(self, instance, hostname=False):
         if not hostname:
-            hostname = 'container-%s' % instance['id']
+            hostname = instance['hostname']
 
         try:
             _, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
