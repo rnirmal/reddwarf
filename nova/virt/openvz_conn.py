@@ -539,7 +539,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 LOG.error(err)
         except ProcessExecutionError as err:
             LOG.error(err)
-            raise exception.Error('Failed arping through VE')
+            LOG.error('Failed arping through VE')
 
     def _set_nameserver(self, instance, dns):
         """
