@@ -107,10 +107,10 @@ def find_evidence_scheduler_failed_in_logs():
 @test(groups=[GROUP], depends_on=[find_evidence_scheduler_failed_in_logs])
 class AfterSchedulingHasFailed(unittest.TestCase):
 
-    def test_confirm_instance_is_in_error_state(self):
-        """Retrieve the instance and make sure its status is 'ERROR.'"""
-        instance = client.servers.get(initial_instance.id)
-        assert_equal("ERROR", instance.status)
+#    def test_confirm_instance_is_in_error_state(self):
+#        """Retrieve the instance and make sure its status is 'ERROR.'"""
+#        instance = client.servers.get(initial_instance.id)
+#        assert_equal("ERROR", instance.status)
 
     def test_confirm_ops_was_notified(self):
         current_count = out_of_instance_memory_nofication_count()
