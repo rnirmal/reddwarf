@@ -2,6 +2,7 @@
 
 # Copyright 2010 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration.
+# Copyright 2011 Piston Cloud Computing, Inc.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -166,9 +167,24 @@ class ComputeTestCase(test.TestCase):
             db.security_group_destroy(self.context, group['id'])
             db.instance_destroy(self.context, ref[0]['id'])
 
+    def test_create_instance_associates_config_drive(self):
+        """Make sure create associates a config drive."""
+
+        instance_id = self._create_instance(params={'config_drive': True, })
+
+        try:
+            self.compute.run_instance(self.context, instance_id)
+            instances = db.instance_get_all(context.get_admin_context())
+            instance = instances[0]
+
+            self.assertTrue(instance.config_drive)
+        finally:
+            db.instance_destroy(self.context, instance_id)
+
     def test_default_hostname_generator(self):
-        cases = [(None, 'server_1'), ('Hello, Server!', 'hello_server'),
-                 ('<}\x1fh\x10e\x08l\x02l\x05o\x12!{>', 'hello')]
+        cases = [(None, 'server-1'), ('Hello, Server!', 'hello-server'),
+                 ('<}\x1fh\x10e\x08l\x02l\x05o\x12!{>', 'hello'),
+                 ('hello_server', 'hello-server')]
         for display_name, hostname in cases:
             ref = self.compute_api.create(self.context,
                 instance_types.get_default_instance_type(), None,
@@ -354,7 +370,7 @@ class ComputeTestCase(test.TestCase):
         self.assertEquals(msg['priority'], 'INFO')
         self.assertEquals(msg['event_type'], 'compute.instance.create')
         payload = msg['payload']
-        self.assertEquals(payload['tenant_id'], self.project_id)
+        self.assertEquals(payload['project_id'], self.project_id)
         self.assertEquals(payload['user_id'], self.user_id)
         self.assertEquals(payload['instance_id'], instance_id)
         self.assertEquals(payload['instance_type'], 'm1.tiny')
@@ -378,7 +394,7 @@ class ComputeTestCase(test.TestCase):
         self.assertEquals(msg['priority'], 'INFO')
         self.assertEquals(msg['event_type'], 'compute.instance.delete')
         payload = msg['payload']
-        self.assertEquals(payload['tenant_id'], self.project_id)
+        self.assertEquals(payload['project_id'], self.project_id)
         self.assertEquals(payload['user_id'], self.user_id)
         self.assertEquals(payload['instance_id'], instance_id)
         self.assertEquals(payload['instance_type'], 'm1.tiny')
@@ -461,7 +477,7 @@ class ComputeTestCase(test.TestCase):
         self.assertEquals(msg['priority'], 'INFO')
         self.assertEquals(msg['event_type'], 'compute.instance.resize.prep')
         payload = msg['payload']
-        self.assertEquals(payload['tenant_id'], self.project_id)
+        self.assertEquals(payload['project_id'], self.project_id)
         self.assertEquals(payload['user_id'], self.user_id)
         self.assertEquals(payload['instance_id'], instance_id)
         self.assertEquals(payload['instance_type'], 'm1.tiny')
@@ -645,7 +661,7 @@ class ComputeTestCase(test.TestCase):
             volmock.setup_compute_volume(c, vid).InAnyOrder('g1')
         netmock.setup_compute_network(c, i_ref['id'])
         drivermock.plug_vifs(i_ref, [])
-        drivermock.ensure_filtering_rules_for_instance(i_ref)
+        drivermock.ensure_filtering_rules_for_instance(i_ref, [])
 
         self.compute.db = dbmock
         self.compute.volume_client = volclientmock
@@ -671,7 +687,7 @@ class ComputeTestCase(test.TestCase):
         self.mox.StubOutWithMock(compute_manager.LOG, 'info')
         compute_manager.LOG.info(_("%s has no volume."), i_ref['hostname'])
         drivermock.plug_vifs(i_ref, [])
-        drivermock.ensure_filtering_rules_for_instance(i_ref)
+        drivermock.ensure_filtering_rules_for_instance(i_ref, [])
 
         self.compute.db = dbmock
         self.compute.driver = drivermock
@@ -731,11 +747,15 @@ class ComputeTestCase(test.TestCase):
         dbmock.queue_get_for(c, FLAGS.compute_topic, i_ref['host']).\
                              AndReturn(topic)
         rpc.call(c, topic, {"method": "pre_live_migration",
-                            "args": {'instance_id': i_ref['id']}})
+                            "args": {'instance_id': i_ref['id'],
+                                     'block_migration': False,
+                                     'disk': None}})
+
         self.mox.StubOutWithMock(self.compute.driver, 'live_migration')
         self.compute.driver.live_migration(c, i_ref, i_ref['host'],
                                   self.compute.post_live_migration,
-                                  self.compute.recover_live_migration)
+                                  self.compute.rollback_live_migration,
+                                  False)
 
         self.compute.db = dbmock
         self.mox.ReplayAll()
@@ -756,13 +776,18 @@ class ComputeTestCase(test.TestCase):
         dbmock.queue_get_for(c, FLAGS.compute_topic, i_ref['host']).\
                              AndReturn(topic)
         rpc.call(c, topic, {"method": "pre_live_migration",
-                            "args": {'instance_id': i_ref['id']}}).\
+                            "args": {'instance_id': i_ref['id'],
+                                     'block_migration': False,
+                                     'disk': None}}).\
                             AndRaise(rpc.RemoteError('', '', ''))
         dbmock.instance_update(c, i_ref['id'], {'state_description': 'running',
                                                 'state': power_state.RUNNING,
                                                 'host': i_ref['host']})
         for v in i_ref['volumes']:
             dbmock.volume_update(c, v['id'], {'status': 'in-use'})
+            # mock for volume_api.remove_from_compute
+            rpc.call(c, topic, {"method": "remove_volume",
+                                "args": {'volume_id': v['id']}})
 
         self.compute.db = dbmock
         self.mox.ReplayAll()
@@ -783,7 +808,9 @@ class ComputeTestCase(test.TestCase):
                              AndReturn(topic)
         self.mox.StubOutWithMock(rpc, 'call')
         rpc.call(c, topic, {"method": "pre_live_migration",
-                            "args": {'instance_id': i_ref['id']}}).\
+                            "args": {'instance_id': i_ref['id'],
+                                     'block_migration': False,
+                                     'disk': None}}).\
                             AndRaise(rpc.RemoteError('', '', ''))
         dbmock.instance_update(c, i_ref['id'], {'state_description': 'running',
                                                 'state': power_state.RUNNING,
@@ -808,11 +835,14 @@ class ComputeTestCase(test.TestCase):
         dbmock.queue_get_for(c, FLAGS.compute_topic, i_ref['host']).\
                              AndReturn(topic)
         rpc.call(c, topic, {"method": "pre_live_migration",
-                            "args": {'instance_id': i_ref['id']}})
+                            "args": {'instance_id': i_ref['id'],
+                                     'block_migration': False,
+                                     'disk': None}})
         self.mox.StubOutWithMock(self.compute.driver, 'live_migration')
         self.compute.driver.live_migration(c, i_ref, i_ref['host'],
                                   self.compute.post_live_migration,
-                                  self.compute.recover_live_migration)
+                                  self.compute.rollback_live_migration,
+                                  False)
 
         self.compute.db = dbmock
         self.mox.ReplayAll()
@@ -846,6 +876,10 @@ class ComputeTestCase(test.TestCase):
             self.compute.volume_client.remove_volume(c, v['id'])
         self.mox.StubOutWithMock(self.compute.driver, 'unfilter_instance')
         self.compute.driver.unfilter_instance(i_ref, [])
+        self.mox.StubOutWithMock(rpc, 'call')
+        rpc.call(c, db.queue_get_for(c, FLAGS.compute_topic, dest),
+            {"method": "post_live_migration_at_destination",
+             "args": {'instance_id': i_ref['id'], 'block_migration': False}})
 
         # executing
         self.mox.ReplayAll()
@@ -1339,6 +1373,69 @@ class ComputeTestCase(test.TestCase):
         db.instance_destroy(c, instance_id1)
         db.instance_destroy(c, instance_id2)
         db.instance_destroy(c, instance_id3)
+
+    def test_get_all_by_metadata(self):
+        """Test searching instances by metadata"""
+
+        c = context.get_admin_context()
+        instance_id0 = self._create_instance()
+        instance_id1 = self._create_instance({
+                'metadata': {'key1': 'value1'}})
+        instance_id2 = self._create_instance({
+                'metadata': {'key2': 'value2'}})
+        instance_id3 = self._create_instance({
+                'metadata': {'key3': 'value3'}})
+        instance_id4 = self._create_instance({
+                'metadata': {'key3': 'value3',
+                             'key4': 'value4'}})
+
+        # get all instances
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': {}})
+        self.assertEqual(len(instances), 5)
+
+        # wrong key/value combination
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': {'key1': 'value3'}})
+        self.assertEqual(len(instances), 0)
+
+        # non-existing keys
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': {'key5': 'value1'}})
+        self.assertEqual(len(instances), 0)
+
+        # find existing instance
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': {'key2': 'value2'}})
+        self.assertEqual(len(instances), 1)
+        self.assertEqual(instances[0].id, instance_id2)
+
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': {'key3': 'value3'}})
+        self.assertEqual(len(instances), 2)
+        instance_ids = [instance.id for instance in instances]
+        self.assertTrue(instance_id3 in instance_ids)
+        self.assertTrue(instance_id4 in instance_ids)
+
+        # multiple criterias as a dict
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': {'key3': 'value3',
+                                          'key4': 'value4'}})
+        self.assertEqual(len(instances), 1)
+        self.assertEqual(instances[0].id, instance_id4)
+
+        # multiple criterias as a list
+        instances = self.compute_api.get_all(c,
+                search_opts={'metadata': [{'key4': 'value4'},
+                                          {'key3': 'value3'}]})
+        self.assertEqual(len(instances), 1)
+        self.assertEqual(instances[0].id, instance_id4)
+
+        db.instance_destroy(c, instance_id0)
+        db.instance_destroy(c, instance_id1)
+        db.instance_destroy(c, instance_id2)
+        db.instance_destroy(c, instance_id3)
+        db.instance_destroy(c, instance_id4)
 
     @staticmethod
     def _parse_db_block_device_mapping(bdm_ref):

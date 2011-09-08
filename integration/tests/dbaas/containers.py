@@ -119,7 +119,7 @@ class Setup(unittest.TestCase):
         container_info.dbaas_image, container_info.dbaas_image_href = result
 
     def test_find_flavor(self):
-        result = dbaas.find_flavor_and_self_href(flavor_id=1)
+        result = dbaas.find_flavor_and_self_href(flavor_id=2)
         container_info.dbaas_flavor, container_info.dbaas_flavor_href = result
 
     def test_create_container_name(self):
