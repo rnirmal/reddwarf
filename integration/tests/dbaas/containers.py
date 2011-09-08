@@ -495,6 +495,7 @@ class MgmtHostCheck(unittest.TestCase):
               str(myresult.dbcontainers))
         for index, container in enumerate(myresult.dbcontainers, start=1):
             print("%d dbcontainer: %s" % (index, container))
+            self.assertEquals(['id', 'state'], sorted(container.keys()))
 
     def test_storage_on_host(self):
         storage = dbaas.storage.index()
