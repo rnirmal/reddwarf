@@ -109,7 +109,6 @@ class Controller(object):
         context = req.environ['nova.context']
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        # TODO (ed-): detail should NOT have root_enabled.
         dbcontainers = [self._create_dbcontainer_dict(context, server)
                         for server in server_list]
         return { 'dbcontainers' : dbcontainers }
