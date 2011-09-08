@@ -33,6 +33,8 @@ from nose.plugins.skip import SkipTest
 from novaclient.exceptions import ClientException
 from novaclient.exceptions import NotFound
 from nose.tools import assert_true
+from novaclient.exceptions import ClientException
+from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
 from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
