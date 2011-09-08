@@ -133,6 +133,75 @@ file_contents = """mount UUID=FEE52433-F693-448E-B6F6-AA6D0124118B /mnt/foo
         mount --bind /mnt/foo /vz/private/1/mnt/foo
         """
 
+network_info = [
+	[
+		{
+			u'bridge': u'br100',
+			u'multi_host': False,
+			u'bridge_interface': u'eth0',
+			u'vlan': None,
+			u'id': 1,
+			u'injected': True,
+			u'cidr': u'10.0.2.0/24',
+			u'cidr_v6': None
+		},
+		{
+			u'should_create_bridge': False,
+			u'dns': [
+					u'192.168.2.1'
+				],
+			u'label': u'usernet',
+			u'broadcast': u'10.0.2.255',
+			u'ips': [
+					{
+						u'ip': u'10.0.2.16',
+						u'netmask': u'255.255.255.0',
+						u'enabled':
+						u'1'
+					}
+				],
+			u'mac': u'02:16:3e:0c:2c:08',
+			u'rxtx_cap': 0,
+			u'should_create_vlan': False,
+			u'dhcp_server': u'10.0.2.2',
+			u'gateway': u'10.0.2.2'
+		}
+	],
+	[
+		{
+			u'bridge': u'br200',
+			u'multi_host': False,
+			u'bridge_interface': u'eth1',
+			u'vlan': None,
+			u'id': 2,
+			u'injected': True,
+			u'cidr': u'10.0.4.0/24',
+			u'cidr_v6': None
+		},
+		{
+			u'should_create_bridge': False,
+			u'dns': [
+					u'192.168.2.1'
+				],
+			u'label': u'infranet',
+			u'broadcast': u'10.0.4.255',
+			u'ips': [
+					{
+						u'ip': u'10.0.4.16',
+						u'netmask':
+						u'255.255.255.0',
+						u'enabled': u'1'
+					}
+				],
+			u'mac': u'02:16:3e:40:5e:1b',
+			u'rxtx_cap': 0,
+			u'should_create_vlan': False,
+			u'dhcp_server':	u'10.0.2.2',
+			u'gateway': u'10.0.2.2'
+		}
+	]
+]
+
 class FakeFile(object):
     def __init__(self, file_contents):
         self.writelines(file_contents)
@@ -820,3 +889,19 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         fh = openvz_conn.OVZFile('/tmp/foo')
         self.assertRaises(exception.Error, fh.set_permissions, 755)
+
+    def test_gratuitous_arp_all_addresses(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_send_garp')
+        conn._send_garp(test_instance['id'], mox.IgnoreArg(), mox.IgnoreArg())
+        self.mox.ReplayAll()
+        conn._gratuitous_arp_all_addresses(test_instance, network_info)
+
+    def test_send_garp(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('sudo', 'vzctl', 'exec', test_instance['id'],
+                                  'arping', '-c', '5', '-w', '5', '-U', '-I',
+                                  'eth0', '1.1.1.1')
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._send_garp(test_instance['id'], '1.1.1.1', 'eth0')
