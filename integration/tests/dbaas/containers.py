@@ -567,6 +567,8 @@ class DeleteContainer(unittest.TestCase):
                       " for the %d time: %s" %
                       (str(container_info.id), attempts, str(ex)))
 
+    #TODO: make sure that the actual instance, volume, guest status, and DNS
+    #      entries are deleted.
 
 @test(depends_on_classes=[DeleteContainer], groups=[GROUP, GROUP_STOP])
 class ContainerHostCheck2(ContainerHostCheck):
