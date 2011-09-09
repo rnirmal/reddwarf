@@ -19,7 +19,7 @@
 --san_privatekey=/home/vagrant/.ssh/id_rsa
 
 # Reddwarf Compute Manager
---compute_manager=reddwarf.compute.manager.ComputeManager
+--compute_manager=reddwarf.compute.manager.ReddwarfComputeManager
 
 # Nova Compute
 --connection_type=openvz

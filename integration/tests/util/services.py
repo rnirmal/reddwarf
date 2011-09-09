@@ -106,6 +106,16 @@ class Service(object):
             has_two_lines = True
         return pid
 
+    def kill_proc(self):
+        """Kills the process, wherever it may be."""
+        pid = self.find_proc_id()
+        if pid:
+            start_proc("sudo kill -9 " + str(pid), shell=True)
+            time.sleep(1)
+        if self.is_service_alive():
+            raise RuntimeError('Cannot kill process, PID=' +
+                               str(self.proc.pid))
+
     def is_service_alive(self):
         """Searches for the process to see if its alive.
 
@@ -136,18 +146,25 @@ class Service(object):
         """
         return self.proc or self.do_not_manage_proc
 
-    def start(self, time_out=3):
+    def restart(self, extra_args):
+        if self.do_not_manage_proc:
+            raise RuntimeError("Can't restart proc as the tests don't own it.")
+        self.stop()
+        self.start(extra_args=extra_args)
+    
+    def start(self, time_out=3, extra_args=None):
         """Starts the service if necessary."""
+        extra_args = extra_args or []
         if self.is_running:
             raise RuntimeError("Process is already running.")
         if self.is_service_alive():
             self.do_not_manage_proc = True
             return
-        self.proc = start_proc(self.cmd, shell=False)
+        self.proc = start_proc(self.cmd + extra_args, shell=False)
         if not self._wait_for_start(time_out=time_out):
             self.stop()
             raise RuntimeError("Issued the command successfully but the "
-                               "service (" + str(self.cmd) +
+                               "service (" + str(self.cmd + extra_args) +
                                ") never seemed to start.")
         _running_services.append(self)
 
@@ -161,13 +178,7 @@ class Service(object):
         self.proc.kill()
         self.proc.wait()
         self.proc.stdin.close()
-        pid = self.find_proc_id()
-        if pid:
-            start_proc("sudo kill -9 " + str(pid), shell=True)
-            time.sleep(1)
-        if self.is_service_alive():
-            raise RuntimeError('Cannot kill process, PID=' +
-                               str(self.proc.pid))
+        self.kill_proc()
         self.proc = None
         global _running_services
         _running_services = [svc for svc in _running_services if svc != self]

@@ -242,49 +242,6 @@ class ComputeManager(manager.SchedulerDependentManager):
         """
         return self.driver.refresh_security_group_members(security_group_id)
 
-    def get_volume_info_for_instance_id(self, context, instance_id):
-        """Returns the volume for this instance with its mount_point, or None.
-
-        We're using this to pass volumes.
-
-        """
-        metadata = self.db.instance_metadata_get(context, instance_id)
-        try:
-            volume_id = int(metadata['volume_id'])
-            return self.db.volume_get(context, volume_id), \
-                   metadata.get('mount_point', "/mnt/" + str(volume_id))
-        except ValueError:
-            raise RuntimeError("The volume_id was in an invalid format.")
-        except (KeyError, exception.VolumeNotFound):
-            return None, None
-
-    def wait_until_volume_is_ready(self, context, volume):
-        """Sleeps until the given volume has finished provisioning."""
-        def get_status(volume_id):
-            volume = self.db.volume_get(context, volume_id)
-            status = volume['status']
-            if status == 'creating':
-                return
-            elif status == 'available':
-                raise LoopingCallDone(retvalue=volume)
-            elif status != 'available':
-                LOG.error("STATUS: %s" % status)
-                raise exception.VolumeProvisioningError(volume_id=volume['id'])
-        return LoopingCall(get_status, volume['id']).start(3).wait()
-
-    def ensure_volume_is_ready(self, context, instance_id):
-        volume, mount_point = self.get_volume_info_for_instance_id(context,
-                                                                   instance_id)
-        if not volume:
-            return
-
-        self.wait_until_volume_is_ready(context, volume)
-        #TODO(tim.simpson): This may not be able to be the self.host name.
-        # Needs to be something that can identify the compute node.
-        self.volume_client.initialize(context, volume['id'], self.host)
-        self.db.volume_attached(context, volume['id'], instance_id, mount_point)
-        self.volume_api.update(context, volume['id'], {})
-
     @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     def refresh_provider_fw_rules(self, context, **_kwargs):
         """This call passes straight through to the virtualization driver."""
@@ -423,15 +380,6 @@ class ComputeManager(manager.SchedulerDependentManager):
                            "%(allowed_size_bytes)d")
                            % locals())
                 raise exception.ImageTooLarge()
-
-        try:
-            self.ensure_volume_is_ready(context, instance_id)
-        except exception.VolumeProvisioningError as ex:
-            LOG.error(ex)
-            msg = ("Volume for Instance '%(instance_id)s' failed to create. "
-                    "Details: %(ex)s")
-            self._update_state(context, instance_id, power_state.FAILED)
-            return 
 
         context = context.elevated()
         instance = self.db.instance_get(context, instance_id)
