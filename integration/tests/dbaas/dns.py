@@ -8,10 +8,10 @@ from reddwarfclient import Dbaas
 from nova import flags
 from nova import utils
 import rsdns
-from tests.dbaas.containers import container_info
-from tests.dbaas.containers import GROUP_START as CONTAINER_START
-from tests.dbaas.containers import GROUP_TEST
-from tests.dbaas.containers import GROUP_STOP as CONTAINER_STOP
+from tests.dbaas.instances import instance_info
+from tests.dbaas.instances import GROUP_START as INSTANCE_START
+from tests.dbaas.instances import GROUP_TEST
+from tests.dbaas.instances import GROUP_STOP as INSTANCE_STOP
 
 dns_driver = None
 
@@ -29,18 +29,18 @@ class Setup(unittest.TestCase):
 
 
 @test(depends_on_classes=[Setup],
-      depends_on_groups=[CONTAINER_START],
+      depends_on_groups=[INSTANCE_START],
       groups=[GROUP, GROUP_TEST])
-class WhenContainerIsCreated(unittest.TestCase):
+class WhenInstanceIsCreated(unittest.TestCase):
     """Make sure the DNS name was provisioned.
 
     This class actually calls the DNS driver to confirm the entry that should
-    exist for the given container does exist.
+    exist for the given instance does exist.
 
     """
 
     def test_dns_entry_should_exist(self):
-        entry = container_info.expected_dns_entry()
+        entry = instance_info.expected_dns_entry()
         if entry:
             entries = dns_driver.get_entries_by_name(entry.name)
             if len(entries) < 1:
@@ -50,11 +50,11 @@ class WhenContainerIsCreated(unittest.TestCase):
             self.assertTrue(len(entries) > 0)
 
 
-@test(depends_on_classes=[Setup, WhenContainerIsCreated],
-      depends_on_groups=[CONTAINER_STOP],
+@test(depends_on_classes=[Setup, WhenInstanceIsCreated],
+      depends_on_groups=[INSTANCE_STOP],
       groups=[GROUP])
-class AfterContainerIsDestroyed(unittest.TestCase):
-    """Make sure the DNS name is removed along with a container.
+class AfterInstanceIsDestroyed(unittest.TestCase):
+    """Make sure the DNS name is removed along with an instance.
 
     Because the compute manager calls the DNS manager with RPC cast, it can
     take awhile.  So we wait for 30 seconds for it to disappear.
@@ -62,7 +62,7 @@ class AfterContainerIsDestroyed(unittest.TestCase):
     """
 
     def test_dns_entry_exist_should_be_removed_shortly_thereafter(self):
-        entry = container_info.expected_dns_entry()
+        entry = instance_info.expected_dns_entry()
 
         if not entry:
             return
@@ -76,5 +76,5 @@ class AfterContainerIsDestroyed(unittest.TestCase):
         except utils.PollTimeOut:
             # Manually delete the rogue item
             dns_driver.delete_entry(entry.name, entry.type, entry.dns_zone)
-            self.fail("The DNS entry was never deleted when the container "
+            self.fail("The DNS entry was never deleted when the instance "
                       "was destroyed.")

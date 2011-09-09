@@ -17,7 +17,7 @@ from novaclient import base
 
 class Account(base.Resource):
     """
-    Account is an opaque container used to hold account information.
+    Account is an opaque instance used to hold account information.
     """
     def __repr__(self):
         return "<Account: %s>" % self.name

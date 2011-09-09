@@ -1,5 +1,4 @@
 from novaclient import base
-from reddwarfclient.dbcontainers import DbContainer
 
 
 class Database(base.Resource):
@@ -17,17 +16,17 @@ class Databases(base.ManagerWithFind):
     """
     resource_class = Database
 
-    def create(self, dbcontainer_id, databases):
+    def create(self, instance_id, databases):
         """
-        Create new databases within the specified container
+        Create new databases within the specified instance
         """
         body = {"databases": databases}
-        url = "/dbcontainers/%s/databases" % dbcontainer_id
+        url = "/instances/%s/databases" % instance_id
         resp, body = self.api.client.post(url, body=body)
 
-    def delete(self, dbcontainer_id, dbname):
+    def delete(self, instance_id, dbname):
         """Delete an existing database in the specified instance"""
-        url = "/dbcontainers/%s/databases/%s" % (dbcontainer_id, dbname)
+        url = "/instances/%s/databases/%s" % (instance_id, dbname)
         self._delete(url)
 
     def _list(self, url, response_key):
@@ -37,25 +36,25 @@ class Databases(base.ManagerWithFind):
                             " did not return a body.")
         return [self.resource_class(self, res) for res in body[response_key]]
 
-    def list(self, dbcontainer):
+    def list(self, instance):
         """
-        Get a list of all Databases from the dbcontainer.
+        Get a list of all Databases from the instance.
 
         :rtype: list of :class:`Database`.
         """
-        return self._list("/dbcontainers/%s/databases" % base.getid(dbcontainer),
+        return self._list("/instances/%s/databases" % base.getid(instance),
                           "databases")
 
-#    def get(self, dbcontainer, database):
+#    def get(self, instance, database):
 #        """
-#        Get a specific containers.
+#        Get a specific instances.
 #
 #        :param flavor: The ID of the :class:`Database` to get.
 #        :rtype: :class:`Database`
 #        """
-#        assert isinstance(dbcontainer, DbContainer)
+#        assert isinstance(instance, Instance)
 #        assert isinstance(database, (Database, int))
-#        dbcontainer_id = base.getid(dbcontainer)
+#        instance_id = base.getid(instance)
 #        db_id = base.getid(database)
-#        url = "/dbcontainers/%s/databases/%s" % (dbcontainer_id, db_id)
+#        url = "/instances/%s/databases/%s" % (instance_id, db_id)
 #        return self._get(url, "database")

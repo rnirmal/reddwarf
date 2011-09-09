@@ -106,10 +106,10 @@
 
   <complexType name="Host">
     <sequence>
-      <element name="dbcontainers" type="dbaas:DatabaseContainer" minOccurs="0" maxOccurs="unbounded">
+      <element name="instances" type="dbaas:DatabaseInstance" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>A database containers that are on the Host.</p>
+            <p>A database instances that are on the Host.</p>
           </xsd:documentation>
         </annotation>
       </element>
@@ -149,7 +149,7 @@
       <element name="device" type="dbaas:Device" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>A database containers that are on the Host.</p>
+            <p>A database instances that are on the Host.</p>
           </xsd:documentation>
         </annotation>
       </element>
@@ -206,7 +206,7 @@
       <element name="hosts" type="dbaas:Hosts" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>List of hosts that the Account has containers running on.</p>
+            <p>List of hosts that the Account has instances running on.</p>
           </xsd:documentation>
         </annotation>
       </element>

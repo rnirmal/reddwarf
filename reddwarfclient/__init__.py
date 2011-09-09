@@ -28,7 +28,7 @@ from novaclient.v1_1.client import Client
 
 from reddwarfclient.accounts import Accounts
 from reddwarfclient.databases import Databases
-from reddwarfclient.dbcontainers import DbContainers
+from reddwarfclient.instances import Instances
 from reddwarfclient.hosts import Hosts
 from reddwarfclient.management import Management
 from reddwarfclient.root import Root
@@ -96,7 +96,7 @@ class Dbaas(Client):
 
     Then call methods on its managers::
 
-        >>> red.dbcontainers.list()
+        >>> red.instances.list()
         ...
         >>> red.flavors.list()
         ...
@@ -110,7 +110,7 @@ class Dbaas(Client):
         self.client = ReddwarfHTTPClient(username, apikey, tenant, auth_url,
                                          "reddwarf")
         self.databases = Databases(self)
-        self.dbcontainers = DbContainers(self)
+        self.instances = Instances(self)
         self.users = Users(self)
         self.root = Root(self)
         self.hosts = Hosts(self)

@@ -71,8 +71,8 @@ def setUp():
 
 
 @test(groups=[GROUP], depends_on=[setUp])
-def create_container():
-    """Create the container. Expect the scheduler to fail the request."""
+def create_instance():
+    """Create the instance. Expect the scheduler to fail the request."""
     #TODO(tim.simpson): Try to get this to work using a direct instance
     #                   creation call.
     #    instance = instance_info.client.servers.create(
@@ -82,7 +82,7 @@ def create_container():
     #    )
     now = datetime.utcnow()
     global initial_instance
-    initial_instance = client.dbcontainers.create(
+    initial_instance = client.instances.create(
         "sch_test_" + str(now),
         flavor_href,
         {"size":1},
@@ -96,7 +96,7 @@ def confirm_instance_is_dead(self):
     assert_equal("FAILED", instance.status)
 
 
-@test(groups=[GROUP], depends_on=[create_container])
+@test(groups=[GROUP], depends_on=[create_instance])
 def find_evidence_scheduler_failed_in_logs():
     """Eavesdrop on the logs until we see the scheduler failed, or time-out."""
     evidence = "Error scheduling " + initial_instance.name
@@ -117,19 +117,19 @@ class AfterSchedulingHasFailed(unittest.TestCase):
         assert_true(original_notification_count < current_count,
                     "Additional ops notifications should have been added.")
 
-    def test_confirm_container_is_in_error_state(self):
-        """Retrieve the container and make sure its status is 'ERROR.'"""
-        container = client.dbcontainers.get(initial_instance.id)
-        assert_equal("ERROR", container.status)
+    def test_confirm_instance_is_in_error_state(self):
+        """Retrieve the instance and make sure its status is 'ERROR.'"""
+        instance = client.instances.get(initial_instance.id)
+        assert_equal("ERROR", instance.status)
 
 
 @test(groups=[GROUP + ".end"], depends_on_groups=[GROUP])
 @time_out(30)
-def destroy_container():
-    """Delete the container we tried to create for this test."""
-    client.dbcontainers.delete(initial_instance)
+def destroy_instance():
+    """Delete the instance we tried to create for this test."""
+    client.instances.delete(initial_instance)
     id = initial_instance.id
-    lc = LoopingCall(f=lambda : client.dbcontainers.get(id)).start(2, True)
+    lc = LoopingCall(f=lambda : client.instances.get(id)).start(2, True)
     try:
         lc.wait()
         self.fail("Expected exception.NotFound.")

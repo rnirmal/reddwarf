@@ -53,13 +53,13 @@ class Controller(object):
     #TODO(cp16net): this would be nice to use if zones are working for us
     #@check_host
     def show(self, req, id):
-        """List all the dbcontainers on the host given"""
+        """List all the instances on the host given"""
         try:
             LOG.info("List the info on nova-compute '%s'" % id)
             LOG.debug("%s - %s", req.environ, req.body)
             ctxt = req.environ['nova.context']
-            containers = dbapi.show_containers_on_host(ctxt, id)
-            dbcontainers = [{'id':c.id, 'state': c.state_description} for c in containers]
+            instances = dbapi.show_instances_on_host(ctxt, id)
+            instances = [{'id':c.id, 'state': c.state_description} for c in instances]
             total_ram = FLAGS.max_instance_memory_mb
             used_ram = dbapi.instance_get_memory_sum_by_host(ctxt, id)
             percent = int(round((used_ram / total_ram) * 100))
@@ -67,7 +67,7 @@ class Controller(object):
                              'percentUsed': percent,
                              'totalRAM': total_ram,
                              'usedRAM': int(used_ram),
-                             'dbcontainers': dbcontainers}}
+                             'instances': instances}}
         except exception.HostNotFound:
             return faults.Fault(exc.HTTPNotFound())
 
@@ -81,7 +81,7 @@ def create_resource(version='1.0'):
         "attributes": {
             "host": ["name", "instanceCount", "percentUsed",
                      "totalRAM", "usedRAM"],
-            "dbcontainer": ["id"],
+            "instance": ["id"],
         },
     }
 

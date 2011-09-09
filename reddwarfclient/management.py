@@ -14,13 +14,13 @@
 #    under the License.
 
 from novaclient import base
-from reddwarfclient.dbcontainers import DbContainer
+from reddwarfclient.instances import Instance
 
 class Management(base.ManagerWithFind):
     """
     Manage :class:`Instances` resources.
     """
-    resource_class = DbContainer
+    resource_class = Instance
 
     def _list(self, url, response_key):
         resp, body = self.api.client.get(url)
@@ -28,12 +28,12 @@ class Management(base.ManagerWithFind):
             raise Exception("Call to " + url + " did not return a body.")
         return self.resource_class(self, body[response_key])
 
-    def show(self, dbcontainer):
+    def show(self, instance):
         """
-        Get details of one dbcontainer.
+        Get details of one instance.
 
-        :rtype: :class:`DbContainer`.
+        :rtype: :class:`Instance`.
         """
         
-        return self._list("/mgmt/dbcontainers/%s" % base.getid(dbcontainer),
-            'dbcontainer')
+        return self._list("/mgmt/instances/%s" % base.getid(instance),
+            'instance')

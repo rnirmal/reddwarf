@@ -96,7 +96,7 @@ class XMLDeserializer(wsgi.XMLDeserializer):
         return ""
 
 
-class DBContainerXMLDeserializer(XMLDeserializer):
+class InstanceXMLDeserializer(XMLDeserializer):
     """
     Deserializer to handle xml-formatted requests
     """
@@ -104,25 +104,25 @@ class DBContainerXMLDeserializer(XMLDeserializer):
     def create(self, string):
         """Deserialize an xml formatted server create request"""
         dom = minidom.parseString(string)
-        dbcontainer = self._extract_dbcontainer(dom)
-        return {'body': {'dbcontainer': dbcontainer}}
+        instance = self._extract_instance(dom)
+        return {'body': {'instance': instance}}
 
-    def _extract_dbcontainer(self, node):
-        """Marshal the dbcontainer attributes of a parsed request"""
-        dbcontainer = {}
-        dbcontainer_node = self._find_first_child_named(node, "dbcontainer")
-        if not dbcontainer_node:
-            raise exception.ApiError("Required element/key 'dbcontainer' " \
+    def _extract_instance(self, node):
+        """Marshal the instance attributes of a parsed request"""
+        instance = {}
+        instance_node = self._find_first_child_named(node, "instance")
+        if not instance_node:
+            raise exception.ApiError("Required element/key 'instance' " \
                                      "was not specified")
         for attr in ["name", "port", "flavorRef"]:
-            dbcontainer[attr] = dbcontainer_node.getAttribute(attr)
-        #dbtype = self._extract_dbtype(dbcontainer_node)
-        databases = self._extract_databases(dbcontainer_node)
+            instance[attr] = instance_node.getAttribute(attr)
+        #dbtype = self._extract_dbtype(instance_node)
+        databases = self._extract_databases(instance_node)
         if databases is not None:
-            dbcontainer["databases"] = databases
-        #dbcontainer["dbtype"] = dbtype
-        dbcontainer["volume"] = self._extract_volume(dbcontainer_node)
-        return dbcontainer
+            instance["databases"] = databases
+        #instance["dbtype"] = dbtype
+        instance["volume"] = self._extract_volume(instance_node)
+        return instance
 
     def _extract_dbtype(self, node):
         """Marshal the dbtype attributes of a parsed request"""

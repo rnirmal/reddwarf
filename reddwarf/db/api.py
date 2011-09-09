@@ -21,7 +21,6 @@ import datetime
 from nova import exception
 from nova import flags
 from nova import log as logging
-from nova import volume
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 from nova.db.sqlalchemy.api import require_admin_context
@@ -117,9 +116,9 @@ def guest_status_delete(instance_id):
                         'state_description': power_state.name(state)})
 
 @require_admin_context
-def show_containers_on_host(context, id):
-    """Show all the containers that are on the given host id."""
-    LOG.debug("show_containers_on_host id = %s" % str(id))
+def show_instances_on_host(context, id):
+    """Show all the instances that are on the given host id."""
+    LOG.debug("show_instances_on_host id = %s" % str(id))
     session = get_session()
     with session.begin():
         count = session.query(Service).\
@@ -145,10 +144,10 @@ def instance_get_memory_sum_by_host(context, hostname):
     return result
 
 @require_admin_context
-def show_containers_by_account(context, id):
-    """Show all the containers that are on the given account id."""
-    LOG.debug("show_containers_by_account id = %s" % str(id))
-    # This is the management API, so we want all the containers,
+def show_instances_by_account(context, id):
+    """Show all the instances that are on the given account id."""
+    LOG.debug("show_instances_by_account id = %s" % str(id))
+    # This is the management API, so we want all the instances,
     # regardless of status.
     session = get_session()
     with session.begin():

@@ -61,7 +61,7 @@ class ReddwarfInstanceMetaData(object):
     def __init__(self, db, context, instance_id):
         """Populates volume, volume_mount_point and databases properties."""
         metadata = db.instance_metadata_get(context, instance_id)
-        # There shouldn't be exceptions coming from below mean the dbcontainers
+        # There shouldn't be exceptions coming from below mean the instances
         # REST API is misbehaving and sending invalid data.
         # Grabs the volume for this instance with its mount_point, or None.
         self.volume_id = int(metadata['volume_id'])

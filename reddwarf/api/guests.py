@@ -39,7 +39,7 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def upgrade(self, req, id):
-        """Upgrade the guest for a specific container"""
+        """Upgrade the guest for a specific instance"""
         LOG.info("Upgrade of nova-guest issued for instance : %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
@@ -49,7 +49,7 @@ class Controller(object):
         return exc.HTTPAccepted()
 
     def upgradeall(self, req):
-        """Upgrade the guests for all the containers"""
+        """Upgrade the guests for all the instances"""
         LOG.info("Upgrade all nova-guest issued")
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']

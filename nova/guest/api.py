@@ -42,7 +42,7 @@ class API(base.Base):
 
     def create_user(self, context, id, users):
         """Make an asynchronous call to create a new database user"""
-        LOG.debug("Creating Users for DBContainer %s", id)
+        LOG.debug("Creating Users for Instance %s", id)
         rpc.cast(context, self._get_routing_key(id),
                  {"method": "create_user",
                   "args": {"users": users}
@@ -50,13 +50,13 @@ class API(base.Base):
 
     def list_users(self, context, id):
         """Make an asynchronous call to list database users"""
-        LOG.debug("Listing Users for DBContainer %s", id)
+        LOG.debug("Listing Users for Instance %s", id)
         return rpc.call(context, self._get_routing_key(id),
                  {"method": "list_users"})
 
     def delete_user(self, context, id, user):
         """Make an asynchronous call to delete an existing database user"""
-        LOG.debug("Deleting user %s for DBContainer %s",
+        LOG.debug("Deleting user %s for Instance %s",
                   user, id)
         rpc.cast(context, self._get_routing_key(id),
                  {"method": "delete_user",
@@ -66,7 +66,7 @@ class API(base.Base):
     def create_database(self, context, id, databases):
         """Make an asynchronous call to create a new database
            within the specified container"""
-        LOG.debug("Creating databases for DBContainer %s", id)
+        LOG.debug("Creating databases for Instance %s", id)
         rpc.cast(context, self._get_routing_key(id),
                  {"method": "create_database",
                   "args": {"databases": databases}
@@ -74,14 +74,14 @@ class API(base.Base):
         
     def list_databases(self, context, id):
         """Make an asynchronous call to list database users"""
-        LOG.debug("Listing Users for DBContainer %s", id)
+        LOG.debug("Listing Users for Instance %s", id)
         return rpc.call(context, self._get_routing_key(id),
                  {"method": "list_databases"})
 
     def delete_database(self, context, id, database):
         """Make an asynchronous call to delete an existing database
            within the specified container"""
-        LOG.debug("Deleting database %s for DBContainer %s",
+        LOG.debug("Deleting database %s for Instance %s",
                   database, id)
         rpc.cast(context, self._get_routing_key(id),
                  {"method": "delete_database",
@@ -91,21 +91,21 @@ class API(base.Base):
     def enable_root(self, context, id):
         """Make a synchronous call to enable the root user for
            access from anywhere"""
-        LOG.debug("Enable root user for DBContainer %s", id)
+        LOG.debug("Enable root user for Instance %s", id)
         return rpc.call(context, self._get_routing_key(id),
                  {"method": "enable_root"})
 
     def disable_root(self, context, id):
         """Make a synchronous call to disable the root user for
            access from anywhere"""
-        LOG.debug("Disable root user for DBContainer %s", id)
+        LOG.debug("Disable root user for Instance %s", id)
         return rpc.call(context, self._get_routing_key(id),
                  {"method": "disable_root"})
 
     def is_root_enabled(self, context, id):
         """Make a synchronous call to check if root access is
            available for the container"""
-        LOG.debug("Check root access for DBContainer %s", id)
+        LOG.debug("Check root access for Instance %s", id)
         return rpc.call(context, self._get_routing_key(id),
                  {"method": "is_root_enabled"})
 

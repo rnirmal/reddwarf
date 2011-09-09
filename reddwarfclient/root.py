@@ -22,22 +22,22 @@ class Root(base.ManagerWithFind):
     Manager class for Root resource
     """
     resource_class = users.User
-    url = "/dbcontainers/%s/root"
+    url = "/instances/%s/root"
 
-    def create(self, dbcontainer_id):
+    def create(self, instance_id):
         """
         Enable the root user and return the root password for the
-        sepcified db container
+        sepcified db instance
         """
-        resp, body = self.api.client.post(self.url % dbcontainer_id)
+        resp, body = self.api.client.post(self.url % instance_id)
         return body['user']['name'], body['user']['password']
 
-    def delete(self, dbcontainer_id):
-        """Disable the root user for the specified db container"""
-        self._delete(self.url % dbcontainer_id)
+    def delete(self, instance_id):
+        """Disable the root user for the specified db instance"""
+        self._delete(self.url % instance_id)
 
-    def is_root_enabled(self, dbcontainer_id):
-        """ Return True if root is enabled for the container;
+    def is_root_enabled(self, instance_id):
+        """ Return True if root is enabled for the instance;
             False otherwise""" 
-        resp, body = self.api.client.get(self.url % dbcontainer_id)
+        resp, body = self.api.client.get(self.url % instance_id)
         return body['rootEnabled']

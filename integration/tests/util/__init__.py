@@ -58,11 +58,11 @@ def get_dns_entry_factory():
 entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
 
 
-def check_database(container_id, dbname):
-    """Checks if the name appears in a container's list of databases."""
+def check_database(instance_id, dbname):
+    """Checks if the name appears in an instance's list of databases."""
     default_db = re.compile("[\w\n]*%s[\w\n]*" % dbname)
     dblist, err = process("sudo vzctl exec %s \"mysql -e 'show databases';\""
-                            % container_id)
+                            % instance_id)
     if err:
         raise RuntimeError(err)
     if default_db.match(dblist):
@@ -102,10 +102,10 @@ def create_dbaas_client(user):
     return dbaas
 
 
-def create_dns_entry(user_name, container_id):
-    """Given the container_Id and it's owner returns the DNS entry."""
+def create_dns_entry(user_name, instance_id):
+    """Given the instance_Id and it's owner returns the DNS entry."""
     instance = {'user_id':user_name,
-                    'id':str(container_id)}
+                    'id':str(instance_id)}
     entry_factory = get_dns_entry_factory()
     entry = entry_factory.create_entry(instance)
     # There is a lot of test code which calls this and then, if the entry
@@ -174,9 +174,9 @@ def string_in_list(str, substr_list):
     return any([str.find(x) >=0 for x in substr_list])
 
 
-def get_vz_ip_for_device(container_id, device):
-    """Get the IP of the device within openvz for the specified container"""
-    ip, err = process("""sudo vzctl exec %(container_id)s ifconfig %(device)s"""
+def get_vz_ip_for_device(instance_id, device):
+    """Get the IP of the device within openvz for the specified instance"""
+    ip, err = process("""sudo vzctl exec %(instance_id)s ifconfig %(device)s"""
                       """ | awk '/inet addr/{gsub(/addr:/,"");print $2}'"""
                       % locals())
     if err:

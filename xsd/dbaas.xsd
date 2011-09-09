@@ -50,10 +50,10 @@
       </xsd:appinfo>
     </annotation>
   </element>
-  <element name="container" type="dbaas:DatabaseContainer">
+  <element name="instance" type="dbaas:DatabaseInstance">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-        <p>A Database Container.</p>
+        <p>A Database Instance.</p>
       </xsd:documentation>
       <xsd:appinfo>
         <xsdxt:samples>
@@ -67,10 +67,10 @@
       </xsd:appinfo>
     </annotation>
   </element>
-  <element name="containers" type="dbaas:DatabaseContainers">
+  <element name="instances" type="dbaas:DatabaseInstances">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-        <p>Database Containers.</p>
+        <p>Database Instances.</p>
       </xsd:documentation>
       <xsd:appinfo>
         <xsdxt:samples>
@@ -87,7 +87,7 @@
   <element name="flavor" type="dbaas:Flavor">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Settings such as memory used to create a database container.</p>
+          <p>Settings such as memory used to create a database instance.</p>
         </xsd:documentation>
         <xsd:appinfo>
           <xsdxt:samples>
@@ -206,19 +206,19 @@
     </attribute>
   </complexType>
 
-  <complexType name="DatabaseContainers">
+  <complexType name="DatabaseInstances">
     <sequence>
-      <element name="DatabaseContainers" type="dbaas:DatabaseContainer" minOccurs="0" maxOccurs="unbounded">
+      <element name="DatabaseInstances" type="dbaas:DatabaseInstance" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>A list of database containers.</p>
+            <p>A list of database instances.</p>
           </xsd:documentation>
         </annotation>
       </element>
     </sequence>
   </complexType>
 
-  <complexType name="DatabaseContainer">
+  <complexType name="DatabaseInstance">
    <sequence>
       <element name="databases" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
          <annotation>
@@ -231,49 +231,49 @@
    <attribute name="id" type="xsd:ID" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>A unique database container id.</p>
+          <p>A unique database instance id.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
    <attribute name="name" type="xsd:string" use="required">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>The name for the container.</p>
+         <p>The name for the instance.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
    <attribute name="flavorRef" type="xsd:string" use="required">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>The flavor reference of the container.</p>
+         <p>The flavor reference of the instance.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
    <attribute name="status" type="dbaas:StatusType" use="required">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>The status of the container.</p>
+         <p>The status of the instance.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
    <attribute name="hostname" type="xsd:string" use="optional">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>The hostname attached to the container.</p>
+         <p>The hostname attached to the instance.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
    <attribute name="rootEnabled" type="xsd:boolean" use="optional">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>Whether or not root is enabled for the container.</p>
+         <p>Whether or not root is enabled for the instance.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
    <element name="volume" type="dbaas:Volume">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>A volume attached to the container.</p>
+         <p>A volume attached to the instance.</p>
        </xsd:documentation>
      </annotation>
    </element>
@@ -319,7 +319,7 @@
    <attribute name="name" type="xsd:string" use="required">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>The name for the container.</p>
+         <p>The name for the instance.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
@@ -364,7 +364,7 @@
     <attribute name="name" type="xsd:string" use="required">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>The name for the container.</p>
+          <p>The name for the instance.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
@@ -381,7 +381,7 @@
     <attribute name="rootEnabled" type="xsd:boolean" use="required">
        <annotation>
          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-           <p>Whether or not root is enabled for the given container.</p>
+           <p>Whether or not root is enabled for the given instance.</p>
          </xsd:documentation>
        </annotation>
      </attribute>
@@ -401,7 +401,7 @@
   <simpleType name="StatusType">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-        <p>The container status.</p>
+        <p>The instance status.</p>
       </xsd:documentation>
     </annotation>
     <restriction base="xsd:string">

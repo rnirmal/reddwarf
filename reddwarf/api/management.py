@@ -42,7 +42,7 @@ def create_resource(version='1.0'):
     metadata = {
         'application/xml': {
             'attributes': {
-                'dbcontainer': ['account_id', 'flavor', 'host', 'id', 'name'],
+                'instance': ['account_id', 'flavor', 'host', 'id', 'name'],
                 'link': ['rel', 'type', 'href'],
                 'database': ['name', 'collate', 'character_set'],
                 'user': ['name'],
@@ -66,7 +66,7 @@ def create_resource(version='1.0'):
 
 
 class Controller(object):
-    """ The DBContainer API controller for the Management API """
+    """ The Instance API controller for the Management API """
 
     def __init__(self):
         self.compute_api = compute.API()
@@ -78,18 +78,18 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def show(self, req, id):
-        """ Returns dbcontainer details by container id """
+        """ Returns instance details by instance id """
         LOG.info("Get Instance Detail by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
-        # Let's make sure the container exists first.
+        # Let's make sure the instance exists first.
         # If it doesn't, we'll get an exception.
         try:
             status = dbapi.guest_status_get(id)
         except InstanceNotFound:
             #raise InstanceNotFound(instance_id=id)
-            raise exc.HTTPNotFound("No container with id %s." % id)
+            raise exc.HTTPNotFound("No instance with id %s." % id)
         if status.state != power_state.RUNNING:
             raise InstanceNotRunning(instance_id=id)
 
@@ -124,7 +124,7 @@ class Controller(object):
         addresses = server['server']['addresses']
 
         resp = {
-            'dbcontainer': {
+            'instance': {
                 'id': id,
                 'name': instance['display_name'],
                 'host': instance['host'],
@@ -138,5 +138,5 @@ class Controller(object):
         }
         dns_entry = self.dns_entry_factory.create_entry(instance)
         if dns_entry:
-            resp["dbcontainer"]["hostname"] = dns_entry.name
+            resp["instance"]["hostname"] = dns_entry.name
         return resp
