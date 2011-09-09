@@ -71,7 +71,7 @@ class ConfirmDomainIsValid(unittest.TestCase):
         self.fail("""Could not find default dns zone.
                   This happens when they clear the staging DNS service of data.
                   To fix it, manually run the tests as follows:
-                  $ ADD_DOMAINS=True python run_tests.py
+                  $ ADD_DOMAINS=True python int_tests.py
                   and if all goes well the tests will create a new domain
                   record.""")
 
