@@ -184,7 +184,7 @@ Example Calls/Utilties for Reddwarf/Nova
 
     [vagrant:/src/bin]$ ./reddwarf-cli auth login admin admin
 
-#. Create a instance::
+#. Create an instance::
 
     [vagrant:/src/bin]$ ./reddwarf-cli create instance instance 1 flavors/1
     [vagrant:/src/bin]$ ./reddwarf-cli list instances

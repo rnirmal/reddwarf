@@ -53,7 +53,7 @@ flags.DEFINE_string('reddwarf_volume_description',
                     'Default description populated for volumes')
 flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128,
                     'Maximum accepted volume size (in gigabytes) when creating'
-                    ' a instance.')
+                    ' an instance.')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -132,7 +132,7 @@ class Controller(object):
         return {'instance': instance}
 
     def delete(self, req, id):
-        """ Destroys a instance """
+        """ Destroys an instance """
         LOG.info("Delete Instance by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
@@ -238,7 +238,7 @@ class Controller(object):
         return {'size': volume_dict['size']}
 
     def _create_instance_dict(self, context, server, guest_states=None):
-        """Given a server (obtained from the servers API) returns a instance.
+        """Given a server (obtained from the servers API) returns an instance.
 
         We copy all elements from the server and then delete some, erring on
         the side of copying too many instead of too few.
@@ -289,7 +289,7 @@ class Controller(object):
 
     def _create_detailed_instance_dict(self, context, server,
                                           guest_states=None):
-        """Creates a instance dictionary to be used in a response
+        """Creates an instance dictionary to be used in a response
         """
         instance = self._create_instance_dict(context, server,
                                                     guest_states)

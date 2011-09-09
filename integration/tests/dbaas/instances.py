@@ -98,7 +98,7 @@ class InstanceTestInfo(object):
                                 instance_info.id)
 
 
-# The two variables are used below by tests which depend on a instance
+# The two variables are used below by tests which depend on an instance
 # existing.
 instance_info = InstanceTestInfo()
 dbaas = None  # Rich client used throughout this test.
@@ -182,8 +182,8 @@ class InstanceHostCheck(unittest.TestCase):
                         not in [dbc.name for dbc
                                 in host_index_result.instances])
         instance_info.host_info = host_index_result
-        for instance in list(enumerate(host_index_result.instances, start=1)):
-            print("%r instance: %r" % (instance[0], instance[1]))
+        for index, instance in enumerate(host_index_result.instances, start=1):
+            print("%r instance: %r" % (index, instance))
 
     @expect_exception(NotFound)
     def test_host_not_found(self):

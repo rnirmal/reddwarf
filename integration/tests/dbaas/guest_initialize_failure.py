@@ -143,7 +143,7 @@ class InstanceTest(object):
         utils.poll_until(volume_not_found, sleep_time=1, time_out=time_out)
 
     def _create_instance(self):
-        """Make call to create a instance."""
+        """Make call to create an instance."""
         self.initial_result = self.dbaas.instances.create(
             name=self.name,
             flavor_id=self.dbaas_flavor_href,

@@ -18,7 +18,7 @@ from novaclient import base
 
 class Instance(base.Resource):
     """
-    A Instance is an opaque instance used to store Database instances.
+    An Instance is an opaque instance used to store Database instances.
     """
     def __repr__(self):
         return "<Instance: %s>" % self.name

@@ -9,9 +9,9 @@ from nova import flags
 from nova import utils
 import rsdns
 from tests.dbaas.instances import instance_info
-from tests.dbaas.instances import GROUP_START as CONTAINER_START
+from tests.dbaas.instances import GROUP_START as INSTANCE_START
 from tests.dbaas.instances import GROUP_TEST
-from tests.dbaas.instances import GROUP_STOP as CONTAINER_STOP
+from tests.dbaas.instances import GROUP_STOP as INSTANCE_STOP
 
 dns_driver = None
 
@@ -29,7 +29,7 @@ class Setup(unittest.TestCase):
 
 
 @test(depends_on_classes=[Setup],
-      depends_on_groups=[CONTAINER_START],
+      depends_on_groups=[INSTANCE_START],
       groups=[GROUP, GROUP_TEST])
 class WhenInstanceIsCreated(unittest.TestCase):
     """Make sure the DNS name was provisioned.
@@ -51,10 +51,10 @@ class WhenInstanceIsCreated(unittest.TestCase):
 
 
 @test(depends_on_classes=[Setup, WhenInstanceIsCreated],
-      depends_on_groups=[CONTAINER_STOP],
+      depends_on_groups=[INSTANCE_STOP],
       groups=[GROUP])
 class AfterInstanceIsDestroyed(unittest.TestCase):
-    """Make sure the DNS name is removed along with a instance.
+    """Make sure the DNS name is removed along with an instance.
 
     Because the compute manager calls the DNS manager with RPC cast, it can
     take awhile.  So we wait for 30 seconds for it to disappear.

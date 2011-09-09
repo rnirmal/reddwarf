@@ -139,7 +139,7 @@ class ListCommands(object):
             print sys.exc_info()[1]
 
     def users(self, options, id):
-        """List the users on a instance's database"""
+        """List the users on an instance's database"""
         dbaas = _get_client(options)
         try:
             for user in dbaas.users.list(id):
@@ -148,7 +148,7 @@ class ListCommands(object):
             print sys.exc_info()[1]
 
     def databases(self, options, id):
-        """List the databases on a instance"""
+        """List the databases on an instance"""
         dbaas = _get_client(options)
         try:
             for database in dbaas.databases.list(id):
