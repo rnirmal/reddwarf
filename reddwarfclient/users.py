@@ -14,7 +14,6 @@
 #    under the License.
 
 from novaclient import base
-from reddwarfclient.dbcontainers import DbContainer
 
 
 class User(base.Resource):
@@ -31,17 +30,17 @@ class Users(base.ManagerWithFind):
     """
     resource_class = User
 
-    def create(self, dbcontainer_id, users):
+    def create(self, instance_id, users):
         """
         Create users with permissions to the specified databases
         """
         body = {"users": users}
-        url = "/dbcontainers/%s/users" % dbcontainer_id
+        url = "/instances/%s/users" % instance_id
         resp, body = self.api.client.post(url, body=body)
 
-    def delete(self, dbcontainer_id, user):
-        """Delete an existing user in the specified container"""
-        url = "/dbcontainers/%s/users/%s"% (dbcontainer_id, user)
+    def delete(self, instance_id, user):
+        """Delete an existing user in the specified instance"""
+        url = "/instances/%s/users/%s"% (instance_id, user)
         self._delete(url)
 
     def _list(self, url, response_key):
@@ -51,11 +50,11 @@ class Users(base.ManagerWithFind):
                             " did not return a body.")
         return [self.resource_class(self, res) for res in body[response_key]]
 
-    def list(self, dbcontainer):
+    def list(self, instance):
         """
-        Get a list of all Users from the dbcontainer's Database.
+        Get a list of all Users from the instance's Database.
 
         :rtype: list of :class:`User`.
         """
-        return self._list("/dbcontainers/%s/users" % base.getid(dbcontainer),
+        return self._list("/instances/%s/users" % base.getid(instance),
                           "users")

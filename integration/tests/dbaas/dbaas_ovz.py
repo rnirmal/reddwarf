@@ -18,9 +18,9 @@ from reddwarfclient import Dbaas
 from proboscis import test
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
-from tests.dbaas.containers import container_info
-from tests.dbaas.containers import GROUP_START
-from tests.dbaas.containers import GROUP_TEST
+from tests.dbaas.instances import instance_info
+from tests.dbaas.instances import GROUP_START
+from tests.dbaas.instances import GROUP_TEST
 from tests.util import check_database
 from tests.util import get_vz_ip_for_device
 from tests.util import init_engine
@@ -41,20 +41,20 @@ class Setup(unittest.TestCase):
     def test_create_dbaas_client(self):
         """Sets up the client."""
         global dbaas
-        dbaas = util.create_dbaas_client(container_info.user)
+        dbaas = util.create_dbaas_client(instance_info.user)
 
 
 @test(depends_on_classes=[Setup], groups=[GROUP_TEST, "dbaas.guest.ovz"])
 class TestMultiNic(unittest.TestCase):
     """
-        Test that the created container has 2 nics with the specified ip
+        Test that the created instance has 2 nics with the specified ip
         address as allocated to it.
     """
 
     def setUp(self):
-        container_info.user_ip = get_vz_ip_for_device(container_info.id,
+        instance_info.user_ip = get_vz_ip_for_device(instance_info.id,
                                                       "eth0")
-        container_info.infra_ip = get_vz_ip_for_device(container_info.id,
+        instance_info.infra_ip = get_vz_ip_for_device(instance_info.id,
                                                        "eth1")
 
     def test_multi_nic(self):
@@ -63,11 +63,11 @@ class TestMultiNic(unittest.TestCase):
         in the guest
         """
         vifs = db.virtual_interface_get_by_instance(context.get_admin_context(),
-                                                    container_info.id)
+                                                    instance_info.id)
         for vif in vifs:
             fixed_ip = db.fixed_ip_get_by_virtual_interface(context.get_admin_context(),
                                                             vif['id'])
-            vz_ip = get_vz_ip_for_device(container_info.id,
+            vz_ip = get_vz_ip_for_device(instance_info.id,
                                          vif['network']['bridge_interface'])
             self.assertEquals(vz_ip, fixed_ip[0]['address'])
 
@@ -92,23 +92,23 @@ class TestMysqlAccess(unittest.TestCase):
     @time_out(60 * 2)
     def test_mysql_admin(self):
         while True:
-            mysqld, err = process("pgrep -l -P %s mysqld" % container_info.pid)
+            mysqld, err = process("pgrep -l -P %s mysqld" % instance_info.pid)
             if not string_in_list(mysqld, ["mysqld"]):
                 time.sleep(10)
             else:
                 time.sleep(10)
                 out, err = process("mysql -h %s -u os_admin -pasdfd-asdf234"
-                                    % container_info.user_ip)
+                                    % instance_info.user_ip)
                 self._mysql_error_handler(err)
                 break
 
     def test_mysql_root(self):
         out, err = process("mysql -h %s -u root -pdsfgnear"
-                           % container_info.user_ip)
+                           % instance_info.user_ip)
         self._mysql_error_handler(err)
 
     def test_zfirst_db(self):
-        if container_info.check_database("firstdb"):
+        if instance_info.check_database("firstdb"):
             self.assertTrue(True)
         else:
             self.assertFalse(True)
@@ -134,11 +134,11 @@ class TestDatabases(unittest.TestCase):
                           "collate": "latin2_general_ci"})
         databases.append({"name": self.dbname2})
 
-        dbaas.databases.create(container_info.id, databases)
+        dbaas.databases.create(instance_info.id, databases)
         time.sleep(5)
 
     def test_create_database_list(self):
-        databases = dbaas.databases.list(container_info.id)
+        databases = dbaas.databases.list(instance_info.id)
         found = False
         for db in self.created_dbs:
             for result in databases:
@@ -149,7 +149,7 @@ class TestDatabases(unittest.TestCase):
 
     def test_create_database_list_system(self):
         #Databases that should not be returned in the list
-        databases = dbaas.databases.list(container_info.id)
+        databases = dbaas.databases.list(instance_info.id)
         found = False
         for db in self.system_dbs:
             found = any(result.name == db for result in databases)
@@ -157,22 +157,22 @@ class TestDatabases(unittest.TestCase):
             found = False
             
     @expect_exception(NotFound)
-    def test_create_database_on_missing_container(self):
+    def test_create_database_on_missing_instance(self):
         databases = [{"name": "invalid_db", "charset": "latin2",
                       "collate": "latin2_general_ci"}]
         dbaas.databases.create(-1, databases)
 
     @expect_exception(NotFound)
-    def test_delete_database_on_missing_container(self):
+    def test_delete_database_on_missing_instance(self):
         global dbaas
         dbaas.databases.delete(-1,  self.dbname_urlencoded)
 
     def test_delete_database(self):
         global dbaas
-        dbaas.databases.delete(container_info.id, self.dbname_urlencoded)
+        dbaas.databases.delete(instance_info.id, self.dbname_urlencoded)
         time.sleep(5)
 
-        if not container_info.check_database(self.dbname):
+        if not instance_info.check_database(self.dbname):
             self.assertTrue(True)
         else:
             self.assertFalse(True)
@@ -205,7 +205,7 @@ class TestUsers(unittest.TestCase):
                      "databases": [{"name": self.db1}, {"name": self.db2}]})
 
         global dbaas
-        dbaas.users.create(container_info.id, users)
+        dbaas.users.create(instance_info.id, users)
         time.sleep(5)
 
         self.check_database_for_user(self.username, self.password,
@@ -215,7 +215,7 @@ class TestUsers(unittest.TestCase):
 
     def test_create_users_list(self):
         #tests for users that should be listed
-        users = dbaas.users.list(container_info.id)
+        users = dbaas.users.list(instance_info.id)
         found = False
         for user in self.created_users:
             for result in users:
@@ -226,7 +226,7 @@ class TestUsers(unittest.TestCase):
 
     def test_create_users_list_system(self):
         #tests for users that should not be listed
-        users = dbaas.users.list(container_info.id)
+        users = dbaas.users.list(instance_info.id)
         found = False
         for user in self.system_users:
             found = any(result.name == user for result in users)
@@ -235,8 +235,8 @@ class TestUsers(unittest.TestCase):
 
     def test_delete_users(self):
         global dbaas
-        dbaas.users.delete(container_info.id, self.username_urlencoded)
-        dbaas.users.delete(container_info.id, self.username1_urlendcoded)
+        dbaas.users.delete(instance_info.id, self.username_urlencoded)
+        dbaas.users.delete(instance_info.id, self.username1_urlendcoded)
         time.sleep(5)
 
         self._check_connection(self.username, self.password)
@@ -244,7 +244,7 @@ class TestUsers(unittest.TestCase):
 
     def check_database_for_user(self, user, password, dbs):
         dblist, err = process("sudo mysql    -h %s -u '%s' -p'%s' -e 'show databases;'"
-                                % (container_info.user_ip, user, password))
+                                % (instance_info.user_ip, user, password))
         if err:
             self.assertFalse(True, err)
         for db in dbs:
@@ -256,7 +256,7 @@ class TestUsers(unittest.TestCase):
     def _check_connection(self, username, password):
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
         dblist, err = process("sudo mysql -h %s -u '%s' -p'%s' -e 'show databases;'"
-                                % (container_info.user_ip, username, password))
+                                % (instance_info.user_ip, username, password))
         if pos_error.match(err):
             self.assertTrue(True)
         else:
@@ -266,9 +266,9 @@ class TestUsers(unittest.TestCase):
         global dbaas
         global root_password
         host = "%"
-        user, password = dbaas.root.create(container_info.id)
+        user, password = dbaas.root.create(instance_info.id)
 
-        engine = init_engine(user, password, container_info.user_ip)
+        engine = init_engine(user, password, instance_info.user_ip)
         client = LocalSqlClient(engine)
         with client:
             t = text("""SELECT User, Host FROM mysql.user WHERE User=:user AND Host=:host;""")
@@ -280,14 +280,14 @@ class TestUsers(unittest.TestCase):
 
     def test_disabled_root(self):
         """Test that root is disabled"""
-        enabled = dbaas.root.is_root_enabled(container_info.id)
+        enabled = dbaas.root.is_root_enabled(instance_info.id)
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
 
     def test_disabled_root_from_details(self):
-        """Test that root is disabled, via container details."""
-        container = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(hasattr(container, 'rootEnabled'), "DBContainer has no rootEnabled property.")
-        enabled = container.rootEnabled
+        """Test that root is disabled, via instance details."""
+        instance = dbaas.instances.get(instance_info.id)
+        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        enabled = instance.rootEnabled
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
 
     def test_enable_root(self):
@@ -295,14 +295,14 @@ class TestUsers(unittest.TestCase):
 
     def test_enable_root_post(self):
         """Test that root is now enabled."""
-        enabled = dbaas.root.is_root_enabled(container_info.id)
+        enabled = dbaas.root.is_root_enabled(instance_info.id)
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_enable_root_post_from_details(self):
-        """Test that root is now enabled, via container details."""
-        container = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(hasattr(container, 'rootEnabled'), "DBContainer has no rootEnabled property.")
-        enabled = container.rootEnabled
+        """Test that root is now enabled, via instance details."""
+        instance = dbaas.instances.get(instance_info.id)
+        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        enabled = instance.rootEnabled
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_reset_root(self):
@@ -310,20 +310,20 @@ class TestUsers(unittest.TestCase):
 
     def test_reset_root_still_enabled(self):
         """Test that after root was reset it's still enabled."""
-        enabled = dbaas.root.is_root_enabled(container_info.id)
+        enabled = dbaas.root.is_root_enabled(instance_info.id)
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_reset_root_still_enabled_from_details(self):
-        """Test that after root was reset it's still enabled, via container details."""
-        container = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(hasattr(container, 'rootEnabled'), "DBContainer has no rootEnabled property.")
-        enabled = container.rootEnabled
+        """Test that after root was reset it's still enabled, via instance details."""
+        instance = dbaas.instances.get(instance_info.id)
+        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        enabled = instance.rootEnabled
         self.assertTrue(enabled, "Root SHOULD be enabled.")
 
     def test_reset_root_user_enabled(self):
         created_users= ['root']
         self.system_users.remove('root')
-        users = dbaas.users.list(container_info.id)
+        users = dbaas.users.list(instance_info.id)
         found = False
         for user in created_users:
             found = any(result.name == user for result in users)
@@ -341,10 +341,10 @@ class TestUsers(unittest.TestCase):
         global root_password
         user = "root"
         host = "%"
-        dbaas.root.delete(container_info.id)
+        dbaas.root.delete(instance_info.id)
 
         try:
-            engine = init_engine(user, root_password, container_info.user_ip)
+            engine = init_engine(user, root_password, instance_info.user_ip)
             client = LocalSqlClient(engine)
             with client:
                 t = text("""SELECT * FROM mysql.user where User=:user, Host=:host;""")
@@ -355,12 +355,12 @@ class TestUsers(unittest.TestCase):
 
     def test_zdisabled_root(self):
         """Test that after root is disabled, it is now disabled."""
-        enabled = dbaas.root.is_root_enabled(container_info.id)
+        enabled = dbaas.root.is_root_enabled(instance_info.id)
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
     
     def test_zdisabled_root_from_details(self):
-        """Test that after root is disabled, it is now disabled, by checking container details."""
-        container = dbaas.dbcontainers.get(container_info.id)
-        self.assertTrue(hasattr(container, 'rootEnabled'), "DBContainer has no rootEnabled property.")
-        enabled = container.rootEnabled
+        """Test that after root is disabled, it is now disabled, by checking instance details."""
+        instance = dbaas.instances.get(instance_info.id)
+        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        enabled = instance.rootEnabled
         self.assertFalse(enabled, "Root SHOULD NOT be enabled.")

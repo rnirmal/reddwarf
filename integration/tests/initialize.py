@@ -36,7 +36,7 @@ from tests.util.test_config import nova_code_root
 from tests.util.test_config import python_cmd_list
 
 dbaas_image = None
-container_name = None
+instance_name = None
 success_statuses = ["build", "active"]
 
 

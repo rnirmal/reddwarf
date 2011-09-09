@@ -40,16 +40,16 @@ class Controller(object):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
-    def show(self, req, dbcontainer_id, id):
+    def show(self, req, instance_id, id):
         return faults.Fault(exc.HTTPNotImplemented())
     
-    def index(self, req, dbcontainer_id):
-        """ Returns a list database users for the db container """
-        LOG.info("Call to Users index - %s", dbcontainer_id)
+    def index(self, req, instance_id):
+        """ Returns a list database users for the db instance """
+        LOG.info("Call to Users index - %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
-        result = self.guest_api.list_users(ctxt, dbcontainer_id)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
+        result = self.guest_api.list_users(ctxt, instance_id)
         LOG.debug("LIST USERS RESULT - %s", str(result))
         users = {'users':[]}
         for user in result:
@@ -59,30 +59,30 @@ class Controller(object):
         LOG.debug("LIST USERS RETURN - %s", users)
         return users
 
-    def delete(self, req, dbcontainer_id, id):
-        """ Deletes a user in the db container """
-        LOG.info("Call to Delete User - %s for container %s",
-                 id, dbcontainer_id)
+    def delete(self, req, instance_id, id):
+        """ Deletes a user in the db instance """
+        LOG.info("Call to Delete User - %s for instance %s",
+                 id, instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
         user = models.MySQLUser()
         user.name = id
 
-        self.guest_api.delete_user(ctxt, dbcontainer_id, user.serialize())
+        self.guest_api.delete_user(ctxt, instance_id, user.serialize())
         return exc.HTTPAccepted()
 
-    def create(self, req, dbcontainer_id, body):
-        """ Creates a new user for the db container """
+    def create(self, req, instance_id, body):
+        """ Creates a new user for the db instance """
         self._validate(body)
 
-        LOG.info("Call to Create Useres for container %s", dbcontainer_id)
+        LOG.info("Call to Create Useres for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
 
         users = common.populate_users(body.get('users', ''))
-        self.guest_api.create_user(ctxt, dbcontainer_id, users)
+        self.guest_api.create_user(ctxt, instance_id, users)
         return exc.HTTPAccepted()
 
     def _validate(self, body):

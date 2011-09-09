@@ -30,36 +30,36 @@ LOG.setLevel(logging.DEBUG)
 
 
 class Controller(object):
-    """ Enable/Disable the root user for the DB Container """
+    """ Enable/Disable the root user for the DB Instance """
 
     def __init__(self):
         self.guest_api = guest_api.API()
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
-    def delete(self, req, dbcontainer_id):
-        """ Disables the root user in the db container """
-        LOG.info("Call to disable root user for container %s", dbcontainer_id)
+    def delete(self, req, instance_id):
+        """ Disables the root user in the db instance """
+        LOG.info("Call to disable root user for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
 
         try:
-            self.guest_api.disable_root(ctxt, dbcontainer_id)
+            self.guest_api.disable_root(ctxt, instance_id)
             return exc.HTTPOk()
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error disabling the root password")
 
-    def create(self, req, dbcontainer_id, body):
-        """ Enable the root user for the db container """
-        LOG.info("Call to enable root user for container %s", dbcontainer_id)
+    def create(self, req, instance_id, body):
+        """ Enable the root user for the db instance """
+        LOG.info("Call to enable root user for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
 
         try:
-            result = self.guest_api.enable_root(ctxt, dbcontainer_id)
+            result = self.guest_api.enable_root(ctxt, instance_id)
             user = models.MySQLUser()
             user.deserialize(result)
             return {'user': {'name': user.name, 'password': user.password}}
@@ -67,20 +67,20 @@ class Controller(object):
             LOG.error(err)
             return exc.HTTPError("Error enabling the root password")
 
-    def is_root_enabled(self, req, dbcontainer_id):
-        """ Returns True if root is enabled for the given container;
+    def is_root_enabled(self, req, instance_id):
+        """ Returns True if root is enabled for the given instance;
             False otherwise. """
-        LOG.info("Call to is_root_enabled for container %s", dbcontainer_id)
+        LOG.info("Call to is_root_enabled for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
         running = power_state.RUNNING
-        status = dbapi.guest_status_get(dbcontainer_id).state
+        status = dbapi.guest_status_get(instance_id).state
         if status != running:
-            LOG.debug("Container %s is not running." % dbcontainer_id)
-            return exc.HTTPError("DBContainer %s is not running." % dbcontainer_id)
+            LOG.debug("Instance %s is not running." % instance_id)
+            return exc.HTTPError("Instance %s is not running." % instance_id)
         try:
-            result = self.guest_api.is_root_enabled(ctxt, dbcontainer_id)
+            result = self.guest_api.is_root_enabled(ctxt, instance_id)
             return {'rootEnabled': result}
         except Exception as err:
             LOG.error(err)

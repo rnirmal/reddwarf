@@ -39,7 +39,7 @@ from nova.guest import api as guest_api
 from reddwarf.db import api as dbapi
 
 
-LOG = logging.getLogger('reddwarf.api.dbcontainers')
+LOG = logging.getLogger('reddwarf.api.instances')
 LOG.setLevel(logging.DEBUG)
 
 
@@ -47,13 +47,13 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
                     'Default image for reddwarf')
 flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
-                    'Mount point within the container for MySQL data.')
+                    'Mount point within the instance for MySQL data.')
 flags.DEFINE_string('reddwarf_volume_description',
                     'Volume ID: %s assigned to Instance: %s',
                     'Default description populated for volumes')
 flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128,
                     'Maximum accepted volume size (in gigabytes) when creating'
-                    ' a container.')
+                    ' a instance.')
 
 _dbaas_mapping = {
     None: 'BUILD',
@@ -65,7 +65,7 @@ _dbaas_mapping = {
 }
 
 class Controller(object):
-    """ The DBContainer API controller for the Platform API """
+    """ The Instance API controller for the Platform API """
 
     def __init__(self):
         self.compute_api = compute.API()
@@ -77,14 +77,14 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def index(self, req):
-        """ Returns a list of dbcontainer names and ids for a given user """
-        LOG.info("Call to DBContainers index")
+        """ Returns a list of instance names and ids for a given user """
+        LOG.info("Call to Instances index")
         LOG.debug("%s - %s", req.environ, req.body)
         servers_response = self.server_controller.index(req)
         server_list = servers_response['servers']
         context = req.environ['nova.context']
 
-        # DbContainers need the status for each instance in all circumstances,
+        # Instances need the status for each instance in all circumstances,
         # unlike servers.
         server_states = db.instance_state_get_all_by_user(context,
                                                           context.user_id)
@@ -94,10 +94,10 @@ class Controller(object):
 
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        dbcontainers = [self._create_dbcontainer_dict(context, server,
+        instances = [self._create_instance_dict(context, server,
                                                       guest_state_mapping)
                         for server in server_list]
-        return {'dbcontainers': dbcontainers}
+        return {'instances': instances}
 
     @staticmethod
     def get_guest_state_mapping(id_list):
@@ -106,19 +106,19 @@ class Controller(object):
         return dict([(r.instance_id, r.state) for r in results])
 
     def detail(self, req):
-        """ Returns a list of dbcontainer details for a given user """
+        """ Returns a list of instance details for a given user """
         LOG.debug("%s - %s", req.environ, req.body)
         server_list = self.server_controller.detail(req)['servers']
         context = req.environ['nova.context']
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        dbcontainers = [self._create_dbcontainer_dict(context, server)
+        instances = [self._create_instance_dict(context, server)
                         for server in server_list]
-        return { 'dbcontainers' : dbcontainers }
+        return { 'instances' : instances }
 
     def show(self, req, id):
-        """ Returns dbcontainer details by container id """
-        LOG.info("Get Container by ID - %s", id)
+        """ Returns instance details by instance id """
+        LOG.info("Get Instance by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         server_response = self.server_controller.show(req, id)
         LOG.debug("server_response - %s", server_response)
@@ -127,13 +127,13 @@ class Controller(object):
         context = req.environ['nova.context']
         server = server_response['server']
         LOG.debug("server - %s", server)
-        dbcontainer = self._create_detailed_dbcontainer_dict(context, server)
-        LOG.debug("dbcontainer - %s", dbcontainer)
-        return {'dbcontainer': dbcontainer}
+        instance = self._create_detailed_instance_dict(context, server)
+        LOG.debug("instance - %s", instance)
+        return {'instance': instance}
 
     def delete(self, req, id):
-        """ Destroys a dbcontainer """
-        LOG.info("Delete Container by ID - %s", id)
+        """ Destroys a instance """
+        LOG.info("Delete Instance by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
@@ -149,10 +149,10 @@ class Controller(object):
             LOG.info("Skipping as no volumes are associated with the instance")
 
     def create(self, req, body):
-        """ Creates a new DBContainer for a given user """
+        """ Creates a new Instance for a given user """
         self._validate(body)
 
-        LOG.info("Create Container")
+        LOG.info("Create Instance")
         LOG.debug("%s - %s", req.environ, body)
 
         context = req.environ['nova.context']
@@ -164,7 +164,7 @@ class Controller(object):
                                     FLAGS.default_firewall_rule_name,
                                     FLAGS.default_guest_mysql_port)
 
-        server = self._create_server_dict(body['dbcontainer'],
+        server = self._create_server_dict(body['instance'],
                                           volume_ref['id'],
                                           FLAGS.reddwarf_mysql_data_dir)
 
@@ -174,20 +174,20 @@ class Controller(object):
         server_id = str(server_resp['server']['id'])
         dbapi.guest_status_create(server_id)
 
-        dbcontainer = self._create_dbcontainer_dict(context,
+        instance = self._create_instance_dict(context,
                                                     server_resp['server'])
         # Update volume description
-        self.update_volume_info(context, volume_ref, dbcontainer)
+        self.update_volume_info(context, volume_ref, instance)
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
-        dbcontainer['volume'] = {'size': volume_ref['size']}
-        return { 'dbcontainer': dbcontainer }
+        instance['volume'] = {'size': volume_ref['size']}
+        return { 'instance': instance }
 
     def create_volume(self, context, body):
-        """Creates the volume for the container and returns its ID."""
-        volume_size = body['dbcontainer']['volume']['size']
-        name = body['dbcontainer'].get('name', None)
+        """Creates the volume for the instance and returns its ID."""
+        volume_size = body['instance']['volume']['size']
+        name = body['instance'].get('name', None)
         description = FLAGS.reddwarf_volume_description % (None, None)
 
         return self.volume_api.create(context, size=volume_size,
@@ -195,10 +195,10 @@ class Controller(object):
                                       name=name,
                                       description=description)
 
-    def update_volume_info(self, context, volume_ref, dbcontainer):
-        """Update the volume description with the available dbcontainer info"""
+    def update_volume_info(self, context, volume_ref, instance):
+        """Update the volume description with the available instance info"""
         description = FLAGS.reddwarf_volume_description \
-                            % (volume_ref['id'], dbcontainer['id'])
+                            % (volume_ref['id'], instance['id'])
         self.volume_api.update(context, volume_ref['id'],
                                {'display_description': description})
 
@@ -227,18 +227,18 @@ class Controller(object):
 
     @staticmethod
     def _create_dbvolume_from_server(server):
-        """Given a server dict returns the dbcontainer volume dict."""
+        """Given a server dict returns the instance volume dict."""
         try:
             volumes = server['volumes']
             volume_dict = volumes[0]
         except (KeyError, IndexError):
             return None
         if len(volumes) > 1:
-            raise exception.Error("> 1 volumes in the underlying container!")
+            raise exception.Error("> 1 volumes in the underlying instance!")
         return {'size': volume_dict['size']}
 
-    def _create_dbcontainer_dict(self, context, server, guest_states=None):
-        """Given a server (obtained from the servers API) returns a container.
+    def _create_instance_dict(self, context, server, guest_states=None):
+        """Given a server (obtained from the servers API) returns a instance.
 
         We copy all elements from the server and then delete some, erring on
         the side of copying too many instead of too few.
@@ -248,26 +248,26 @@ class Controller(object):
         """
         server_only_keys = ['hostId', 'imageRef', 'metadata', 'adminPass',
                             'uuid', 'volumes', 'status', 'addresses']
-        dbcontainer = dict((key, server[key]) for key in server.keys()
+        instance = dict((key, server[key]) for key in server.keys()
                            if key not in server_only_keys)
         # Add DNS hostname
         user_id = context.user_id
-        instance_info = {"id": dbcontainer["id"], "user_id": user_id}
+        instance_info = {"id": instance["id"], "user_id": user_id}
         dns_entry = self.dns_entry_factory.create_entry(instance_info)
         if dns_entry:
-            dbcontainer["hostname"] = dns_entry.name
+            instance["hostname"] = dns_entry.name
         # Add volume information
         dbvolume = self._create_dbvolume_from_server(server)
         if dbvolume:
-            dbcontainer['volume'] = dbvolume
+            instance['volume'] = dbvolume
         # Add status
-        dbcontainer['status'] = self._get_dbcontainer_status(server,
+        instance['status'] = self._get_instance_status(server,
                                                              guest_states)
-        return dbcontainer
+        return instance
 
     @staticmethod
-    def _get_dbcontainer_status(server, guest_states=None):
-        """Figures out what the dbcontainer status should be.
+    def _get_instance_status(server, guest_states=None):
+        """Figures out what the instance status should be.
 
         First looks at the server status, then to a dictionary mapping guest
         IDs to their states.
@@ -287,22 +287,22 @@ class Controller(object):
                 state = power_state.SHUTDOWN
             return _dbaas_mapping[state]
 
-    def _create_detailed_dbcontainer_dict(self, context, server,
+    def _create_detailed_instance_dict(self, context, server,
                                           guest_states=None):
-        """Creates a dbcontainer dictionary to be used in a response
+        """Creates a instance dictionary to be used in a response
         """
-        dbcontainer = self._create_dbcontainer_dict(context, server,
+        instance = self._create_instance_dict(context, server,
                                                     guest_states)
         # Add rootEnabled info.
-        enabled = self._determine_root(context, dbcontainer)
+        enabled = self._determine_root(context, instance)
         if enabled is not None:
-            dbcontainer['rootEnabled'] = enabled
-        return dbcontainer
+            instance['rootEnabled'] = enabled
+        return instance
 
     @staticmethod
-    def _create_server_dict(dbcontainer, volume_id, mount_point):
-        """Creates a server dict from the request dbcontainer dict."""
-        server = copy.copy(dbcontainer)
+    def _create_server_dict(instance, volume_id, mount_point):
+        """Creates a server dict from the request instance dict."""
+        server = copy.copy(instance)
         # Append additional stuff to create.
         # Add image_ref
         server['imageRef'] = FLAGS.reddwarf_imageRef
@@ -310,7 +310,7 @@ class Controller(object):
         firewall_rules = [FLAGS.default_firewall_rule_name]
         server['firewallRules'] = firewall_rules
         # Add volume id
-        if not 'metadata' in dbcontainer:
+        if not 'metadata' in instance:
             server['metadata'] = {}
         server['metadata']['volume_id'] = str(volume_id)
         # Add mount point
@@ -318,7 +318,7 @@ class Controller(object):
         # Add databases
         # We create these once and throw away the result to take advantage
         # of the validators.
-        db_list = common.populate_databases(dbcontainer.get('databases', []))
+        db_list = common.populate_databases(instance.get('databases', []))
         server['metadata']['database_list'] = json.dumps(db_list)
         return server
 
@@ -355,15 +355,15 @@ class Controller(object):
             self.compute_api.trigger_security_group_rules_refresh(context,
                                                           security_group['id'])
 
-    def _determine_root(self, context, container):
-        """ Determine if root is enabled for a given container. """
+    def _determine_root(self, context, instance):
+        """ Determine if root is enabled for a given instance. """
         # If we can't determine if root is enabled for whatever reason,
-        # including if the container isn't ACTIVE, rootEnabled isn't
+        # including if the instance isn't ACTIVE, rootEnabled isn't
         # available.
         running = _dbaas_mapping[power_state.RUNNING]
-        if container['status'] == running:
+        if instance['status'] == running:
             try:
-                return self.guest_api.is_root_enabled(context, container['id'])
+                return self.guest_api.is_root_enabled(context, instance['id'])
             except Exception as err:
                 LOG.error(err)
                 LOG.error("rootEnabled for %s could not be determined." % id)
@@ -376,9 +376,9 @@ class Controller(object):
             raise exc.HTTPUnprocessableEntity()
 
         try:
-            body['dbcontainer']
-            body['dbcontainer']['flavorRef']
-            volume_size = float(body['dbcontainer']['volume']['size'])
+            body['instance']
+            body['instance']['flavorRef']
+            volume_size = float(body['instance']['volume']['size'])
             if int(volume_size) != volume_size or int(volume_size) < 1:
                 msg = "Volume 'size' needs to be a positive integer value, %s"\
                       " cannot be accepted." % volume_size
@@ -389,7 +389,7 @@ class Controller(object):
                       " cannot be accepted." % (max_size, volume_size)
                 raise exception.ApiError(msg)
         except KeyError as e:
-            LOG.error("Create Container Required field(s) - %s" % e)
+            LOG.error("Create Instance Required field(s) - %s" % e)
             raise exception.ApiError("Required element/key - %s " \
                                       "was not specified" % e)
 
@@ -401,7 +401,7 @@ def create_resource(version='1.0'):
 
     metadata = {
         "attributes": {
-            "dbcontainer": ["id", "name", "status", "flavorRef", "rootEnabled"],
+            "instance": ["id", "name", "status", "flavorRef", "rootEnabled"],
             "dbtype": ["name", "version"],
             "link": ["rel", "type", "href"],
             "volume": ["size"],
@@ -418,7 +418,7 @@ def create_resource(version='1.0'):
     }
 
     deserializers = {
-        'application/xml': deserializer.DBContainerXMLDeserializer(),
+        'application/xml': deserializer.InstanceXMLDeserializer(),
     }
 
     response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)

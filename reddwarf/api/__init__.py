@@ -27,7 +27,7 @@ from nova import wsgi
 from nova.api.openstack import images
 from reddwarf.api import accounts
 from reddwarf.api import databases
-from reddwarf.api import dbcontainers
+from reddwarf.api import instances
 from reddwarf.api import guests
 from reddwarf.api import hosts
 from reddwarf.api import management
@@ -62,7 +62,7 @@ class APIRouter(wsgi.Router):
     def __init__(self):
         mapper = routes.Mapper()
 
-        container_members = {'action': 'POST'}
+        instance_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
             LOG.debug(_("Including admin operations in API."))
             with mapper.submapper(path_prefix="/mgmt/guests",
@@ -83,7 +83,7 @@ class APIRouter(wsgi.Router):
                 m.connect("/{id}", action="show",
                           conditions=dict(method=["GET"]))
 
-            mapper.connect("/mgmt/dbcontainers/{id}",
+            mapper.connect("/mgmt/instances/{id}",
                             controller=management.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
 
@@ -100,10 +100,10 @@ class APIRouter(wsgi.Router):
             # Need to put something in place so that only real admin
             # users can hit that api, others would just be rejected.
 
-        mapper.resource("dbcontainer", "dbcontainers",
-                        controller=dbcontainers.create_resource(),
+        mapper.resource("instance", "instances",
+                        controller=instances.create_resource(),
                         collection={'detail': 'GET'},
-                        member=container_members)
+                        member=instance_members)
 
         mapper.resource("flavor", "flavors",
                         controller=flavors.create_resource(),
@@ -111,23 +111,23 @@ class APIRouter(wsgi.Router):
 
         mapper.resource("database", "databases",
                         controller=databases.create_resource(),
-                        parent_resource=dict(member_name='dbcontainer',
-                        collection_name='dbcontainers'))
+                        parent_resource=dict(member_name='instance',
+                        collection_name='instances'))
 
         mapper.resource("user", "users",
                         controller=users.create_resource(),
-                        parent_resource=dict(member_name='dbcontainer',
-                        collection_name='dbcontainers'))
+                        parent_resource=dict(member_name='instance',
+                        collection_name='instances'))
 
         # Using connect instead of resource due to the incompatibility
         # for delete without providing an id.
-        mapper.connect("/dbcontainers/{dbcontainer_id}/root",
+        mapper.connect("/instances/{instance_id}/root",
                        controller=root.create_resource(),
                        action="create", conditions=dict(method=["POST"]))
-        mapper.connect("/dbcontainers/{dbcontainer_id}/root",
+        mapper.connect("/instances/{instance_id}/root",
                        controller=root.create_resource(),
                        action="delete", conditions=dict(method=["DELETE"]))
-        mapper.connect("/dbcontainers/{dbcontainer_id}/root",
+        mapper.connect("/instances/{instance_id}/root",
                        controller=root.create_resource(),
                        action="is_root_enabled", conditions=dict(method=["GET"]))
 

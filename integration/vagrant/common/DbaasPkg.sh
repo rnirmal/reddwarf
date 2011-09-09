@@ -1,7 +1,7 @@
 #!/bin/bash
 # Handles building and installing our packages.
 
-#on the container, in /etc/apt/sources.list
+#on the instance, in /etc/apt/sources.list
 #deb http://10.0.2.15/ubuntu lucid main
 
 source /vagrant-common/Utils.sh

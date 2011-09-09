@@ -10,16 +10,16 @@
   </grammars>
 
   <resources base="https://auth.api.rackspacecloud.com">
-    <resource id="dbcontainers" path="dbcontainers">
-      <method href="#createContainer"/>
-      <method href="#getContainer"/>
-      <resource id="containerDetails" path="detail">
-        <method href="#getContainerDetails"/>
+    <resource id="instances" path="instances">
+      <method href="#createInstance"/>
+      <method href="#getInstance"/>
+      <resource id="instanceDetails" path="detail">
+        <method href="#getInstanceDetails"/>
       </resource>
-      <resource id="containerId" path="{containerId}">
-        <param name="containerId" style="template" type="xsd:string"/>
-        <method href="#getContainerById"/>
-        <method href="#deleteContainer"/>
+      <resource id="instanceId" path="{instanceId}">
+        <param name="instanceId" style="template" type="xsd:string"/>
+        <method href="#getInstanceById"/>
+        <method href="#deleteInstance"/>
         <resource id="databases" path="databases">
           <method href="#createDatabase" />
           <method href="#getDatabases"/>
@@ -56,14 +56,14 @@
   </resources>
 
   <!--Token Methods...-->
-  <!-- Container -->
-  <method name="POST" id="createContainer">
+  <!-- Instance -->
+  <method name="POST" id="createInstance">
     <request>
-      <representation mediaType="application/xml" element="dbaas:DatabaseContainer" />
+      <representation mediaType="application/xml" element="dbaas:DatabaseInstance" />
       <representation mediaType="application/json"/>
     </request>
     <response status="201">
-      <representation mediaType="application/xml" element="dbaas:DatabaseContainer">
+      <representation mediaType="application/xml" element="dbaas:DatabaseInstance">
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
       <representation mediaType="application/json">
@@ -76,7 +76,7 @@
     </response>
   </method>
 
-  <method name="DELETE" id="deleteContainer">
+  <method name="DELETE" id="deleteInstance">
     <response status="202"/>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -84,10 +84,10 @@
     </response>
   </method>
 
-  <method name="GET" id="getContainer">
+  <method name="GET" id="getInstance">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseContainers"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseContainers"/>
+      <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
+      <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -95,10 +95,10 @@
     </response>
   </method>
 
-  <method name="GET" id="getContainerDetails">
+  <method name="GET" id="getInstanceDetails">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseContainers"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseContainers"/>
+      <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
+      <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -106,10 +106,10 @@
     </response>
   </method>
 
-  <method name="GET" id="getContainerById">
+  <method name="GET" id="getInstanceById">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseContainer"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseContainer"/>
+      <representation mediaType="application/xml" element="dbaas:DatabaseInstance"/>
+      <representation mediaType="application/json" element="dbaas:DatabaseInstance"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
@@ -167,10 +167,10 @@
     </response>
   </method>
 
-  <method name="GET" id="getContainerDetails">
+  <method name="GET" id="getInstanceDetails">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseContainers"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseContainers"/>
+      <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
+      <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>

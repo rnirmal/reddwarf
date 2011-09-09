@@ -118,7 +118,7 @@ Manual Setup Reddwarf
     [vagrant:/vagrant]$ ./initialize.sh
 
 #. This will build all the packages required to start and run nova. This
-   includes the guest-agent package that will run on the containers that listens
+   includes the guest-agent package that will run on the instances that listens
    for events from the API::
 
     [vagrant:~]$ /vagrant/build.sh
@@ -184,10 +184,10 @@ Example Calls/Utilties for Reddwarf/Nova
 
     [vagrant:/src/bin]$ ./reddwarf-cli auth login admin admin
 
-#. Create a container::
+#. Create a instance::
 
-    [vagrant:/src/bin]$ ./reddwarf-cli create dbcontainer dbcontainer 1 flavors/1
-    [vagrant:/src/bin]$ ./reddwarf-cli list dbcontainers
+    [vagrant:/src/bin]$ ./reddwarf-cli create instance instance 1 flavors/1
+    [vagrant:/src/bin]$ ./reddwarf-cli list instances
     [vagrant:/src/bin]$ sudo vzlist
     [vagrant:/src/bin]$ sudo vzctl enter 1
 

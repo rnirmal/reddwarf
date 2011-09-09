@@ -35,9 +35,9 @@ from proboscis.decorators import time_out
 
 from novaclient.exceptions import NotFound
 from nova import context, utils
-from reddwarf.api.dbcontainers import _dbaas_mapping
+from reddwarf.api.instances import _dbaas_mapping
 from nova.compute import power_state
-from reddwarf.api.dbcontainers import _dbaas_mapping
+from reddwarf.api.instances import _dbaas_mapping
 from reddwarf.db import api as dbapi
 from nova import flags
 from reddwarf.compute.manager import VALID_ABORT_STATES
@@ -87,19 +87,19 @@ FLAGS = flags.FLAGS
 @test(groups=[GROUP],
       depends_on_groups=["services.initialize"])
 class InstanceTest(object):
-    """Stores new container information used by dependent tests."""
+    """Stores new instance information used by dependent tests."""
 
     def __init__(self):
         self.db = utils.import_object(FLAGS.db_driver)
-        self.user = None  # The user instance who owns the container.
+        self.user = None  # The user instance who owns the instance.
         self.dbaas = None  # The rich client instance used by these tests.
-        self.dbaas_flavor = None # The flavor object of the container.
-        self.dbaas_flavor_href = None  # The flavor of the container.
-        self.dbaas_image = None  # The image used to create the container.
+        self.dbaas_flavor = None # The flavor object of the instance.
+        self.dbaas_flavor_href = None  # The flavor of the instance.
+        self.dbaas_image = None  # The image used to create the instance.
         self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
         self.name = None  # Test name, generated each test run.
-        self.volume = {'size': 1} # The volume the container will have.
+        self.volume = {'size': 1} # The volume the instance will have.
         self.initial_result = None # The initial result from the create call.
 
     def init(self, name_prefix):
@@ -127,7 +127,7 @@ class InstanceTest(object):
             return False
         else:
             # After building the only valid state is FAILED (because
-            # we've destroyed the container).
+            # we've destroyed the instance).
             assert_equal(result[0].state, power_state.FAILED)
             # Make sure the REST API agrees.
             assert_equal(result[1].status, _dbaas_mapping[power_state.FAILED])
@@ -143,8 +143,8 @@ class InstanceTest(object):
         utils.poll_until(volume_not_found, sleep_time=1, time_out=time_out)
 
     def _create_instance(self):
-        """Make call to create a container."""
-        self.initial_result = self.dbaas.dbcontainers.create(
+        """Make call to create a instance."""
+        self.initial_result = self.dbaas.instances.create(
             name=self.name,
             flavor_id=self.dbaas_flavor_href,
             volume=self.volume,
@@ -157,23 +157,23 @@ class InstanceTest(object):
     def _get_status_tuple(self):
         """Grabs the db guest status and the API instance status."""
         return (dbapi.guest_status_get(self.id),
-                self.dbaas.dbcontainers.get(self.id))
+                self.dbaas.instances.get(self.id))
 
     def _delete_instance(self):
-        self.dbaas.dbcontainers.delete(self.id)
+        self.dbaas.instances.delete(self.id)
         attempts = 0
         try:
             time.sleep(1)
             result = True
             while result is not None:
                 attempts += 1
-                result = self.dbaas.dbcontainers.get(self.id)
+                result = self.dbaas.instances.get(self.id)
                 assert_equal(_dbaas_mapping[power_state.SHUTDOWN],
                              result.status)
         except NotFound:
             pass
         except Exception as ex:
-            fail("A failure occured when trying to GET container %s"
+            fail("A failure occured when trying to GET instance %s"
                  " for the %d time: %s" % (str(self.id), attempts, str(ex)))
 
     def _get_compute_instance_state(self):
@@ -221,7 +221,7 @@ class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
         """Create a new instance."""
         self._create_instance()
         # Use an admin context to avoid the possibility that in between the
-        # previous line and this one the request goes through and the container
+        # previous line and this one the request goes through and the instance
         # is deleted.
         metadata = ReddwarfInstanceMetaData(self.db,
             context.get_admin_context(), self.id)
@@ -255,7 +255,7 @@ GUEST_INSTALL_TIMEOUT = 60 * 2
 @test(groups=[GROUP, GROUP + ".guest"],
       depends_on_groups=["services.initialize"])
 class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
-    """Stores new container information used by dependent tests."""
+    """Stores new instance information used by dependent tests."""
 
     @before_class
     def setUp(self):
@@ -296,11 +296,11 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
     @test(depends_on=[create_instance])
     @time_out(60 * 4)
     def wait_for_pid(self):
-        """Wait for container PID."""
+        """Wait for instance PID."""
         pid = None
         while pid is None:
             guest_status = dbapi.guest_status_get(self.id)
-            rest_api_result = self.dbaas.dbcontainers.get(self.id)
+            rest_api_result = self.dbaas.instances.get(self.id)
             out, err = process("pstree -ap | grep init | cut -d',' -f2 | vzpid - | grep %s | awk '{print $1}'"
                                 % str(self.id))
             pid = out.strip()
@@ -326,7 +326,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         process("sudo rm -rf /vz/private/%s/bin" % str(self.id))
 
         # Make sure that before the timeout expires the guest state in the
-        # internal API and the REST API dbcontainer status is set to FAIL.
+        # internal API and the REST API instance status is set to FAIL.
         self.wait_for_rest_api_to_show_status_as_failed(
             time_out=GUEST_INSTALL_TIMEOUT + 30)
 
@@ -335,8 +335,8 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         # because, while in this case we know the guest is dead, in the real
         # world where this might happen for less-predictable reasons we want
         # to make sure the misbehaving or just slow Nova-Guest daemon doesn't
-        # change its status to something besides FAILED before the container is
-        # shut-off. So we have to make sure that the container turns off, and
+        # change its status to something besides FAILED before the instance is
+        # shut-off. So we have to make sure that the instance turns off, and
         # the manager sets the guest state to FAILED afterwards.
         self.wait_for_compute_instance_to_suspend()
 

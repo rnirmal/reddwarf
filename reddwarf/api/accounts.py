@@ -44,7 +44,7 @@ def create_resource(version='1.0'):
         "attributes": {
             "account": ["name"],
             "hosts": ["id", "hostname", "name"],
-            "dbcontainers": ["id", "status"],
+            "instances": ["id", "status"],
         },
     }
 
@@ -81,31 +81,31 @@ class Controller(object):
                 LOG.debug("Could not find any projects for account '%s'." % id)
                 raise NotFound(message=("No Account found %s" % id))
 
-            # Get all the containers that belong to this account.
-            containers = dbapi.show_containers_by_account(context, id)
-            LOG.debug("containers - %s", containers)
+            # Get all the instances that belong to this account.
+            instances = dbapi.show_instances_by_account(context, id)
+            LOG.debug("instances - %s", instances)
 
             # Prune away all the columns but the ones in key_list
             key_list = ['id', 'display_name', 'host', 'state']
-            containers = [dict([(k, c[k]) for k in key_list])
-                for c in containers]
-            LOG.debug("containers - %s", containers)
+            instances = [dict([(k, c[k]) for k in key_list])
+                for c in instances]
+            LOG.debug("instances - %s", instances)
 
-            # Associate each unique host with its containers.
-            unique_hosts = set([c['host'] for c in containers])
+            # Associate each unique host with its instances.
+            unique_hosts = set([c['host'] for c in instances])
             LOG.debug("unique hosts - %s", unique_hosts)
             hosts = []
             for hostname in unique_hosts:
                 host = {'id': hostname}
-                hosts_containers = [c for c in containers
+                hosts_instances = [c for c in instances
                     if c['host'] == hostname]
-                hosts_containers = [{'id': c['id'],
+                hosts_instances = [{'id': c['id'],
                                      'name': c['display_name'],
                                      'status': c['state'],
-                                    } for c in hosts_containers]
-                hosts_containers = [{'dbcontainer': c}
-                    for c in hosts_containers]
-                host['dbcontainers'] = hosts_containers
+                                    } for c in hosts_instances]
+                hosts_instances = [{'instance': c}
+                    for c in hosts_instances]
+                host['instances'] = hosts_instances
                 hosts.append(host)
 
             LOG.debug("hosts - %s", hosts)

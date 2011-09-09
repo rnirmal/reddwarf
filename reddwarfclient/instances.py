@@ -16,42 +16,42 @@
 from novaclient import base
 
 
-class DbContainer(base.Resource):
+class Instance(base.Resource):
     """
-    A DbContainer is an opaque container used to store Database instances.
+    A Instance is an opaque instance used to store Database instances.
     """
     def __repr__(self):
-        return "<DbContainer: %s>" % self.name
+        return "<Instance: %s>" % self.name
 
     def list_databases(self):
         return self.manager.databases.list(self)
 
     def delete(self):
         """
-        Delete the container.
+        Delete the instance.
         """
         self.manager.delete(self)
 
 
-class DbContainers(base.ManagerWithFind):
+class Instances(base.ManagerWithFind):
     """
-    Manage :class:`DbContainer` resources.
+    Manage :class:`Instance` resources.
     """
-    resource_class = DbContainer
+    resource_class = Instance
 
     def create(self, name, flavor_id, volume, databases=None):
         """
-        Create (boot) a new dbcontainer.
+        Create (boot) a new instance.
         """
-        body = {"dbcontainer": {
+        body = {"instance": {
             "name": name,
             "flavorRef": flavor_id,
             "volume": volume
         }}
         if databases:
-            body["dbcontainer"]["databases"] = databases
+            body["instance"]["databases"] = databases
 
-        return self._create("/dbcontainers", body, "dbcontainer")
+        return self._create("/instances", body, "instance")
 
     def _list(self, url, response_key):
         resp, body = self.api.client.get(url)
@@ -61,41 +61,41 @@ class DbContainers(base.ManagerWithFind):
 
     def list(self):
         """
-        Get a list of all dbcontainers.
+        Get a list of all instances.
 
-        :rtype: list of :class:`DbContainer`.
+        :rtype: list of :class:`Instance`.
         """
-        return self._list("/dbcontainers/detail", "dbcontainers")
+        return self._list("/instances/detail", "instances")
 
     def index(self):
         """
-        Get a list of all dbcontainers.
+        Get a list of all instances.
 
-        :rtype: list of :class:`DbContainer`.
+        :rtype: list of :class:`Instance`.
         """
-        return self._list("/dbcontainers", "dbcontainers")
+        return self._list("/instances", "instances")
 
     def details(self):
         """
-        Get details of all dbcontainers.
+        Get details of all instances.
 
-        :rtype: list of :class:`DbContainer`.
+        :rtype: list of :class:`Instance`.
         """
-        return self._list("/dbcontainers/detail", "dbcontainers")
+        return self._list("/instances/detail", "instances")
 
-    def get(self, dbcontainer):
+    def get(self, instance):
         """
-        Get a specific containers.
+        Get a specific instances.
 
-        :rtype: :class:`DbContainer`
+        :rtype: :class:`Instance`
         """
-        return self._get("/dbcontainers/%s" % base.getid(dbcontainer),
-                        "dbcontainer")
+        return self._get("/instances/%s" % base.getid(instance),
+                        "instance")
 
-    def delete(self, dbcontainer):
+    def delete(self, instance):
         """
-        Delete the specified container.
+        Delete the specified instance.
 
-        :param dbcontainer_id: The container id to delete
+        :param instance_id: The instance id to delete
         """
-        self._delete("/dbcontainers/%s" % base.getid(dbcontainer))
+        self._delete("/instances/%s" % base.getid(instance))

@@ -40,16 +40,16 @@ class Controller(object):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
-    def show(self, req, dbcontainer_id, id):
+    def show(self, req, instance_id, id):
         raise exc.HTTPNotImplemented()
 
-    def index(self, req, dbcontainer_id):
-        """ Returns a list of Databases for the DBContainer """
-        LOG.info("Call to Databases index - %s", dbcontainer_id)
+    def index(self, req, instance_id):
+        """ Returns a list of Databases for the Instance """
+        LOG.info("Call to Databases index - %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
-        result = self.guest_api.list_databases(ctxt, dbcontainer_id)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
+        result = self.guest_api.list_databases(ctxt, instance_id)
         LOG.debug("LIST DATABASES RESULT - %s", str(result))
         databases = {'databases':[]}
         for database in result:
@@ -59,30 +59,30 @@ class Controller(object):
         LOG.debug("LIST DATABASES RETURN - %s", databases)
         return databases
 
-    def delete(self, req, dbcontainer_id, id):
+    def delete(self, req, instance_id, id):
         """ Deletes a Database """
-        LOG.info("Call to Delete Database - %s for container %s",
-                 id, dbcontainer_id)
+        LOG.info("Call to Delete Database - %s for instance %s",
+                 id, instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
         mydb = models.MySQLDatabase()
         mydb.name = id
 
-        self.guest_api.delete_database(ctxt, dbcontainer_id, mydb.serialize())
+        self.guest_api.delete_database(ctxt, instance_id, mydb.serialize())
         return exc.HTTPAccepted()
 
-    def create(self, req, dbcontainer_id, body):
-        """ Creates a new Database in the specified container """
+    def create(self, req, instance_id, body):
+        """ Creates a new Database in the specified instance """
         self._validate(body)
 
-        LOG.info("Call to Create Databases for container %s", dbcontainer_id)
+        LOG.info("Call to Create Databases for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, dbcontainer_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
 
         databases = common.populate_databases(body.get('databases', ''))
-        self.guest_api.create_database(ctxt, dbcontainer_id, databases)
+        self.guest_api.create_database(ctxt, instance_id, databases)
         return exc.HTTPAccepted("")
 
     def _validate(self, body):

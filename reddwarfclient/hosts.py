@@ -18,7 +18,7 @@ from novaclient import base
 
 class Host(base.Resource):
     """
-    A Hosts is an opaque container used to store Host instances.
+    A Hosts is an opaque instance used to store Host instances.
     """
     def __repr__(self):
         return "<Host: %s>" % self.name

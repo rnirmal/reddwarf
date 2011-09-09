@@ -98,25 +98,25 @@ class Auth(object):
 
 
 class ListCommands(object):
-    """List details of DBContainers, Databases, Users, Flavors and Images"""
+    """List details of Instances, Databases, Users, Flavors and Images"""
 
     def __init__(self):
         pass
 
-    def dbcontainers(self, options):
-        """List all DBContainers for account"""
+    def instances(self, options):
+        """List all Instances for account"""
         dbaas = _get_client(options)
         try:
-            for dbcontainer in dbaas.dbcontainers.list():
-                _pretty_print(dbcontainer._info)
+            for instance in dbaas.instances.list():
+                _pretty_print(instance._info)
         except:
             print sys.exc_info()[1]
 
-    def dbcontainer(self, options, id):
-        """List details for the specified DBContainer"""
+    def instance(self, options, id):
+        """List details for the specified Instance"""
         dbaas = _get_client(options)
         try:
-            _pretty_print(dbaas.dbcontainers.get(id)._info)
+            _pretty_print(dbaas.instances.get(id)._info)
         except:
             print sys.exc_info()[1]
 
@@ -139,7 +139,7 @@ class ListCommands(object):
             print sys.exc_info()[1]
 
     def users(self, options, id):
-        """List the users on a dbcontainer's database"""
+        """List the users on a instance's database"""
         dbaas = _get_client(options)
         try:
             for user in dbaas.users.list(id):
@@ -148,7 +148,7 @@ class ListCommands(object):
             print sys.exc_info()[1]
 
     def databases(self, options, id):
-        """List the databases on a dbcontainer"""
+        """List the databases on a instance"""
         dbaas = _get_client(options)
         try:
             for database in dbaas.databases.list(id):
@@ -157,7 +157,7 @@ class ListCommands(object):
             print sys.exc_info()[1]
 
     def root(self, options, id):
-        """Check the container for root access"""
+        """Check the instance for root access"""
         dbaas = _get_client(options)
         try:
             _pretty_print(dbaas.root.is_root_enabled(id))
@@ -166,23 +166,23 @@ class ListCommands(object):
 
 
 class CreateCommands(object):
-    """Create DBContainers, Databases and Users"""
+    """Create Instances, Databases and Users"""
 
     def __init__(self):
         pass
 
-    def dbcontainer(self, options, name, volume_size, flavorRef="http://localhost:8775/v1.0/flavors/1"):
-        """Create a new dbcontainer"""
+    def instance(self, options, name, volume_size, flavorRef="http://localhost:8775/v1.0/flavors/1"):
+        """Create a new instance"""
         dbaas = _get_client(options)
         volume = {"size":volume_size}
         try:
-            result = dbaas.dbcontainers.create(name, flavorRef, volume)
+            result = dbaas.instances.create(name, flavorRef, volume)
             _pretty_print(result._info)
         except:
             print sys.exc_info()[1]
 
     def database(self, options, id, dbname):
-        """Create a database within the specified dbcontainer"""
+        """Create a database within the specified instance"""
         dbaas = _get_client(options)
         try:
             databases = [{'name': dbname}]
@@ -191,7 +191,7 @@ class CreateCommands(object):
             print sys.exc_info()[1]
 
     def user(self, options, id, username, password, dbname, *args):
-        """Create a user in dbcontainer, with access to one or more databases"""
+        """Create a user in instance, with access to one or more databases"""
         dbaas = _get_client(options)
         try:
             databases = [{'name': dbname}]
@@ -203,7 +203,7 @@ class CreateCommands(object):
             print sys.exc_info()[1]
 
     def root(self, options, id):
-        """Enabling the container's root user."""
+        """Enabling the instance's root user."""
         dbaas = _get_client(options)
         try:
             user, password = dbaas.root.create(id)
@@ -213,21 +213,21 @@ class CreateCommands(object):
 
             
 class DeleteCommands(object):
-    """Delete DBContainers, Databases and Users"""
+    """Delete Instances, Databases and Users"""
 
     def __init__(self):
         pass
 
-    def dbcontainer(self, options, id):
-        """Delete the specified dbcontainer"""
+    def instance(self, options, id):
+        """Delete the specified instance"""
         dbaas = _get_client(options)
         try:
-            dbaas.dbcontainers.delete(id)
+            dbaas.instances.delete(id)
         except:
             print sys.exc_info()[1]
 
     def database(self, options, id, dbname):
-        """Delete the specified database in the dbcontainer"""
+        """Delete the specified database in the instance"""
         dbaas = _get_client(options)
         try:
             dbaas.databases.delete(id, dbname)
@@ -235,7 +235,7 @@ class DeleteCommands(object):
             print sys.exc_info()[1]
 
     def user(self, options, id, user):
-        """Delete the specified user in the dbcontainer"""
+        """Delete the specified user in the instance"""
         dbaas = _get_client(options)
         try:
             dbaas.users.delete(id, user)
@@ -243,7 +243,7 @@ class DeleteCommands(object):
             print sys.exc_info()[1]
 
     def root(self, options, id):
-        """Delete the container's root user."""
+        """Delete the instance's root user."""
         dbaas = _get_client(options)
         try:
             dbaas.root.delete(id)
@@ -274,8 +274,8 @@ class MgmtCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def dbcontainer(self, options, id):
-        """List details for the specified DBContainer"""
+    def instance(self, options, id):
+        """List details for the specified Instance"""
         dbaas = _get_client(options)
         try:
             _pretty_print(dbaas.management.show(id)._info)

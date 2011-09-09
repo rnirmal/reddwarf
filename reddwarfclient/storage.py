@@ -17,7 +17,7 @@ from novaclient import base
 
 class Device(base.Resource):
     """
-    Storage is an opaque container used to hold storage information.
+    Storage is an opaque instance used to hold storage information.
     """
     def __repr__(self):
         return "<Device: %s>" % self.name
