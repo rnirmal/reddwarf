@@ -316,10 +316,9 @@ class Controller(object):
         # Add mount point
         server['metadata']['mount_point'] = str(mount_point)
         # Add databases
-        db_list = dbcontainer.get('databases', [])
         # We create these once and throw away the result to take advantage
         # of the validators.
-        common.populate_databases(db_list)
+        db_list = common.populate_databases(dbcontainer.get('databases', []))
         server['metadata']['database_list'] = json.dumps(db_list)
         return server
 

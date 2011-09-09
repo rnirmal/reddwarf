@@ -69,8 +69,7 @@ class ReddwarfInstanceMetaData(object):
         self.volume_mount_point = metadata.get('mount_point',
                                                "/mnt/" + str(self.volume_id))
         # Get the databases to create along with this instance.
-        databases_list = json.loads(metadata['database_list'])
-        self.databases = common.populate_databases(databases_list)
+        self.databases = json.loads(metadata['database_list'])
 
 
 class ReddwarfInstanceInitializer(object):
@@ -83,8 +82,9 @@ class ReddwarfInstanceInitializer(object):
 
     """
 
-    def __init__(self, db, context, instance_id, volume_id=None, volume=None,
-                 volume_mount_point=None, databases=None):
+    def __init__(self, compute_manager, db, context, instance_id,
+                 volume_id=None, volume=None, volume_mount_point=None,
+                 databases=None):
         """Creates a new instance."""
         self.db = db
         self.context = context
@@ -93,14 +93,16 @@ class ReddwarfInstanceInitializer(object):
         self.volume = volume
         self.volume_mount_point = volume_mount_point
         self.databases = databases
+        self.compute_manager = compute_manager
 
-    def _abort_guest_install(self, compute_manager):
+
+    def _abort_guest_install(self):
         """Sets the guest state to FAIL continuously until an instance is known
          to have been suspended, or raises a PollTimeOut exception."""
         self._set_instance_status_to_fail()
         LOG.audit(_("Aborting db instance %d.") % self.instance_id,
                   context=self.context)
-        compute_manager.suspend_instance(self.context, self.instance_id)
+        self.compute_manager.suspend_instance(self.context, self.instance_id)
 
         # Wait for the state has become suspended so we know the guest won't
         # wake up and change its state. All the while until the end, set
@@ -131,7 +133,7 @@ class ReddwarfInstanceInitializer(object):
                                 self.instance_id, self.volume_mount_point)
         volume_api.update(self.context, self.volume_id, {})
     
-    def initialize_guest(self, compute_manager, guest_api):
+    def initialize_guest(self, guest_api):
         """Tell the guest to initialize itself and wait for it to happen.
 
         This method aborts the guest if there's a timeout.
@@ -152,14 +154,14 @@ class ReddwarfInstanceInitializer(object):
                 event_type='reddwarf.instance.abort.guest',
                 audit_msg=_("Aborting instance %(instance_id)d because the "
                             "guest did not initialize."))
-            self._abort_guest_install(compute_manager)
+            self._abort_guest_install()
             return False
 
-    def initialize_compute_instance(self, compute_manager, **kwargs):
+    def initialize_compute_instance(self, **kwargs):
         """Runs underlying compute instance and aborts if any errors occur."""
         try:
-            compute_manager.run_instance(self.context,
-                                         self.instance_id, **kwargs)
+            self.compute_manager.run_instance(self.context,
+                                              self.instance_id, **kwargs)
             return True
         except Exception as exception:
             self._set_instance_status_to_fail()
@@ -167,17 +169,19 @@ class ReddwarfInstanceInitializer(object):
                 event_type='reddwarf.instance.abort.compute',
                 audit_msg=_("Aborting instance %(instance_id)d because the "
                             "underlying compute instance failed to run."))
-            compute_manager.suspend_instance(self.context, self.instance_id)
+            self.compute_manager.suspend_instance(self.context,
+                                                  self.instance_id)
             return False
 
-    def initialize_volume(self, compute_manager, volume_api, volume_client,
+    def initialize_volume(self, volume_api, volume_client,
                           host):
         try:
             self._ensure_volume_is_ready(volume_api, volume_client, host)
             return True
         except Exception as exception:
             self._set_instance_status_to_fail()
-            compute_manager.suspend_instance(self.context, self.instance_id)
+            self.compute_manager.suspend_instance(self.context,
+                                                  self.instance_id)
             self._notify_of_failure(exception=exception,
                 event_type='reddwarf.instance.abort.volume',
                 audit_msg=_("Aborting instance %(instance_id)d because "
@@ -202,7 +206,6 @@ class ReddwarfInstanceInitializer(object):
         def volume_is_available():
             volume = self.db.volume_get(self.context, self.volume_id)
             status = volume['status']
-            LOG.debug("DOG %s" % status)
             if status == 'creating':
                 return False
             elif status == 'available':
@@ -230,13 +233,13 @@ class ReddwarfComputeManager(ComputeManager):
         occur when the REST API is called.
 
         """
-        metadata = ReddwarfInstanceMetaData(self.db, context, instance_id)
-        instance = ReddwarfInstanceInitializer(self.db, context,
-            instance_id, metadata.volume_id, metadata.volume,
-            metadata.volume_mount_point, metadata.databases)
         compute_manager = super(ReddwarfComputeManager, self)
+        metadata = ReddwarfInstanceMetaData(self.db, context, instance_id)
+        instance = ReddwarfInstanceInitializer(compute_manager, self.db,
+            context, instance_id, metadata.volume_id, metadata.volume,
+            metadata.volume_mount_point, metadata.databases)
         # If any steps return False, cancel subsequent steps.
-        (instance.initialize_volume(compute_manager, self.volume_api,
+        (instance.initialize_volume(self.volume_api,
                                     self.volume_client, self.host) and
-         instance.initialize_compute_instance(compute_manager, **kwargs) and
-         instance.initialize_guest(compute_manager, self.guest_api))
+         instance.initialize_compute_instance(**kwargs) and
+         instance.initialize_guest(self.guest_api))

@@ -381,15 +381,6 @@ class ComputeManager(manager.SchedulerDependentManager):
                            % locals())
                 raise exception.ImageTooLarge()
 
-        try:
-            self.ensure_volume_is_ready(context, instance_id)
-        except exception.VolumeProvisioningError as ex:
-            LOG.error(ex)
-            msg = ("Volume for Instance '%(instance_id)s' failed to create. "
-                    "Details: %(ex)s")
-            self._update_state(context, instance_id, power_state.FAILED)
-            return 
-
         context = context.elevated()
         instance = self.db.instance_get(context, instance_id)
 

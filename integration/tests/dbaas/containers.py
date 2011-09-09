@@ -275,7 +275,36 @@ class AccountMgmtData(unittest.TestCase):
         self.assertEqual(container['id'], container_info.id)
         self.assertEqual(container['name'], container_info.name)
 
+
 @test(depends_on_classes=[CreateContainer], groups=[GROUP, GROUP_START])
+class WaitForGuestInstallationToFinish(unittest.TestCase):
+    """
+        Wait until the Guest is finished installing.  It takes quite a while...
+    """
+
+    @time_out(60 * 8)
+    def test_container_created(self):
+        #/vz/private/1/var/log/nova/nova-guest.log
+        while True:
+            status, err = process(
+                """grep "Dbaas" /vz/private/%s/var/log/nova/nova-guest.log"""
+                % str(container_info.id))
+            guest_status = dbapi.guest_status_get(container_info.id)
+            if guest_status.state != power_state.RUNNING:
+                result = dbaas.dbcontainers.get(container_info.id)
+                # I think there's a small race condition which can occur
+                # between the time you grab "guest_status" and "result," so
+                # RUNNING is allowed in addition to BUILDING.
+                self.assertTrue(
+                    result.status == _dbaas_mapping[power_state.BUILDING] or
+                    result.status == _dbaas_mapping[power_state.RUNNING],
+                    "Result status was %s" % result.status)
+                time.sleep(5)
+            else:
+                break
+
+
+@test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 class VerifyGuestStarted(unittest.TestCase):
     """
         Test to verify the guest container is started and we can get the init
@@ -303,42 +332,6 @@ class VerifyGuestStarted(unittest.TestCase):
             container_info.pid = out.strip()
             if not container_info.pid:
                 time.sleep(10)
-            else:
-                break
-
-    def test_guest_status_db_building(self):
-        result = dbapi.guest_status_get(container_info.id)
-        self.assertEqual(result.state, power_state.BUILDING)
-
-    def test_guest_started_get_container(self):
-        result = dbaas.dbcontainers.get(container_info.id)
-        self.assertEqual(_dbaas_mapping[power_state.BUILDING], result.status)
-
-
-@test(depends_on_classes=[VerifyGuestStarted], groups=[GROUP, GROUP_START])
-class WaitForGuestInstallationToFinish(unittest.TestCase):
-    """
-        Wait until the Guest is finished installing.  It takes quite a while...
-    """
-
-    @time_out(60 * 8)
-    def test_container_created(self):
-        #/vz/private/1/var/log/nova/nova-guest.log
-        while True:
-            status, err = process(
-                """grep "Dbaas" /vz/private/%s/var/log/nova/nova-guest.log"""
-                % str(container_info.id))
-            guest_status = dbapi.guest_status_get(container_info.id)
-            if guest_status.state != power_state.RUNNING:
-                result = dbaas.dbcontainers.get(container_info.id)
-                # I think there's a small race condition which can occur
-                # between the time you grab "guest_status" and "result," so
-                # RUNNING is allowed in addition to BUILDING.
-                self.assertTrue(
-                    result.status == _dbaas_mapping[power_state.BUILDING] or
-                    result.status == _dbaas_mapping[power_state.RUNNING],
-                    "Result status was %s" % result.status)
-                time.sleep(5)
             else:
                 break
 

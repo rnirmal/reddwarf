@@ -21,27 +21,27 @@ GROUP='dbaas.guest.initialize.failure'
 
 
 from datetime import datetime
-from nose.tools import assert_true
-from novaclient.exceptions import NotFound
-from nova import context, utils
-from nova.api.platform.dbaas.dbcontainers import _dbaas_mapping
-from nova.compute import power_state
-from reddwarf.api.dbcontainers import _dbaas_mapping
-from reddwarf.db import api as dbapi
-from nova import flags
 
 from proboscis import after_class
 from proboscis import before_class
 from proboscis import test
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_false
+from proboscis.asserts import assert_true
 from proboscis.asserts import assert_is_not_none
 from proboscis.asserts import fail
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 
-from reddwarf.compute.manager import VALID_ABORT_STATES, ReddwarfInstanceMetaData
-
+from novaclient.exceptions import NotFound
+from nova import context, utils
+from reddwarf.api.dbcontainers import _dbaas_mapping
+from nova.compute import power_state
+from reddwarf.api.dbcontainers import _dbaas_mapping
+from reddwarf.db import api as dbapi
+from nova import flags
+from reddwarf.compute.manager import VALID_ABORT_STATES
+from reddwarf.compute.manager import ReddwarfInstanceMetaData
 from tests.util import test_config
 from tests.util import test_config
 from tests.util import check_database
@@ -91,9 +91,7 @@ class InstanceTest(object):
 
     def __init__(self):
         self.db = utils.import_object(FLAGS.db_driver)
-
         self.user = None  # The user instance who owns the container.
-
         self.dbaas = None  # The rich client instance used by these tests.
         self.dbaas_flavor = None # The flavor object of the container.
         self.dbaas_flavor_href = None  # The flavor of the container.
@@ -102,7 +100,6 @@ class InstanceTest(object):
         self.id = None  # The ID of the instance in the database.
         self.name = None  # Test name, generated each test run.
         self.volume = {'size': 1} # The volume the container will have.
-
         self.initial_result = None # The initial result from the create call.
 
     def init(self, name_prefix):
@@ -201,7 +198,7 @@ class InstanceTest(object):
 
 VOLUME_TIME_OUT=30
 @test(groups=[GROUP, GROUP + ".volume"],
-      depends_on_groups=["services.initialize"], enabled=False)
+      depends_on_groups=["services.initialize"])
 class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
 
     @before_class
@@ -300,7 +297,8 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
     @time_out(60 * 4)
     def wait_for_pid(self):
         """Wait for container PID."""
-        while True:
+        pid = None
+        while pid is None:
             guest_status = dbapi.guest_status_get(self.id)
             rest_api_result = self.dbaas.dbcontainers.get(self.id)
             out, err = process("pstree -ap | grep init | cut -d',' -f2 | vzpid - | grep %s | awk '{print $1}'"
@@ -313,8 +311,6 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
                 assert_equal(_dbaas_mapping[power_state.BUILDING],
                              rest_api_result.status)
                 time.sleep(10)
-            else:
-                break
 
     @test(depends_on=[wait_for_compute_instance_to_start, wait_for_pid])
     def should_have_created_volume(self):
@@ -326,7 +322,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
     def destroy_guest_and_wait_for_failure(self):
         """Make sure the Reddwarf Compute Manager FAILS a timed-out guest."""
 
-        # Utterly destroy the guest install.
+        # Utterly kill the guest install.
         process("sudo rm -rf /vz/private/%s/bin" % str(self.id))
 
         # Make sure that before the timeout expires the guest state in the
