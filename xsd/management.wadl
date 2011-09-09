@@ -25,12 +25,12 @@
         </resource>
       </resource>
       <resource id="guests" path="guests">
-         <resource id="guestUpgradeAll" path="upgradeall">
+         <resource id="resourceGuestUpgradeAll" path="upgradeall">
             <method href="#guestUpgradeAll"/>
          </resource>
          <resource id="guestUpgradeInstance" path="{instanceId}">
             <param name="instanceId" style="template" type="xsd:string"/>
-            <resource id="guestUpgrade" path="upgrade">
+            <resource id="resourceGuestUpgrade" path="upgrade">
                <method href="#guestUpgrade"/>
             </resource>
          </resource>
