@@ -341,15 +341,16 @@ if __name__ == '__main__':
     # front of it, automatically add that so we don't have to type as much
     show_elapsed = True
     argv = []
+    test_fixture = os.getenv("UNITTEST_FIXTURE", "reddwarf")
     for x in sys.argv:
         if x.startswith('test_'):
-            argv.append('nova.tests.%s' % x)
+            argv.append('%s.tests.%s' % (test_fixture, x))
         elif x.startswith('--hide-elapsed'):
             show_elapsed = False
         else:
             argv.append(x)
 
-    testdir = os.path.abspath(os.path.join("nova", "tests"))
+    testdir = os.path.abspath(os.path.join(test_fixture, "tests"))
     c = config.Config(stream=sys.stdout,
                       env=os.environ,
                       verbosity=3,
