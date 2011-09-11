@@ -19,7 +19,7 @@ pkg_install python-m2crypto python-twisted-web python-mox python-carrot python-b
 #TODO(hub-cap): Remvoe this silly ppa once we migrate to the natty narwhal.
 sudo add-apt-repository ppa:chris-lea/python-unittest2
 sudo apt-get update
-pkg_install python-unittest2
+pkg_install python-unittest2 python-feedparser python-tempo
 
 
 #prepare the build dir
@@ -65,6 +65,10 @@ mv debian/changelog.tmp debian/changelog
 
 #change the packages to lucid packages in the existing bzr checked out code
 sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
+
+# Remove the dependency on python-tempo
+# TODO(rnirmal): Remove this once we have python-flask for lucid or don't require it anymore
+sed -i.bak -e 's/python-tempo//g' debian/control
 
 #now hot-mod the guest file and platform api based on the existing stuff
 for file in `ls debian/ |grep nova-api`
