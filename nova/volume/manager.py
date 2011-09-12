@@ -173,8 +173,8 @@ class VolumeManager(manager.SchedulerDependentManager):
 
     def delete_volume_when_available(self, context, volume_id, time_out):
         """Waits until the volume is available and then deletes it."""
-        utils.poll_until(lambda : self.db.volume_get(context, volume_id),
-                         lambda volume : volume['status'] == 'available',
+        utils.poll_until(lambda: self.db.volume_get(context, volume_id),
+                         lambda volume: volume['status'] == 'available',
                          sleep_time=1, time_out=time_out)
         self.delete_volume(context, volume_id)
 
@@ -236,7 +236,9 @@ class VolumeManager(manager.SchedulerDependentManager):
         return self.driver.get_storage_device_info()
 
     def unassign_volume(self, context, volume_id, host):
-        """Un-Assigns an existing volume from a host (usually a compute node)."""
+        """
+        Un-Assigns an existing volume from a host (usually a compute node).
+        """
         self.driver.unassign_volume(volume_id, host)
 
     def update_info(self, context, volume_ref):

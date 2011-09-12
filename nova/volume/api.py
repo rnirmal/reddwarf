@@ -111,7 +111,7 @@ class API(base.Base):
         now = utils.utcnow()
         self.db.volume_update(context, volume_id, {'status': 'deleting',
                                                    'terminated_at': now})
-        host = volume['host'] # TODO(tim.simpson): Is this correct?
+        host = volume['host']  # TODO(tim.simpson): Is this correct?
         rpc.cast(context,
                  self.db.queue_get_for(context, FLAGS.volume_topic, host),
                  {"method": "delete_volume",
