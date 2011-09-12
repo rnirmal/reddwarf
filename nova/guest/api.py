@@ -71,7 +71,7 @@ class API(base.Base):
                  {"method": "create_database",
                   "args": {"databases": databases}
                  })
-        
+
     def list_databases(self, context, id):
         """Make an asynchronous call to list database users"""
         LOG.debug("Listing Users for Instance %s", id)

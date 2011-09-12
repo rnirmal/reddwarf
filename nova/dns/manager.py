@@ -28,6 +28,7 @@ FLAGS = flags.FLAGS
 
 LOG = logging.getLogger('nova.dns.manager')
 
+
 class DnsManager(Manager):
     """Handles associating DNS to and from IPs."""
 

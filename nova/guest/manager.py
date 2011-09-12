@@ -76,7 +76,8 @@ class GuestManager(manager.Manager):
         try:
             getattr(self.driver, status_method)()
         except AttributeError:
-            LOG.error("Method %s not found for driver %s", status_method, self.driver)
+            LOG.error("Method %s not found for driver %s", status_method,
+                      self.driver)
 
     def upgrade(self, context):
         """Upgrade the guest agent and restart the agent"""
@@ -92,4 +93,5 @@ class GuestManager(manager.Manager):
             return getattr(self.driver, method)(*args, **kwargs)
         except AttributeError:
             LOG.error("Method %s not found for driver %s", method, self.driver)
-            raise exception.NotFound("Method not available for the chosen driver")
+            raise exception.NotFound("Method not available for the "
+                                     "chosen driver")

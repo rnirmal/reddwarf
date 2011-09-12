@@ -49,7 +49,7 @@ class EntryToRecordConverter(object):
         self.default_dns_zone = default_dns_zone
 
     def domain_to_dns_zone(self, domain):
-       return RsDnsZone(id=domain.id, name=domain.name)
+        return RsDnsZone(id=domain.id, name=domain.name)
 
     def name_to_long_name(self, name, dns_zone=None):
         dns_zone = dns_zone or self.default_dns_zone
@@ -71,7 +71,7 @@ def create_client_with_flag_values():
         raise RuntimeError("Missing flag value for dns_management_base_url.")
     return DNSaas(FLAGS.dns_account_id, FLAGS.dns_username, FLAGS.dns_passkey,
                   auth_url=FLAGS.dns_auth_url,
-                  management_base_url = FLAGS.dns_management_base_url)
+                  management_base_url=FLAGS.dns_management_base_url)
 
 
 def find_default_zone(dns_client, raise_if_zone_missing=True):
@@ -79,22 +79,23 @@ def find_default_zone(dns_client, raise_if_zone_missing=True):
 
     Because RS DNSaaS needs the ID, we need to find this value before we start.
     In testing it's difficult to keep up with it because the database keeps
-    getting wiped... maybe later we could go back to storing it as a FLAG value.
+    getting wiped... maybe later we could go back to storing it as a FLAG value
 
     """
     domain_name = FLAGS.dns_domain_name
     try:
-        domains = dns_client.domains.list() # name=domain_name)
+        domains = dns_client.domains.list()
         for domain in domains:
             if domain.name == domain_name:
-                return RsDnsZone(id = domain.id, name = domain_name)
+                return RsDnsZone(id=domain.id, name=domain_name)
     except NotFound:
         pass
     if not raise_if_zone_missing:
-        return RsDnsZone(id = None, name = domain_name)
+        return RsDnsZone(id=None, name=domain_name)
     raise RuntimeError("The dns_domain_name from the FLAG values (%s) "
                        "does not exist!  account_id=%s, username=%s, LIST=%s"
         % (domain_name, FLAGS.dns_account_id, FLAGS.dns_username, domains))
+
 
 class RsDnsDriver(object):
     """Uses RS DNSaaS"""
@@ -110,7 +111,7 @@ class RsDnsDriver(object):
         dns_zone = entry.dns_zone or self.default_dns_zone
         if dns_zone.id == None:
             raise TypeError("The entry's dns_zone must have an ID specified.")
-        name = entry.name # + "." + dns_zone.name
+        name = entry.name  # + "." + dns_zone.name
         self.dns_client.records.create(domain=dns_zone.id,
                                        record_name=name,
                                        record_data=entry.content,
@@ -129,7 +130,7 @@ class RsDnsDriver(object):
 
     def get_entries(self, name=None, content=None, dns_zone=None):
         dns_zone = dns_zone or self.default_dns_zone
-        long_name = name # self.converter.name_to_long_name(name)
+        long_name = name  # self.converter.name_to_long_name(name)
         records = self.dns_client.records.list(domain_id=dns_zone.id,
                                                record_name=long_name,
                                                record_address=content)
@@ -142,9 +143,10 @@ class RsDnsDriver(object):
     def get_entries_by_name(self, name, dns_zone=None):
         return self.get_entries(name=name, dns_zone=dns_zone)
 
-    def get_dns_zones(self, name=None):        
+    def get_dns_zones(self, name=None):
         domains = self.dns_client.domains.list(name=name)
-        return [self.converter.domain_to_dns_zone(domain) for domain in domains]
+        return [self.converter.domain_to_dns_zone(domain)
+                for domain in domains]
 
     def modify_content(self, *args, **kwargs):
         raise NotImplementedError("Not implemented for RS DNS.")
@@ -166,8 +168,8 @@ class RsDnsInstanceEntryFactory(object):
 
         # TODO (mbasnight): This should be extracted to a utility method so the
         #                   ovz conn can use it.
-        # TODO (mbasnight): This, as-is wont work unless we are very strict with
-        #                   what constitutes a valid display_name
+        # TODO (mbasnight): This, as-is wont work unless we are very strict
+        #                   with what constitutes a valid display_name
         user_id = instance.get('user_id', None)
         id = instance.get('id', None)
         if not user_id:

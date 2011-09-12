@@ -48,4 +48,3 @@ if __name__ == '__main__':
     server = service.Service.create(binary='nova-guest')
     service.serve(server)
     service.wait()
-    

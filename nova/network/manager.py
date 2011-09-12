@@ -842,7 +842,6 @@ class NetworkManager(manager.SchedulerDependentManager):
         else:
             LOG.debug(_("No address found for instance_id %i") % instance_id)
 
-
     def _allocate_fixed_ips(self, context, instance_id, host, networks,
                             **kwargs):
         """Calls allocate_fixed_ip once for each network."""

@@ -54,11 +54,13 @@ flags.DEFINE_string('iscsi_ip_prefix', '$my_ip',
                     'discover volumes on the ip that starts with this prefix')
 flags.DEFINE_string('rbd_pool', 'rbd',
                     'the rbd pool in which volumes are stored')
-flags.DEFINE_integer('volume_format_timeout', 120, 'timeout for formatting volumes')
+flags.DEFINE_integer('volume_format_timeout', 120,
+                     'timeout for formatting volumes')
 flags.DEFINE_string('volume_fstype', 'ext3',
                     'The file system type used to format and mount volumes.')
 flags.DEFINE_string('san_ip', '',
                     'IP address of SAN controller')
+
 
 class VolumeDriver(object):
     """Executes commands relating to Volumes."""
@@ -286,7 +288,8 @@ class VolumeDriver(object):
     def _format(self, device_path):
         """Calls mkfs to format the device at device_path."""
         child = pexpect.spawn("sudo mkfs -t %s %s" % (FLAGS.volume_fstype,
-                              device_path), timeout=FLAGS.volume_format_timeout)
+                              device_path),
+                              timeout=FLAGS.volume_format_timeout)
         child.expect("(y,n)")
         child.sendline('y')
         child.expect(pexpect.EOF)
@@ -625,7 +628,8 @@ class ISCSIDriver(VolumeDriver):
 
         (out, _err) = self._execute('iscsiadm', '-m', 'discovery',
                                     '-t', 'sendtargets', '-p', volume['host'],
-                                    run_as_root=True, attempts=FLAGS.num_shell_tries)
+                                    run_as_root=True,
+                                    attempts=FLAGS.num_shell_tries)
         for target in out.splitlines():
             if FLAGS.iscsi_ip_prefix in target and volume_name in target:
                 return target
@@ -691,7 +695,8 @@ class ISCSIDriver(VolumeDriver):
         (out, err) = self._execute('iscsiadm', '-m', 'node', '-T',
                                    iscsi_properties['target_iqn'],
                                    '-p', iscsi_properties['target_portal'],
-                                   iscsi_command, run_as_root=True, attempts=num_tries)
+                                   iscsi_command, run_as_root=True,
+                                   attempts=num_tries)
         LOG.debug("iscsiadm %s: stdout=%s stderr=%s" %
                   (iscsi_command, out, err))
         return (out, err)
@@ -724,13 +729,15 @@ class ISCSIDriver(VolumeDriver):
     def discover_volume(self, context, volume):
         """Discover volume on a remote host."""
 
-        iscsi_properties = self.get_iscsi_properties_for_volume(context, volume)
+        iscsi_properties = self.get_iscsi_properties_for_volume(context,
+                                                                volume)
         self.set_iscsi_auth(iscsi_properties)
 
         try:
             self._run_iscsiadm(iscsi_properties, "--login",
                                num_tries=FLAGS.num_shell_tries)
-            self._iscsiadm_update(iscsi_properties, "node.startup", "automatic")
+            self._iscsiadm_update(iscsi_properties, "node.startup",
+                                  "automatic")
         except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error(_("iSCSI device %s not found") %

@@ -38,8 +38,10 @@ flags.DEFINE_string('scheduler_driver',
                     'nova.scheduler.multi.MultiScheduler',
                     'Default driver to use for the scheduler')
 
+
 def publisher_id(host=None):
     return notifier.publisher_id("scheduler", host)
+
 
 class SchedulerManager(manager.Manager):
     """Chooses a host to run instances on."""

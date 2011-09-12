@@ -27,6 +27,7 @@ from nova.db.base import Base
 LOG = logging.getLogger("nova.volume.volume_client")
 FLAGS = flags.FLAGS
 
+
 class VolumeClient(Base):
     """A helper class to perform the volume activities on a compute node."""
 
@@ -52,7 +53,7 @@ class VolumeClient(Base):
         if not db.volume_get(context, volume_id)['uuid']:
             self._format(dev_path)
             uuid = self.get_uuid(dev_path)
-            self.db.volume_update(context, volume_id, {'uuid':uuid})
+            self.db.volume_update(context, volume_id, {'uuid': uuid})
         return dev_path
 
     def refresh(self, context, volume_id):

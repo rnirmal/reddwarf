@@ -21,6 +21,7 @@ import socket
 
 instance_id = None
 
+
 def get_instance_id():
     """Return the instance id for this guest"""
     global instance_id

@@ -49,12 +49,11 @@ class API(base.Base):
             return new_instance
         return instance
 
-
     def create_instance_entry(self, context, instance, content):
         """Make an asynchronous call to create a new entry for an instance."""
         converted_instance = self.convert_instance(instance)
-        LOG.debug("Creating instance entry for instance %s, with content %s" % \
-                  (converted_instance, content))
+        LOG.debug("Creating instance entry for instance %s, with content %s"
+                  % (converted_instance, content))
         rpc.cast(context,  FLAGS.dns_topic,
                  {'method': 'create_instance_entry',
                   'args': {'instance': converted_instance,
@@ -62,8 +61,8 @@ class API(base.Base):
 
     def delete_instance_entry(self, context, instance, content):
         """Make an asynchronous call to delete an entry for an instance."""
-        LOG.debug("Deleting instance entry for instance %s, with content %s" % \
-                  (instance, content))
+        LOG.debug("Deleting instance entry for instance %s, with content %s"
+                  % (instance, content))
         rpc.cast(context,  FLAGS.dns_topic,
                  {'method': 'delete_instance_entry',
                   'args': {'instance': self.convert_instance(instance),

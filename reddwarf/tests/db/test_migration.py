@@ -18,14 +18,24 @@ import migrate
 import unittest
 
 
+from nova import flags
+from nova.db import migration as nova_migration
 from reddwarf.db import migration
 
-
 sql_connection = "sqlite:///reddwarf_test.sqlite"
-current_version = 1
+current_version = 2
+
+
+FLAGS = flags.FLAGS
+FLAGS.Reset()
+FLAGS['sql_connection'].SetDefault(sql_connection)
+
 
 class DBMigrationTest(unittest.TestCase):
     """Test various Database migration scenarios"""
+
+    def test0_nova_db_sync(self):
+        nova_migration.db_sync()
 
     def test1_db_sync(self):
         version = migration.db_sync(sql_connection)
@@ -69,7 +79,7 @@ class DBMigrationTest(unittest.TestCase):
         try:
             migration.db_upgrade(sql_connection, version)
             self.assertFalse(True)
-        except migrate.versioning.exceptions.KnownError:
+        except migrate.exceptions.KnownError:
             self.assertTrue(True)
 
     def test5_db_downgrade_to_higher_version(self):
@@ -78,5 +88,5 @@ class DBMigrationTest(unittest.TestCase):
         try:
             migration.db_downgrade(sql_connection, version)
             self.assertFalse(True)
-        except migrate.versioning.exceptions.KnownError:
+        except migrate.exceptions.KnownError:
             self.assertTrue(True)
