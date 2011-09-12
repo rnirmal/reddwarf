@@ -156,19 +156,23 @@ if __name__ == '__main__':
             self.onError(test)
             super(IntegrationTestResult, self).addError(test, err)
 
-        def addSkip(self, test, err):
-            unittest.TestResult.addFailure(self, test, err)
-            self._handleElapsedTime(test)
-            raise RuntimeError('gdf')
-            self._writeResult(test, 'SKIP', 'yellow', 'S', False)
+        @staticmethod
+        def get_doc(cls_or_func):
+            """Grabs the doc abbreviated doc string."""
+            try:
+                return cls_or_func.__doc__.split("\n")[0].strip()
+            except (AttributeError, IndexError):
+                return None
 
         def startTest(self, test):
             unittest.TestResult.startTest(self, test)
             self.start_time = time.time()
+            test_name = None
             try:
                 entry = test.test.__proboscis_case__.entry
                 if entry.method:
                     current_class = entry.method.im_class
+                    test_name = self.get_doc(entry.home) or entry.home.__name__
                 else:
                     current_class = entry.home
             except AttributeError:
@@ -177,18 +181,19 @@ if __name__ == '__main__':
             if self.showAll:
                 if current_class.__name__ != self._last_case:
                     self.stream.writeln(current_class.__name__)
+                    self._last_case = current_class.__name__
                     try:
-                        doc = current_class.__doc__.split("\n")[0].strip()
+                        doc = self.get_doc(current_class)
                     except (AttributeError, IndexError):
                         doc = None
                     if doc:
                         self.stream.writeln(' ' + doc)
 
-                test_name = None
-                if hasattr(test.test, 'shortDescription'):
-                    test_name = test.test.shortDescription()
                 if not test_name:
-                    test_name = test.test._testMethodName
+                    if hasattr(test.test, 'shortDescription'):
+                        test_name = test.test.shortDescription()
+                    if not test_name:
+                        test_name = test.test._testMethodName
                 self.stream.write('    %s' %
                     '    %s' % str(test_name).ljust(60))
                 self.stream.flush()
