@@ -19,7 +19,7 @@ pkg_install python-m2crypto python-twisted-web python-mox python-carrot python-b
 #TODO(hub-cap): Remvoe this silly ppa once we migrate to the natty narwhal.
 sudo add-apt-repository ppa:chris-lea/python-unittest2
 sudo apt-get update
-pkg_install python-unittest2 python-feedparser python-tempo
+pkg_install python-unittest2 python-feedparser
 
 
 #prepare the build dir
