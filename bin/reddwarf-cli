@@ -30,7 +30,8 @@ import sys
 possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir,
                                    os.pardir))
-if os.path.exists(os.path.join(possible_topdir, 'reddwarfclient', '__init__.py')):
+if os.path.exists(os.path.join(possible_topdir, 'reddwarfclient',
+                               '__init__.py')):
     sys.path.insert(0, possible_topdir)
 if os.path.exists(os.path.join(possible_topdir, 'nova', '__init__.py')):
     sys.path.insert(0, possible_topdir)
@@ -58,7 +59,8 @@ def _get_client(options):
         print_commands()
         sys.exit(1)
     except:
-        print "ERROR: There was an error using your existing auth token, please login again.\n"
+        print "ERROR: There was an error using your existing auth token, " \
+              "please login again.\n"
         sys.exit(1)
 
 
@@ -78,7 +80,10 @@ class APIToken(object):
 
 
 class Auth(object):
-    """Authenticate with your usename and api key to get the auth token for future requests"""
+    """
+    Authenticate with your usename and api key to get the auth token
+    for future requests
+    """
 
     def __init__(self):
         pass
@@ -171,10 +176,11 @@ class CreateCommands(object):
     def __init__(self):
         pass
 
-    def instance(self, options, name, volume_size, flavorRef="http://localhost:8775/v1.0/flavors/1"):
+    def instance(self, options, name, volume_size,
+                 flavorRef="http://localhost:8775/v1.0/flavors/1"):
         """Create a new instance"""
         dbaas = _get_client(options)
-        volume = {"size":volume_size}
+        volume = {"size": volume_size}
         try:
             result = dbaas.instances.create(name, flavorRef, volume)
             _pretty_print(result._info)
@@ -211,7 +217,7 @@ class CreateCommands(object):
         except:
             print sys.exc_info()[1]
 
-            
+
 class DeleteCommands(object):
     """Delete Instances, Databases and Users"""
 

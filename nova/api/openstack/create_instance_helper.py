@@ -164,6 +164,8 @@ class CreateInstanceHelper(object):
                 'config_drive': config_drive,
                 'password': password}
 
+            # TODO (rnirmal): Fix the security groups to use the new api
+            # security_group=body['server'].get('firewallRules', None)
             return (extra_values,
                     create_method(context,
                                   inst_type,
@@ -179,7 +181,6 @@ class CreateInstanceHelper(object):
                                   access_ip_v6=server_dict.get('accessIPv6'),
                                   injected_files=injected_files,
                                   admin_password=password,
-                                  # security_group=body['server'].get('firewallRules', None),
                                   zone_blob=zone_blob,
                                   reservation_id=reservation_id,
                                   min_count=min_count,
@@ -431,7 +432,8 @@ class ServerXMLDeserializer(wsgi.XMLDeserializer):
 
     def _extract_firewallRules(self, server_node):
         """Unmarshal the firewallRules element of a parsed request"""
-        firewall_node = self._find_first_child_named(server_node, "firewallRules")
+        firewall_node = self._find_first_child_named(server_node,
+                                                     "firewallRules")
         if firewall_node is None:
             return None
         firewallRules = []
@@ -460,6 +462,7 @@ class ServerXMLDeserializer(wsgi.XMLDeserializer):
             if child.nodeType == child.TEXT_NODE:
                 return child.nodeValue
         return ""
+
 
 class ServerXMLDeserializerV11(wsgi.MetadataXMLDeserializer):
     """

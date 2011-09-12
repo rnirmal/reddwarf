@@ -116,6 +116,7 @@ def service_get_all_compute_sorted(context):
     """
     return IMPL.service_get_all_compute_sorted(context)
 
+
 def service_get_all_compute_memory(context):
     """Return a list of service nodes and the memory used at each.
 
@@ -123,6 +124,7 @@ def service_get_all_compute_memory(context):
 
     """
     return IMPL.service_get_all_compute_memory(context)
+
 
 def service_get_all_network_sorted(context):
     """Get all network services sorted by network count.
@@ -502,9 +504,11 @@ def instance_get_all(context):
     """Get all instances."""
     return IMPL.instance_get_all(context)
 
+
 def instance_state_get_all_by_user(context, user_id):
     """Return a dictionary mapping instance ids to states for a user."""
     return IMPL.instance_state_get_all_by_user(context, user_id)
+
 
 def instance_get_all_by_filters(context, filters):
     """Get all instances that match all filters."""

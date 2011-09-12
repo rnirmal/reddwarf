@@ -59,7 +59,6 @@ class ViewBuilder(object):
         """Return a simple model of a server."""
         return dict(server=dict(id=inst['id'], name=inst['display_name']))
 
-
     def _build_detail(self, inst):
         """Returns a detailed model of a server."""
 

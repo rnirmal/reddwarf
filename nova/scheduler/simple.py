@@ -42,6 +42,7 @@ flags.DEFINE_integer("max_networks", 1000,
 
 LOG = logging.getLogger('nova.scheduler.simple')
 
+
 class SimpleScheduler(chance.ChanceScheduler):
     """Implements Naive Scheduler that tries to find least loaded host."""
 
@@ -79,7 +80,7 @@ class SimpleScheduler(chance.ChanceScheduler):
 
     def schedule_start_instance(self, context, instance_id, *_args, **_kwargs):
         return self._schedule_instance(context, instance_id, *_args, **_kwargs)
-    
+
     @staticmethod
     def _schedule_now_on_host(context, host, instance_id):
         """Schedule the instance to run now on the given host."""
@@ -192,5 +193,5 @@ class UnforgivingMemoryScheduler(MemoryScheduler):
             memory_mb = db.instance_get(context, instance_id)['memory_mb']
             notifier.notify(manager.publisher_id(), 'out.of.instance.memory',
                             notifier.ERROR,
-                            {"requested_instance_memory_mb":memory_mb})
+                            {"requested_instance_memory_mb": memory_mb})
             raise OutOfInstanceMemory(instance_memory_mb=memory_mb)

@@ -83,13 +83,15 @@ class PkgAgent(object):
         Raises an exception if a non-recoverable error or time out occurs.
 
         """
-        child = pexpect.spawn("sudo -E DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated install %s" \
+        child = pexpect.spawn("sudo -E DEBIAN_FRONTEND=noninteractive "
+                              "apt-get -y --allow-unauthenticated install %s"
                               % package_name)
         try:
             i = child.expect(['.*password*',
                               'E: Unable to locate package %s' % package_name,
                               "Couldn't find package % s" % package_name,
-                              "dpkg was interrupted, you must manually run 'sudo dpkg --configure -a'",
+                              "dpkg was interrupted, you must manually run "
+                                "'sudo dpkg --configure -a'",
                               "Unable to lock the administration directory",
                               "Setting up %s*" % package_name,
                               "is already the newest version"],
@@ -116,14 +118,16 @@ class PkgAgent(object):
         Raises an exception if a non-recoverable error or time out occurs.
 
         """
-        child = pexpect.spawn("sudo -E apt-get -y --allow-unauthenticated remove %s" \
-                              % package_name)
+        child = pexpect.spawn("sudo -E apt-get -y --allow-unauthenticated "
+                              "remove %s" % package_name)
         try:
             i = child.expect(['.*password*',
                               'E: Unable to locate package %s' % package_name,
                               'Package is in a very bad inconsistent state',
-                              "Sub-process /usr/bin/dpkg returned an error code",
-                              "dpkg was interrupted, you must manually run 'sudo dpkg --configure -a'",
+                              "Sub-process /usr/bin/dpkg returned an "
+                                "error code",
+                              "dpkg was interrupted, you must manually run "
+                                "'sudo dpkg --configure -a'",
                               "Unable to lock the administration directory",
                               #'The following packages will be REMOVED',
                               "Removing %s*" % package_name],
@@ -152,7 +156,7 @@ class PkgAgent(object):
                 self._fix(time_out)
             result = self._install(package_name, time_out)
             if result != OK:
-                raise PkgPackageStateError("Package %s is in a bad state." \
+                raise PkgPackageStateError("Package %s is in a bad state."
                                            % package_name)
 
     def pkg_version(self, package_name):
@@ -204,5 +208,5 @@ class PkgAgent(object):
                 self._fix(time_out)
             result = self._remove(package_name, time_out)
             if result != OK:
-                raise PkgPackageStateError("Package %s is in a bad state." \
+                raise PkgPackageStateError("Package %s is in a bad state."
                                            % package_name)

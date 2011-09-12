@@ -274,6 +274,7 @@ def service_get_all_compute_sorted(context):
                                                subq,
                                                label)
 
+
 @require_admin_context
 def service_get_all_compute_memory(context):
     """Return a list of service nodes and the memory used at each.
@@ -299,6 +300,7 @@ def service_get_all_compute_memory(context):
                                                topic,
                                                subq,
                                                label)
+
 
 @require_admin_context
 def service_get_all_network_sorted(context):

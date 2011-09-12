@@ -61,6 +61,7 @@ MYSQL_RUNNING = re.compile("[\w\n]*mysql start/running. process [0-9]*[\w\n]*")
 def generate_random_password():
     return str(uuid.uuid4())
 
+
 def get_engine():
         """Create the default engine with the updated admin user"""
         #TODO(rnirmal):Based on permissions issues being resolved we may revert
@@ -81,6 +82,7 @@ def get_engine():
             LOG.error(_(err))
         return ENGINE
 
+
 class DBaaSAgent(object):
     """ Database as a Service Agent Controller """
 
@@ -93,7 +95,8 @@ class DBaaSAgent(object):
             for item in users:
                 user = models.MySQLUser()
                 user.deserialize(item)
-                #TODO(cp16net):Should users be allowed to create users 'os_admin' or 'debian-sys-maint'
+                # TODO(cp16net):Should users be allowed to create users
+                # 'os_admin' or 'debian-sys-maint'
                 t = text("""CREATE USER `%s`@:host IDENTIFIED BY '%s';"""
                          % (user.name, user.password))
                 client.execute(t, host=host)
@@ -112,7 +115,8 @@ class DBaaSAgent(object):
         client = LocalSqlClient(get_engine())
         with client:
             mysql_user = models.MySQLUser()
-            t = text("""select User from mysql.user where host != 'localhost';""")
+            t = text("""select User from mysql.user where host !=
+                     'localhost';""")
             result = client.execute(t)
             LOG.debug("result = " + str(result))
             for row in result:
@@ -155,7 +159,8 @@ class DBaaSAgent(object):
             # the lost+found directory will show up in mysql as a database
             # which will create errors if you try to do any database ops
             # on it.  So we remove it here if it exists.
-            t = text("""show databases where `Database` not in ('mysql', 'information_schema', 'lost+found');""")
+            t = text("""show databases where `Database` not in
+                     ('mysql', 'information_schema', 'lost+found');""")
             database_names = client.execute(t)
             t = text('''
             SELECT
@@ -173,7 +178,7 @@ class DBaaSAgent(object):
                 mysql_db = models.MySQLDatabase()
                 mysql_db.name = database[0]
                 charset, collation = [(ch, co) for (n, ch, co) in locales
-                    if n==mysql_db.name][0]
+                    if n == mysql_db.name][0]
                 mysql_db.collate = collation
                 mysql_db.character_set = charset
                 databases.append(mysql_db.serialize())

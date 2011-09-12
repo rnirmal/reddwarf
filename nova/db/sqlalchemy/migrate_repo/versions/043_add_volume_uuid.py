@@ -20,7 +20,7 @@ meta = MetaData()
 c_uuid = Column('uuid',
                 String(length=64, convert_unicode=False, assert_unicode=None,
                 unicode_error=None, _warn_on_bytestring=False),
-                nullable = True)
+                nullable=True)
 
 
 def upgrade(migrate_engine):
@@ -28,6 +28,7 @@ def upgrade(migrate_engine):
                       autoload_with=migrate_engine)
     meta.bind = migrate_engine
     volumes_table.create_column(c_uuid)
+
 
 def downgrade(migrate_engine):
     volumes_table = Table('volumes', meta, autoload=True,

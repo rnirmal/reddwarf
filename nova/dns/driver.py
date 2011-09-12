@@ -38,7 +38,7 @@ class DnsDriver(object):
         pass
 
     def get_entries_by_content(self, content, dns_zone=None):
-        """Retrieves all entries in a dns_zone with a matching content field."""
+        """Retrieves all entries in a dns_zone with a matching content field"""
         pass
 
     def get_entries_by_name(self, name, dns_zone=None):
@@ -95,7 +95,7 @@ class DnsEntry(object):
     def __repr__(self):
         return 'DnsEntry(name="%s", content="%s", type="%s", ' \
                'ttl=%s, priority=%s, dns_zone=%s)' % (self.name, self.content,
-                self.type, self.ttl, self.priority, self.dns_zone);
+                self.type, self.ttl, self.priority, self.dns_zone)
 
     def __str__(self):
         return "{ name:%s, content:%s, type:%s, zone:%s }" % \
