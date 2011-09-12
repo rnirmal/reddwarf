@@ -69,7 +69,7 @@ flags.DEFINE_bool('ovz_use_cpulimit',
                   'Use OpenVz cpulimit for maximum cpu limits')
 flags.DEFINE_bool('ovz_use_cpus',
                   True,
-                  'Use OpenVz cpus for maximum cpus available to the container')
+                  'Use OpenVz cpus for max cpus available to the container')
 flags.DEFINE_bool('ovz_use_ioprio',
                   True,
                   'Use IO fair scheduling')
@@ -91,8 +91,10 @@ flags.DEFINE_bool('ovz_use_disk_quotas',
 
 LOG = logging.getLogger('nova.virt.openvz')
 
+
 def get_connection(read_only):
     return OpenVzConnection(read_only)
+
 
 class OpenVzConnection(driver.ComputeDriver):
     def __init__(self, read_only):
@@ -121,7 +123,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         LOG.debug('Hostname: %s' % (host,))
         LOG.debug('Instances: %s' % (db.instance_get_all_by_host(ctxt, host)))
-        
+
         for instance in db.instance_get_all_by_host(ctxt, host):
             try:
                 LOG.debug('Checking state of %s' % instance['name'])
@@ -199,7 +201,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         return infos
 
-    def spawn(self, context, instance, network_info=None, block_device_mapping=None):
+    def spawn(self, context, instance, network_info=None,
+              block_device_mapping=None):
         """
         Create a new virtual environment on the container platform.
 
@@ -253,11 +256,11 @@ class OpenVzConnection(driver.ComputeDriver):
             self._set_ioprio(instance)
         if FLAGS.ovz_use_disk_quotas:
             self._set_diskspace(instance)
-            
+
         self._start(instance)
         self._initial_secure_host(instance)
         self._gratuitous_arp_all_addresses(instance, network_info)
-        
+
         # Begin making our looping async call
         timer = utils.LoopingCall(f=None)
 
@@ -283,7 +286,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         timer.f = _wait_for_boot
         return timer.start(interval=0.5, now=True)
-    
+
     def _create_vz(self, instance, ostemplate='ubuntu'):
         """
         Attempt to load the image from openvz's image cache, upon failure
@@ -342,7 +345,8 @@ class OpenVzConnection(driver.ComputeDriver):
             project = manager.AuthManager().get_project(instance['project_id'])
 
             # Grab image and place it in the image cache
-            images.fetch(context, instance['image_ref'], full_image_path, user, project)
+            images.fetch(context, instance['image_ref'], full_image_path, user,
+                         project)
             return True
         else:
             return False
@@ -353,7 +357,6 @@ class OpenVzConnection(driver.ComputeDriver):
         OpenVz acknowledges it as a container.  Punting to a basic
         config for now.
         """
-        
         try:
             # Set the base config for the VE, this currently defaults to the
             # basic config.
@@ -365,8 +368,8 @@ class OpenVzConnection(driver.ComputeDriver):
                 LOG.error(err)
 
         except ProcessExecutionError:
-            raise exception.Error('Failed to add %s to OpenVz' % instance['id'])
-
+            raise exception.Error('Failed to add %s to OpenVz'
+                                  % instance['id'])
 
     def _start(self, instance):
         """
@@ -413,7 +416,8 @@ class OpenVzConnection(driver.ComputeDriver):
                                   power_state.SHUTDOWN)
         except exception.DBError as err:
             LOG.error(err)
-            raise exception.Error('Failed to update db for %s' % instance['id'])
+            raise exception.Error('Failed to update db for %s'
+                                  % instance['id'])
 
     def _setup_networks(self, instance, network_info):
         """Setup all the provided networks
@@ -425,7 +429,7 @@ class OpenVzConnection(driver.ComputeDriver):
         for eth_id, network in enumerate(network_info):
             bridge = network[0]["bridge"]
             netif = network[0]["bridge_interface"] \
-                        if network[0].has_key("bridge_interface") \
+                        if "bridge_interface" in network[0] \
                         else "eth%s" % eth_id
             ip = network[1]["ips"][0]["ip"]
             netmask = network[1]["ips"][0]["netmask"]
@@ -847,7 +851,6 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error('Error setting diskspace quota for %s' %
                                   (instance['id'],))
 
-
     def snapshot(self, instance, name):
         """
         Snapshots the specified instance.
@@ -882,7 +885,6 @@ class OpenVzConnection(driver.ComputeDriver):
         except ProcessExecutionError:
             raise exception.Error('Failed to restart container: %d' %
                                   instance['id'])
-
 
     def set_admin_password(self, instance, new_pass):
         """
@@ -1044,7 +1046,7 @@ class OpenVzConnection(driver.ComputeDriver):
         except exception.NotFound as err:
             LOG.error(err)
             LOG.error('Instance %s Not Found' % instance_name)
-            raise exception.NotFound('Instance %s Not Found' % instance_name )
+            raise exception.NotFound('Instance %s Not Found' % instance_name)
 
         # Store the assumed state as the default
         state = instance['state']
@@ -1223,8 +1225,9 @@ class OpenVzConnection(driver.ComputeDriver):
         the overall host memory. This can then be applied to the cpuunits in
         self.utility to be passed as an argument to the self._set_cpuunits
         method to limit cpu usage of the container to an accurate percentage of
-        the host.  This is only done on self.spawn so that later, should someone
-        choose to do so, they can adjust the container's cpu usage up or down.
+        the host.  This is only done on self.spawn so that later, should
+        someone choose to do so, they can adjust the container's cpu usage
+        up or down.
         """
         instance_type = instance_types.get_instance_type(
             instance['instance_type_id'])
@@ -1232,8 +1235,8 @@ class OpenVzConnection(driver.ComputeDriver):
                       float(self.utility['MEMORY_MB'])
 
         # We shouldn't ever have more than 100% but if for some unforseen
-        # reason we do, lets limit it to 1 to make all of the other calculations
-        # come out clean.
+        # reason we do, lets limit it to 1 to make all of the other
+        # calculations come out clean.
         if cont_mem_mb > 1:
             LOG.error('_percent_of_resource came up with more than 100%')
             return 1
@@ -1342,6 +1345,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         return True
 
+
 class OVZFile(object):
     """
     This is a generic file class for wrapping up standard file operations that
@@ -1379,8 +1383,8 @@ class OVZFile(object):
     def touch(self):
         """
         There are certain conditions where we create an OVZFile object but that
-        file may or may not exist and this provides us with a way to create that
-        file if it doesn't exist.
+        file may or may not exist and this provides us with a way to create
+        that file if it doesn't exist.
         """
         self.make_path()
         try:
@@ -1438,8 +1442,8 @@ class OVZFile(object):
                 LOG.error(err)
         except exception.Error as err:
             LOG.error(err)
-            raise exception.Error('Unable to set permissions on %s' %
-            (self.filename,))
+            raise exception.Error('Unable to set permissions on %s'
+                                  % (self.filename,))
 
     def make_path(self, path=None):
         """
@@ -1454,8 +1458,9 @@ class OVZFile(object):
     @staticmethod
     def make_dir(path):
         """
-        This is the method that actually creates directories.  This is used by
-        make_path and can be called directly as a utility to create directories.
+        This is the method that actually creates directories. This is used by
+        make_path and can be called directly as a utility to create
+        directories.
         """
         try:
             if not os.path.exists(path):
@@ -1469,6 +1474,7 @@ class OVZFile(object):
         except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Unable to make %s' % (path,))
+
 
 class OVZMounts(OVZFile):
     """
@@ -1503,6 +1509,7 @@ class OVZMounts(OVZFile):
         else:
             self.prepend('#!/bin/sh')
 
+
 class OVZMountFile(OVZMounts):
     """
     methods used to specifically interact with the /etc/vz/conf/CTID.mount file
@@ -1510,12 +1517,12 @@ class OVZMountFile(OVZMounts):
     """
     def host_mount_line(self):
         """
-        OpenVz is unlike most hypervisors in that it cannot actually do anything
-        with raw devices.  When migrating containers from host to host you are
-        not guaranteed to have the same device name on each host so we need a
-        conditional that generates a mount line that can use a UUID attribute
-        that can be added to a filesystem which allows us to be device name
-        agnostic.
+        OpenVz is unlike most hypervisors in that it cannot actually do
+        anything with raw devices. When migrating containers from host to host
+        you are not guaranteed to have the same device name on each host so we
+        need a conditional that generates a mount line that can use a UUID
+        attribute that can be added to a filesystem which allows us to be
+        device name agnostic.
         """
         #TODO(imsplitbit): Add LABEL= to allow for disk labels as well
         if self.device:
@@ -1580,6 +1587,7 @@ class OVZMountFile(OVZMounts):
         # process is very prescibed so it doesn't appear necessary just yet.
         # We will need this in the future when we do more dynamic operations.
         self.make_dir(self.container_root_mount)
+
 
 class OVZUmountFile(OVZMounts):
     """
@@ -1657,6 +1665,7 @@ class OVZUmountFile(OVZMounts):
             LOG.error(err)
             raise exception.Error('Failed to umount: "%s"' % (mount_line,))
 
+
 class OVZVolumes(object):
     """
     This Class is a helper class to manage the mount and umount files
@@ -1700,7 +1709,7 @@ class OVZVolumes(object):
         # header otherwise it will be rejected by vzctl
         self.mountfh.format()
         self.umountfh.format()
-        
+
     def attach(self):
         # Create the mount point on the host node
         self.mountfh.make_host_mount_point()
@@ -1732,4 +1741,3 @@ class OVZVolumes(object):
         # Finish by setting the permissions back to more secure permissions
         self.mountfh.set_permissions(755)
         self.umountfh.set_permissions(755)
-        
