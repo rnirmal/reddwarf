@@ -150,6 +150,7 @@ class Service(object):
         if self.do_not_manage_proc:
             raise RuntimeError("Can't restart proc as the tests don't own it.")
         self.stop()
+        time.sleep(2)
         self.start(extra_args=extra_args)
     
     def start(self, time_out=3, extra_args=None):

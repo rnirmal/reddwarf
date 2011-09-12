@@ -203,10 +203,10 @@ if __name__ == '__main__':
         
         def _makeResult(self):
             return IntegrationTestResult(self.stream,
-                              self.descriptions,
-                              self.verbosity,
-                              self.config,
-                              show_elapsed=self.show_elapsed)
+                                         self.descriptions,
+                                         self.verbosity,
+                                         self.config,
+                                         show_elapsed=self.show_elapsed)
 
     testdir = os.path.abspath(os.path.join("nova", "integration", "tests"))
     c = config.Config(stream=sys.stdout,
@@ -215,9 +215,9 @@ if __name__ == '__main__':
                       workingDir=testdir,
                       plugins=core.DefaultPluginManager())
     runner = IntegrationTestRunner(stream=c.stream,
-                            verbosity=c.verbosity,
-                            config=c,
-                            show_elapsed=show_elapsed)
+                                   verbosity=c.verbosity,
+                                   config=c,
+                                   show_elapsed=show_elapsed)
 
     proboscis.TestProgram(argv=nose_args, groups=groups,
                           testRunner=runner).run_and_exit()
