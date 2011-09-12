@@ -2196,7 +2196,7 @@ def volume_allocate_iscsi_target(context, volume_id, host):
     return iscsi_target_ref.target_num
 
 
-@require_admin_context
+@require_context
 def volume_attached(context, volume_id, instance_id, mountpoint):
     session = get_session()
     with session.begin():
