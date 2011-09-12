@@ -17,7 +17,20 @@
 Set of utilities for the Guest Manager
 """
 
+import fcntl
 import socket
+import struct
+
+
+from nova import context
+from nova import flags
+from nova.db import api as dbapi
+
+
+flags.DEFINE_string('guest_ethernet_device', "eth0",
+                    'Default Ethernet device for the guest agent')
+FLAGS = flags.FLAGS
+
 
 instance_id = None
 
@@ -27,6 +40,23 @@ def get_instance_id():
     global instance_id
     if not instance_id:
         # TODO(rnirmal): Better way to get the instance id
-        hostname = socket.gethostname()
-        instance_id = hostname.split("-")[1]
+        address = get_ipv4_address()
+        instance = dbapi.instance_get_by_fixed_ip(context.get_admin_context(),
+                                                  address)
+        instance_id = instance.id
     return instance_id
+
+
+def get_ipv4_address():
+    """ Get the ip address provided an ethernet device"""
+    # Create an IPV4 (AF_INET) datagram socket
+    soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # fcntl is a system fuction that takes in the socket file descriptor,
+    # 0x8915 = SIOCGIFADDR which is an os call passed to ioctl which returns
+    # the list of interface addresses.
+    # struct.pack, packs the ethernet device string into a binary buffer
+    return socket.inet_ntoa(fcntl.ioctl(soc.fileno(), 0x8915,
+                                        struct.pack('256s',
+                                        FLAGS.guest_ethernet_device[:15])
+                                        )[20:24])
