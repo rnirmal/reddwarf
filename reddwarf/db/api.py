@@ -26,6 +26,7 @@ from sqlalchemy.sql import text
 from nova.db.sqlalchemy.api import require_admin_context
 from nova.db.sqlalchemy.models import Instance
 from nova.db.sqlalchemy.models import Service
+from nova.db.sqlalchemy.models import Volume
 from nova.db.sqlalchemy.session import get_session
 from nova.compute import power_state
 from reddwarf.db import models
@@ -132,6 +133,21 @@ def show_instances_on_host(context, id):
                         filter_by(deleted=False).all()
     return result
 
+
+@require_admin_context
+def instance_get_by_state_and_updated_before(context, state, time):
+    """Finds instances in a specific state updated before some time."""
+    session = get_session()
+    result = session.query(Instance).\
+                      filter_by(deleted=False).\
+                      filter_by(state=state).\
+                      filter(Instance.updated_at < time).\
+                      all()
+    if not result:
+        return []
+    return result
+
+
 @require_admin_context
 def instance_get_memory_sum_by_host(context, hostname):
     session = get_session()
@@ -156,3 +172,30 @@ def show_instances_by_account(context, id):
                         filter_by(deleted=False).\
                         order_by(Instance.host).all()
     raise exception.UserNotFound(user_id=id)
+
+
+@require_admin_context
+def volume_get_by_state_and_updated_before(context, state, time):
+    """Finds instances in a specific state updated before some time."""
+    session = get_session()
+    result = session.query(Instance).\
+                      filter_by(deleted=False).\
+                      filter_by(state=state).\
+                      filter(Instance.updated_at < time).\
+                      all()
+    if not result:
+        return []
+    return result
+
+@require_admin_context
+def volume_get_orphans(context, latest_time):
+    session = get_session()
+    result = session.query(Volume).\
+                     filter_by(deleted=False).\
+                     filter_by(instance_id=None).\
+                     filter(Volume.status=='available').\
+                     filter(Volume.updated_at < latest_time).\
+                     all()                     
+    return result
+
+

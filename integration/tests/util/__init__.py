@@ -154,6 +154,10 @@ def restart_compute_service(extra_args=None):
     # back to caller.
     utils.poll_until(lambda: hosts_up('compute'),
                      sleep_time=1, time_out=60)
+    wait_for_compute_service()
+
+
+def wait_for_compute_service():
     pid = test_config.compute_service.find_proc_id()
     line = "Creating Consumer connection for Service compute from (pid=%d)" % \
            pid
@@ -162,7 +166,6 @@ def restart_compute_service(extra_args=None):
                          sleep_time=1, time_out=60)
     except PollTimeOut:
         raise RuntimeError("Could not find the line %s in the logs." % line)
-
 
 def should_run_rsdns_tests():
     """If true, then the RS DNS tests should also be run."""
