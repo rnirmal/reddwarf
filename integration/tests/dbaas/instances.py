@@ -458,7 +458,7 @@ class TestInstanceListing(unittest.TestCase):
         self._check_attr_in_instances(instance, attrs)
 
     def _index_instances_attrs_should_not_exist(self, instance):
-        attrs = ['flavorRef', 'rootEnabled', 'volume']
+        attrs = ['flavorRef', 'rootEnabled', 'volume', 'databases']
         self._check_should_not_show_attr_in_instances(instance, attrs)
 
     def test_volume_found(self):
@@ -467,7 +467,7 @@ class TestInstanceListing(unittest.TestCase):
 
     def _assert_instances_exist(self, instance):
         self.assertEqual(instance_info.id, instance.id)
-        attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume']
+        attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume', 'databases']
         self._check_attr_in_instances(instance, attrs)
         dns_entry = instance_info.expected_dns_entry()
         if dns_entry:

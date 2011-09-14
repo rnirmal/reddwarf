@@ -93,6 +93,7 @@ class SetUp(VolumeTest):
         story = StoryDetails()
         storyFail = StoryDetails()
 
+    @time_out(60)
     def test_10_wait_for_topics(self):
         """Wait until the volume topic is up before proceeding."""
         topics = ["volume"]
