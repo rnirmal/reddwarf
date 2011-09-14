@@ -37,6 +37,7 @@ from novaclient.exceptions import ClientException
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
+from nova import utils
 from reddwarf.api.instances import _dbaas_mapping
 from reddwarf.api.instances import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
@@ -302,13 +303,10 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
 
     @time_out(60 * 1)
     def test_instance_wait_for_initialize_guest_to_exit_polling(self):
-        while True:
-            found = util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
-                                    % str(instance_info.id))
-            if not found:
-                time.sleep(2)
-            else:
-                break
+        def compute_manager_finished():
+            return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
+                                        % str(instance_info.id))
+        utils.poll_until(compute_manager_finished, sleep_time=2, time_out=60)
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 class VerifyGuestStarted(unittest.TestCase):
