@@ -19,9 +19,6 @@ from nova.exception import VolumeNotFound
 
 GROUP='dbaas.guest.initialize.failure'
 
-
-from datetime import datetime
-
 from proboscis import after_class
 from proboscis import before_class
 from proboscis import test
@@ -35,12 +32,10 @@ from proboscis.decorators import time_out
 
 from novaclient.exceptions import NotFound
 from nova import context, utils
-from reddwarf.api.instances import _dbaas_mapping
 from nova.compute import power_state
 from reddwarf.api.instances import _dbaas_mapping
 from reddwarf.db import api as dbapi
 from nova import flags
-from reddwarf.compute.manager import VALID_ABORT_STATES
 from reddwarf.compute.manager import ReddwarfInstanceMetaData
 from tests.util import test_config
 from tests.util import test_config
@@ -53,8 +48,12 @@ from tests.util import string_in_list
 from tests.util import TestClient
 from tests.util.users import Requirements
 
+from tests.util.instance import InstanceTest
+
 
 FLAGS = flags.FLAGS
+VOLUME_TIME_OUT = 30
+
 
 # TODO(tim.simpson): Tests are needed for the following cases:
 #
@@ -82,121 +81,13 @@ FLAGS = flags.FLAGS
 #
 # In addition to GETs and LISTs returning FAIL as the state, attempts to
 # add databases should fail.
-#
-
-@test(groups=[GROUP],
-      depends_on_groups=["services.initialize"])
-class InstanceTest(object):
-    """Stores new instance information used by dependent tests."""
-
-    def __init__(self):
-        self.db = utils.import_object(FLAGS.db_driver)
-        self.user = None  # The user instance who owns the instance.
-        self.dbaas = None  # The rich client instance used by these tests.
-        self.dbaas_flavor = None # The flavor object of the instance.
-        self.dbaas_flavor_href = None  # The flavor of the instance.
-        self.dbaas_image = None  # The image used to create the instance.
-        self.dbaas_image_href = None  # The link of the image.
-        self.id = None  # The ID of the instance in the database.
-        self.name = None  # Test name, generated each test run.
-        self.volume = {'size': 1} # The volume the instance will have.
-        self.initial_result = None # The initial result from the create call.
-
-    def init(self, name_prefix):
-        """Sets up the client."""
-        # Find user, create DBAAS rich client
-        self.user = test_config.users.find_user(Requirements(is_admin=True))
-        self.dbaas = create_test_client(self.user)
-        # Get image
-        result = self.dbaas.find_image_and_self_href(test_config.dbaas_image)
-        self.dbaas_image, self.dbaas_image_href = result
-        # Get flavor
-        result = self.dbaas.find_flavor_and_self_href(flavor_id=1)
-        self.dbaas_flavor, self.dbaas_flavor_href = result
-        self.name = name_prefix + str(datetime.now())
-        # TODO: Grab initial amount of disk space left in account quota
-
-    def _assert_status_failure(self, result):
-        """Checks if status==FAILED, plus asserts REST API is in sync."""
-        if result[0].state == power_state.BUILDING:
-            assert_true(
-                result[1].status == _dbaas_mapping[power_state.BUILDING] or
-                result[1].status == _dbaas_mapping[power_state.FAILED],
-                "Result status from API should only be BUILDING or FAILED"
-                " at this point but was %s" % result[1].status)
-            return False
-        else:
-            # After building the only valid state is FAILED (because
-            # we've destroyed the instance).
-            assert_equal(result[0].state, power_state.FAILED)
-            # Make sure the REST API agrees.
-            assert_equal(result[1].status, _dbaas_mapping[power_state.FAILED])
-            return True
-
-    def _assert_volume_is_eventually_deleted(self, time_out=3*60):
-        def volume_not_found():
-            try:
-                self.db.volume_get(context.get_admin_context(), self.volume_id)
-                return False
-            except VolumeNotFound:
-                return True
-        utils.poll_until(volume_not_found, sleep_time=1, time_out=time_out)
-
-    def _create_instance(self):
-        """Make call to create an instance."""
-        self.initial_result = self.dbaas.instances.create(
-            name=self.name,
-            flavor_id=self.dbaas_flavor_href,
-            volume=self.volume,
-            databases=[{"name": "firstdb", "character_set": "latin2",
-                        "collate": "latin2_general_ci"}])
-        result = self.initial_result
-        self.id = result.id
-        assert_equal(result.status, _dbaas_mapping[power_state.BUILDING])
-
-    def _get_status_tuple(self):
-        """Grabs the db guest status and the API instance status."""
-        return (dbapi.guest_status_get(self.id),
-                self.dbaas.instances.get(self.id))
-
-    def _delete_instance(self):
-        self.dbaas.instances.delete(self.id)
-        attempts = 0
-        try:
-            time.sleep(1)
-            result = True
-            while result is not None:
-                attempts += 1
-                result = self.dbaas.instances.get(self.id)
-                assert_equal(_dbaas_mapping[power_state.SHUTDOWN],
-                             result.status)
-        except NotFound:
-            pass
-        except Exception as ex:
-            fail("A failure occured when trying to GET instance %s"
-                 " for the %d time: %s" % (str(self.id), attempts, str(ex)))
-
-    def _get_compute_instance_state(self):
-        return self.db.instance_get(context.get_admin_context(),
-                                    self.id).state
-
-    def wait_for_rest_api_to_show_status_as_failed(self, time_out):
-        utils.poll_until(self._get_status_tuple, self._assert_status_failure,
-                         sleep_time=1, time_out=time_out)
-
-    def wait_for_compute_instance_to_suspend(self):
-        """Polls until the compute instance is known to be suspended."""
-        utils.poll_until(self._get_compute_instance_state,
-                         lambda state : state in VALID_ABORT_STATES,
-                         sleep_time=1,
-                         time_out=FLAGS.reddwarf_instance_suspend_time_out)
 
 
 #TODO: Change volume timeout to something very low, and make sure the instance
 # is set to fail.  If it isn't possible to make sure the volume never
 # provisions this could also be a reaper test.
 
-VOLUME_TIME_OUT=30
+
 @test(groups=[GROUP, GROUP + ".volume"],
       depends_on_groups=["services.initialize"])
 class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):

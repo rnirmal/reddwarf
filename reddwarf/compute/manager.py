@@ -20,6 +20,7 @@ import json
 from nova.exception import VolumeProvisioningError
 from nova import flags
 from nova import log as logging
+from nova import exception
 from reddwarf.api import common
 from nova.compute import power_state
 from nova import guest
@@ -125,7 +126,7 @@ class ReddwarfInstanceInitializer(object):
                          time_out=FLAGS.reddwarf_instance_suspend_time_out)
 
     def _ensure_volume_is_ready(self, volume_api, volume_client, host):
-        self._wait_until_volume_is_ready()
+        self.wait_until_volume_is_ready(FLAGS.reddwarf_volume_time_out)
         #TODO(tim.simpson): This may not be able to be the self.host name.
         # Needs to be something that can identify the compute node.
         volume_client.initialize(self.context, self.volume_id, host)
@@ -200,9 +201,8 @@ class ReddwarfInstanceInitializer(object):
         """Sets the instance to FAIL."""
         dbapi.guest_status_update(self.instance_id, power_state.FAILED)
 
-    def _wait_until_volume_is_ready(self):
+    def wait_until_volume_is_ready(self, time_out):
         """Sleeps until the given volume has finished provisioning."""
-        # TODO(tim.simpson): This needs a time out.
         def volume_is_available():
             volume = self.db.volume_get(self.context, self.volume_id)
             status = volume['status']
@@ -212,10 +212,9 @@ class ReddwarfInstanceInitializer(object):
                 return True
             elif status != 'available':
                 LOG.error("STATUS: %s" % status)
-                raise VolumeProvisioningError(volume_id=self.volume_id)
-        utils.poll_until(volume_is_available, sleep_time=1,
-                         time_out=FLAGS.reddwarf_volume_time_out)
-
+                raise exception.VolumeProvisioningError(
+                    volume_id=self.volume_id)
+        utils.poll_until(volume_is_available, sleep_time=1, time_out=time_out)
 
 class ReddwarfComputeManager(ComputeManager):
     """Manages the running Reddwarf instances."""

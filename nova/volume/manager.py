@@ -129,10 +129,12 @@ class VolumeManager(manager.SchedulerDependentManager):
             model_update = self.driver.create_export(context, volume_ref)
             if model_update:
                 self.db.volume_update(context, volume_ref['id'], model_update)
-        except Exception:
+        except Exception as e:
+            LOG.error("Error occurred creating volume.")
+            LOG.error(e)
             self.db.volume_update(context,
                                   volume_ref['id'], {'status': 'error'})
-            raise
+            raise e
 
         now = utils.utcnow()
         self.db.volume_update(context,

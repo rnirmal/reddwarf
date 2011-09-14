@@ -376,6 +376,9 @@ DEFINE_string('scheduler_manager', 'nova.scheduler.manager.SchedulerManager',
               'Manager for scheduler')
 DEFINE_string('guest_manager', 'nova.guest.manager.GuestManager',
               'Manager for guest agent')
+DEFINE_string('reaper_manager', 'nova.reaper.manager.ReaperManager',
+              'Manager for reaper')
+
 
 # The service to use for image search and retrieval
 DEFINE_string('image_service', 'nova.image.glance.GlanceImageService',

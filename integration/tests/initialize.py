@@ -216,6 +216,21 @@ class KeystoneAdmin(unittest.TestCase):
 
 
 @test(groups=["services.initialize"],
+      depends_on_classes=[Compute, Network, Scheduler, Volume])
+class Reaper(unittest.TestCase):
+    """Starts the compute service."""
+
+    def setUp(self):
+        self.service = Service(python_cmd_list() +
+                               ["%s/bin/nova-reaper" % nova_code_root(),
+                                "--flagfile=%s" % nova_conf() ])
+
+    def test_start(self):
+        if not self.service.is_service_alive():
+            self.service.start()
+
+
+@test(groups=["services.initialize"],
       depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
                           KeystoneAPI])
 class Api(unittest.TestCase):
