@@ -36,6 +36,7 @@ from reddwarf.api import deserializer
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
+from nova.guest.db import models
 from reddwarf.db import api as dbapi
 
 
@@ -294,9 +295,11 @@ class Controller(object):
         instance = self._create_instance_dict(context, server,
                                                     guest_states)
         # Add rootEnabled info.
-        enabled = self._determine_root(context, instance)
+        databases, enabled = self._get_guest_info(context, instance)
         if enabled is not None:
             instance['rootEnabled'] = enabled
+        instance['databases'] = databases
+
         return instance
 
     @staticmethod
@@ -355,19 +358,23 @@ class Controller(object):
             self.compute_api.trigger_security_group_rules_refresh(context,
                                                           security_group['id'])
 
-    def _determine_root(self, context, instance):
-        """ Determine if root is enabled for a given instance. """
-        # If we can't determine if root is enabled for whatever reason,
-        # including if the instance isn't ACTIVE, rootEnabled isn't
-        # available.
+    def _get_guest_info(self, context, instance):
+        """Get the list of databases on a instance"""
         running = _dbaas_mapping[power_state.RUNNING]
         if instance['status'] == running:
             try:
-                return self.guest_api.is_root_enabled(context, instance['id'])
+                result = self.guest_api.list_databases(context, instance['id'])
+                LOG.debug("LIST DATABASES RESULT - %s", str(result))
+                databases = [{'name': db['_name'],
+                             'collate': db['_collate'],
+                             'character_set': db['_character_set']}
+                             for db in result]
+                root_enabled = self.guest_api.is_root_enabled(context, instance['id'])
+                return databases, root_enabled
             except Exception as err:
                 LOG.error(err)
-                LOG.error("rootEnabled for %s could not be determined." % id)
-        return
+                LOG.error("guest not responding on instance %s" % id)
+        return databases, None
 
     @staticmethod
     def _validate(body):
@@ -405,6 +412,7 @@ def create_resource(version='1.0'):
             "dbtype": ["name", "version"],
             "link": ["rel", "type", "href"],
             "volume": ["size"],
+            "database": ["name", "collate", "character_set"],
         },
     }
 
