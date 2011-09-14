@@ -36,11 +36,7 @@ def db_sync(sql_connection):
     :param sql_connection: sql connection url
     """
     repo_path = _find_migrate_repo()
-    try:
-        db_version(sql_connection)
-    except versioning_exceptions.DatabaseNotControlledError:
-        versioning_api.version_control(sql_connection, repo_path)
-
+    version_control(sql_connection)
     versioning_api.upgrade(sql_connection, repo_path)
     return db_version(sql_connection)
 
@@ -84,6 +80,14 @@ def db_downgrade(sql_connection, version):
         return db_version(sql_connection)
     except (ValueError, KeyError):
         raise  ValueError("Invalid version '%s'" % version)
+
+
+def version_control(sql_connection):
+    """Setup version control if not already done"""
+    try:
+        db_version(sql_connection)
+    except versioning_exceptions.DatabaseNotControlledError:
+        versioning_api.version_control(sql_connection, _find_migrate_repo())
 
 
 def _find_migrate_repo():

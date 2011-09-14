@@ -14,16 +14,23 @@
 """
 Tests for Database migration
 """
-import migrate
+import os
 import unittest
+
+
+try:
+    from migrate.exceptions import KnownError  # version > 0.7.0
+except ImportError:
+    from migrate.versioning.exceptions import KnownError
 
 
 from nova import flags
 from nova.db import migration as nova_migration
 from reddwarf.db import migration
 
-sql_connection = "sqlite:///reddwarf_test.sqlite"
-current_version = 2
+database_file = "reddwarf_test.sqlite"
+sql_connection = "sqlite:///%s" % database_file
+current_version = 3
 
 
 FLAGS = flags.FLAGS
@@ -35,25 +42,35 @@ class DBMigrationTest(unittest.TestCase):
     """Test various Database migration scenarios"""
 
     def test0_nova_db_sync(self):
+        if os.path.exists(database_file):
+            os.remove(database_file)
         nova_migration.db_sync()
 
-    def test1_db_sync(self):
-        version = migration.db_sync(sql_connection)
-        self.assertEqual(int(version), current_version)
+    def test1_db_upgrade(self):
+        migration.version_control(sql_connection)
+        uversion = 2
+        version = migration.db_upgrade(sql_connection, uversion)
+        self.assertEqual(int(version), uversion)
 
-    def test2_db_version(self):
-        version = migration.db_version(sql_connection)
-        self.assertEqual(int(version), current_version)
+    def test2_db_upgrade_to_lower_version(self):
+        try:
+            migration.db_upgrade(sql_connection, 0)
+            self.assertFalse(True)
+        except KnownError:
+            self.assertTrue(True)
 
     def test3_db_downgrade(self):
         dversion = 0
         version = migration.db_downgrade(sql_connection, dversion)
         self.assertEqual(int(version), dversion)
 
-    def test4_db_upgrade(self):
-        uversion = 1
-        version = migration.db_upgrade(sql_connection, uversion)
-        self.assertEqual(int(version), uversion)
+    def test4_db_downgrade_to_higher_version(self):
+        version = 1
+        try:
+            migration.db_downgrade(sql_connection, version)
+            self.assertFalse(True)
+        except KnownError:
+            self.assertTrue(True)
 
     def test5_db_downgrade_invalid(self):
         invalid_version = "dfgd"
@@ -64,7 +81,7 @@ class DBMigrationTest(unittest.TestCase):
             self.assertEqual(err.args[0], "Invalid version '%s'"
                                 % invalid_version)
 
-    def test5_db_upgrade_invalid(self):
+    def test6_db_upgrade_invalid(self):
         invalid_version = "afsdf"
         try:
             migration.db_upgrade(sql_connection, invalid_version)
@@ -73,20 +90,10 @@ class DBMigrationTest(unittest.TestCase):
             self.assertEqual(err.args[0], "Invalid version '%s'"
                                 % invalid_version)
 
-    def test5_db_upgrade_to_lower_version(self):
-        migration.db_sync(sql_connection)
-        version = 0
-        try:
-            migration.db_upgrade(sql_connection, version)
-            self.assertFalse(True)
-        except migrate.exceptions.KnownError:
-            self.assertTrue(True)
+    def test7_db_sync(self):
+        version = migration.db_sync(sql_connection)
+        self.assertEqual(int(version), current_version)
 
-    def test5_db_downgrade_to_higher_version(self):
-        migration.db_downgrade(sql_connection, 0)
-        version = 1
-        try:
-            migration.db_downgrade(sql_connection, version)
-            self.assertFalse(True)
-        except migrate.exceptions.KnownError:
-            self.assertTrue(True)
+    def test8_db_version(self):
+        version = migration.db_version(sql_connection)
+        self.assertEqual(int(version), current_version)
