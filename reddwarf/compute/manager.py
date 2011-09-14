@@ -143,9 +143,10 @@ class ReddwarfInstanceInitializer(object):
             guest_api.prepare(self.context, self.instance_id,
                                           self.databases)
             utils.poll_until(lambda : dbapi.guest_status_get(self.instance_id),
-                             lambda status : status == power_state.RUNNING,
+                             lambda status : status.state == power_state.RUNNING,
                              sleep_time=2,
                              time_out=FLAGS.reddwarf_guest_initialize_time_out)
+            LOG.info("Guest is now running on instance %s" % self.instance_id)
             return True
         except utils.PollTimeOut as pto:
             self._set_instance_status_to_fail()
