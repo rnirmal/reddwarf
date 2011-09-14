@@ -37,6 +37,7 @@ from novaclient.exceptions import ClientException
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
+from nova import utils
 from reddwarf.api.instances import _dbaas_mapping
 from reddwarf.api.instances import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
@@ -142,7 +143,7 @@ class Setup(object):
         instance_info.name = "TEST_" + str(datetime.now())
 
 
-@test(depends_on_classes=[Setup], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
+@test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class InstanceHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
 
@@ -286,9 +287,6 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
     def test_instance_created(self):
         #/vz/private/1/var/log/nova/nova-guest.log
         while True:
-            status, err = process(
-                """grep "Dbaas" /vz/private/%s/var/log/nova/nova-guest.log"""
-                % str(instance_info.id))
             guest_status = dbapi.guest_status_get(instance_info.id)
             if guest_status.state != power_state.RUNNING:
                 result = dbaas.instances.get(instance_info.id)
@@ -303,6 +301,12 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
             else:
                 break
 
+    @time_out(60 * 1)
+    def test_instance_wait_for_initialize_guest_to_exit_polling(self):
+        def compute_manager_finished():
+            return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
+                                        % str(instance_info.id))
+        utils.poll_until(compute_manager_finished, sleep_time=2, time_out=60)
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 class VerifyGuestStarted(unittest.TestCase):
