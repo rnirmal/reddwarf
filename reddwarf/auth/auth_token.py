@@ -42,6 +42,7 @@ HTTP_X_AUTHORIZATION: the client identity being passed in
 
 """
 
+import base64
 import json
 
 from eventlet import wsgi
@@ -65,7 +66,7 @@ class AuthProtocol(object):
 
         # where to find the auth service (we use this to validate tokens)
         self.auth_host = conf.get('auth_host')
-        self.auth_port = int(conf.get('auth_port'))
+        self.auth_port = int(conf.get('auth_port', 443))
         self.auth_protocol = conf.get('auth_protocol', 'https')
         self.auth_version = conf.get('auth_version', 'v1.1')
         self.service_host = conf.get('service_host')
@@ -89,8 +90,12 @@ class AuthProtocol(object):
 
         # Credentials used to verify this component with the Auth service since
         # validating tokens is a privileged call
-        self.admin_token = self.get_admin_auth_token(conf.get('service_user'),
-                                                     conf.get('service_pass'))
+        service_user = conf.get('service_user')
+        service_pass = conf.get('service_pass')
+        self.admin_token = self.get_admin_auth_token(service_user,
+                                                     service_pass)
+        self.basic_auth = base64.b64encode("%(service_user)s:%(service_pass)s"
+                                           % locals())
 
     def __call__(self, env, start_response):
         """ Handle incoming request. Authenticate. And send downstream. """
@@ -135,17 +140,21 @@ class AuthProtocol(object):
         validate a user's token. Validate_token is a privileged call so
         it needs to be authenticated by a service that is calling it
         """
-        headers = {'Content-type': 'application/json', 'Accept': 'text/json'}
+        headers = {'Content-type': 'application/json',
+                   'Accept': 'application/json'}
         request_body = {'passwordCredentials': {'username': username,
                                                 'password': password}}
-        conn = httplib.HTTPConnection("%s:%s" %
-                                      (self.auth_host, self.auth_port))
+        conn = get_connection(self.auth_protocol, self.auth_host,
+                              self.auth_port)
         conn.request("POST", self.service_auth_path, json.dumps(request_body),
                      headers=headers)
         response = conn.getresponse()
         data = response.read()
         try:
-            if not data or not self._validate_status(str(response.status)):
+            if not data or not self._validate_status(response.status):
+                if response.status == 302:
+                    # Can be ignored because the service relies on basic auth
+                    return ""
                 raise HTTPUnauthorized("Error authenticating service")
             else:
                 body = json.loads(data)
@@ -168,21 +177,22 @@ class AuthProtocol(object):
     def _validate_token(self, claims):
         """Make the call to Keystone and get the return code and data"""
         headers = {'Content-type': 'application/json',
-                   'Accept': 'text/json',
-                   'X-Auth-Token': self.admin_token}
+                   'Accept': 'application/json',
+                   'X-Auth-Token': self.admin_token,
+                   'Authorization': 'Basic %s' % self.basic_auth}
 
-        conn = httplib.HTTPConnection("%s:%s" %
-                                      (self.auth_host, self.auth_port))
+        conn = get_connection(self.auth_protocol, self.auth_host,
+                              self.auth_port)
         conn.request("GET", "%s/%s" % (self.validate_token_path, claims),
                      headers=headers)
         response = conn.getresponse()
         data = response.read()
         conn.close()
-        return data, str(response.status)
+        return data, response.status
 
     def _validate_status(self, status):
-        """Validate claims, and provide identity information isf applicable """
-        return status.startswith("20")
+        """Check status is in list of OK http statuses"""
+        return status in (200, 202)
 
     def _expound_claims_1_1(self, data, env, proxy_headers):
         # Valid token. Get user data and put it in to the call
@@ -253,3 +263,10 @@ def app_factory(global_conf, **local_conf):
     conf = global_conf.copy()
     conf.update(local_conf)
     return AuthProtocol(None, conf)
+
+
+def get_connection(type, host, port):
+    if type == "https":
+        return httplib.HTTPSConnection("%(host)s:%(port)s" % locals())
+    else:
+        return httplib.HTTPConnection("%(host)s:%(port)s" % locals())

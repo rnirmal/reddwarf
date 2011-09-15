@@ -46,13 +46,13 @@ class ReddwarfHTTPClient(HTTPClient):
     reddwarf
     """
 
-    def __init__(self, user, apikey, tenant, auth_url, service,
-                 timeout=None):
+    def __init__(self, user, apikey, tenant, auth_url, service_name,
+                 service_url=None, timeout=None):
         super(ReddwarfHTTPClient, self).__init__(user, apikey, tenant,
                                                  auth_url, timeout=timeout)
-        assert service in ['reddwarf', 'nova']
         self.tenant = tenant
-        self.service = service
+        self.service = service_name
+        self.management_url = service_url
 
     def authenticate(self):
         scheme, netloc, path, query, frag = urlparse.urlsplit(self.auth_url)
@@ -81,9 +81,14 @@ class ReddwarfHTTPClient(HTTPClient):
         """Set the management url and auth token"""
         token_url = urlparse.urljoin(self.auth_url, path)
         resp, body = self.request(token_url, "POST", body=req_body)
-        self.management_url = body['auth']['serviceCatalog'] \
-                              [self.service][0]['publicURL']
-        self.auth_token = body['auth']['token']['id']
+        try:
+            if not self.management_url:
+                self.management_url = body['auth']['serviceCatalog'] \
+                                      [self.service][0]['publicURL']
+            self.auth_token = body['auth']['token']['id']
+        except KeyError:
+            raise NotImplementedError("Service: %s is not available"
+                                      % self.service)
 
 
 class Dbaas(Client):
@@ -92,7 +97,8 @@ class Dbaas(Client):
 
     Create an instance with your creds::
 
-        >>> red = Dbaas(USERNAME, API_KEY, TENANT, AUTH_URL, SERVICE)
+        >>> red = Dbaas(USERNAME, API_KEY, TENANT, AUTH_URL, SERVICE_NAME,
+                        SERVICE_URL)
 
     Then call methods on its managers::
 
@@ -104,11 +110,11 @@ class Dbaas(Client):
     &c.
     """
 
-    def __init__(self, username, apikey, tenant=None,
-                 auth_url='https://auth.api.rackspacecloud.com/v1.1'):
+    def __init__(self, username, apikey, tenant=None, auth_url=None,
+                 service_name='reddwarf', service_url=None):
         super(Dbaas, self).__init__(self, username, apikey, tenant, auth_url)
         self.client = ReddwarfHTTPClient(username, apikey, tenant, auth_url,
-                                         "reddwarf")
+                                         service_name, service_url)
         self.databases = Databases(self)
         self.instances = Instances(self)
         self.users = Users(self)
