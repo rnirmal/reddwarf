@@ -50,7 +50,7 @@
 --notification_driver=nova.notifier.log_notifier
 
 # Reaper config
---reaper_driver=reddwarf.reaper.Driver
+--reaper_driver=reddwarf.reaper.driver.ReddwarfReaperDriver
 
 #Extra ending line needed so that other conf files can be appended to this one.
 
