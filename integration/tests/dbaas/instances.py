@@ -315,29 +315,29 @@ class VerifyGuestStarted(unittest.TestCase):
         process pid.
     """
 
-    @time_out(60 * 8)
+    @time_out(60 * 9)
     def test_instance_created(self):
-        while True:
+        def check_status_of_instance():
             status, err = process("sudo vzctl status %s | awk '{print $5}'"
                                   % str(instance_info.id))
-
-            if not string_in_list(status, ["running"]):
-                time.sleep(5)
-            else:
+            if string_in_list(status, ["running"]):
                 self.assertEqual("running", status.strip())
-                break
+                return True
+            else:
+                return False
+        utils.poll_until(check_status_of_instance, sleep_time=5, time_out=60*8)
 
-
-    @time_out(60 * 10)
+    @time_out(60 * 11)
     def test_get_init_pid(self):
-        while True:
-            out, err = process("pstree -ap | grep init | cut -d',' -f2 | vzpid - | grep %s | awk '{print $1}'"
+        def get_the_pid():
+            out, err = process("pgrep init | vzpid - | awk '/%s/{print $1}'"
                                 % str(instance_info.id))
             instance_info.pid = out.strip()
             if not instance_info.pid:
-                time.sleep(10)
+                return False
             else:
-                break
+                return True
+        utils.poll_until(get_the_pid, sleep_time=10, time_out=60*10)
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
