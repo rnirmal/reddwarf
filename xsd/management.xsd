@@ -142,6 +142,13 @@
         </xsd:documentation>
       </annotation>
     </attribute>
+    <attribute name="rootEnabledAt" type="xds:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>UTC timestamp when root was first enabled for an instance's MySQL database.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
   </complexType>
 
   <complexType name="Storage">
