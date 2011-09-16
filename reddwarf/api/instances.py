@@ -374,6 +374,7 @@ class Controller(object):
             except Exception as err:
                 LOG.error(err)
                 LOG.error("guest not responding on instance %s" % id)
+        #TODO(cp16net) we have hidden the actual exception by returning [],None
         return [], None
 
     @staticmethod
