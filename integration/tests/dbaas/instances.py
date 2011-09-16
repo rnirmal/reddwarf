@@ -85,6 +85,7 @@ class InstanceTestInfo(object):
         self.user = None  # The user instance who owns the instance.
         self.volume = None # The volume the instance will have.
         self.storage = None # The storage device info for the volumes.
+        self.databases = None # The databases created on the instance.
 
     def check_database(self, dbname):
         return check_database(self.id, dbname)
@@ -233,6 +234,8 @@ class CreateInstance(unittest.TestCase):
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
+        databases.append({"name": "db2"})
+        instance_info.databases = databases
         instance_info.volume = {'size': 2}
 
         instance_info.initial_result = dbaas.instances.create(
@@ -469,6 +472,17 @@ class TestInstanceListing(unittest.TestCase):
         self.assertEqual(instance_info.id, instance.id)
         attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume', 'databases']
         self._check_attr_in_instances(instance, attrs)
+        print("instance_info.databases : %r" % instance.databases)
+        print("instance_info.databases : %r" % instance_info.databases)
+        self.assertEqual(len(instance_info.databases), len(instance.databases))
+        for db in instance.databases:
+            print("db : %r" % db)            
+            self.assertTrue(db.has_key('character_set'))
+            print("db['charset'] : %r" % db['character_set'])
+            self.assertTrue(db.has_key('name'))
+            print("db['name'] : %r" % db['name'])
+            self.assertTrue(db.has_key('collate'))
+            print("db['collate'] : %r" % db['collate'])
         dns_entry = instance_info.expected_dns_entry()
         if dns_entry:
             self.assertEqual(dns_entry.name, instance.hostname)
@@ -626,6 +640,9 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
             # TODO(hub-cap): fix this since its a flavor object now
             #'flavorRef': info.dbaas_flavor_href,
             'databases': [{
+                'name': 'db2',
+                'character_set': 'utf8',
+                'collate': 'utf8_general_ci',},{
                 'name': 'firstdb',
                 'character_set': 'latin2',
                 'collate': 'latin2_general_ci',
