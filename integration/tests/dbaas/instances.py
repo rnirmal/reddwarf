@@ -336,10 +336,7 @@ class VerifyGuestStarted(unittest.TestCase):
             out, err = process("pgrep init | vzpid - | awk '/%s/{print $1}'"
                                 % str(instance_info.id))
             instance_info.pid = out.strip()
-            if not instance_info.pid:
-                return False
-            else:
-                return True
+            return len(instance_info.pid) > 0
         utils.poll_until(get_the_pid, sleep_time=10, time_out=60*10)
 
 
