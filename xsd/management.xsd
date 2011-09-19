@@ -104,15 +104,38 @@
     </sequence>
   </complexType>
 
-  <complexType name="Host">
-    <sequence>
-      <element name="instances" type="dbaas:DatabaseInstance" minOccurs="0" maxOccurs="unbounded">
+  <complexType name="ManagementInstance">
+    <extension base="dbaas:DatabaseInstance">
+      <attribute name="rootEnabledOn" type="xsd:dateTime">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>A database instances that are on the Host.</p>
+            <p>Timestamp of the first time MySQL root was enabled for the instance.</p>
           </xsd:documentation>
         </annotation>
+      </attribute>
+    </extension>
+  </complexType>
+
+  <complexType name="ManagementInstances">
+    <sequence>
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A list of database instances, with additional management information.</p>
+        </xsd:documentation>
+      </annotation>
+      <element name="instance" type="ManagementInstance" minOccurs="0" maxOccurs="unbounded">
       </element>
+    </sequence>
+  </complexType>
+
+  <complexType name="Host">
+    <sequence>
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A list of database instances on the Host.</p>
+        </xsd:documentation>
+      </annotation>
+      <element name="instance" type="ManagementInstance" minOccurs="0" maxOccurs="unbounded"/>
     </sequence>
     <attribute name="name" type="xsd:string" use="required">
       <annotation>
@@ -149,7 +172,7 @@
       <element name="device" type="dbaas:Device" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>A database instances that are on the Host.</p>
+            <p>A database device on the Host.</p>
           </xsd:documentation>
         </annotation>
       </element>

@@ -38,7 +38,6 @@
         </resource>
         <resource id="root" path="root">
           <method href="#createRoot"/>
-          <method href="#deleteRoot" />
           <method href="#isRootEnabled" />
          </resource>
       </resource>
@@ -234,14 +233,6 @@
     </response>
   </method>
   
-  <method name="DELETE" id="deleteRoot">
-    <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
-
   <method name="GET" id="isRootEnabled">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:RootEnabled"/>
