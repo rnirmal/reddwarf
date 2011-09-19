@@ -85,6 +85,7 @@ class InstanceTestInfo(object):
         self.user = None  # The user instance who owns the instance.
         self.volume = None # The volume the instance will have.
         self.storage = None # The storage device info for the volumes.
+        self.databases = None # The databases created on the instance.
 
     def check_database(self, dbname):
         return check_database(self.id, dbname)
@@ -233,6 +234,8 @@ class CreateInstance(unittest.TestCase):
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
+        databases.append({"name": "db2"})
+        instance_info.databases = databases
         instance_info.volume = {'size': 2}
 
         instance_info.initial_result = dbaas.instances.create(
@@ -301,7 +304,6 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
             else:
                 break
 
-    @time_out(60 * 1)
     def test_instance_wait_for_initialize_guest_to_exit_polling(self):
         def compute_manager_finished():
             return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
@@ -315,29 +317,24 @@ class VerifyGuestStarted(unittest.TestCase):
         process pid.
     """
 
-    @time_out(60 * 8)
     def test_instance_created(self):
-        while True:
+        def check_status_of_instance():
             status, err = process("sudo vzctl status %s | awk '{print $5}'"
                                   % str(instance_info.id))
-
-            if not string_in_list(status, ["running"]):
-                time.sleep(5)
-            else:
+            if string_in_list(status, ["running"]):
                 self.assertEqual("running", status.strip())
-                break
+                return True
+            else:
+                return False
+        utils.poll_until(check_status_of_instance, sleep_time=5, time_out=60*8)
 
-
-    @time_out(60 * 10)
     def test_get_init_pid(self):
-        while True:
-            out, err = process("pstree -ap | grep init | cut -d',' -f2 | vzpid - | grep %s | awk '{print $1}'"
+        def get_the_pid():
+            out, err = process("pgrep init | vzpid - | awk '/%s/{print $1}'"
                                 % str(instance_info.id))
             instance_info.pid = out.strip()
-            if not instance_info.pid:
-                time.sleep(10)
-            else:
-                break
+            return len(instance_info.pid) > 0
+        utils.poll_until(get_the_pid, sleep_time=10, time_out=60*10)
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
@@ -458,7 +455,7 @@ class TestInstanceListing(unittest.TestCase):
         self._check_attr_in_instances(instance, attrs)
 
     def _index_instances_attrs_should_not_exist(self, instance):
-        attrs = ['flavorRef', 'rootEnabled', 'volume']
+        attrs = ['flavorRef', 'rootEnabled', 'volume', 'databases']
         self._check_should_not_show_attr_in_instances(instance, attrs)
 
     def test_volume_found(self):
@@ -467,8 +464,19 @@ class TestInstanceListing(unittest.TestCase):
 
     def _assert_instances_exist(self, instance):
         self.assertEqual(instance_info.id, instance.id)
-        attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume']
+        attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume', 'databases']
         self._check_attr_in_instances(instance, attrs)
+        print("instance_info.databases : %r" % instance.databases)
+        print("instance_info.databases : %r" % instance_info.databases)
+        self.assertEqual(len(instance_info.databases), len(instance.databases))
+        for db in instance.databases:
+            print("db : %r" % db)            
+            self.assertTrue(db.has_key('character_set'))
+            print("db['charset'] : %r" % db['character_set'])
+            self.assertTrue(db.has_key('name'))
+            print("db['name'] : %r" % db['name'])
+            self.assertTrue(db.has_key('collate'))
+            print("db['collate'] : %r" % db['collate'])
         dns_entry = instance_info.expected_dns_entry()
         if dns_entry:
             self.assertEqual(dns_entry.name, instance.hostname)
@@ -626,6 +634,9 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
             # TODO(hub-cap): fix this since its a flavor object now
             #'flavorRef': info.dbaas_flavor_href,
             'databases': [{
+                'name': 'db2',
+                'character_set': 'utf8',
+                'collate': 'utf8_general_ci',},{
                 'name': 'firstdb',
                 'character_set': 'latin2',
                 'collate': 'latin2_general_ci',

@@ -149,19 +149,15 @@ class DBaaSAgent(object):
                 client.execute(t)
 
     def list_databases(self):
-        """List users that have access to the database"""
+        """List databases the user created on this mysql instance"""
         LOG.debug("---Listing Databases---")
         databases = []
         client = LocalSqlClient(get_engine())
         with client:
-            mysql_user = models.MySQLUser()
             # If you have an external volume mounted at /var/lib/mysql
             # the lost+found directory will show up in mysql as a database
             # which will create errors if you try to do any database ops
             # on it.  So we remove it here if it exists.
-            t = text("""show databases where `Database` not in
-                     ('mysql', 'information_schema', 'lost+found');""")
-            database_names = client.execute(t)
             t = text('''
             SELECT
                 schema_name as name,
@@ -169,18 +165,20 @@ class DBaaSAgent(object):
                 default_collation_name as collation
             FROM
                 information_schema.schemata
+            WHERE
+                schema_name not in
+                ('mysql', 'information_schema', 'lost+found')
+            ORDER BY
+                schema_name ASC;
             ''')
-            locales = [x for x in client.execute(t).fetchall()]
-            LOG.debug("databases = %r" % database_names)
-            LOG.debug("locales = %r" % locales)
+            database_names = client.execute(t)
+            LOG.debug("database_names = %r" % database_names)
             for database in database_names:
-                LOG.debug("database = " + str(database))
+                LOG.debug("database = %s " % str(database))
                 mysql_db = models.MySQLDatabase()
                 mysql_db.name = database[0]
-                charset, collation = [(ch, co) for (n, ch, co) in locales
-                    if n == mysql_db.name][0]
-                mysql_db.collate = collation
-                mysql_db.character_set = charset
+                mysql_db.character_set = database[1]
+                mysql_db.collate = database[2]
                 databases.append(mysql_db.serialize())
         LOG.debug("databases = " + str(databases))
         return databases
