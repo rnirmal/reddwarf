@@ -14,18 +14,20 @@ from nova import exception
 from nova import flags
 from nova import volume
 from nova import utils
+from nova.utils import poll_until
 
 from proboscis import test
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
+from reddwarf.tests.volume.driver import ISCSITestDriver
 from tests import initialize
 from tests.volumes import VOLUMES_DRIVER
-from tests.util import test_config
-from nova.utils import poll_until
+
 
 FLAGS = flags.FLAGS
 UUID_PATTERN = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
                           '[0-9a-f]{4}-[0-9a-f]{12}$')
+
 
 def is_uuid(text):
     return UUID_PATTERN.search(text) is not None
@@ -130,8 +132,8 @@ class SetUp(VolumeTest):
         if FLAGS.volume_driver == 'nova.volume.san.HpSanISCSIDriver':
             driver = volume.san.HpSanISCSIDriver()
             info = driver._cliq_get_cluster_info(FLAGS.san_clustername)
-        elif FLAGS.volume_driver == 'nova.volume.san.ISCSILiteDriver':
-            driver = volume.san.ISCSILiteDriver()
+        elif FLAGS.volume_driver == 'reddwarf.tests.volume.driver.ISCSITestDriver':
+            driver = ISCSITestDriver()
             info = driver._get_device_info()
         else:
             info = {'name': 'hard coded test',
