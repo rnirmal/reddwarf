@@ -16,10 +16,12 @@
 SQLAlchemy models for the reddwarf datastore
 """
 
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 from nova.db.sqlalchemy.models import NovaBase
+
+import datetime
 
 
 BASE = declarative_base()
@@ -33,3 +35,21 @@ class GuestStatus(BASE, NovaBase):
     instance_id = Column(Integer, primary_key=True)
     state = Column(Integer)
     state_description = Column(String(255))
+
+class RootEnabledHistory(BASE, NovaBase):
+    """
+    Represents the date and time root was enabled for the MySQL database on an
+    instance.
+    """
+    __tablename__ = 'root_enabled_history'
+
+    instance_id = Column(Integer, primary_key=True)
+    root_enabled_at = Column(DateTime, onupdate=datetime.datetime.utcnow())
+
+    def __eq__(self, other):
+        return all([
+            self.root_enabled_at == other.root_enabled_at,
+            self.instance_id == other.instance_id])
+
+    def __str__(self):
+        return '<RootEnabledHistory: instance_id=%s, root_enabled_at=%s>' % (self.instance_id, self.root_enabled_at)

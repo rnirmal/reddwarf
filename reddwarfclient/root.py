@@ -32,10 +32,6 @@ class Root(base.ManagerWithFind):
         resp, body = self.api.client.post(self.url % instance_id)
         return body['user']['name'], body['user']['password']
 
-    def delete(self, instance_id):
-        """Disable the root user for the specified db instance"""
-        self._delete(self.url % instance_id)
-
     def is_root_enabled(self, instance_id):
         """ Return True if root is enabled for the instance;
             False otherwise""" 

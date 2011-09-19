@@ -38,18 +38,7 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def delete(self, req, instance_id):
-        """ Disables the root user in the db instance """
-        LOG.info("Call to disable root user for instance %s", instance_id)
-        LOG.debug("%s - %s", req.environ, req.body)
-        ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
-
-        try:
-            self.guest_api.disable_root(ctxt, instance_id)
-            return exc.HTTPOk()
-        except Exception as err:
-            LOG.error(err)
-            return exc.HTTPError("Error disabling the root password")
+        raise exc.HTTPNotImplemented()
 
     def create(self, req, instance_id, body):
         """ Enable the root user for the db instance """
@@ -62,6 +51,7 @@ class Controller(object):
             result = self.guest_api.enable_root(ctxt, instance_id)
             user = models.MySQLUser()
             user.deserialize(result)
+            dbapi.record_root_enabled_timestamp(ctxt, instance_id)
             return {'user': {'name': user.name, 'password': user.password}}
         except Exception as err:
             LOG.error(err)

@@ -106,7 +106,7 @@
 
   <complexType name="ManagementInstance">
     <extension base="dbaas:instance">
-      <attribute name="rootEnabledOn" type="xsd:dateTime">
+      <attribute name="root_enabled_at" type="xsd:dateTime">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>Timestamp of the first time MySQL root was enabled for the instance.</p>

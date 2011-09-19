@@ -30,7 +30,7 @@ from reddwarf.db import migration
 
 database_file = "reddwarf_test.sqlite"
 sql_connection = "sqlite:///%s" % database_file
-current_version = 3
+current_version = 4
 
 
 FLAGS = flags.FLAGS

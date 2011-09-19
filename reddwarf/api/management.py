@@ -47,6 +47,7 @@ def create_resource(version='1.0'):
                              'host',
                              'id',
                              'name',
+                             'root_enabled_at',
                              'server_state_description'],
                 'guest_status': ['created_at',
                            'deleted',
@@ -121,9 +122,16 @@ class Controller(object):
                     'collate': db['_collate'],
                     'character_set': db['_character_set']
                     } for db in db_list]
-
             users = self.guest_api.list_users(context, id)
             users = [{'name': user['_name']} for user in users]
+
+        LOG.debug("Fetching root enabled timestamp for instance %s" % id)
+        root_access_timestamp = dbapi.get_root_enabled_timestamp(context, id)
+        if root_access_timestamp:
+            root_access_timestamp = root_access_timestamp.root_enabled_at
+        else:
+            root_access_timestamp = 'Never'
+        LOG.debug("Root enabled timestamp for instance %s is %s" % (id, root_access_timestamp))
 
         instance = self.compute_api.get(context, id)
         LOG.debug("get instance info : %r" % instance)
@@ -162,6 +170,7 @@ class Controller(object):
                 'databases': dbs,
                 'users': users,
                 'volume': volume,
+                'root_enabled_at': root_access_timestamp
             },
         }
         dns_entry = self.dns_entry_factory.create_entry(instance)
