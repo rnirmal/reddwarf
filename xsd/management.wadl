@@ -84,8 +84,8 @@
   </method>
   <method name="GET" id="showinstances">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
+      <representation mediaType="application/xml" element="ManagementInstances"/>
+      <representation mediaType="application/json" element="ManagementInstances"/>
     </response>
     <response status="400 401 403 409 500 503">
       <representation mediaType="application/xml"/>
