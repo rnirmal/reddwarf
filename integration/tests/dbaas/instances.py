@@ -304,7 +304,6 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
             else:
                 break
 
-    @time_out(60 * 1)
     def test_instance_wait_for_initialize_guest_to_exit_polling(self):
         def compute_manager_finished():
             return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
@@ -318,7 +317,6 @@ class VerifyGuestStarted(unittest.TestCase):
         process pid.
     """
 
-    @time_out(60 * 9)
     def test_instance_created(self):
         def check_status_of_instance():
             status, err = process("sudo vzctl status %s | awk '{print $5}'"
@@ -330,7 +328,6 @@ class VerifyGuestStarted(unittest.TestCase):
                 return False
         utils.poll_until(check_status_of_instance, sleep_time=5, time_out=60*8)
 
-    @time_out(60 * 11)
     def test_get_init_pid(self):
         def get_the_pid():
             out, err = process("pgrep init | vzpid - | awk '/%s/{print $1}'"
