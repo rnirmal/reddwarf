@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<application 
+<!DOCTYPE application [
+    <!ENTITY % common  SYSTEM "common.ent">
+    %common;
+]>
+
+<application
    xmlns="http://wadl.dev.java.net/2009/02" 
    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
    xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
@@ -9,7 +14,10 @@
     <include href="dbaas.xsd"/>
   </grammars>
 
-  <resources base="https://auth.api.rackspacecloud.com">
+  <resources base="https://localhost:8775">
+    <resource id="version" path="v1.0">
+      <method href="#getVersionInfo"/>
+    </resource>
     <resource id="instances" path="instances">
       <method href="#createInstance"/>
       <method href="#getInstance"/>
@@ -55,6 +63,21 @@
   </resources>
 
   <!--Token Methods...-->
+  <!-- Version -->
+  <method name="GET" id="getVersionInfo">
+    <doc xml:lang="EN" title="Version Details">
+      <p xmlns="http://www.w3.org/1999/xhtml">
+        Returns detailed information about this specific version of the API.
+      </p>
+    </doc>
+    <response status="200">
+      <representation mediaType="application/xml"/>
+      <representation mediaType="application/json"/>
+    </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+    
   <!-- Instance -->
   <method name="POST" id="createInstance">
     <request>
@@ -69,18 +92,14 @@
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="DELETE" id="deleteInstance">
     <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getInstance">
@@ -88,10 +107,8 @@
       <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
       <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getInstanceDetails">
@@ -99,10 +116,8 @@
       <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
       <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getInstanceById">
@@ -110,10 +125,8 @@
       <representation mediaType="application/xml" element="dbaas:DatabaseInstance"/>
       <representation mediaType="application/json" element="dbaas:DatabaseInstance"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
  <!-- Database -->
@@ -130,10 +143,8 @@
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getDatabase">
@@ -141,10 +152,8 @@
       <representation mediaType="application/xml" element="dbaas:Database"/>
       <representation mediaType="application/json" element="dbaas:Database"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getDatabases">
@@ -152,18 +161,14 @@
       <representation mediaType="application/xml" element="dbaas:Databases"/>
       <representation mediaType="application/json" element="dbaas:Databases"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="DELETE" id="deleteDatabase">
     <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <!-- User -->
@@ -180,18 +185,14 @@
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getUser">
     <response status="200"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml" element="dbaas:User"/>
-      <representation mediaType="application/json" element="dbaas:User"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getUsers">
@@ -199,18 +200,14 @@
       <representation mediaType="application/xml" element="dbaas:Users"/>
       <representation mediaType="application/json" element="dbaas:Users"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="DELETE" id="deleteUser">
     <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <!-- Root -->
@@ -227,10 +224,8 @@
         <param name="Location" type="xsd:anyURI" style="header"/>
       </representation>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   
   <method name="GET" id="isRootEnabled">
@@ -238,10 +233,8 @@
       <representation mediaType="application/xml" element="dbaas:RootEnabled"/>
       <representation mediaType="application/json" element="dbaas:RootEnabled"/>
     </response>
-    <response status="400 401 403 404 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
    <!-- Flavor -->
@@ -250,10 +243,8 @@
       <representation mediaType="application/xml" element="dbaas:Flavors"/>
       <representation mediaType="application/json" element="dbaas:Flavors"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getFlavorDetails">
@@ -261,10 +252,8 @@
       <representation mediaType="application/xml" element="dbaas:Flavors"/>
       <representation mediaType="application/json" element="dbaas:Flavors"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
   <method name="GET" id="getFlavorById">
@@ -272,10 +261,8 @@
       <representation mediaType="application/xml" element="dbaas:Flavor"/>
       <representation mediaType="application/json" element="dbaas:Flavor"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 
 </application>
