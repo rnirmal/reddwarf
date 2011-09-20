@@ -24,6 +24,8 @@ from rsdns.client import DNSaas
 
 from nova import flags
 from nova.dns.driver import DnsEntry
+from nova import log as logging
+from nova import utils
 
 
 flags.DEFINE_string('dns_hostname', 'dbaas-test-domain.com',
@@ -41,6 +43,7 @@ flags.DEFINE_string('dns_passkey', '',
 flags.DEFINE_string('dns_management_base_url', None,
                     'The management URL for DNS.')
 FLAGS = flags.FLAGS
+LOG = logging.getLogger('nova.dns.rsdns.driver')
 
 
 class EntryToRecordConverter(object):
@@ -112,11 +115,21 @@ class RsDnsDriver(object):
         if dns_zone.id == None:
             raise TypeError("The entry's dns_zone must have an ID specified.")
         name = entry.name  # + "." + dns_zone.name
-        self.dns_client.records.create(domain=dns_zone.id,
-                                       record_name=name,
-                                       record_data=entry.content,
-                                       record_type=entry.type,
-                                       record_ttl=entry.ttl)
+        LOG.debug("Going to create RSDNS entry %s." % name);
+        future = self.dns_client.records.create(domain=dns_zone.id,
+                                                record_name=name,
+                                                record_data=entry.content,
+                                                record_type=entry.type,
+                                                record_ttl=entry.ttl)
+        try:
+            utils.poll_until(lambda : future.ready, sleep_time=2, time_out=60)
+            LOG.debug("Added RS DNS entry.")
+        except utils.PollTimeOut as pto:
+            LOG.error("Failed to create DNS entry before time_out!")
+            LOG.error(pto)
+        except RsDnsError as rde:
+            LOG.error("An error occurred creating DNS entry!")
+            LOG.error(rde)
 
     def delete_entry(self, name, type, dns_zone=None):
         dns_zone = dns_zone or self.default_dns_zone

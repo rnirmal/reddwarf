@@ -58,10 +58,12 @@ class InstanceTest(object):
         self.initial_result = None # The initial result from the create call.
         self.volume_id = None  # Set by _get_instance_volume.
 
-    def init(self, name_prefix):
+    def init(self, name_prefix, user_requirements=None):
         """Sets up the client."""
+        if not user_requirements:
+            user_requirements = Requirements(is_admin=True)
         # Find user, create DBAAS rich client
-        self.user = test_config.users.find_user(Requirements(is_admin=True))
+        self.user = test_config.users.find_user(user_requirements)
         self.dbaas = create_test_client(self.user)
         # Get flavor
         result = self.dbaas.find_flavor_and_self_href(flavor_id=1)

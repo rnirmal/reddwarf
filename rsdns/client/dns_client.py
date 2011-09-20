@@ -22,35 +22,44 @@ is different here.
 from novaclient.client import HTTPClient
 from novaclient import exceptions
 import httplib2
+
+from nova import log as logging
+
 try:
     import json
 except ImportError:
     import simplejson as json
 
-try:
-    from nova import log as logging
-    LOG = logging.getLogger('rsdns.client.dns_client')
-except ImportError:
-    class FakeLog(object):
+LOG = logging.getLogger('rsdns.client.dns_client')
 
-        def debug(self, msg):
-            print(msg)
-
-    LOG = FakeLog()
-    
 
 class DNSaasClient(HTTPClient):
+
     def __init__(self, accountId, user, apikey, auth_url, management_base_url):
-        tenant = "dbaas"
+        tenant = "dbaas"    
         super(DNSaasClient, self).__init__(user, apikey, tenant, auth_url)
         self.accountId = accountId
         self.management_base_url = management_base_url
-    
+
     def authenticate(self):
-        headers = {'X-Auth-User': self.user, 'X-Auth-Key': self.apikey}
-        resp, body = self.request(self.auth_url, 'GET', headers=headers)
+        #headers = {'X-Auth-User': self.user, 'X-Auth-Key': self.apikey}
+#        LOG.debug("Performing GET on %s, with headers=%s" % (self.auth_url,
+        #resp, body = self.request(self.auth_url + "", 'GET', headers=headers)
+#                                                      headers))
+        http = httplib2.Http()
+        headers = {'Content-Type': 'application/json'}
+        body = {'credentials':{'username':self.user, 'key':self.apikey}}
+        resp, resp_body = http.request(self.auth_url, "POST", headers=headers,
+                                       body=json.dumps(body))
+        resp_body = json.loads(resp_body)
+        LOG.debug(json.dumps({'body':resp_body, 'resp':resp}, sort_keys=True,
+                             indent=4))
+        self.auth_token = resp_body['auth']['token']['id']
+
         self.management_url = self.management_base_url + str(self.accountId)
-        self.auth_token = resp['x-auth-token']
+        #self.auth_token = resp['x-auth-token']
+
+        LOG.debug("AUTH_TOKEN=%s" % self.auth_token)
 
     def _munge_get_url(self, url):
         return url  # Don't munge this.
@@ -62,19 +71,12 @@ class DNSaasClient(HTTPClient):
            kwargs['headers']['Content-Type'] = 'application/json'
            kwargs['body'] = json.dumps(kwargs['body'])
 
-       if httplib2.debuglevel == 1:
-           LOG.debug("ARGS:" + str(args))
-       resp, body = super(HTTPClient, self).request(*args, **kwargs)
-       if httplib2.debuglevel == 1:
-           LOG.debug("RESPONSE:" + str(resp))
-           LOG.debug("BODY:" + str(body))
-       if body:
-           try:
-               body = json.loads(body)
-           except ValueError, e:
-               pass
-       else:
-           body = None
+       LOG.debug("ARGS:" + str(args))
+       LOG.debug("HEADERS:" + str(kwargs['headers']))
+       resp, body = httplib2.Http.request(self, *args, **kwargs)
+       body = json.loads(body)
+       LOG.debug("RESPONSE:" + str(resp))
+       LOG.debug("BODY:" + str(body))
 
        if resp.status in (400, 401, 403, 404, 413, 500, 501):
            raise exception_from_response(resp, body)

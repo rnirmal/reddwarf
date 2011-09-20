@@ -19,7 +19,7 @@ Domains interface.
 
 from novaclient import base
 
-import rsdns
+import os
 from rsdns.client.future import FutureResource
 
 
@@ -27,15 +27,17 @@ class Domain(base.Resource):
     """
     A Domain has a name and stores records.  In the API they are id'd by ints.
     """
-    def __repr__(self):
-        # @TODO(mbasnight): fix this once the API changes
-        return "OK"
 
+    def response_list_name(self):
+        return "domains"
 
 class FutureDomain(FutureResource):
 
     def convert_callback(self, resp, body):
         return Domain(self.manager, body)
+
+    def response_list_name(self):
+        return "domains"
 
 
 class DomainsManager(base.ManagerWithFind):
@@ -46,7 +48,7 @@ class DomainsManager(base.ManagerWithFind):
 
     def create(self, name):
         """Not implemented / needed yet."""
-        if rsdns.ADD_DOMAINS:
+        if os.environ.get("ADD_DOMAINS", "False") == 'True':
             accountId = self.api.client.accountId
             data = {"domains":
                         [
@@ -62,6 +64,9 @@ class DomainsManager(base.ManagerWithFind):
             raise RuntimeError("Did not expect response " + str(resp.status))
         else:
             raise NotImplementedError("No need for create.")
+
+    def create_from_list(self, list):
+        return [self.resource_class(self, res) for res in list]
 
     def delete(self, *args, **kwargs):
         """Not implemented / needed yet."""
@@ -81,4 +86,4 @@ class DomainsManager(base.ManagerWithFind):
             list = body['domains']
         except KeyError:
             raise RuntimeError('Body was missing "domains" key.')
-        return [self.resource_class(self, res) for res in list]
+        return self.create_from_list(list)

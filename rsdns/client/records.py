@@ -34,15 +34,16 @@ class FutureRecord(FutureResource):
                                'records, not 1.')
         return Record(self, list[0])
 
+    def response_list_name(self):
+        return "records"
+
 
 class Record(base.Resource):
     """
     A Record is a individual dns record (Cname, A, MX, etc..)
     """
-    def __repr__(self):
-        # The DNS API sometimes returns codes other than 200 even though
-        # the result is still what Nova client would consider "OK".
-        return "OK"
+
+    pass
 
 
 class RecordsManager(base.ManagerWithFind):
@@ -67,6 +68,9 @@ class RecordsManager(base.ManagerWithFind):
             return FutureRecord(self, **body)
         raise RuntimeError("Did not expect response " + str(resp.status))
 
+    def create_from_list(self, list):
+        return [self.resource_class(self, res) for res in list]
+
     def delete(self, domain_id, record_id):
         self._delete("/domains/%s/records/%s" % (domain_id, record_id))
 
@@ -89,7 +93,7 @@ class RecordsManager(base.ManagerWithFind):
             list = body['records']            
         except NameError:
             raise RuntimeError('Body was missing "records" or "record" key.')
-        all_records = [self.resource_class(self, res) for res in list]
+        all_records = self.create_from_list(list)
         return [record for record in all_records
                 if self.match_record(record, record_name, record_address,
                                      record_type)]

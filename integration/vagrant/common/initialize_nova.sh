@@ -36,10 +36,13 @@ mysql -u root -pnova -e "FLUSH PRIVILEGES;"
 exclaim Initializing Nova database.
 
 cat /vagrant-common/nova.conf.template > /home/vagrant/nova.conf
+# Add the domain name, make it different each time
+uuid | sed s/^/--dns_domain_name=/ | sed s/$/-dbaas-tests.com/  >> /home/vagrant/nova.conf
 if [ -d /extra ]
 then
     cat /extra/nova.conf >> /home/vagrant/nova.conf
 fi
+
 
 glance_manage () {
     echo glance-manage $@
@@ -74,7 +77,9 @@ glance_manage db_sync
 
 nova_manage db sync
 nova_manage user admin admin admin admin
+nova_manage user admin boss admin admin
 nova_manage project create dbaas admin
+
 
 reddwarf_manage db sync
 
@@ -89,12 +94,28 @@ keystone_manage role add $AUTH_ADMIN_ROLE
 keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
 keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
 
+# Add "Boss"
+keystone_manage user add Boss admin dbaas
+
+
+AUTH_TENANT="dbaas"
+AUTH_USER="admin"
+AUTH_PASSWORD="admin"
+AUTH_ADMIN_ROLE="Admin"
+keystone_manage tenant add $AUTH_TENANT
+keystone_manage user add $AUTH_USER $AUTH_PASSWORD $AUTH_TENANT
+keystone_manage role add $AUTH_ADMIN_ROLE
+keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
+keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
+
+
 SERVICE_ADMIN_USER="service-admin"
 SERVICE_ADMIN_PASSWORD="serviceadmin"
 SERVICE_ADMIN_ROLE="KeystoneServiceAdmin"
 keystone_manage user add $SERVICE_ADMIN_USER $SERVICE_ADMIN_PASSWORD
 keystone_manage role add $SERVICE_ADMIN_ROLE
 keystone_manage role grant $SERVICE_ADMIN_ROLE $SERVICE_ADMIN_USER
+
 
 SERVICE_REGION="ci"
 REDDWARF_SERVICE_NAME="reddwarf"
@@ -114,6 +135,11 @@ cp /src/etc/nova/reddwarf-api-paste.ini /home/vagrant
 
 exclaim Starting tests...
 cd /tests
+
+# Make sure the domain name exists (must happen before the image is added)
+cd /tests
+sudo -E ADD_DOMAINS=True NOVASRC=/src /tests/run_tests_nv.sh --conf=/tests/vagrant/host/host.nemesis.conf --group=rsdns.domains
+
 
 # Install glance_image if one isn't found.
 if [ ! -f /var/lib/glance/1 ]
@@ -183,3 +209,5 @@ exit 0
 # TODO: It may be necessary to delete all other instances of this.
 
 # TODO: Add the fake LVM stuff so nova volumes doesnt complain (see baz' wiki article)
+
+

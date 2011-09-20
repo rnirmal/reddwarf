@@ -255,7 +255,7 @@ class PlatformApi(unittest.TestCase):
 
     def test_start(self):
         if not self.service.is_service_alive():
-            self.service.start(time_out=60)
+            self.service.start(time_out=60 * 5)
 
 
 @test(groups=["services.initialize"],
@@ -263,7 +263,7 @@ class PlatformApi(unittest.TestCase):
 class WaitForTopics(unittest.TestCase):
     """Waits until needed services are up."""
 
-    @time_out(60)
+    @time_out(60 * 5)
     def test_start(self):
         topics = ["compute", "volume"]
         from tests.util.topics import hosts_up

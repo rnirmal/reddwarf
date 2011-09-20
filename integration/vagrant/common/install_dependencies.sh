@@ -63,6 +63,7 @@ exclaim Installing additional Nova dependencies.
 pkg_install mysql-server-5.1
 pkg_install python-mysqldb
 pkg_install python-paramiko
+pkg_install uuid
 
 # Install open-iscsi and update the config with the defaults
 pkg_install open-iscsi
