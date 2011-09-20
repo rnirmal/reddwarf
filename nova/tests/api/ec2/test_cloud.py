@@ -38,6 +38,7 @@ from nova import test
 from nova import utils
 from nova.api.ec2 import cloud
 from nova.api.ec2 import ec2utils
+from nova.compute import vm_states
 from nova.image import fake
 
 
@@ -50,8 +51,6 @@ class CloudTestCase(test.TestCase):
         super(CloudTestCase, self).setUp()
         self.flags(connection_type='fake',
                    stub_network=True)
-
-        self.conn = rpc.create_connection()
 
         # set up our cloud
         self.cloud = cloud.CloudController()
@@ -85,13 +84,6 @@ class CloudTestCase(test.TestCase):
             greenthread.sleep(0.2)
 
         self.stubs.Set(rpc, 'cast', finish_cast)
-
-    def tearDown(self):
-        networks = db.project_get_networks(self.context, self.project_id,
-                                           associate=False)
-        for network in networks:
-            db.network_disassociate(self.context, network['id'])
-        super(CloudTestCase, self).tearDown()
 
     def _create_key(self, name):
         # NOTE(vish): create depends on pool, so just call helper directly
@@ -313,6 +305,61 @@ class CloudTestCase(test.TestCase):
                   'ip_protocol': u'tcp'}]}
         self.assertTrue(authz(self.context, group_name=sec['name'], **kwargs))
 
+    def test_describe_security_group_ingress_groups(self):
+        kwargs = {'project_id': self.context.project_id, 'name': 'test'}
+        sec1 = db.security_group_create(self.context, kwargs)
+        sec2 = db.security_group_create(self.context,
+                                       {'project_id': 'someuser',
+                                        'name': 'somegroup1'})
+        sec3 = db.security_group_create(self.context,
+                                       {'project_id': 'someuser',
+                                        'name': 'othergroup2'})
+        authz = self.cloud.authorize_security_group_ingress
+        kwargs = {'ip_permissions': [
+                  {'groups': {'1': {'user_id': u'someuser',
+                                    'group_name': u'somegroup1'}}},
+                  {'ip_protocol': 'tcp',
+                   'from_port': 80,
+                   'to_port': 80,
+                   'groups': {'1': {'user_id': u'someuser',
+                                    'group_name': u'othergroup2'}}}]}
+        self.assertTrue(authz(self.context, group_name=sec1['name'], **kwargs))
+        describe = self.cloud.describe_security_groups
+        groups = describe(self.context, group_name=['test'])
+        self.assertEquals(len(groups['securityGroupInfo']), 1)
+        actual_rules = groups['securityGroupInfo'][0]['ipPermissions']
+        self.assertEquals(len(actual_rules), 4)
+        expected_rules = [{'fromPort': -1,
+                           'groups': [{'groupName': 'somegroup1',
+                                       'userId': 'someuser'}],
+                           'ipProtocol': 'icmp',
+                           'ipRanges': [],
+                           'toPort': -1},
+                          {'fromPort': 1,
+                           'groups': [{'groupName': u'somegroup1',
+                                       'userId': u'someuser'}],
+                           'ipProtocol': 'tcp',
+                           'ipRanges': [],
+                           'toPort': 65535},
+                          {'fromPort': 1,
+                           'groups': [{'groupName': u'somegroup1',
+                                       'userId': u'someuser'}],
+                           'ipProtocol': 'udp',
+                           'ipRanges': [],
+                           'toPort': 65536},
+                          {'fromPort': 80,
+                           'groups': [{'groupName': u'othergroup2',
+                                       'userId': u'someuser'}],
+                           'ipProtocol': u'tcp',
+                           'ipRanges': [],
+                           'toPort': 80}]
+        for rule in expected_rules:
+            self.assertTrue(rule in actual_rules)
+
+        db.security_group_destroy(self.context, sec3['id'])
+        db.security_group_destroy(self.context, sec2['id'])
+        db.security_group_destroy(self.context, sec1['id'])
+
     def test_revoke_security_group_ingress(self):
         kwargs = {'project_id': self.context.project_id, 'name': 'test'}
         sec = db.security_group_create(self.context, kwargs)
@@ -494,8 +541,9 @@ class CloudTestCase(test.TestCase):
         inst2 = db.instance_create(self.context, args2)
         db.instance_destroy(self.context, inst1.id)
         result = self.cloud.describe_instances(self.context)
-        result = result['reservationSet'][0]['instancesSet']
-        self.assertEqual(result[0]['instanceId'],
+        self.assertEqual(len(result['reservationSet']), 1)
+        result1 = result['reservationSet'][0]['instancesSet']
+        self.assertEqual(result1[0]['instanceId'],
                          ec2utils.id_to_ec2_id(inst2.id))
 
     def _block_device_mapping_create(self, instance_id, mappings):
@@ -1163,7 +1211,7 @@ class CloudTestCase(test.TestCase):
             self.compute = self.start_service('compute')
 
     def _wait_for_state(self, ctxt, instance_id, predicate):
-        """Wait for an stopping instance to be a given state"""
+        """Wait for a stopped instance to be a given state"""
         id = ec2utils.ec2_id_to_id(instance_id)
         while True:
             info = self.cloud.compute_api.get(context=ctxt, instance_id=id)
@@ -1174,12 +1222,16 @@ class CloudTestCase(test.TestCase):
 
     def _wait_for_running(self, instance_id):
         def is_running(info):
-            return info['state_description'] == 'running'
+            vm_state = info["vm_state"]
+            task_state = info["task_state"]
+            return vm_state == vm_states.ACTIVE and task_state == None
         self._wait_for_state(self.context, instance_id, is_running)
 
     def _wait_for_stopped(self, instance_id):
         def is_stopped(info):
-            return info['state_description'] == 'stopped'
+            vm_state = info["vm_state"]
+            task_state = info["task_state"]
+            return vm_state == vm_states.STOPPED and task_state == None
         self._wait_for_state(self.context, instance_id, is_stopped)
 
     def _wait_for_terminate(self, instance_id):
@@ -1543,7 +1595,9 @@ class CloudTestCase(test.TestCase):
                     'ephemeral0': '/dev/sdb',
                     'swap': '/dev/sdc',
                     'ephemeral1': '/dev/sdd',
-                    'ephemeral2': '/dev/sd3'}
+                    'ephemeral2': '/dev/sd3',
+                    'ebs0': '/dev/sdh',
+                    'ebs1': '/dev/sdi'}
 
         self.assertEqual(self.cloud._format_instance_mapping(ctxt,
                                                              instance_ref0),
@@ -1562,7 +1616,7 @@ class CloudTestCase(test.TestCase):
                 'id': 0,
                 'root_device_name': '/dev/sdh',
                 'security_groups': [{'name': 'fake0'}, {'name': 'fake1'}],
-                'state_description': 'stopping',
+                'vm_state': vm_states.STOPPED,
                 'instance_type': {'name': 'fake_type'},
                 'kernel_id': 1,
                 'ramdisk_id': 2,
@@ -1606,7 +1660,7 @@ class CloudTestCase(test.TestCase):
         self.assertEqual(groupSet, expected_groupSet)
         self.assertEqual(get_attribute('instanceInitiatedShutdownBehavior'),
                          {'instance_id': 'i-12345678',
-                          'instanceInitiatedShutdownBehavior': 'stop'})
+                          'instanceInitiatedShutdownBehavior': 'stopped'})
         self.assertEqual(get_attribute('instanceType'),
                          {'instance_id': 'i-12345678',
                           'instanceType': 'fake_type'})

@@ -193,8 +193,9 @@ class Instance(BASE, NovaBase):
     key_name = Column(String(255))
     key_data = Column(Text)
 
-    state = Column(Integer)
-    state_description = Column(String(255))
+    power_state = Column(Integer)
+    vm_state = Column(String(255))
+    task_state = Column(String(255))
 
     memory_mb = Column(Integer)
     vcpus = Column(Integer)
@@ -231,6 +232,8 @@ class Instance(BASE, NovaBase):
     uuid = Column(String(36))
 
     root_device_name = Column(String(255))
+    default_local_device = Column(String(255), nullable=True)
+    default_swap_device = Column(String(255), nullable=True)
     config_drive = Column(String(255))
 
     # User editable field meant to represent what ip should be used
@@ -238,16 +241,31 @@ class Instance(BASE, NovaBase):
     access_ip_v4 = Column(String(255))
     access_ip_v6 = Column(String(255))
 
-    # TODO(vish): see Ewan's email about state improvements, probably
-    #             should be in a driver base class or some such
-    # vmstate_state = running, halted, suspended, paused
-    # power_state = what we have
-    # task_state = transitory and may trigger power state transition
 
-    #@validates('state')
-    #def validate_state(self, key, state):
-    #    assert(state in ['nostate', 'running', 'blocked', 'paused',
-    #                     'shutdown', 'shutoff', 'crashed'])
+class VirtualStorageArray(BASE, NovaBase):
+    """
+    Represents a virtual storage array supplying block storage to instances.
+    """
+    __tablename__ = 'virtual_storage_arrays'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    @property
+    def name(self):
+        return FLAGS.vsa_name_template % self.id
+
+    # User editable field for display in user-facing UIs
+    display_name = Column(String(255))
+    display_description = Column(String(255))
+
+    project_id = Column(String(255))
+    availability_zone = Column(String(255))
+
+    instance_type_id = Column(Integer, ForeignKey('instance_types.id'))
+    image_ref = Column(String(255))
+    vc_count = Column(Integer, default=0)   # number of requested VC instances
+    vol_count = Column(Integer, default=0)  # total number of BE volumes
+    status = Column(String(255))
 
 
 class InstanceActions(BASE, NovaBase):
@@ -278,6 +296,12 @@ class InstanceTypes(BASE, NovaBase):
                            foreign_keys=id,
                            primaryjoin='and_(Instance.instance_type_id == '
                                        'InstanceTypes.id)')
+
+    vsas = relationship(VirtualStorageArray,
+                       backref=backref('vsa_instance_type', uselist=False),
+                       foreign_keys=id,
+                       primaryjoin='and_(VirtualStorageArray.instance_type_id'
+                                   ' == InstanceTypes.id)')
 
 
 class Volume(BASE, NovaBase):
@@ -606,6 +630,7 @@ class Network(BASE, NovaBase):
     dhcp_start = Column(String(255))
 
     project_id = Column(String(255))
+    priority = Column(Integer)
     host = Column(String(255))  # , ForeignKey('hosts.id'))
     uuid = Column(String(36))
 
@@ -617,10 +642,7 @@ class VirtualInterface(BASE, NovaBase):
     address = Column(String(255), unique=True)
     network_id = Column(Integer, ForeignKey('networks.id'))
     network = relationship(Network, backref=backref('virtual_interfaces'))
-
-    # TODO(tr3buchet): cut the cord, removed foreign key and backrefs
-    instance_id = Column(Integer, ForeignKey('instances.id'), nullable=False)
-    instance = relationship(Instance, backref=backref('virtual_interfaces'))
+    instance_id = Column(Integer, nullable=False)
 
     uuid = Column(String(36))
 
@@ -848,7 +870,8 @@ def register_models():
               SecurityGroupInstanceAssociation, AuthToken, User,
               Project, Certificate, ConsolePool, Console, Zone,
               VolumeMetadata, VolumeTypes, VolumeTypeExtraSpecs,
-              AgentBuild, InstanceMetadata, InstanceTypeExtraSpecs, Migration)
+              AgentBuild, InstanceMetadata, InstanceTypeExtraSpecs, Migration,
+              VirtualStorageArray)
     engine = create_engine(FLAGS.sql_connection, echo=False)
     for model in models:
         model.metadata.create_all(engine)
