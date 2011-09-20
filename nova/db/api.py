@@ -49,7 +49,8 @@ flags.DEFINE_string('volume_name_template', 'volume-%08x',
                     'Template string to be used to generate instance names')
 flags.DEFINE_string('snapshot_name_template', 'snapshot-%08x',
                     'Template string to be used to generate snapshot names')
-
+flags.DEFINE_string('vsa_name_template', 'vsa-%08x',
+                    'Template string to be used to generate VSA names')
 
 IMPL = utils.LazyPluggable(FLAGS['db_backend'],
                            sqlalchemy='nova.db.sqlalchemy.api')
@@ -269,11 +270,13 @@ def floating_ip_disassociate(context, address):
     return IMPL.floating_ip_disassociate(context, address)
 
 
-def floating_ip_fixed_ip_associate(context, floating_address, fixed_address):
+def floating_ip_fixed_ip_associate(context, floating_address,
+                                   fixed_address, host):
     """Associate an floating ip to a fixed_ip by address."""
     return IMPL.floating_ip_fixed_ip_associate(context,
                                                floating_address,
-                                               fixed_address)
+                                               fixed_address,
+                                               host)
 
 
 def floating_ip_get_all(context):
@@ -329,16 +332,23 @@ def migration_get_by_instance_and_status(context, instance_uuid, status):
             status)
 
 
+def migration_get_all_unconfirmed(context, confirm_window):
+    """Finds all unconfirmed migrations within the confirmation window."""
+    return IMPL.migration_get_all_unconfirmed(context, confirm_window)
+
+
 ####################
 
 
-def fixed_ip_associate(context, address, instance_id, network_id=None):
+def fixed_ip_associate(context, address, instance_id, network_id=None,
+                       reserved=False):
     """Associate fixed ip to instance.
 
     Raises if fixed ip is not available.
 
     """
-    return IMPL.fixed_ip_associate(context, address, instance_id, network_id)
+    return IMPL.fixed_ip_associate(context, address, instance_id, network_id,
+                                   reserved)
 
 
 def fixed_ip_associate_pool(context, network_id, instance_id=None, host=None):
@@ -373,7 +383,7 @@ def fixed_ip_get_all(context):
 
 def fixed_ip_get_all_by_instance_host(context, host):
     """Get all allocated fixed ips filtered by instance host."""
-    return IMPL.fixed_ip_get_all_instance_by_host(context, host)
+    return IMPL.fixed_ip_get_all_by_instance_host(context, host)
 
 
 def fixed_ip_get_by_address(context, address):
@@ -434,6 +444,11 @@ def virtual_interface_get_by_address(context, address):
     return IMPL.virtual_interface_get_by_address(context, address)
 
 
+def virtual_interface_get_by_uuid(context, vif_uuid):
+    """Gets a virtual interface from the table filtering on vif uuid."""
+    return IMPL.virtual_interface_get_by_uuid(context, vif_uuid)
+
+
 def virtual_interface_get_by_fixed_ip(context, fixed_ip_id):
     """Gets the virtual interface fixed_ip is associated with."""
     return IMPL.virtual_interface_get_by_fixed_ip(context, fixed_ip_id)
@@ -465,6 +480,11 @@ def virtual_interface_delete(context, vif_id):
 def virtual_interface_delete_by_instance(context, instance_id):
     """Delete virtual interface records associated with instance."""
     return IMPL.virtual_interface_delete_by_instance(context, instance_id)
+
+
+def virtual_interface_get_all(context):
+    """Gets all virtual interfaces from the table"""
+    return IMPL.virtual_interface_get_all(context)
 
 
 ####################
@@ -515,9 +535,20 @@ def instance_get_all_by_filters(context, filters):
     return IMPL.instance_get_all_by_filters(context, filters)
 
 
-def instance_get_active_by_window(context, begin, end=None):
-    """Get instances active during a certain time window."""
-    return IMPL.instance_get_active_by_window(context, begin, end)
+def instance_get_active_by_window(context, begin, end=None, project_id=None):
+    """Get instances active during a certain time window.
+
+    Specifying a project_id will filter for a certain project."""
+    return IMPL.instance_get_active_by_window(context, begin, end, project_id)
+
+
+def instance_get_active_by_window_joined(context, begin, end=None,
+                                         project_id=None):
+    """Get instances and joins active during a certain time window.
+
+    Specifying a project_id will filter for a certain project."""
+    return IMPL.instance_get_active_by_window_joined(context, begin, end,
+                                              project_id)
 
 
 def instance_get_all_by_user(context, user_id):
@@ -603,6 +634,11 @@ def instance_action_create(context, values):
 def instance_get_actions(context, instance_id):
     """Get instance actions by instance id."""
     return IMPL.instance_get_actions(context, instance_id)
+
+
+def instance_get_id_to_uuid_mapping(context, ids):
+    """Return a dictionary containing 'ID: UUID' given the ids"""
+    return IMPL.instance_get_id_to_uuid_mapping(context, ids)
 
 
 ###################
@@ -721,6 +757,11 @@ def network_get_associated_fixed_ips(context, network_id):
 def network_get_by_bridge(context, bridge):
     """Get a network by bridge or raise if it does not exist."""
     return IMPL.network_get_by_bridge(context, bridge)
+
+
+def network_get_by_uuid(context, uuid):
+    """Get a network by uuid or raise if it does not exist."""
+    return IMPL.network_get_by_uuid(context, uuid)
 
 
 def network_get_by_cidr(context, cidr):
@@ -1532,3 +1573,36 @@ def volume_type_extra_specs_update_or_create(context, volume_type_id,
     key/value pairs specified in the extra specs dict argument"""
     IMPL.volume_type_extra_specs_update_or_create(context, volume_type_id,
                                                     extra_specs)
+
+
+####################
+
+
+def vsa_create(context, values):
+    """Creates Virtual Storage Array record."""
+    return IMPL.vsa_create(context, values)
+
+
+def vsa_update(context, vsa_id, values):
+    """Updates Virtual Storage Array record."""
+    return IMPL.vsa_update(context, vsa_id, values)
+
+
+def vsa_destroy(context, vsa_id):
+    """Deletes Virtual Storage Array record."""
+    return IMPL.vsa_destroy(context, vsa_id)
+
+
+def vsa_get(context, vsa_id):
+    """Get Virtual Storage Array record by ID."""
+    return IMPL.vsa_get(context, vsa_id)
+
+
+def vsa_get_all(context):
+    """Get all Virtual Storage Array records."""
+    return IMPL.vsa_get_all(context)
+
+
+def vsa_get_all_by_project(context, project_id):
+    """Get all Virtual Storage Array records by project ID."""
+    return IMPL.vsa_get_all_by_project(context, project_id)

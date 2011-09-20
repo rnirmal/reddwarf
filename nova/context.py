@@ -32,13 +32,13 @@ class RequestContext(object):
 
     def __init__(self, user_id, project_id, is_admin=None, read_deleted=False,
                  roles=None, remote_address=None, timestamp=None,
-                 request_id=None, auth_token=None):
+                 request_id=None, auth_token=None, strategy='noauth'):
         self.user_id = user_id
         self.project_id = project_id
         self.roles = roles or []
         self.is_admin = is_admin
         if self.is_admin is None:
-            self.admin = 'admin' in self.roles
+            self.is_admin = 'admin' in [x.lower() for x in self.roles]
         self.read_deleted = read_deleted
         self.remote_address = remote_address
         if not timestamp:
@@ -50,6 +50,7 @@ class RequestContext(object):
             request_id = unicode(uuid.uuid4())
         self.request_id = request_id
         self.auth_token = auth_token
+        self.strategy = strategy
 
     def to_dict(self):
         return {'user_id': self.user_id,
@@ -60,7 +61,8 @@ class RequestContext(object):
                 'remote_address': self.remote_address,
                 'timestamp': utils.strtime(self.timestamp),
                 'request_id': self.request_id,
-                'auth_token': self.auth_token}
+                'auth_token': self.auth_token,
+                'strategy': self.strategy}
 
     @classmethod
     def from_dict(cls, values):
@@ -77,7 +79,8 @@ class RequestContext(object):
                               remote_address=self.remote_address,
                               timestamp=self.timestamp,
                               request_id=self.request_id,
-                              auth_token=self.auth_token)
+                              auth_token=self.auth_token,
+                              strategy=self.strategy)
 
 
 def get_admin_context(read_deleted=False):

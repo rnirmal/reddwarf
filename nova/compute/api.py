@@ -19,13 +19,11 @@
 
 """Handles all requests relating to instances (guest vms)."""
 
-import eventlet
 import novaclient
 import re
 import time
 
 from nova import block_device
-from nova import db
 from nova import exception
 from nova import flags
 import nova.image
@@ -37,6 +35,8 @@ from nova import utils
 from nova import volume
 from nova.compute import instance_types
 from nova.compute import power_state
+from nova.compute import task_states
+from nova.compute import vm_states
 from nova.compute.utils import terminate_volumes
 from nova.scheduler import api as scheduler_api
 from nova.db import base
@@ -87,12 +87,18 @@ def generate_dns_hostname(instance):
 
 
 def _is_able_to_shutdown(instance, instance_id):
-    states = {'terminating': "Instance %s is already being terminated",
-              'migrating': "Instance %s is being migrated",
-              'stopping': "Instance %s is being stopped"}
-    msg = states.get(instance['state_description'])
-    if msg:
-        LOG.warning(_(msg), instance_id)
+    vm_state = instance["vm_state"]
+    task_state = instance["task_state"]
+
+    valid_shutdown_states = [
+        vm_states.ACTIVE,
+        vm_states.REBUILDING,
+        vm_states.BUILDING,
+    ]
+
+    if vm_state not in valid_shutdown_states:
+        LOG.warn(_("Instance %(instance_id)s is not in an 'active' state. It "
+                   "is currently %(vm_state)s. Shutdown aborted.") % locals())
         return False
 
     return True
@@ -208,7 +214,8 @@ class API(base.Base):
         self._check_injected_file_quota(context, injected_files)
         self._check_requested_networks(context, requested_networks)
 
-        (image_service, image_id) = nova.image.get_image_service(image_href)
+        (image_service, image_id) = nova.image.get_image_service(context,
+                                                                 image_href)
         image = image_service.show(context, image_id)
 
         config_drive_id = None
@@ -249,7 +256,7 @@ class API(base.Base):
         self.ensure_default_security_group(context)
 
         if key_data is None and key_name:
-            key_pair = db.key_pair_get(context, context.user_id, key_name)
+            key_pair = self.db.key_pair_get(context, context.user_id, key_name)
             key_data = key_pair['public_key']
 
         if reservation_id is None:
@@ -263,10 +270,10 @@ class API(base.Base):
             'image_ref': image_href,
             'kernel_id': kernel_id or '',
             'ramdisk_id': ramdisk_id or '',
+            'power_state': power_state.NOSTATE,
+            'vm_state': vm_states.BUILDING,
             'config_drive_id': config_drive_id or '',
             'config_drive': config_drive or '',
-            'state': 0,
-            'state_description': 'scheduling',
             'user_id': context.user_id,
             'project_id': context.project_id,
             'launch_time': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -292,18 +299,24 @@ class API(base.Base):
         return (num_instances, base_options, image)
 
     @staticmethod
-    def _ephemeral_size(instance_type, ephemeral_name):
-        num = block_device.ephemeral_num(ephemeral_name)
+    def _volume_size(instance_type, virtual_name):
+        size = 0
+        if virtual_name == 'swap':
+            size = instance_type.get('swap', 0)
+        elif block_device.is_ephemeral(virtual_name):
+            num = block_device.ephemeral_num(virtual_name)
 
-        # TODO(yamahata): ephemeralN where N > 0
-        # Only ephemeral0 is allowed for now because InstanceTypes
-        # table only allows single local disk, local_gb.
-        # In order to enhance it, we need to add a new columns to
-        # instance_types table.
-        if num > 0:
-            return 0
+            # TODO(yamahata): ephemeralN where N > 0
+            # Only ephemeral0 is allowed for now because InstanceTypes
+            # table only allows single local disk, local_gb.
+            # In order to enhance it, we need to add a new columns to
+            # instance_types table.
+            if num > 0:
+                return 0
 
-        return instance_type.get('local_gb')
+            size = instance_type.get('local_gb')
+
+        return size
 
     def _update_image_block_device_mapping(self, elevated_context,
                                            instance_type, instance_id,
@@ -324,12 +337,7 @@ class API(base.Base):
             if not block_device.is_swap_or_ephemeral(virtual_name):
                 continue
 
-            size = 0
-            if virtual_name == 'swap':
-                size = instance_type.get('swap', 0)
-            elif block_device.is_ephemeral(virtual_name):
-                size = self._ephemeral_size(instance_type, virtual_name)
-
+            size = self._volume_size(instance_type, virtual_name)
             if size == 0:
                 continue
 
@@ -359,8 +367,8 @@ class API(base.Base):
 
             virtual_name = bdm.get('virtual_name')
             if (virtual_name is not None and
-                block_device.is_ephemeral(virtual_name)):
-                size = self._ephemeral_size(instance_type, virtual_name)
+                block_device.is_swap_or_ephemeral(virtual_name)):
+                size = self._volume_size(instance_type, virtual_name)
                 if size == 0:
                     continue
                 values['volume_size'] = size
@@ -389,10 +397,6 @@ class API(base.Base):
         If you are changing this method, be sure to update both
         call paths.
         """
-        instance = dict(launch_index=num, **base_options)
-        instance = self.db.instance_create(context, instance)
-        instance_id = instance['id']
-
         elevated = context.elevated()
         if security_group is None:
             security_group = ['default']
@@ -401,10 +405,14 @@ class API(base.Base):
 
         security_groups = []
         for security_group_name in security_group:
-            group = db.security_group_get_by_name(context,
-                                                  context.project_id,
-                                                  security_group_name)
+            group = self.db.security_group_get_by_name(context,
+                    context.project_id,
+                    security_group_name)
             security_groups.append(group['id'])
+
+        instance = dict(launch_index=num, **base_options)
+        instance = self.db.instance_create(context, instance)
+        instance_id = instance['id']
 
         for security_group_id in security_groups:
             self.db.instance_add_security_group(elevated,
@@ -427,6 +435,8 @@ class API(base.Base):
             updates['display_name'] = "Server %s" % instance_id
             instance['display_name'] = updates['display_name']
         updates['hostname'] = self.hostname_factory(instance)
+        updates['vm_state'] = vm_states.BUILDING
+        updates['task_state'] = task_states.SCHEDULING
 
         instance = self.update(context, instance_id, **updates)
         return instance
@@ -563,8 +573,9 @@ class API(base.Base):
     def has_finished_migration(self, context, instance_uuid):
         """Returns true if an instance has a finished migration."""
         try:
-            db.migration_get_by_instance_and_status(context, instance_uuid,
-                    'finished')
+            self.db.migration_get_by_instance_and_status(context,
+                                                         instance_uuid,
+                                                         'finished')
             return True
         except exception.NotFound:
             return False
@@ -578,14 +589,15 @@ class API(base.Base):
         :param context: the security context
         """
         try:
-            db.security_group_get_by_name(context, context.project_id,
-                                          'default')
+            self.db.security_group_get_by_name(context,
+                                               context.project_id,
+                                               'default')
         except exception.NotFound:
             values = {'name': 'default',
                       'description': 'default',
                       'user_id': context.user_id,
                       'project_id': context.project_id}
-            db.security_group_create(context, values)
+            self.db.security_group_create(context, values)
 
     def trigger_security_group_rules_refresh(self, context, security_group_id):
         """Called when a rule is added to or removed from a security_group."""
@@ -650,7 +662,7 @@ class API(base.Base):
         """Called when a rule is added to or removed from a security_group"""
 
         hosts = [x['host'] for (x, idx)
-                           in db.service_get_all_compute_sorted(context)]
+                           in self.db.service_get_all_compute_sorted(context)]
         for host in hosts:
             rpc.cast(context,
                      self.db.queue_get_for(context, FLAGS.compute_topic, host),
@@ -678,11 +690,11 @@ class API(base.Base):
 
     def add_security_group(self, context, instance_id, security_group_name):
         """Add security group to the instance"""
-        security_group = db.security_group_get_by_name(context,
-                                                       context.project_id,
-                                                       security_group_name)
+        security_group = self.db.security_group_get_by_name(context,
+                context.project_id,
+                security_group_name)
         # check if the server exists
-        inst = db.instance_get(context, instance_id)
+        inst = self.db.instance_get(context, instance_id)
         #check if the security group is associated with the server
         if self._is_security_group_associated_with_server(security_group,
                                                         instance_id):
@@ -694,21 +706,21 @@ class API(base.Base):
         if inst['state'] != power_state.RUNNING:
             raise exception.InstanceNotRunning(instance_id=instance_id)
 
-        db.instance_add_security_group(context.elevated(),
-                                       instance_id,
-                                       security_group['id'])
+        self.db.instance_add_security_group(context.elevated(),
+                                            instance_id,
+                                            security_group['id'])
         rpc.cast(context,
-             db.queue_get_for(context, FLAGS.compute_topic, inst['host']),
+             self.db.queue_get_for(context, FLAGS.compute_topic, inst['host']),
              {"method": "refresh_security_group_rules",
               "args": {"security_group_id": security_group['id']}})
 
     def remove_security_group(self, context, instance_id, security_group_name):
         """Remove the security group associated with the instance"""
-        security_group = db.security_group_get_by_name(context,
-                                                       context.project_id,
-                                                       security_group_name)
+        security_group = self.db.security_group_get_by_name(context,
+                context.project_id,
+                security_group_name)
         # check if the server exists
-        inst = db.instance_get(context, instance_id)
+        inst = self.db.instance_get(context, instance_id)
         #check if the security group is associated with the server
         if not self._is_security_group_associated_with_server(security_group,
                                                         instance_id):
@@ -720,11 +732,11 @@ class API(base.Base):
         if inst['state'] != power_state.RUNNING:
             raise exception.InstanceNotRunning(instance_id=instance_id)
 
-        db.instance_remove_security_group(context.elevated(),
-                                       instance_id,
-                                       security_group['id'])
+        self.db.instance_remove_security_group(context.elevated(),
+                                               instance_id,
+                                               security_group['id'])
         rpc.cast(context,
-             db.queue_get_for(context, FLAGS.compute_topic, inst['host']),
+             self.db.queue_get_for(context, FLAGS.compute_topic, inst['host']),
              {"method": "refresh_security_group_rules",
               "args": {"security_group_id": security_group['id']}})
 
@@ -762,10 +774,8 @@ class API(base.Base):
             return
 
         self.update(context,
-                    instance['id'],
-                    state_description='terminating',
-                    state=0,
-                    terminated_at=utils.utcnow())
+                    instance_id,
+                    task_state=task_states.DELETING)
 
         host = instance['host']
         if host:
@@ -785,9 +795,9 @@ class API(base.Base):
             return
 
         self.update(context,
-                    instance['id'],
-                    state_description='stopping',
-                    state=power_state.NOSTATE,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=task_states.STOPPING,
                     terminated_at=utils.utcnow())
 
         host = instance['host']
@@ -799,11 +809,17 @@ class API(base.Base):
         """Start an instance."""
         LOG.debug(_("Going to try to start %s"), instance_id)
         instance = self._get_instance(context, instance_id, 'starting')
-        if instance['state_description'] != 'stopped':
-            _state_description = instance['state_description']
+        vm_state = instance["vm_state"]
+
+        if vm_state != vm_states.STOPPED:
             LOG.warning(_("Instance %(instance_id)s is not "
-                          "stopped(%(_state_description)s)") % locals())
+                          "stopped. (%(vm_state)s)") % locals())
             return
+
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.STOPPED,
+                    task_state=task_states.STARTING)
 
         # TODO(yamahata): injected_files isn't supported right now.
         #                 It is used only for osapi. not for ec2 api.
@@ -813,6 +829,15 @@ class API(base.Base):
                  {"method": "start_instance",
                   "args": {"topic": FLAGS.compute_topic,
                            "instance_id": instance_id}})
+
+    def get_active_by_window(self, context, begin, end=None, project_id=None):
+        """Get instances that were continuously active over a window."""
+        return self.db.instance_get_active_by_window(context, begin, end,
+                                                     project_id)
+
+    def get_instance_type(self, context, instance_type_id):
+        """Get an instance type by instance type id."""
+        return self.db.instance_type_get(context, instance_type_id)
 
     def get(self, context, instance_id):
         """Get a single instance with the given instance_id."""
@@ -866,6 +891,7 @@ class API(base.Base):
                 'image': 'image_ref',
                 'name': 'display_name',
                 'instance_name': 'name',
+                'tenant_id': 'project_id',
                 'recurse_zones': None,
                 'flavor': _remap_flavor_filter,
                 'fixed_ip': _remap_fixed_ip_filter}
@@ -891,7 +917,7 @@ class API(base.Base):
         if 'reservation_id' in filters:
             recurse_zones = True
 
-        instances = self.db.instance_get_all_by_filters(context, filters)
+        instances = self._get_instances_by_filters(context, filters)
 
         if not recurse_zones:
             return instances
@@ -915,6 +941,18 @@ class API(base.Base):
                 instances.append(server._info)
 
         return instances
+
+    def _get_instances_by_filters(self, context, filters):
+        ids = None
+        if 'ip6' in filters or 'ip' in filters:
+            res = self.network_api.get_instance_uuids_by_ip_filter(context,
+                                                                   filters)
+            # NOTE(jkoelker) It is possible that we will get the same
+            #                instance uuid twice (one for ipv4 and ipv6)
+            uuids = set([r['instance_uuid'] for r in res])
+            filters['uuid'] = uuids
+
+        return self.db.instance_get_all_by_filters(context, filters)
 
     def _cast_compute_message(self, method, context, instance_id, host=None,
                               params=None):
@@ -1013,7 +1051,7 @@ class API(base.Base):
         :param extra_properties: dict of extra image properties to include
 
         """
-        instance = db.api.instance_get(context, instance_id)
+        instance = self.db.instance_get(context, instance_id)
         properties = {'instance_uuid': instance['uuid'],
                       'user_id': str(context.user_id),
                       'image_state': 'creating',
@@ -1030,30 +1068,39 @@ class API(base.Base):
         return recv_meta
 
     @scheduler_api.reroute_compute("reboot")
-    def reboot(self, context, instance_id):
+    def reboot(self, context, instance_id, reboot_type):
         """Reboot the given instance."""
-        self._cast_compute_message('reboot_instance', context, instance_id)
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=task_states.REBOOTING)
+        self._cast_compute_message('reboot_instance', context, instance_id,
+                params={'reboot_type': reboot_type})
 
     @scheduler_api.reroute_compute("rebuild")
     def rebuild(self, context, instance_id, image_href, admin_password,
                 name=None, metadata=None, files_to_inject=None):
         """Rebuild the given instance with the provided metadata."""
-        instance = db.api.instance_get(context, instance_id)
+        instance = self.db.instance_get(context, instance_id)
+        name = name or instance["display_name"]
 
-        if instance["state"] == power_state.BUILDING:
-            msg = _("Instance already building")
-            raise exception.BuildInProgress(msg)
+        if instance["vm_state"] != vm_states.ACTIVE:
+            msg = _("Instance must be active to rebuild.")
+            raise exception.RebuildRequiresActiveInstance(msg)
 
         files_to_inject = files_to_inject or []
-        self._check_injected_file_quota(context, files_to_inject)
+        metadata = metadata or {}
 
-        values = {"image_ref": image_href}
-        if metadata is not None:
-            self._check_metadata_properties_quota(context, metadata)
-            values['metadata'] = metadata
-        if name is not None:
-            values['display_name'] = name
-        self.db.instance_update(context, instance_id, values)
+        self._check_injected_file_quota(context, files_to_inject)
+        self._check_metadata_properties_quota(context, metadata)
+
+        self.update(context,
+                    instance_id,
+                    metadata=metadata,
+                    display_name=name,
+                    image_ref=image_href,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=task_states.REBUILDING)
 
         rebuild_params = {
             "new_pass": admin_password,
@@ -1077,6 +1124,11 @@ class API(base.Base):
             raise exception.MigrationNotFoundByStatus(instance_id=instance_id,
                                                       status='finished')
 
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=None)
+
         params = {'migration_id': migration_ref['id']}
         self._cast_compute_message('revert_resize', context,
                                    instance_ref['uuid'],
@@ -1097,6 +1149,12 @@ class API(base.Base):
         if not migration_ref:
             raise exception.MigrationNotFoundByStatus(instance_id=instance_id,
                                                       status='finished')
+
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=None)
+
         params = {'migration_id': migration_ref['id']}
         self._cast_compute_message('confirm_resize', context,
                                    instance_ref['uuid'],
@@ -1142,6 +1200,11 @@ class API(base.Base):
         if (current_memory_mb == new_memory_mb) and flavor_id:
             raise exception.CannotResizeToSameSize()
 
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.RESIZING,
+                    task_state=task_states.RESIZE_PREP)
+
         instance_ref = self._get_instance(context, instance_id, 'resize')
         self._cast_scheduler_message(context,
                     {"method": "prep_resize",
@@ -1175,11 +1238,19 @@ class API(base.Base):
     @scheduler_api.reroute_compute("pause")
     def pause(self, context, instance_id):
         """Pause the given instance."""
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=task_states.PAUSING)
         self._cast_compute_message('pause_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("unpause")
     def unpause(self, context, instance_id):
         """Unpause the given instance."""
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.PAUSED,
+                    task_state=task_states.UNPAUSING)
         self._cast_compute_message('unpause_instance', context, instance_id)
 
     def _call_compute_message_for_host(self, action, context, host, params):
@@ -1212,21 +1283,42 @@ class API(base.Base):
     @scheduler_api.reroute_compute("suspend")
     def suspend(self, context, instance_id):
         """Suspend the given instance."""
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=task_states.SUSPENDING)
         self._cast_compute_message('suspend_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("resume")
     def resume(self, context, instance_id):
         """Resume the given instance."""
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.SUSPENDED,
+                    task_state=task_states.RESUMING)
         self._cast_compute_message('resume_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("rescue")
-    def rescue(self, context, instance_id):
+    def rescue(self, context, instance_id, rescue_password=None):
         """Rescue the given instance."""
-        self._cast_compute_message('rescue_instance', context, instance_id)
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.ACTIVE,
+                    task_state=task_states.RESCUING)
+
+        rescue_params = {
+            "rescue_password": rescue_password
+        }
+        self._cast_compute_message('rescue_instance', context, instance_id,
+                                    params=rescue_params)
 
     @scheduler_api.reroute_compute("unrescue")
     def unrescue(self, context, instance_id):
         """Unrescue the given instance."""
+        self.update(context,
+                    instance_id,
+                    vm_state=vm_states.RESCUED,
+                    task_state=task_states.UNRESCUING)
         self._cast_compute_message('unrescue_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("set_admin_password")

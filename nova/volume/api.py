@@ -151,7 +151,7 @@ class API(base.Base):
                 for i in volume.get('volume_metadata'):
                     volume_metadata[i['key']] = i['value']
 
-                for k, v in searchdict:
+                for k, v in searchdict.iteritems():
                     if k not in volume_metadata.keys()\
                        or volume_metadata[k] != v:
                         return False
@@ -160,6 +160,7 @@ class API(base.Base):
             # search_option to filter_name mapping.
             filter_mapping = {'metadata': _check_metadata_match}
 
+            result = []
             for volume in volumes:
                 # go over all filters in the list
                 for opt, values in search_opts.iteritems():
@@ -169,10 +170,10 @@ class API(base.Base):
                         # no such filter - ignore it, go to next filter
                         continue
                     else:
-                        if filter_func(volume, values) == False:
-                            # if one of conditions didn't match - remove
-                            volumes.remove(volume)
+                        if filter_func(volume, values):
+                            result.append(volume)
                             break
+            volumes = result
         return volumes
 
     def check_for_available_space(self, context, size):
@@ -295,3 +296,12 @@ class API(base.Base):
 
         self.db.volume_metadata_update(context, volume_id, _metadata, True)
         return _metadata
+
+    def get_volume_metadata_value(self, volume, key):
+        """Get value of particular metadata key."""
+        metadata = volume.get('volume_metadata')
+        if metadata:
+            for i in volume['volume_metadata']:
+                if i['key'] == key:
+                    return i['value']
+        return None
