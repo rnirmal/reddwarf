@@ -136,6 +136,8 @@ dbaas_trunk_install_glance() {
     
     sudo -E service glance-registry stop
     sudo -E service glance-api stop
+    sudo cp /vagrant/glance-api.conf /etc/glance/
+    sudo cp /vagrant/glance-registry.conf /etc/glance/
 }
 
 dbaas_new_install_glance() {
