@@ -1547,6 +1547,16 @@ def instance_update(context, instance_id, values):
         instance_ref.save(session=session)
         return instance_ref
 
+@require_admin_context
+def instance_set_state(context, instance_id, state, description=None):
+    # TODO(devcamcar): Move this out of models and into driver
+    from nova.compute import power_state
+    if not description:
+        description = power_state.name(state)
+    db.instance_update(context,
+                       instance_id,
+                       {'state': state,
+                        'state_description': description})
 
 def instance_add_security_group(context, instance_id, security_group_id):
     """Associate the given security group with the given instance"""
