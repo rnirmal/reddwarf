@@ -56,8 +56,6 @@ from nova import rpc
 from nova import utils
 from nova import volume
 from nova.compute import power_state
-from nova.utils import LoopingCall
-from nova.utils import LoopingCallDone
 from nova.notifier import api as notifier
 from nova.compute.utils import terminate_volumes
 from nova.virt import driver

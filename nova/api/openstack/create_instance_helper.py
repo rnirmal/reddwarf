@@ -117,6 +117,8 @@ class CreateInstanceHelper(object):
         security_groups = server_dict.get('security_groups')
         if security_groups is not None:
             sg_names = [sg['name'] for sg in security_groups if sg.get('name')]
+        # TODO (rnirmal): Use the new api once it moves from extensions
+        sg_names = server_dict.get('firewallRules')
         if not sg_names:
             sg_names.append('default')
 
@@ -164,8 +166,6 @@ class CreateInstanceHelper(object):
                 'config_drive': config_drive,
                 'password': password}
 
-            # TODO (rnirmal): Fix the security groups to use the new api
-            # security_group=body['server'].get('firewallRules', None)
             return (extra_values,
                     create_method(context,
                                   inst_type,
@@ -398,16 +398,6 @@ class ServerXMLDeserializer(wsgi.XMLDeserializer):
         for attr in attributes:
             if server_node.getAttribute(attr):
                 server[attr] = server_node.getAttribute(attr)
-        metadata = self._extract_metadata(server_node)
-        if metadata is not None:
-            server["metadata"] = metadata
-        personality = self._extract_personality(server_node)
-        if personality is not None:
-            server["personality"] = personality
-        firewallRules = self._extract_firewallRules(server_node)
-        if firewallRules is not None:
-            server["firewallRules"] = firewallRules
-        return server
 
         metadata_node = self.find_first_child_named(server_node, "metadata")
         server["metadata"] = self.metadata_deserializer.extract_metadata(
@@ -429,39 +419,6 @@ class ServerXMLDeserializer(wsgi.XMLDeserializer):
                 item["contents"] = self.extract_text(file_node)
                 personality.append(item)
         return personality
-
-    def _extract_firewallRules(self, server_node):
-        """Unmarshal the firewallRules element of a parsed request"""
-        firewall_node = self._find_first_child_named(server_node,
-                                                     "firewallRules")
-        if firewall_node is None:
-            return None
-        firewallRules = []
-        for rule_node in self._find_children_named(firewall_node, "rule"):
-            if rule_node.hasAttribute("name"):
-                firewallRules.append(rule_node.getAttribute("name"))
-        return firewallRules
-
-    def _find_first_child_named(self, parent, name):
-        """Search a nodes children for the first child with a given name"""
-        for node in parent.childNodes:
-            if node.nodeName == name:
-                return node
-        return None
-
-    def _find_children_named(self, parent, name):
-        """Return all of a nodes children who have the given name"""
-        for node in parent.childNodes:
-            if node.nodeName == name:
-                yield node
-
-    def _extract_text(self, node):
-        """Get the text field contained by the given node"""
-        if len(node.childNodes) == 1:
-            child = node.childNodes[0]
-            if child.nodeType == child.TEXT_NODE:
-                return child.nodeValue
-        return ""
 
 
 class ServerXMLDeserializerV11(wsgi.MetadataXMLDeserializer):

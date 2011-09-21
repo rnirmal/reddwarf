@@ -50,6 +50,7 @@ from nova import log as logging
 from nova import manager
 from nova import utils
 
+
 LOG = logging.getLogger('nova.volume.manager')
 FLAGS = flags.FLAGS
 flags.DEFINE_string('storage_availability_zone',
