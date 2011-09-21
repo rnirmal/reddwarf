@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<instance xmlns="http://docs.rackspacecloud.com/database/api/v1.0"
+    id="123-df234-23" name="myinstance" status="ACTIVE"
+    flavorRef="url_to_flavor_of_instance" hostname="dns.resolvable.hostname">
+    <links>
+        <link href="url_to_server_version_info" rel="self"/>
+        <link href="url_to_server_version_info" rel="bookmark" type="application/json"/>
+        <link href="url_to_server_version_info" rel="bookmark" type="application/xml"/>
+    </links>
+    <Volume size="2" />
+</instance>

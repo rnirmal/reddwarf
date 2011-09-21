@@ -1,0 +1,33 @@
+{
+    "flavors": [
+        {
+            "id": 3,
+            "links": [
+                {
+                    "href": "http://localhost:8775/v1.0/flavors/3",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://localhost:8775/flavors/3",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.medium"
+        },
+        ....
+        {
+            "id": 5,
+            "links": [
+                {
+                    "href": "http://localhost:8775/v1.0/flavors/5",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://localhost:8775/flavors/5",
+                    "rel": "bookmark"
+                }
+            ],
+            "name": "m1.xlarge"
+        }
+    ]
+}

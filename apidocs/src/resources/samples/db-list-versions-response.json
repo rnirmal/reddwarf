@@ -1,0 +1,15 @@
+{
+    "versions": [
+        {
+            "id": "v1.0",
+            "links": [
+                {
+                    "href": "http://localhost:8775/",
+                    "rel": "self"
+                }
+            ],
+            "status": "CURRENT",
+            "updated": "2012-01-01T00:00:00Z"
+        }
+    ]
+}

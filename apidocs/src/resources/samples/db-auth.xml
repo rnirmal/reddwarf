@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<auth  xmlns="http://docs.rackspacecloud.com/auth/api/v1.1">
+  <token id="asdasdasd-adsasdads-asdasdasd-adsadsasd"
+         expires="2010-11-01T03:32:15-05:00" />
+  <serviceCatalog>
+    <service name="cloudDB">
+      <endpoint
+          region="DFW"
+          v1Default="true"
+          publicURL="https://dfw.dbaas.rackspacecloud.com/v1.0/"
+          internalURL="https://dfw.dbaas-snet.rackspacecloud.com/v1.0/" />
+      <endpoint
+          region="ORD"
+          publicURL="https://ord.dbaas.rackspacecloud.com/v1.0/"
+          internalURL="https://ord.dbaas-snet.rackspacecloud.com/v1.0/" />
+    </service>
+    <service name="cloudFilesCDN">
+      <endpoint
+          region="DFW"
+          v1Default="true"
+          publicURL="https://cdn.clouddrive.com/v1/RackCloudFS_demo" />
+      <endpoint
+          region="ORD"
+          publicURL="https://othercdn.clouddrive.com/v1/RackCloudFS_demo" />
+    </service>
+    <service name="cloudServers">
+      <endpoint
+          v1Default="true"
+          publicURL="https://servers.api.rackspacecloud.com/v1.0/322781" />
+    </service>
+  </serviceCatalog>
+</auth>

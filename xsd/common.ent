@@ -1,4 +1,7 @@
 
+<!ENTITY ndash "&#8211;">
+<!ENTITY mdash "&#8212;">
+
      <!--
          A collection of common faults, these are pretty much expected
          in every request.

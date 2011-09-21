@@ -1,0 +1,17 @@
+{
+    "flavor": {
+        "id": 1, 
+        "links": [
+            {
+                "href": "http://localhost:8775/v1.0/flavors/1", 
+                "rel": "self"
+            }, 
+            {
+                "href": "http://localhost:8775/flavors/1", 
+                "rel": "bookmark"
+            }
+        ], 
+        "name": "m1.tiny", 
+        "ram": 512
+    }
+}

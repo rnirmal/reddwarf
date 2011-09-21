@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<users xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
+    <user name="simplestUserWithOneDatabase" password="password" database="databaseC"/>
+    <user name="userAttachedToTwoDatabases" password="password">
+        <databases>
+            <database name="databaseA"/>
+            <database name="databaseB"/>
+        </databases>
+    </user>
+</users>

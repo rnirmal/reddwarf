@@ -1,0 +1,3 @@
+<?xml version="1.0" ?>
+<user xmlns="http://docs.rackspacecloud.com/database/api/v1.0"
+    name="root" password="generated-password"/>
