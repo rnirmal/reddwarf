@@ -169,7 +169,7 @@ class InstanceTest(object):
     def _get_compute_instance_state(self):
         """Returns the instance state from the database."""
         return self.db.instance_get(context.get_admin_context(),
-                                    self.id).state
+                                    self.id).power_state
 
     def wait_for_rest_api_to_show_status_as_failed(self, time_out):
         """Confirms the REST API state becomes failure."""
