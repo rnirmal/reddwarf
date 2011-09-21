@@ -123,7 +123,7 @@
           <p>A list of database instances, with additional management information.</p>
         </xsd:documentation>
       </annotation>
-      <element name="instance" type="ManagementInstance" minOccurs="0" maxOccurs="unbounded">
+      <element name="instance" type="dbaas:ManagementInstance" minOccurs="0" maxOccurs="unbounded">
       </element>
     </sequence>
   </complexType>
@@ -135,7 +135,7 @@
           <p>A list of database instances on the Host.</p>
         </xsd:documentation>
       </annotation>
-      <element name="instance" type="ManagementInstance" minOccurs="0" maxOccurs="unbounded"/>
+      <element name="instance" type="dbaas:ManagementInstance" minOccurs="0" maxOccurs="unbounded"/>
     </sequence>
     <attribute name="name" type="xsd:string" use="required">
       <annotation>
