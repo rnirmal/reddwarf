@@ -170,9 +170,6 @@ ssh vagrant@33.33.33.10 "sudo /vagrant-common/delete_volumes.sh"
 # Restart Rabbit MQ so all the old queues are cleared
 sudo service rabbitmq-server restart
 
-# Restart apt-proxy.... sometimes it's flaky
-sudo service apt-proxy restart
-
 # Stop glance services
 #sudo glance-api stop
 #sudo glance-registry stop
