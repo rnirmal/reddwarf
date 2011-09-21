@@ -35,6 +35,7 @@ from reddwarf.api import root
 from reddwarf.api import storage
 from reddwarf.api import users
 from reddwarf.api import flavors
+from reddwarf.api import versions
 
 LOG = logging.getLogger('reddwarf.api')
 FLAGS = flags.FLAGS
@@ -130,5 +131,8 @@ class APIRouter(wsgi.Router):
         mapper.connect("/instances/{instance_id}/root",
                        controller=root.create_resource(),
                        action="is_root_enabled", conditions=dict(method=["GET"]))
+
+        mapper.connect("/", controller=versions.create_resource(),
+                       action='show')
 
         super(APIRouter, self).__init__(mapper)

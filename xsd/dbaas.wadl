@@ -1,281 +1,301 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<application 
-   xmlns="http://wadl.dev.java.net/2009/02" 
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-   xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-   xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0">
+<!DOCTYPE application [
+    <!ENTITY % common  SYSTEM "common.ent">
+    %common;
+]>
 
-  <grammars>
-    <include href="dbaas.xsd"/>
-  </grammars>
+<application
+        xmlns="http://wadl.dev.java.net/2009/02"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:dbaas="http://docs.openstack.org/database/api/v1.0">
 
-  <resources base="https://auth.api.rackspacecloud.com">
-    <resource id="instances" path="instances">
-      <method href="#createInstance"/>
-      <method href="#getInstance"/>
-      <resource id="instanceDetails" path="detail">
-        <method href="#getInstanceDetails"/>
-      </resource>
-      <resource id="instanceId" path="{instanceId}">
-        <param name="instanceId" style="template" type="xsd:string"/>
-        <method href="#getInstanceById"/>
-        <method href="#deleteInstance"/>
-        <resource id="databases" path="databases">
-          <method href="#createDatabase" />
-          <method href="#getDatabases"/>
-          <resource id="databaseName" path="{databaseName}">
-            <method href="#deleteDatabase" />
-            <method href="#getDatabase"/>
-          </resource>
+    <grammars>
+        <include href="dbaas.xsd" />
+    </grammars>
+
+    <resources base="https://localhost:8775">
+        <resource id="versions" path="">
+            <method href="#getVersions" />
         </resource>
-        <resource id="users" path="users">
-          <method href="#createUser"/>
-          <method href="#getUsers"/>
-          <resource id="userId" path="{userId}">
-            <method href="#getUser"/>
-            <method href="#deleteUser" />
-          </resource>
+        <resource id="version" path="v1.0">
+            <method href="#getVersionInfo" />
+            <resource id="instances" path="instances">
+                <method href="#createInstance" />
+                <method href="#getInstance" />
+                <resource id="instanceDetails" path="detail">
+                    <method href="#getInstanceDetails" />
+                </resource>
+                <resource id="instanceId" path="{instanceId}">
+                    <param name="instanceId" style="template"
+                        type="xsd:string" />
+                    <method href="#getInstanceById" />
+                    <method href="#deleteInstance" />
+                    <resource id="databases" path="databases">
+                        <method href="#createDatabase" />
+                        <method href="#getDatabases" />
+                        <resource id="databaseName" path="{databaseName}">
+                            <method href="#deleteDatabase" />
+                            <method href="#getDatabase" />
+                        </resource>
+                    </resource>
+                    <resource id="users" path="users">
+                        <method href="#createUser" />
+                        <method href="#getUsers" />
+                        <resource id="userId" path="{userId}">
+                            <method href="#getUser" />
+                            <method href="#deleteUser" />
+                        </resource>
+                    </resource>
+                    <resource id="root" path="root">
+                        <method href="#createRoot" />
+                        <method href="#isRootEnabled" />
+                    </resource>
+                </resource>
+            </resource>
+            <resource id="flavors" path="flavors">
+                <method href="#getFlavors" />
+                <resource id="flavorDetails" path="detail">
+                    <method href="#getFlavorDetails" />
+                </resource>
+                <resource id="flavorId" path="{flavorId}">
+                    <param name="flavorId" style="template" type="xsd:string" />
+                    <method href="#getFlavorById" />
+                </resource>
+            </resource>
         </resource>
-        <resource id="root" path="root">
-          <method href="#createRoot"/>
-          <method href="#isRootEnabled" />
-         </resource>
-      </resource>
-    </resource>
-    <resource id="flavors" path="flavors">
-      <method href="#getFlavors"/>
-      <resource id="flavorDetails" path="detail">
-        <method href="#getFlavorDetails"/>
-      </resource>
-      <resource id="flavorId" path="{flavorId}">
-        <param name="flavorId" style="template" type="xsd:string"/>
-        <method href="#getFlavorById"/>
-      </resource>
-    </resource>
-  </resources>
+    </resources>
 
-  <!--Token Methods...-->
-  <!-- Instance -->
-  <method name="POST" id="createInstance">
-    <request>
-      <representation mediaType="application/xml" element="dbaas:DatabaseInstance" />
-      <representation mediaType="application/json"/>
-    </request>
-    <response status="201">
-      <representation mediaType="application/xml" element="dbaas:DatabaseInstance">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-      <representation mediaType="application/json">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <!--Token Methods... -->
+    <!-- Version -->
+    <method name="GET" id="getVersionInfo">
+        <doc xml:lang="EN" title="Version Details">
+            <p xmlns="http://www.w3.org/1999/xhtml">
+                Returns detailed information about this specific version of the API.
+            </p>
+        </doc>
+        <response status="200">
+            <representation mediaType="application/xml" />
+            <representation mediaType="application/json" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="DELETE" id="deleteInstance">
-    <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getVersions">
+        <doc xml:lang="EN" title="Version Details">
+            <p xmlns="http://www.w3.org/1999/xhtml">
+                Returns detailed information about this specific version of the API.
+            </p>
+        </doc>
+        <response status="200">
+            <representation mediaType="application/xml" />
+            <representation mediaType="application/json" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getInstance">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <!-- Instance -->
+    <method name="POST" id="createInstance">
+        <request>
+            <representation mediaType="application/xml"
+                element="dbaas:DatabaseInstance" />
+            <representation mediaType="application/json" />
+        </request>
+        <response status="201">
+            <representation mediaType="application/xml" element="dbaas:DatabaseInstance" />
+            <representation mediaType="application/json" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getInstanceDetails">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseInstances"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseInstances"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="DELETE" id="deleteInstance">
+        <response status="202" />
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getInstanceById">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:DatabaseInstance"/>
-      <representation mediaType="application/json" element="dbaas:DatabaseInstance"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getInstance">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:DatabaseInstances" />
+            <representation mediaType="application/json"
+                element="dbaas:DatabaseInstances" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
- <!-- Database -->
-  <method name="POST" id="createDatabase">
-    <request>
-      <representation mediaType="application/xml" element="dbaas:Database"/>
-      <representation mediaType="application/json" element="dbaas:Database"/>
-    </request>
-    <response status="201">
-      <representation mediaType="application/xml" element="dbaas:Database">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-      <representation mediaType="application/json" element="dbaas:Database">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getInstanceDetails">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:DatabaseInstances" />
+            <representation mediaType="application/json"
+                element="dbaas:DatabaseInstances" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getDatabase">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Database"/>
-      <representation mediaType="application/json" element="dbaas:Database"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getInstanceById">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:DatabaseInstance" />
+            <representation mediaType="application/json"
+                element="dbaas:DatabaseInstance" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getDatabases">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Databases"/>
-      <representation mediaType="application/json" element="dbaas:Databases"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <!-- Database -->
+    <method name="POST" id="createDatabase">
+        <request>
+            <representation mediaType="application/xml"
+                element="dbaas:Database" />
+            <representation mediaType="application/json"
+                element="dbaas:Database" />
+        </request>
+        <response status="201">
+            <representation mediaType="application/xml"
+                element="dbaas:Database" />
+            <representation mediaType="application/json"
+                element="dbaas:Database" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="DELETE" id="deleteDatabase">
-    <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getDatabase">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:Database" />
+            <representation mediaType="application/json"
+                element="dbaas:Database" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <!-- User -->
-  <method name="POST" id="createUser">
-    <request>
-      <representation mediaType="application/xml" element="dbaas:Users" />
-      <representation mediaType="application/json"/>
-    </request>
-    <response status="201">
-      <representation mediaType="application/xml" element="dbaas:Users">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-      <representation mediaType="application/json">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getDatabases">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:Databases" />
+            <representation mediaType="application/json"
+                element="dbaas:Databases" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getUser">
-    <response status="200"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml" element="dbaas:User"/>
-      <representation mediaType="application/json" element="dbaas:User"/>
-    </response>
-  </method>
+    <method name="DELETE" id="deleteDatabase">
+        <response status="202" />
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getUsers">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Users"/>
-      <representation mediaType="application/json" element="dbaas:Users"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <!-- User -->
+    <method name="POST" id="createUser">
+        <request>
+            <representation mediaType="application/xml"
+                element="dbaas:Users" />
+            <representation mediaType="application/json" />
+        </request>
+        <response status="201">
+            <representation mediaType="application/xml"
+                element="dbaas:Users" />
+            <representation mediaType="application/json" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="DELETE" id="deleteUser">
-    <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getUser">
+        <response status="200" />
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <!-- Root -->
-  <method name="POST" id="createRoot">
-    <request>
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </request>
-    <response status="201">
-      <representation mediaType="application/xml" element="dbaas:User">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-      <representation mediaType="application/json" element="dbaas:User">
-        <param name="Location" type="xsd:anyURI" style="header"/>
-      </representation>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
-  
-  <method name="GET" id="isRootEnabled">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:RootEnabled"/>
-      <representation mediaType="application/json" element="dbaas:RootEnabled"/>
-    </response>
-    <response status="400 401 403 404 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="getUsers">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:Users" />
+            <representation mediaType="application/json"
+                element="dbaas:Users" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-   <!-- Flavor -->
-  <method name="GET" id="getFlavors">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Flavors"/>
-      <representation mediaType="application/json" element="dbaas:Flavors"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="DELETE" id="deleteUser">
+        <response status="202" />
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getFlavorDetails">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Flavors"/>
-      <representation mediaType="application/json" element="dbaas:Flavors"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <!-- Root -->
+    <method name="POST" id="createRoot">
+        <request>
+            <representation mediaType="application/xml" />
+            <representation mediaType="application/json" />
+        </request>
+        <response status="201">
+            <representation mediaType="application/xml"
+                element="dbaas:User">
+            </representation>
+            <representation mediaType="application/json"
+                element="dbaas:User">
+            </representation>
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
-  <method name="GET" id="getFlavorById">
-    <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Flavor"/>
-      <representation mediaType="application/json" element="dbaas:Flavor"/>
-    </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
-  </method>
+    <method name="GET" id="isRootEnabled">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:RootEnabled" />
+            <representation mediaType="application/json"
+                element="dbaas:RootEnabled" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
+
+    <!-- Flavor -->
+    <method name="GET" id="getFlavors">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:Flavors" />
+            <representation mediaType="application/json"
+                element="dbaas:Flavors" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
+
+    <method name="GET" id="getFlavorDetails">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:Flavors" />
+            <representation mediaType="application/json"
+                element="dbaas:Flavors" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
+
+    <method name="GET" id="getFlavorById">
+        <response status="200">
+            <representation mediaType="application/xml"
+                element="dbaas:Flavor" />
+            <representation mediaType="application/json"
+                element="dbaas:Flavor" />
+        </response>
+    &commonFaults;
+    &getFaults;
+    </method>
 
 </application>

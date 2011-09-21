@@ -17,36 +17,54 @@
 
 import nova.api.openstack.views.versions
 from nova.api.openstack import wsgi
+from reddwarf.api import common
 
+VERSIONS = {
+    "v1.0": {
+        "id": "v1.0",
+        "status": "CURRENT",
+        "updated": "2012-01-01T00:00:00Z",
+        "links": [
+        ],
+    },
+}
 
-class Versions(wsgi.Resource):
+class Controller(object):
     """Supported versions"""
 
     def __init__(self):
-        metadata = {
-            "attributes": {
-                "version": ["status", "id"],
-                "link": ["rel", "href"],
-            }
-        }
-
-        serializers = {
-            'application/xml': wsgi.XMLDictSerializer(metadata=metadata),
-        }
-
-        serializer = wsgi.ResponseSerializer(body_serializers=serializers)
-
-        wsgi.Resource.__init__(self, None, serializer=serializer)
+        super(Controller, self).__init__()
 
     def dispatch(self, request, *args):
         """Respond to a request for all OpenStack API versions."""
-        version_objs = [
-            {
-                "id": "v1.0",
-                "status": "CURRENT",
-            }
-        ]
-
         builder = nova.api.openstack.views.versions.get_view_builder(request)
-        versions = [builder.build(version) for version in version_objs]
-        return dict(versions=versions)
+        return builder.build_versions(VERSIONS)
+
+    def show(self, req):
+        builder = nova.api.openstack.views.versions.get_view_builder(req)
+        return builder.build_version(VERSIONS['v1.0'])
+
+def create_resource(version='1.0'):
+    controller = {
+        '1.0': Controller,
+    }[version]()
+
+    metadata = {
+        "attributes": {
+            "version": ["status", "id"],
+            "link": ["rel", "href"],
+        }
+    }
+
+    xmlns = {
+        '1.0': common.XML_NS_V10,
+    }[version]
+
+    serializers = {
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
+    }
+
+    response_serializer = wsgi.ResponseSerializer(body_serializers=serializers)
+
+    return wsgi.Resource(controller, serializer=response_serializer)
