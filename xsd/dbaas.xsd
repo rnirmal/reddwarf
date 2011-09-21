@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--(C) 2011 Rackspace Hosting, All Rights Reserved-->
 <schema  elementFormDefault="qualified" 
          attributeFormDefault="unqualified"
          targetNamespace="http://docs.openstack.org/database/api/v1.0"
