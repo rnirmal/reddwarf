@@ -52,8 +52,8 @@ flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
 flags.DEFINE_string('reddwarf_volume_description',
                     'Volume ID: %s assigned to Instance: %s',
                     'Default description populated for volumes')
-flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128,
-                    'Maximum accepted volume size (in gigabytes) when creating'
+flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128*1024,
+                    'Maximum accepted volume size (in megabytes) when creating'
                     ' an instance.')
 
 _dbaas_mapping = {
@@ -393,7 +393,7 @@ class Controller(object):
                 raise exception.ApiError(msg)
             max_size = FLAGS.reddwarf_max_accepted_volume_size
             if int(volume_size) > max_size:
-                msg = "Volume 'size' cannot exceed maximum of %d Gb, %s"\
+                msg = "Volume 'size' cannot exceed maximum of %d Mb, %s"\
                       " cannot be accepted." % (max_size, volume_size)
                 raise exception.ApiError(msg)
         except KeyError as e:

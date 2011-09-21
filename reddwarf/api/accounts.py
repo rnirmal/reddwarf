@@ -86,7 +86,7 @@ class Controller(object):
             LOG.debug("instances - %s", instances)
 
             # Prune away all the columns but the ones in key_list
-            key_list = ['id', 'display_name', 'host', 'state']
+            key_list = ['id', 'display_name', 'host', 'power_state']
             instances = [dict([(k, c[k]) for k in key_list])
                 for c in instances]
             LOG.debug("instances - %s", instances)
