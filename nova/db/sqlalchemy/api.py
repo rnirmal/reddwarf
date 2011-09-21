@@ -1463,6 +1463,13 @@ def instance_get_all_by_reservation(context, reservation_id):
                 all()
 
 
+@require_context
+def instance_get_by_fixed_ip(context, address):
+    """Return instance ref by exact match of FixedIP"""
+    fixed_ip_ref = fixed_ip_get_by_address(context, address)
+    return fixed_ip_ref.instance
+
+
 @require_admin_context
 def instance_get_project_vpn(context, project_id):
     session = get_session()
