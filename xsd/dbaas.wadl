@@ -8,6 +8,8 @@
         xmlns="http://wadl.dev.java.net/2009/02"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:xsdxt="http://docs.rackspacecloud.com/xsd-ext/v1.0"
+	xmlns:wadl="http://wadl.dev.java.net/2009/02"
         xmlns:dbaas="http://docs.openstack.org/database/api/v1.0">
 
     <grammars>
@@ -98,14 +100,58 @@
 
     <!-- Instance -->
     <method name="POST" id="createInstance">
+    <wadl:doc xml:lang="EN" title="Create Database Instance"  xmlns="http://docbook.org/ns/docbook">    
+      <para role="shortdesc">Creates a new Database instance</para>
+      <para>This operation asynchronously provisions a new Database Instance. This call requires the user to specify a flavor and a volume size. The service then provisions the instance with the requested flavor and sets up a volume of the specified size, which is the storage for the database.</para>
+      <note>This is an example note.</note>
+      <remark>This is an example remark.</remark>
+      <para>The new database instance has the following attributes:</para>
+      <itemizedlist spacing="compact">
+	<listitem>
+	  <para>Instance</para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>port -- [Optional] If not specified, the port defaults to 3306.</para>
+	      </listitem>
+	      <listitem>
+		<para>flavorref -- Reference to a flavor.</para>
+	      </listitem>
+	  </itemizedlist>
+	</listitem>
+	<listitem>
+	  <para>Volume</para>
+	  <itemizedlist>
+	    <listitem>
+	      <para>size -- Specifies the volume size in gigabytes (GB). The value specified must be between 1 and 128.</para>
+	    </listitem>
+	  </itemizedlist>
+	</listitem>                
+      </itemizedlist>
+    </wadl:doc>
         <request>
             <representation mediaType="application/xml"
-                element="dbaas:DatabaseInstance" />
-            <representation mediaType="application/json" />
+                element="dbaas:DatabaseInstance">
+	      <doc>
+		<xsdxt:code href="../src/resources/samples/db-create-database-instance-request.xml"/>	  
+	      </doc>
+	    </representation>
+            <representation mediaType="application/json">
+	      <doc>
+		<xsdxt:code href="../src/resources/samples/db-create-database-instance-request.json"/>
+	      </doc>
+	    </representation>	
         </request>
         <response status="201">
-            <representation mediaType="application/xml" element="dbaas:DatabaseInstance" />
-            <representation mediaType="application/json" />
+            <representation mediaType="application/xml" element="dbaas:DatabaseInstance" >
+	      <doc>
+		<xsdxt:code href="../src/resources/samples/db-create-database-instance-response.xml"/>
+	      </doc>
+	    </representation>
+            <representation mediaType="application/json" >
+	      <doc>
+		<xsdxt:code href="../src/resources/samples/db-create-database-instance-response.json"/>	  
+	      </doc>
+	    </representation>
         </response>
     &commonFaults;
     &getFaults;
