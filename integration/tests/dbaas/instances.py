@@ -143,6 +143,14 @@ class Setup(object):
     def create_instance_name(self):
         instance_info.name = "TEST_" + str(datetime.now())
 
+    @test
+    def test_get_versions(self):
+        result = dbaas.versions.index()
+        print("Get version result :  %r" % result)
+        print("Get version.__dict__ result :  %r" % result.__dict__)
+        assert_equal("CURRENT", result.status)
+        assert_equal("v1.0", result.id)
+
 
 @test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
 class InstanceHostCheck(unittest.TestCase):
