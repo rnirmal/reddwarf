@@ -101,7 +101,7 @@ class Controller(object):
                     if c['host'] == hostname]
                 hosts_instances = [{'id': c['id'],
                                      'name': c['display_name'],
-                                     'status': c['state'],
+                                     'status': c['power_state'],
                                     } for c in hosts_instances]
                 hosts_instances = [{'instance': c}
                     for c in hosts_instances]
