@@ -127,7 +127,7 @@ class OpenVzConnection(driver.ComputeDriver):
         for instance in db.instance_get_all_by_host(ctxt, host):
             try:
                 LOG.debug('Checking state of %s' % instance['name'])
-                state = self.get_info(instance['name'])['state']
+                state = self.get_info(instance['name'])['power_state']
             except exception.NotFound:
                 state = power_state.SHUTOFF
 
@@ -197,7 +197,7 @@ class OpenVzConnection(driver.ComputeDriver):
         for name in out.splitlines():
             name = name.split()[0]
             status = self.get_info(name)
-            infos.append(driver.InstanceInfo(name, status['state']))
+            infos.append(driver.InstanceInfo(name, status['power_state']))
 
         return infos
 
@@ -269,7 +269,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # away we can defer all of this.
         def _wait_for_boot():
             try:
-                state = self.get_info(instance['name'])['state']
+                state = self.get_info(instance['name'])['power_state']
                 db.instance_set_state(context,
                                       instance['id'], state)
                 if state == power_state.RUNNING:
@@ -608,7 +608,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Break the output into usable chunks
         out = out.split()
-        return {'name': out[4], 'id': out[0], 'state': out[2]}
+        return {'name': out[4], 'id': out[0], 'power_state': out[2]}
 
     def _access_control(self, instance, host, mask=32, port=None,
                         protocol='tcp', access_type='allow'):
@@ -1050,27 +1050,27 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.NotFound('Instance %s Not Found' % instance_name)
 
         # Store the assumed state as the default
-        state = instance['state']
+        state = instance['power_state']
 
         LOG.debug('Instance %s is in state %s' %
-                  (instance['id'], instance['state']))
+                  (instance['id'], instance['power_state']))
 
-        if instance['state'] != power_state.NOSTATE:
+        if instance['power_state'] != power_state.NOSTATE:
             # NOTE(imsplitbit): This is not ideal but it looks like nova uses
             # codes returned from libvirt and xen which don't correlate to
             # the status returned from OpenVZ which is either 'running' or
             # 'stopped'.  There is some contention on how to handle systems
             # that were shutdown intentially however I am defaulting to the
             # nova expected behavior.
-            if meta['state'] == 'running':
+            if meta['power_state'] == 'running':
                 state = power_state.RUNNING
-            elif meta['state'] == None or meta['state'] == '-':
+            elif meta['power_state'] == None or meta['power_state'] == '-':
                 state = power_state.NOSTATE
             else:
                 state = power_state.SHUTDOWN
 
         # TODO(imsplitbit): Need to add all metrics to this dict.
-        return {'state': state,
+        return {'power_state': state,
                 'max_mem': 0,
                 'mem': 0,
                 'num_cpu': 0,
