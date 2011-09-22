@@ -45,10 +45,14 @@
 --sql_min_pool_size=1
 --rabbit_host=10.0.4.15
 
+# AMQP Backend
+--rpc_backend=nova.rpc.impl_carrot
+
 # Logging
 --logfile=/vagrant/nova.log
 --verbose
 --notification_driver=nova.notifier.log_notifier
+--notifier_logfile=/vagrant/notification.log
 
 # Reaper config
 --reaper_driver=reddwarf.reaper.driver.ReddwarfReaperDriver
