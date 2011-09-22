@@ -42,7 +42,7 @@ else
         exit 1
     fi
 
-    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/install_aptproxy.sh
+    sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash /vagrant-common/install_aptcacherng.sh
     if [ $? -ne 0 ]
     then
         echo "An error occured installing the aptproxy."

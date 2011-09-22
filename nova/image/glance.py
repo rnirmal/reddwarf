@@ -123,8 +123,8 @@ class GlanceImageService(object):
         # NOTE(sirp): we want to load balance each request across glance
         # servers. Since GlanceImageService is a long-lived object, `client`
         # is made to choose a new server each time via this property.
-#        if self._client is not None:
-#            return self._client
+        if self._client is not None:
+            return self._client
         glance_host, glance_port = pick_glance_api_server()
         return _create_glance_client(context, glance_host, glance_port)
 

@@ -13,7 +13,7 @@
 
 # Nova Volume
 # Volume configuration for vagrant vm
---volume_driver=nova.volume.san.ISCSILiteDriver
+--volume_driver=reddwarf.tests.volume.driver.ISCSITestDriver
 --san_ip=33.33.33.10
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
@@ -42,6 +42,7 @@
 
 # Infrastructure Services
 --sql_connection=mysql://nova:novapass@10.0.4.15/nova
+--sql_min_pool_size=1
 --rabbit_host=10.0.4.15
 
 # Logging

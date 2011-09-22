@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE application [
+    <!ENTITY % common  SYSTEM "common.ent">
+    %common;
+]>
+
 <application 
    xmlns="http://wadl.dev.java.net/2009/02"
    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-   xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0">
+   xmlns:dbaas="http://docs.openstack.org/database/api/v1.0">
 
   <grammars>
     <include href="dbaas.xsd"/>
     <include href="management.xsd"/>
   </grammars>
-  <resources base="https://auth.api.rackspacecloud.com">
+  <resources base="https://localhost:8775">
     <resource id="mgmt" path="mgmt">
       <resource id="hosts" path="hosts">
           <method href="#gethosts"/>
@@ -50,66 +55,52 @@
   <!--Methods-->
   <method name="POST" id="guestUpgradeAll">
     <response status="202"/>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   <method name="POST" id="guestUpgrade">
     <response status="202"/>
-    <response status="400 401 403 404 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   <method name="GET" id="gethosts">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Hosts"/>
       <representation mediaType="application/json" element="dbaas:Hosts"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   <method name="GET" id="gethostbyid">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Host"/>
       <representation mediaType="application/json" element="dbaas:Host"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   <method name="GET" id="showinstances">
     <response status="200">
       <representation mediaType="application/xml" element="ManagementInstances"/>
       <representation mediaType="application/json" element="ManagementInstances"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   <method name="GET" id="indexstorage">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Storage"/>
       <representation mediaType="application/json" element="dbaas:Storage"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
   <method name="GET" id="getaccountbyid">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Account"/>
       <representation mediaType="application/json" element="dbaas:Account"/>
     </response>
-    <response status="400 401 403 409 500 503">
-      <representation mediaType="application/xml"/>
-      <representation mediaType="application/json"/>
-    </response>
+    &commonFaults;
+    &getFaults;
   </method>
 </application>
