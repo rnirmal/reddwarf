@@ -116,7 +116,7 @@ class OpenVzConnection(driver.ComputeDriver):
             }
         self.read_only = read_only
         self.vif_driver = utils.import_object(FLAGS.ovz_vif_driver)
-        LOG.debug("__init__ complete in OpenVzConnection")
+        LOG.debug(_("__init__ complete in OpenVzConnection"))
 
     @classmethod
     def instance(cls):
@@ -449,6 +449,8 @@ class OpenVzConnection(driver.ComputeDriver):
         a gratuitous arp over it's interface to make sure arp caches have
         the proper mac address.
         """
+        # TODO(imsplitbit): send id, iface, container mac, container ip and
+        # gateway to _send_garp
         for network in network_info:
             bridge_info = network[0]
             LOG.debug('bridge interface: %s' %
@@ -475,6 +477,10 @@ class OpenVzConnection(driver.ComputeDriver):
         ip address given to a new container.  We need to send a gratuitous arp
         on each interface for the address assigned.
         """
+        # TODO(imsplitbit): fix send_garp to work with current arping utility.
+        # the syntax is now:
+        #
+        # arping -c 5 -i <iface> -s <container mac> -S <container ip> <gateway>
         try:
             LOG.debug('Sending a gratuitous arp for %s over %s' %
                       (ip_address, interface))
@@ -979,10 +985,14 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Find the instance ref so we can pass it to the
         # _mount_script_modify method.
+        LOG.debug(_('Looking up %(instance_name)s'), locals())
         meta = self._find_by_name(instance_name)
+        LOG.debug(_('Found %(instance_name)s'), locals())
+        LOG.debug(_('Fetching the instance from the db'))
         instance = db.instance_get(context.get_admin_context(), meta['id'])
-        self._mount_script_modify(instance, None, None, mountpoint, 'del')
-        volumes = OVZVolumes(instance['id'], mountpoint, None, None)
+        LOG.debug(_('Found instance %(instance_id)d'),
+                {'instance_id': instance['id']})
+        volumes = OVZVolumes(instance['id'], mountpoint)
         volumes.setup()
         volumes.detach()
         volumes.write_and_close()
@@ -1393,12 +1403,12 @@ class OVZFile(object):
         permissions on files that may be owned by root for manipulation
         """
         try:
-            out, err = utils.execute('sudo', 'chmod', permissions,
-                                     self.filename)
+            out, err = utils.execute('sudo', 'chmod',
+                                     permissions, self.filename)
             LOG.debug(out)
             if err:
                 LOG.error(err)
-        except exception.Error as err:
+        except exception.ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Unable to set permissions on %s'
                                   % (self.filename,))
@@ -1787,7 +1797,7 @@ class OVZNetworkInterfaces(object):
             network_file.append(self.iface_file.split('\n'))
             network_file.write()
 
-    def _filename_factory(self):
+    def _filename_factory(self, variant='debian'):
         """
         I generate a path for the file needed to implement an interface
         """
@@ -1803,22 +1813,26 @@ class OVZNetworkInterfaces(object):
 
         redhat_path = '/etc/sysconfig/network-scripts/'
         debian_path = '/etc/network/interfaces'
-        prefix = '/%(private_dir)s/%(instance_id)s' % \
+        prefix = '%(private_dir)s/%(instance_id)s' % \
                  {'private_dir': FLAGS.ovz_ve_private_dir,
                   'instance_id': self.interface_info[0]['id']}
         prefix = os.path.abspath(prefix)
 
         #TODO(imsplitbit): fix this placeholder for RedHat compatibility.
-        replace_me_use_redhat_variable = False
-        if replace_me_use_redhat_variable:
+        if variant == 'redhat':
             for net_dev in self.interface_info:
                 path = prefix + redhat_path + ('ifcfg-%s' % net_dev['name'])
                 path = os.path.abspath(path)
+                LOG.debug(_('Generated filename %(path)s'), locals())
                 yield path
-        else:
+        elif variant == 'debian':
             path = prefix + debian_path
             path = os.path.abspath(path)
+            LOG.debug(_('Generated filename %(path)s'), locals())
             yield path
+        else:
+            raise exception.Error(_('Variant %(variant)s is not known',
+                                    locals()))
 
     def _add_netif(self, instance_id, netif, bridge, host_mac):
         """
@@ -1859,9 +1873,10 @@ class OVZNetworkInterfaces(object):
             if err:
                 LOG.error(err)
 
-        except Exception as err:
+        except ProcessExecutionError as err:
             LOG.error(err)
-            raise exception.Error('Error adding IP')
+            raise exception.Error(_('Error adding %(ip)s to %(instance_id)s' %
+                                    {'ip': ip, 'instance_id': instance_id}))
 
     def _set_nameserver(self, instance_id, dns):
         """
@@ -1874,7 +1889,7 @@ class OVZNetworkInterfaces(object):
             LOG.debug(out)
             if err:
                 LOG.error(err)
-        except Exception as err:
+        except ProcessExecutionError as err:
             LOG.error(err)
             raise exception.Error('Unable to set nameserver for %s' %
             instance_id)
