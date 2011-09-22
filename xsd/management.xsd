@@ -2,14 +2,14 @@
 <!--(C) 2010 Rackspace Hosting, All Rights Reserved-->
 <schema  elementFormDefault="qualified" 
          attributeFormDefault="unqualified" 
-         targetNamespace="http://docs.rackspacecloud.com/database/api/v1.0"
+         targetNamespace="http://docs.openstack.org/database/api/v1.0"
          xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
          xmlns="http://www.w3.org/2001/XMLSchema"
-         xmlns:dbaas="http://docs.rackspacecloud.com/database/api/v1.0"
+         xmlns:dbaas="http://docs.openstack.org/database/api/v1.0"
          xmlns:xsdxt="http://docs.rackspacecloud.com/xsd-ext/v1.0">
   <xsd:import schemaLocation="./dbaas.xsd"
               id="dbaas"
-              namespace="http://docs.rackspacecloud.com/database/api/v1.0" />
+              namespace="http://docs.openstack.org/database/api/v1.0" />
 
   <annotation>
     <xsd:appinfo xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
@@ -123,7 +123,7 @@
           <p>A list of database instances, with additional management information.</p>
         </xsd:documentation>
       </annotation>
-      <element name="instance" type="ManagementInstance" minOccurs="0" maxOccurs="unbounded">
+      <element name="instance" type="dbaas:ManagementInstance" minOccurs="0" maxOccurs="unbounded">
       </element>
     </sequence>
   </complexType>
@@ -135,7 +135,7 @@
           <p>A list of database instances on the Host.</p>
         </xsd:documentation>
       </annotation>
-      <element name="instance" type="ManagementInstance" minOccurs="0" maxOccurs="unbounded"/>
+      <element name="instance" type="dbaas:ManagementInstance" minOccurs="0" maxOccurs="unbounded"/>
     </sequence>
     <attribute name="name" type="xsd:string" use="required">
       <annotation>

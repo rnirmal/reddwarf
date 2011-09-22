@@ -34,6 +34,7 @@ from reddwarfclient.management import Management
 from reddwarfclient.root import Root
 from reddwarfclient.storage import StorageInfo
 from reddwarfclient.users import Users
+from reddwarfclient.versions import Versions
 
 # To write this test from an end user perspective, we have to create a client
 # similar to the CloudServers one.
@@ -115,6 +116,7 @@ class Dbaas(Client):
         super(Dbaas, self).__init__(self, username, apikey, tenant, auth_url)
         self.client = ReddwarfHTTPClient(username, apikey, tenant, auth_url,
                                          service_name, service_url)
+        self.versions = Versions(self)
         self.databases = Databases(self)
         self.instances = Instances(self)
         self.users = Users(self)
