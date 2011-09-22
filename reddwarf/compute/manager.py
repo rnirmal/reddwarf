@@ -112,7 +112,7 @@ class ReddwarfInstanceInitializer(object):
         # long enough).
 
         def get_instance_state():
-            return self.db.instance_get(self.context, self.instance_id).state
+            return self.db.instance_get(self.context, self.instance_id).power_state
 
         def confirm_state_is_suspended(instance_state):
             # Make sure the guest state is set to FAILED after suspend, in
