@@ -36,3 +36,4 @@ nosexcover
 GitPython
 paramiko
 feedparser
+pexpect
