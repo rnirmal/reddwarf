@@ -84,6 +84,7 @@ class ViewBuilder(object):
         self._build_flavor(inst_dict, inst)
         self._build_addresses(inst_dict, inst)
         self._build_volume(inst_dict, inst)
+        self._build_hostname(inst_dict, inst)
 
         return dict(server=inst_dict)
 
@@ -217,6 +218,9 @@ class ViewBuilderV11(ViewBuilder):
         ]
 
         response["links"] = links
+
+    def _build_hostname(self, response, inst):
+        response['hostname'] = inst.get('hostname')
 
     def generate_href(self, server_id):
         """Create an url that refers to a specific server id."""

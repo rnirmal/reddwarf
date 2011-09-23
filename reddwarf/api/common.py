@@ -20,11 +20,20 @@ from webob import exc
 
 
 from nova import exception
+from nova.compute import power_state
 from nova.guest.db import models
 
 
 XML_NS_V10 = 'http://docs.rackspacecloud.com/dbaas/api/v1.0'
 
+dbaas_mapping = {
+    None: 'BUILD',
+    power_state.NOSTATE: 'BUILD',
+    power_state.RUNNING: 'ACTIVE',
+    power_state.SHUTDOWN: 'SHUTDOWN',
+    power_state.BUILDING: 'BUILD',
+    power_state.FAILED: 'FAILED'
+}
 
 def populate_databases(dbs):
     """

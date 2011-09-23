@@ -30,13 +30,13 @@ from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
-from nova.api.openstack.views.servers import ViewBuilder as servers_view
-from reddwarf.api import common
-from reddwarf.api import deserializer
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
-from nova.guest.db import models
+
+from reddwarf.api import common
+from reddwarf.api import deserializer
+from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi
 
 
@@ -56,14 +56,6 @@ flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128*1024,
                     'Maximum accepted volume size (in megabytes) when creating'
                     ' an instance.')
 
-_dbaas_mapping = {
-    None: 'BUILD',
-    power_state.NOSTATE: 'BUILD',
-    power_state.RUNNING: 'ACTIVE',
-    power_state.SHUTDOWN: 'SHUTDOWN',
-    power_state.BUILDING: 'BUILD',
-    power_state.FAILED: 'FAILED'
-}
 
 class Controller(object):
     """ The Instance API controller for the Platform API """
@@ -75,6 +67,7 @@ class Controller(object):
         self.guest_api = guest_api.API()
         self.server_controller = servers.ControllerV11()
         self.volume_api = volume.API()
+        self.view = instances.ViewBuilder()
         super(Controller, self).__init__()
 
     def index(self, req):
@@ -95,8 +88,8 @@ class Controller(object):
 
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        instances = [self._create_instance_dict(context, server,
-                                                      guest_state_mapping)
+        instances = [self.view.build_index(server, req.application_url,
+                                           guest_state_mapping)
                         for server in server_list]
         return {'instances': instances}
 
@@ -110,25 +103,34 @@ class Controller(object):
         """ Returns a list of instance details for a given user """
         LOG.debug("%s - %s", req.environ, req.body)
         server_list = self.server_controller.detail(req)['servers']
-        context = req.environ['nova.context']
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        instances = [self._create_instance_dict(context, server)
+        instances = [self.view.build_detail(server, req.application_url,
+                                            guest_state_mapping)
                         for server in server_list]
-        return { 'instances' : instances }
+        return {'instances': instances}
 
     def show(self, req, id):
         """ Returns instance details by instance id """
         LOG.info("Get Instance by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         server_response = self.server_controller.show(req, id)
-        LOG.debug("server_response - %s", server_response)
         if isinstance(server_response, Exception):
             return server_response  # Just return the exception to throw it
         context = req.environ['nova.context']
         server = server_response['server']
-        LOG.debug("server - %s", server)
-        instance = self._create_detailed_instance_dict(context, server)
+
+        guest_state = self.get_guest_state_mapping([server['id']])
+        if guest_state:
+            databases, enabled = self._get_guest_info(context, server['id'],
+                                                      guest_state[server['id']])
+            instance = self.view.build_single(server, req.application_url,
+                                              guest_state,
+                                              databases=databases,
+                                              root_enabled=enabled)
+        else:
+            instance = self.view.build_single(server, req.application_url,
+                                              guest_state)
         LOG.debug("instance - %s", instance)
         return {'instance': instance}
 
@@ -175,8 +177,11 @@ class Controller(object):
         server_id = str(server_resp['server']['id'])
         dbapi.guest_status_create(server_id)
 
-        instance = self._create_instance_dict(context,
-                                                    server_resp['server'])
+        guest_state = self.get_guest_state_mapping([server_id])
+        instance = self.view.build_single(server_resp['server'],
+                                          req.application_url,
+                                          guest_state,
+                                          create=True)
         # Update volume description
         self.update_volume_info(context, volume_ref, instance)
 
@@ -225,82 +230,6 @@ class Controller(object):
         except (TypeError, AttributeError, KeyError) as e:
             LOG.error(e)
             raise exception.Error(exc.HTTPUnprocessableEntity())
-
-    @staticmethod
-    def _create_dbvolume_from_server(server):
-        """Given a server dict returns the instance volume dict."""
-        try:
-            volumes = server['volumes']
-            volume_dict = volumes[0]
-        except (KeyError, IndexError):
-            return None
-        if len(volumes) > 1:
-            raise exception.Error("> 1 volumes in the underlying instance!")
-        return {'size': volume_dict['size']}
-
-    def _create_instance_dict(self, context, server, guest_states=None):
-        """Given a server (obtained from the servers API) returns an instance.
-
-        We copy all elements from the server and then delete some, erring on
-        the side of copying too many instead of too few.
-        "guest_states" is a dictionary mapping guest IDs to their state. If
-        it is None the state is queried.
-
-        """
-        server_only_keys = ['hostId', 'imageRef', 'metadata', 'adminPass',
-                            'uuid', 'volumes', 'status', 'addresses']
-        instance = dict((key, server[key]) for key in server.keys()
-                           if key not in server_only_keys)
-        # Add DNS hostname
-        user_id = context.user_id
-        instance_info = {"id": instance["id"], "user_id": user_id}
-        dns_entry = self.dns_entry_factory.create_entry(instance_info)
-        if dns_entry:
-            instance["hostname"] = dns_entry.name
-        # Add volume information
-        dbvolume = self._create_dbvolume_from_server(server)
-        if dbvolume:
-            instance['volume'] = dbvolume
-        # Add status
-        instance['status'] = self._get_instance_status(server,
-                                                             guest_states)
-        return instance
-
-    @staticmethod
-    def _get_instance_status(server, guest_states=None):
-        """Figures out what the instance status should be.
-
-        First looks at the server status, then to a dictionary mapping guest
-        IDs to their states.
-
-        """
-        id = server['id']
-        if server['status'] == 'ERROR':
-            return 'ERROR'
-        else:
-            try:
-                if guest_states:
-                    state = guest_states[id]
-                else:
-                    state = dbapi.guest_status_get(id).state
-            except (KeyError, InstanceNotFound):
-                # we set the state to shutdown if not found
-                state = power_state.SHUTDOWN
-            return _dbaas_mapping[state]
-
-    def _create_detailed_instance_dict(self, context, server,
-                                          guest_states=None):
-        """Creates an instance dictionary to be used in a response
-        """
-        instance = self._create_instance_dict(context, server,
-                                                    guest_states)
-        # Add rootEnabled info.
-        databases, enabled = self._get_guest_info(context, instance)
-        if enabled is not None:
-            instance['rootEnabled'] = enabled
-        instance['databases'] = databases
-
-        return instance
 
     @staticmethod
     def _create_server_dict(instance, volume_id, mount_point):
@@ -358,18 +287,18 @@ class Controller(object):
             self.compute_api.trigger_security_group_rules_refresh(context,
                                                           security_group['id'])
 
-    def _get_guest_info(self, context, instance):
+    def _get_guest_info(self, context, id, state):
         """Get the list of databases on a instance"""
-        running = _dbaas_mapping[power_state.RUNNING]
-        if instance['status'] == running:
+        running = common.dbaas_mapping[power_state.RUNNING]
+        if common.dbaas_mapping[state] == running:
             try:
-                result = self.guest_api.list_databases(context, instance['id'])
+                result = self.guest_api.list_databases(context, id)
                 LOG.debug("LIST DATABASES RESULT - %s", str(result))
                 databases = [{'name': db['_name'],
                              'collate': db['_collate'],
                              'character_set': db['_character_set']}
                              for db in result]
-                root_enabled = self.guest_api.is_root_enabled(context, instance['id'])
+                root_enabled = self.guest_api.is_root_enabled(context, id)
                 return databases, root_enabled
             except Exception as err:
                 LOG.error(err)
@@ -408,12 +337,14 @@ def create_resource(version='1.0'):
     }[version]()
 
     metadata = {
-        "attributes": {
-            "instance": ["id", "name", "status", "flavorRef", "rootEnabled"],
-            "dbtype": ["name", "version"],
-            "link": ["rel", "type", "href"],
-            "volume": ["size"],
-            "database": ["name", "collate", "character_set"],
+        'attributes': {
+            'instance': ['created', 'hostname', 'id', 'name', 'rootEnabled',
+                         'status', 'updated'],
+            'dbtype': ['name', 'version'],
+            'flavor': ['id', 'links'],
+            'link': ['rel', 'href'],
+            'volume': ['size'],
+            'database': ['name', 'collate', 'character_set'],
         },
     }
 

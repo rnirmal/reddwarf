@@ -13,8 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 
-import unittest
+from nova.api.openstack import common
 
 from nose.tools import assert_equal
 from nose.tools import assert_false
@@ -50,33 +51,24 @@ def assert_flavors_are_roughly_equivalent(os_flavor, dbaas_flavor):
     assert_attributes_are_equal('ram', os_flavor, dbaas_flavor)
     assert_false(hasattr(dbaas_flavor, 'disk'),
                  "The attribute 'disk' s/b absent from the dbaas API.")
-    assert_link_list_is_equal(os_flavor, dbaas_flavor)
 
-def assert_link_list_is_equal(os_flavor, dbaas_flavor):
-    assert_true(hasattr(dbaas_flavor, 'links'))
-    assert_equal(len(os_flavor.links), len(dbaas_flavor.links))
-    # Unlike other resource objects, the links are dictionaries that don't
-    # have fake attributes.
-    for os_link in os_flavor.links:
-        found_index = None
-        assert_true('rel' in os_link, "rel should be in OS flavor, right?")
-        for index, dbaas_link in enumerate(dbaas_flavor.links):
-            assert_true('rel' in dbaas_link, "rel should be in DBAAS flavor.")
-            if os_link['rel'] == dbaas_link['rel']:
-                assert_true(found_index is None,
-                            "rel %s appears in elements #%s and #%d." % \
-                            (str(dbaas_link['rel']), str(found_index), index))
-                assert_true('href' in os_link, "'href s /b in os link.")
-                assert_true('href' in dbaas_link, "'href s /b in dbaas link.")
-                nova_url_len = len(test_config.nova.url)
-                os_relative_href = os_link['href'][nova_url_len:]
-                dbaas_url_len = len(test_config.dbaas.url)
-                dbaas_relative_href = dbaas_link['href'][dbaas_url_len:]
-                assert_equal(os_relative_href, dbaas_relative_href,
-                             '"href" must be same if "rel" matches.')
-                found_index = index
-        assert_false(found_index is None,
-                     "Some links from OS list were missing in DBAAS list.")
+def assert_link_list_is_equal(flavor):
+    assert_true(hasattr(flavor, 'links'))
+
+    for link in flavor.links:
+        href = link['href']
+        if "self" in link['rel']:
+            expected_href = os.path.join(test_config.dbaas.url, "flavors",
+                                             str(flavor.id))
+            assert_equal(href, expected_href,
+                         '"href" must be %s' % expected_href)
+        elif "bookmark" in link['rel']:
+            base_url = common.remove_version_from_href(test_config.dbaas.url)
+            expected_href = os.path.join(base_url, "flavors", str(flavor.id))
+            assert_equal(href, expected_href,
+                         '"href" must be %s' % expected_href)
+        else:
+            assert_false(True, "Unexpected rel - %s" % link['rel'])
 
 @test(groups=[GROUP], depends_on_groups=["services.initialize"])
 def confirm_flavors_lists_are_nearly_identical():
@@ -104,3 +96,5 @@ def confirm_flavors_lists_are_nearly_identical():
                 found_index = index
         assert_false(found_index is None,
                      "Some flavors from OS list were missing in DBAAS list.")
+    for flavor in dbaas_flavors:
+        assert_link_list_is_equal(flavor)

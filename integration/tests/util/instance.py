@@ -27,7 +27,7 @@ from nova import utils
 from nova.compute import power_state
 from nova import exception
 from novaclient.exceptions import NotFound as NotFound404
-from reddwarf.api.instances import _dbaas_mapping
+from reddwarf.api.common import dbaas_mapping
 from reddwarf.compute.manager import ReddwarfInstanceMetaData
 from reddwarf.compute.manager import VALID_ABORT_STATES
 from reddwarf.db import api as dbapi
@@ -85,8 +85,8 @@ class InstanceTest(object):
         """
         if result[0].state == power_state.BUILDING:
             assert_true(
-                result[1].status == _dbaas_mapping[power_state.BUILDING] or
-                result[1].status == _dbaas_mapping[power_state.FAILED],
+                result[1].status == dbaas_mapping[power_state.BUILDING] or
+                result[1].status == dbaas_mapping[power_state.FAILED],
                 "Result status from API should only be BUILDING or FAILED"
                 " at this point but was %s" % result[1].status)
             return False
@@ -95,7 +95,7 @@ class InstanceTest(object):
             # we've destroyed the instance).
             assert_equal(result[0].state, power_state.FAILED)
             # Make sure the REST API agrees.
-            assert_equal(result[1].status, _dbaas_mapping[power_state.FAILED])
+            assert_equal(result[1].status, dbaas_mapping[power_state.FAILED])
             return True
 
     def _assert_volume_is_eventually_deleted(self, time_out=3*60):
@@ -127,7 +127,7 @@ class InstanceTest(object):
                         "collate": "latin2_general_ci"}])
         result = self.initial_result
         self.id = result.id
-        assert_equal(result.status, _dbaas_mapping[power_state.BUILDING])
+        assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
 
     def _get_instance_volume(self):
         """After _create_instance is called, this will return the volume ID."""
@@ -159,7 +159,7 @@ class InstanceTest(object):
                 attempts += 1
                 result = None
                 result = self.dbaas.instances.get(self.id)
-                assert_equal(_dbaas_mapping[power_state.SHUTDOWN],
+                assert_equal(dbaas_mapping[power_state.SHUTDOWN],
                              result.status)
         except exception.NotFound:
             pass

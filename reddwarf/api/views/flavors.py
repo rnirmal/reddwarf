@@ -13,8 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 
 from nova import log as logging
+from nova.api.openstack import common
 from nova.api.openstack.views import flavors as os_flavors
 
 
@@ -31,3 +34,21 @@ class ViewBuilder(os_flavors.ViewBuilderV11):
         detail = super(ViewBuilder, self)._build_detail(flavor_obj)
         del detail['disk']
         return detail
+
+    def _build_links(self, flavor_obj):
+        """Generate a container of links that refer to the provided flavor."""
+        href = os.path.join(self.base_url, "flavors", str(flavor_obj['id']))
+        bookmark = os.path.join(common.remove_version_from_href(self.base_url),
+                                "flavors", str(flavor_obj['id']))
+
+        links = [
+            {
+                'rel': 'self',
+                'href': href
+            },
+            {
+                "rel": "bookmark",
+                "href": bookmark,
+            },
+        ]
+        return links
