@@ -165,10 +165,10 @@ class OpenVzConnection(driver.ComputeDriver):
         layer, as a list.
         """
         try:
-            out, err = utils.execute(
-                'sudo', 'vzlist', '--all', '--no-header', '--output', 'ctid')
+            out, err = utils.execute('vzlist', '--all', '--no-header',
+                                     '--output', 'ctid', run_as_root=True)
             if err:
-                LOG.error(err)
+                LOG.error(_(err))
         except ProcessExecutionError:
             raise exception.Error('Failed to list VZs')
 
@@ -196,12 +196,12 @@ class OpenVzConnection(driver.ComputeDriver):
             # NOTE: This can be an issue if nova decides to change
             # the format of names.  We would need to have a migration process
             # to change the names in the name field of the CTs.
-            out, err = utils.execute('sudo', 'vzlist', '--all', '-o',
-                                     'name', '-H')
+            out, err = utils.execute('vzlist', '--all', '-o',
+                                     'name', '-H', run_as_root=True)
             if err:
-                LOG.error(err)
+                LOG.error(_(err))
         except ProcessExecutionError as err:
-            LOG.error(err)
+            LOG.error(_(err))
             raise exception.Error('Problem listing Vzs')
 
         for name in out.splitlines():
@@ -236,7 +236,7 @@ class OpenVzConnection(driver.ComputeDriver):
                               instance['id'],
                               power_state.NOSTATE,
                               'launching')
-        LOG.debug('instance %s: is launching' % instance['name'])
+        LOG.debug(_('instance %s: is launching'), instance['name'])
 
         # Get current usages and resource availablity.
         self._get_cpuunits_usage()
@@ -283,11 +283,11 @@ class OpenVzConnection(driver.ComputeDriver):
                 db.instance_set_state(context,
                                       instance['id'], state)
                 if state == power_state.RUNNING:
-                    LOG.debug('instance %s: booted' % instance['name'])
+                    LOG.debug(_('instance %s: booted'), instance['name'])
                     timer.stop()
 
             except:
-                LOG.exception('instance %s: failed to boot' %
+                LOG.exception(_('instance %s: failed to boot'),
                               instance['name'])
                 db.instance_set_state(context,
                                       instance['id'],
@@ -313,8 +313,9 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # This will actually drop the os from the local image cache
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'create', instance['id'],
-                                     '--ostemplate', instance['image_ref'])
+            out, err = utils.execute('vzctl', 'create', instance['id'],
+                                     '--ostemplate', instance['image_ref'],
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -328,8 +329,9 @@ class OpenVzConnection(driver.ComputeDriver):
         # This sets the distro hint for OpenVZ to later use for the setting
         # of resolver, hostname and the like
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--ostemplate', ostemplate)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--ostemplate', ostemplate,
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -371,8 +373,9 @@ class OpenVzConnection(driver.ComputeDriver):
             # Set the base config for the VE, this currently defaults to the
             # basic config.
             # TODO(imsplitbit): add guest flavor support here
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--applyconfig', config)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--applyconfig', config,
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -392,7 +395,8 @@ class OpenVzConnection(driver.ComputeDriver):
             # NOTE: The VE will throw a warning that the hostname is invalid
             # if it isn't valid.  This is logged in LOG.error and is not
             # an indication of failure.
-            out, err = utils.execute('sudo', 'vzctl', 'start', instance['id'])
+            out, err = utils.execute('vzctl', 'start', instance['id'],
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -413,7 +417,8 @@ class OpenVzConnection(driver.ComputeDriver):
         will call it from expected methods.  i.e. pause
         """
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'stop', instance['id'])
+            out, err = utils.execute('vzctl', 'stop', instance['id'],
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -434,8 +439,9 @@ class OpenVzConnection(driver.ComputeDriver):
             hostname = instance['hostname']
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--hostname', hostname)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--hostname', hostname,
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -484,9 +490,9 @@ class OpenVzConnection(driver.ComputeDriver):
         try:
             LOG.debug('Sending a gratuitous arp for %s over %s' %
                       (ip_address, interface))
-            out, err = utils.execute('sudo', 'vzctl', 'exec', instance_id,
+            out, err = utils.execute('vzctl', 'exec', instance_id,
                                      'arping', '-c', '5', '-w', '5', '-U', '-I',
-                                     interface, ip_address)
+                                     interface, ip_address, run_as_root=True)
             LOG.debug(out)
             LOG.debug('Gratuitous arp sent for %s over %s' %
                       (ip_address, interface))
@@ -502,8 +508,9 @@ class OpenVzConnection(driver.ComputeDriver):
         # openvz.  This is done to facilitate the get_info method which only
         # accepts an instance name.
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--name', instance['name'])
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--name', instance['name'],
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -517,8 +524,8 @@ class OpenVzConnection(driver.ComputeDriver):
         # The required method get_info only accepts a name so we need a way
         # to correlate name and id without maintaining another state/meta db
         try:
-            out, err = utils.execute('sudo', 'vzlist', '-H', '--all',
-                                     '--name', instance_name)
+            out, err = utils.execute('vzlist', '-H', '--all', '--name',
+                                     instance_name, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -601,8 +608,9 @@ class OpenVzConnection(driver.ComputeDriver):
         vmguarpages = self._calc_pages(instance)
 
         try:
-            out, err =  utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                      '--save', '--vmguarpages', vmguarpages)
+            out, err =  utils.execute('vzctl', 'set', instance['id'],
+                                      '--save', '--vmguarpages', vmguarpages,
+                                      run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -621,8 +629,9 @@ class OpenVzConnection(driver.ComputeDriver):
         privvmpages = self._calc_pages(instance)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--privvmpages', privvmpages)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--privvmpages', privvmpages,
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -651,8 +660,8 @@ class OpenVzConnection(driver.ComputeDriver):
                 units = self.utility['UNITS']
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--cpuunits', units)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--cpuunits', units, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -681,8 +690,8 @@ class OpenVzConnection(driver.ComputeDriver):
                 cpulimit = self.utility['CPULIMIT']
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--cpulimit', cpulimit)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--cpulimit', cpulimit, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -706,8 +715,8 @@ class OpenVzConnection(driver.ComputeDriver):
                 cpus = self.utility['CPULIMIT'] / 100
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--cpus', cpus)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--cpus', cpus, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -728,8 +737,8 @@ class OpenVzConnection(driver.ComputeDriver):
                 FLAGS.ovz_ioprio_limit))
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--ioprio', ioprio)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--ioprio', ioprio, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -762,9 +771,9 @@ class OpenVzConnection(driver.ComputeDriver):
         hard = '%s%s' % (hard, FLAGS.ovz_disk_space_increment)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--diskspace', '%s:%s' %
-                                                              (soft, hard))
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--diskspace', '%s:%s' % (soft, hard),
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -839,8 +848,8 @@ class OpenVzConnection(driver.ComputeDriver):
         task that allows the caller to detect when it is complete.
         """
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'restart',
-                                     instance['id'])
+            out, err = utils.execute('vzctl', 'restart', instance['id'],
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -914,8 +923,8 @@ class OpenVzConnection(driver.ComputeDriver):
         self._stop(instance)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'destroy',
-                                     instance['id'])
+            out, err = utils.execute('vzctl', 'destroy', instance['id'],
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1220,7 +1229,7 @@ class OpenVzConnection(driver.ComputeDriver):
         isn't a problem.
         """
         try:
-            out, err = utils.execute('sudo', 'cat', '/proc/meminfo')
+            out, err = utils.execute('cat', '/proc/meminfo', run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1246,7 +1255,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         proc_count = 0
         try:
-            out, err = utils.execute('sudo', 'cat', '/proc/cpuinfo')
+            out, err = utils.execute('cat', '/proc/cpuinfo', run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1271,7 +1280,7 @@ class OpenVzConnection(driver.ComputeDriver):
         host node.  This is done using the vzcpucheck utility.
         """
         try:
-            out, err = utils.execute('sudo', 'vzcpucheck')
+            out, err = utils.execute('vzcpucheck', run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1293,7 +1302,7 @@ class OpenVzConnection(driver.ComputeDriver):
         done using the vzcpucheck -v command.
         """
         try:
-            out, err = utils.execute('sudo', 'vzcpucheck', '-v')
+            out, err = utils.execute('vzcpucheck', '-v', run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1356,7 +1365,7 @@ class OVZFile(object):
         """
         self.make_path()
         try:
-            out, err = utils.execute('sudo', 'touch', self.filename)
+            out, err = utils.execute('touch', self.filename, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1403,8 +1412,8 @@ class OVZFile(object):
         permissions on files that may be owned by root for manipulation
         """
         try:
-            out, err = utils.execute('sudo', 'chmod',
-                                     permissions, self.filename)
+            out, err = utils.execute('chmod', permissions, self.filename,
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1433,7 +1442,7 @@ class OVZFile(object):
         try:
             if not os.path.exists(path):
                 LOG.debug('Path %s doesnt exist, creating now' % (path,))
-                out, err = utils.execute('sudo', 'mkdir', '-p', path)
+                out, err = utils.execute('mkdir', '-p', path, run_as_root=True)
                 LOG.debug(out)
                 if err:
                     LOG.error(err)
@@ -1840,7 +1849,7 @@ class OVZNetworkInterfaces(object):
         wants them.
 
         When I work, I run a command similar to this:
-        sudo vzctl set 1 --save --netif_add \
+        vzctl set 1 --save --netif_add \
             eth0,,veth1.eth0,11:11:11:11:11:11,br100
         """
         try:
@@ -1849,10 +1858,11 @@ class OVZNetworkInterfaces(object):
             # in the openvz connector.
             host_if = 'veth%s.%s' % (instance_id, netif)
 
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance_id,
+            out, err = utils.execute('vzctl', 'set', instance_id,
                                      '--save', '--netif_add',
                                      '%s,,%s,%s,%s' %
-                                     (netif, host_if, host_mac, bridge))
+                                     (netif, host_if, host_mac, bridge),
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1867,8 +1877,8 @@ class OVZNetworkInterfaces(object):
         I add an IP address to a container if you are not using veth devices.
         """
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance_id,
-                                     '--save', '--ipadd', ip)
+            out, err = utils.execute('vzctl', 'set', instance_id,
+                                     '--save', '--ipadd', ip, run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
@@ -1884,8 +1894,9 @@ class OVZNetworkInterfaces(object):
         OpenVz's tools.
         """
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance_id,
-                                     '--save', '--nameserver', dns)
+            out, err = utils.execute('vzctl', 'set', instance_id,
+                                     '--save', '--nameserver', dns,
+                                     run_as_root=True)
             LOG.debug(out)
             if err:
                 LOG.error(err)
