@@ -407,8 +407,7 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.debug(out)
             if err:
                 LOG.error(err)
-        except ProcessExecutionError as pe:
-            LOG.error(pe)
+        except ProcessExecutionError:
             raise exception.Error('Failed to stop %s' % instance['id'])
 
         # Update instance state
