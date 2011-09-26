@@ -42,12 +42,15 @@ class WhenInstanceIsCreated(unittest.TestCase):
     def test_dns_entry_should_exist(self):
         entry = instance_info.expected_dns_entry()
         if entry:
-            entries = dns_driver.get_entries_by_name(entry.name)
-            if len(entries) < 1:
+            def get_entries():
+                return dns_driver.get_entries_by_name(entry.name)
+            try:
+                utils.poll_until(get_entries, lambda entries: len(entries) > 0,
+                                 sleep_time=2, time_out = 60)
+            except utils.PollTimeOut:
                 self.fail("Did not find name " + entry.name + \
                           " in the entries, which were as follows:"
                           + str(dns_driver.get_entries()))
-            self.assertTrue(len(entries) > 0)
 
 
 @test(depends_on_classes=[Setup, WhenInstanceIsCreated],
@@ -72,7 +75,7 @@ class AfterInstanceIsDestroyed(unittest.TestCase):
 
         try:
             utils.poll_until(get_entries, lambda entries : len(entries) == 0,
-                             sleep_time=1, time_out=30)
+                             sleep_time=2, time_out=60)
         except utils.PollTimeOut:
             # Manually delete the rogue item
             dns_driver.delete_entry(entry.name, entry.type, entry.dns_zone)

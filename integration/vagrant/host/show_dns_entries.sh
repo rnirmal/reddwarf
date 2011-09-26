@@ -12,4 +12,7 @@ else
 fi
 cd $home
 
-SHOW_DNS_ENTRIES=True ./test.sh --group=rsdns.show_entries
+
+cd /src
+export PYTHONPATH=$PYTHONPATH:/src
+python integration/show_dns_entries.py --flagfile=/home/vagrant/nova.conf
