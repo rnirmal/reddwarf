@@ -29,6 +29,11 @@ exclaim () {
 pkg_install python-software-properties
 
 exclaim Installing Nova dependencies.
+
+# Setup up the Diable release ppa
+echo "deb http://ppa.launchpad.net/openstack-release/2011.3/ubuntu lucid main" | sudo -E tee /etc/apt/sources.list.d/nova-diablo-release-lucid.list > /dev/null
+sudo -E apt-get update
+
 cd /src/contrib
 #UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
 # check to see if http_proxy is set http_proxy=$http_proxy bash hack
@@ -48,6 +53,9 @@ if [ ! "${http_proxy}" = '' ]; then
     mv ./nova.sh.bak ./nova.sh
     rm ./nova.sh.bak.delete
 fi
+
+# Removing the nova trunk ppa that nova.sh adds, we need to be using the diable release ppa instead
+sudo rm /etc/apt/sources.list.d/nova-core-trunk*
 
 #TODO: Make this optional - its only there for OpenVZ environments.
 exclaim Destroying virbr0.
