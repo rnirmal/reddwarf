@@ -104,36 +104,40 @@ if __name__ == '__main__':
     # everything.
 
     import proboscis
-    from tests import initialize
-    from tests.dbaas import dbaas_ovz
-    from tests.dbaas import dns
-    from tests.dbaas import guest_initialize_failure
-    from tests.dbaas import flavors
     from tests.dns import check_domain
     from tests.dns import conversion
-    from tests.guest import dbaas_tests
-    from tests.guest import pkg_tests
-    from tests.reaper import volume_reaping
-    from tests.scheduler import driver
-    from tests.scheduler import SCHEDULER_DRIVER_GROUP
-    from tests.volumes import driver
-    from tests.volumes import VOLUMES_DRIVER
 
-    from tests import util
+    # The DNS stuff is problematic. Not loading the other tests allow us to
+    # run its functional tests only.
+    if not os.environ.get("ADD_DOMAINS", "False") == 'True':
+        from tests import initialize
+        from tests.dbaas import dbaas_ovz
+        from tests.dbaas import dns
+        from tests.dbaas import flavors
+        from tests.guest import dbaas_tests
+        from tests.guest import pkg_tests
+        from tests.reaper import volume_reaping
+        from tests.scheduler import driver
+        from tests.scheduler import SCHEDULER_DRIVER_GROUP
+        from tests.volumes import driver
+        from tests.volumes import VOLUMES_DRIVER
+        from tests.dbaas import guest_initialize_failure
 
-    host_ovz_groups = [
-        "dbaas.guest",
-        "dbaas.guest.dns",
-        SCHEDULER_DRIVER_GROUP,
-        pkg_tests.GROUP,
-        VOLUMES_DRIVER,
-        guest_initialize_failure.GROUP,
-        volume_reaping.GROUP
-    ]
-    if util.should_run_rsdns_tests():
-        host_ovz_groups += ["rsdns.conversion", "rsdns.domains"]
+        from tests import util
 
-    proboscis.register(groups=["host.ovz"], depends_on_groups=host_ovz_groups)
+        host_ovz_groups = [
+            "dbaas.guest",
+            "dbaas.guest.dns",
+            SCHEDULER_DRIVER_GROUP,
+            pkg_tests.GROUP,
+            VOLUMES_DRIVER,
+            guest_initialize_failure.GROUP,
+            volume_reaping.GROUP
+        ]
+        if util.should_run_rsdns_tests():
+            host_ovz_groups += ["rsdns.conversion", "rsdns.domains"]
+
+        proboscis.register(groups=["host.ovz"], depends_on_groups=host_ovz_groups)
 
     atexit.register(_clean_up)
 

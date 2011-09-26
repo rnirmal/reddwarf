@@ -160,17 +160,14 @@ class MemoryScheduler(SimpleScheduler):
         for result in results:
             (service, memory_mb) = result
             needed_memory = memory_mb + instance_ref['memory_mb']
-            if needed_memory > FLAGS.max_instance_memory_mb:
-                LOG.debug("Error scheduling " +
-                          str(instance_ref['display_name']))
-                raise driver.NoValidHost(
-                    _("Insufficient memory on all hosts."))
-            if self.service_is_up(service):
+            if needed_memory <= FLAGS.max_instance_memory_mb and \
+               self.service_is_up(service):
+                LOG.debug("Scheduling instance %s" % 
+                          instance_ref['display_name'])
                 return self._schedule_now_on_host(context, service['host'],
                                                   instance_ref['id'])
-        raise driver.NoValidHost(_("Scheduler was unable to locate a host"
-                                   " for this request. Is the appropriate"
-                                   " service running?"))
+        LOG.debug("Error scheduling %s" % instance_ref['display_name'])
+        raise driver.NoValidHost(_("Insufficient memory on all hosts."))
 
 
 class UnforgivingMemoryScheduler(MemoryScheduler):

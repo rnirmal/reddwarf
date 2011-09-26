@@ -106,6 +106,17 @@ instance_info = InstanceTestInfo()
 dbaas = None  # Rich client used throughout this test.
 
 
+# This is like a cheat code which allows the tests to skip creating a new
+# instance and use an old one.
+def existing_instance():
+    return os.environ.get("TESTS_USE_INSTANCE_ID", None)
+
+
+@property
+def create_new_instance():
+    return existing_instance() is None
+
+
 @test(groups=[GROUP, GROUP_START, 'dbaas.setup'], depends_on_groups=["services.initialize"])
 class Setup(object):
     """Makes sure the client can hit the ReST service.
@@ -141,7 +152,11 @@ class Setup(object):
 
     @test
     def create_instance_name(self):
-        instance_info.name = "TEST_" + str(datetime.now())
+        id = existing_instance()
+        if id is None:
+            instance_info.name = "TEST_" + str(datetime.now())
+        else:
+            instance_info.name = dbaas.instances.get(id).name
 
     @test
     def test_get_versions(self):
@@ -152,7 +167,9 @@ class Setup(object):
         assert_equal("v1.0", result.id)
 
 
-@test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'])
+@test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'],
+      groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'],
+      enabled=create_new_instance)
 class InstanceHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
 
@@ -218,6 +235,7 @@ class InstanceHostCheck(unittest.TestCase):
         account_info = dbaas.accounts.show(instance_info.user.auth_user)
         self.assertEqual(0, len(account_info.hosts))
 
+
 @test(depends_on_classes=[InstanceHostCheck], groups=[GROUP, GROUP_START])
 class CreateInstance(unittest.TestCase):
     """Test to create a Database Instance
@@ -238,7 +256,6 @@ class CreateInstance(unittest.TestCase):
                                   {'size': too_big + 1}, [])
 
     def test_create(self):
-        global dbaas
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
                           "collate": "latin2_general_ci"})
@@ -246,15 +263,22 @@ class CreateInstance(unittest.TestCase):
         instance_info.databases = databases
         instance_info.volume = {'size': 2}
 
-        instance_info.initial_result = dbaas.instances.create(
-                                            instance_info.name,
-                                            instance_info.dbaas_flavor_href,
-                                            instance_info.volume,
-                                            databases)
+        if create_new_instance:
+            instance_info.initial_result = dbaas.instances.create(
+                                               instance_info.name,
+                                               instance_info.dbaas_flavor_href,
+                                               instance_info.volume,
+                                               databases)
+        else:
+            id = existing_instance()
+            instance_info.initial_result = dbaas.instances.get(id)
+        
         result = instance_info.initial_result
         instance_info.id = result.id
 
-        self.assertEqual(result.status, _dbaas_mapping[power_state.BUILDING])
+        if create_new_instance:
+            self.assertEqual(result.status,
+                             _dbaas_mapping[power_state.BUILDING])
         
         # checks to be sure these are not found in the result
         for attr in ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
@@ -288,7 +312,8 @@ class AccountMgmtData(unittest.TestCase):
         self.assertEqual(instance['name'], instance_info.name)
 
 
-@test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START])
+@test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
+      enabled=create_new_instance)
 class WaitForGuestInstallationToFinish(unittest.TestCase):
     """
         Wait until the Guest is finished installing.  It takes quite a while...
@@ -318,7 +343,8 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
                                         % str(instance_info.id))
         utils.poll_until(compute_manager_finished, sleep_time=2, time_out=60)
 
-@test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
+@test(depends_on_classes=[WaitForGuestInstallationToFinish],
+      groups=[GROUP, GROUP_START], enabled=create_new_instance)
 class VerifyGuestStarted(unittest.TestCase):
     """
         Test to verify the guest instance is started and we can get the init
@@ -345,7 +371,8 @@ class VerifyGuestStarted(unittest.TestCase):
         utils.poll_until(get_the_pid, sleep_time=10, time_out=60*10)
 
 
-@test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
+@test(depends_on_classes=[WaitForGuestInstallationToFinish],
+      groups=[GROUP, GROUP_START], enabled=create_new_instance)
 class TestGuestProcess(unittest.TestCase):
     """
         Test that the guest process is started with all the right parameters
