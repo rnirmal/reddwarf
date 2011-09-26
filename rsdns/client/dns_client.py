@@ -42,10 +42,6 @@ class DNSaasClient(HTTPClient):
         self.management_base_url = management_base_url
 
     def authenticate(self):
-        #headers = {'X-Auth-User': self.user, 'X-Auth-Key': self.apikey}
-#        LOG.debug("Performing GET on %s, with headers=%s" % (self.auth_url,
-        #resp, body = self.request(self.auth_url + "", 'GET', headers=headers)
-#                                                      headers))
         http = httplib2.Http()
         headers = {'Content-Type': 'application/json'}
         body = {'credentials':{'username':self.user, 'key':self.apikey}}
@@ -57,7 +53,6 @@ class DNSaasClient(HTTPClient):
         self.auth_token = resp_body['auth']['token']['id']
 
         self.management_url = self.management_base_url + str(self.accountId)
-        #self.auth_token = resp['x-auth-token']
 
         LOG.debug("AUTH_TOKEN=%s" % self.auth_token)
 

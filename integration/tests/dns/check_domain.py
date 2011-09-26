@@ -45,15 +45,9 @@ TEST_NAME="hiwassup.%s" % FLAGS.dns_domain_name
 class ClientTests(object):
 
     @before_class
-    def replace_logging(self):
+    def increase_logging(self):
         import httplib2
         httplib2.debuglevel = 1
-#        from rsdns.client import dns_client
-#        class FakeLog(object):
-#            def debug(self, msg):
-#                print(msg)
-#        dns_client.LOG = FakeLog()
-        pass
 
     @test
     def can_auth(self):

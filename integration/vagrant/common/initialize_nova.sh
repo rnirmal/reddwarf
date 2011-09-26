@@ -98,17 +98,6 @@ keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
 keystone_manage user add Boss admin dbaas
 
 
-AUTH_TENANT="dbaas"
-AUTH_USER="admin"
-AUTH_PASSWORD="admin"
-AUTH_ADMIN_ROLE="Admin"
-keystone_manage tenant add $AUTH_TENANT
-keystone_manage user add $AUTH_USER $AUTH_PASSWORD $AUTH_TENANT
-keystone_manage role add $AUTH_ADMIN_ROLE
-keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
-keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
-
-
 SERVICE_ADMIN_USER="service-admin"
 SERVICE_ADMIN_PASSWORD="serviceadmin"
 SERVICE_ADMIN_ROLE="KeystoneServiceAdmin"
