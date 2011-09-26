@@ -98,6 +98,11 @@ dbaas_pkg_setup_keystone() {
     sudo -E cp /vagrant/keystone.conf $KEYSTONE_CONF
 }
 
+
+dbaas_pkg_install_release_novaclient() {
+     pkg_install python-novaclient python-gflags
+}
+
 dbaas_pkg_install_novaclient() {
     # Builds and installs the novaclient based on a config'd version
     pkg_remove python-novaclient
@@ -130,9 +135,7 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
 }
 
 dbaas_trunk_install_glance() {
-    sudo -E add-apt-repository ppa:glance-core/trunk
-    sudo -E apt-get update
-    sudo -E apt-get install glance
+    pkg_install glance
     
     sudo -E service glance-registry stop
     sudo -E service glance-api stop
@@ -158,8 +161,6 @@ dbaas_new_install_glance() {
 
     sudo -E sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
     # for some reason glance needs swift core to build
-    add-apt-repository ppa:swift-core/trunk
-    sudo -E apt-get update
     pkg_install python-swift
     if [ ! -f /tmp/build/glance/etc/glance.conf.sample ]
     then
