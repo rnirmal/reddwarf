@@ -129,6 +129,10 @@ cd /tests
 cd /tests
 sudo -E ADD_DOMAINS=True NOVASRC=/src /tests/run_tests_nv.sh --conf=/tests/vagrant/host/host.nemesis.conf --group=rsdns.domains
 
+# Stop the glance services if they are running
+echo "Stopping Glance Service"
+sudo service glance-registry stop
+sudo service glance-api stop
 
 # Install glance_image if one isn't found.
 if [ ! -f /var/lib/glance/1 ]
