@@ -47,7 +47,7 @@ def create_resource(version='1.0'):
                              'host',
                              'id',
                              'name',
-                             'state_description'],
+                             'server_state_description'],
                 'guest_status': ['created_at',
                            'deleted',
                            'deleted_at',
@@ -128,7 +128,7 @@ class Controller(object):
         instance = self.compute_api.get(context, id)
         LOG.debug("get instance info : %r" % instance)
 
-        state_description = instance['state_description']
+        server_state_description = instance['state_description']
 
         if instance['volumes']:
             volume = instance['volumes'][0]
@@ -152,7 +152,7 @@ class Controller(object):
         resp = {
             'instance': {
                 'id': id,
-                'state_description': state_description,
+                'server_state_description': server_state_description,
                 'guest_status': status,
                 'name': instance['display_name'],
                 'host': instance['host'],
