@@ -24,7 +24,7 @@ from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from reddwarf.api import common
 from nova.compute import power_state
-from nova.exception import InstanceNotFound, InstanceNotRunning
+from nova.exception import InstanceNotFound
 from nova.guest import api as guest
 from reddwarf.db import api as dbapi
 
@@ -42,11 +42,30 @@ def create_resource(version='1.0'):
     metadata = {
         'application/xml': {
             'attributes': {
-                'instance': ['account_id', 'flavor', 'host', 'id', 'name'],
-                'link': ['rel', 'type', 'href'],
-                'database': ['name', 'collate', 'character_set'],
+                'instance': ['account_id',
+                             'flavor',
+                             'host',
+                             'id',
+                             'name',
+                             'state_description'],
+                'guest_status': ['created_at',
+                           'deleted',
+                           'deleted_at',
+                           'instance_id',
+                           'state',
+                           'state_description',
+                           'updated_at'],
+                'link': ['rel',
+                         'type',
+                         'href'],
+                'database': ['name',
+                             'collate',
+                             'character_set'],
                 'user': ['name'],
-                'volume': [ 'id', 'size', 'description', 'name']
+                'volume': [ 'id',
+                            'size',
+                            'description',
+                            'name']
             },
         },
 
@@ -91,29 +110,36 @@ class Controller(object):
             #raise InstanceNotFound(instance_id=id)
             raise exc.HTTPNotFound("No instance with id %s." % id)
         if status.state != power_state.RUNNING:
-            raise InstanceNotRunning(instance_id=id)
+            dbs = None
+            users = None
+        else:
+            db_list = self.guest_api.list_databases(context, id)
+
+            LOG.debug("DBS: %r" % db_list)
+            dbs = [{
+                    'name': db['_name'],
+                    'collate': db['_collate'],
+                    'character_set': db['_character_set']
+                    } for db in db_list]
+
+            users = self.guest_api.list_users(context, id)
+            users = [{'name': user['_name']} for user in users]
 
         instance = self.compute_api.get(context, id)
+        LOG.debug("get instance info : %r" % instance)
 
-        db_list = self.guest_api.list_databases(context, id)
+        state_description = instance['state_description']
 
-        LOG.debug("DBS: %r" % db_list)
-        dbs = [{
-                'name': db['_name'],
-                'collate': db['_collate'],
-                'character_set': db['_character_set']
-                } for db in db_list]
-
-        users = self.guest_api.list_users(context, id)
-        users = [{'name': user['_name']} for user in users]
-
-        volume = instance['volumes'][0]
-        volume = {
-            'id': volume['id'],
-            'name': volume['display_name'],
-            'size': volume['size'],
-            'description': volume['display_description'],
-            }
+        if instance['volumes']:
+            volume = instance['volumes'][0]
+            volume = {
+                'id': volume['id'],
+                'name': volume['display_name'],
+                'size': volume['size'],
+                'description': volume['display_description'],
+                }
+        else:
+            volume = None
 
         server = self.server_controller.show(req, id)
         if isinstance(server, Exception):
@@ -126,6 +152,8 @@ class Controller(object):
         resp = {
             'instance': {
                 'id': id,
+                'state_description': state_description,
+                'guest_status': status,
                 'name': instance['display_name'],
                 'host': instance['host'],
                 'account_id': instance['user_id'],
