@@ -17,6 +17,7 @@ import gettext
 import os
 import json
 import re
+import string
 import sys
 import time
 import unittest
@@ -312,7 +313,7 @@ class CreateInstance(unittest.TestCase):
             self.instance_list.check_guest_status(result._info)
         except Exception as e:
             self.fail(msg=e)
-        
+
     @test
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
@@ -500,9 +501,19 @@ class TestInstanceListing(unittest.TestCase):
             self.instance_list.check_databases(instance_dict)
         except Exception as e:
             self.fail(msg=e)
+
+    @test
+    def test_instance_hostname(self):
+        instance = dbaas.instances.get(instance_info.id)
         dns_entry = instance_info.expected_dns_entry()
         if dns_entry:
             self.assertEqual(dns_entry.name, instance.hostname)
+        else:
+            table = string.maketrans("_ ", "--")
+            deletions = ":."
+            name = instance_info.name.translate(table, deletions).lower()
+            expected_hostname = "%s-instance-%s" % (name, instance_info.id)
+            self.assertEqual(expected_hostname, instance.hostname)
 
     @test
     def test_get_instance_status(self):
