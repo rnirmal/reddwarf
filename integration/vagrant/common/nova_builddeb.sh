@@ -100,4 +100,4 @@ sed -i.bak 's/mkdir -p doc\/build\/html/mkdir -p doc\/doc\/build\/html/g' debian
 DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
 
 #now nuke the cacher-ng mirror of our code
-rm -fr /var/cache/apt-cacher-ng/apt.rackspace.com/
+sudo rm -fr /var/cache/apt-cacher-ng/apt.rackspace.com/
