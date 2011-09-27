@@ -31,7 +31,7 @@ pkg_install python-software-properties
 exclaim Installing Nova dependencies.
 
 # Setup up the Diable release ppa
-sudo apt-add-repository ppa:openstack-release/2011.3/ubuntu
+sudo add-apt-repository ppa:openstack-release/2011.3/ubuntu
 sudo -E apt-get update
 
 cd /src/contrib
