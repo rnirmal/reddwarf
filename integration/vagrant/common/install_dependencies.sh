@@ -31,7 +31,7 @@ pkg_install python-software-properties
 exclaim Installing Nova dependencies.
 
 # Setup up the Diable release ppa
-echo "deb http://ppa.launchpad.net/openstack-release/2011.3/ubuntu lucid main" | sudo -E tee /etc/apt/sources.list.d/nova-diablo-release-lucid.list > /dev/null
+sudo apt-add-repository ppa:openstack-release/2011.3/ubuntu
 sudo -E apt-get update
 
 cd /src/contrib
