@@ -17,19 +17,14 @@
 
 import json
 import webob
-from lxml import etree
+import xml.dom.minidom as minidom
 
 from nova.api.openstack import flavors
 import nova.db.api
 from nova import exception
 from nova import test
-from nova.api.openstack import xmlutil
 from nova.tests.api.openstack import fakes
 from nova import wsgi
-
-
-NS = "{http://docs.openstack.org/compute/api/v1.1}"
-ATOMNS = "{http://www.w3.org/2005/Atom}"
 
 
 def stub_flavor(flavorid, name, memory_mb="256", local_gb="10"):
@@ -291,41 +286,10 @@ class FlavorsTest(test.TestCase):
 
 class FlavorsXMLSerializationTest(test.TestCase):
 
-    def test_xml_declaration(self):
-        serializer = flavors.FlavorXMLSerializer()
-
-        fixture = {
-            "flavor": {
-                "id": "12",
-                "name": "asdf",
-                "ram": "256",
-                "disk": "10",
-                "rxtx_cap": "",
-                "rxtx_quota": "",
-                "swap": "",
-                "vcpus": "",
-                "links": [
-                    {
-                        "rel": "self",
-                        "href": "http://localhost/v1.1/fake/flavors/12",
-                    },
-                    {
-                        "rel": "bookmark",
-                        "href": "http://localhost/fake/flavors/12",
-                    },
-                ],
-            },
-        }
-
-        output = serializer.serialize(fixture, 'show')
-        print output
-        has_dec = output.startswith("<?xml version='1.0' encoding='UTF-8'?>")
-        self.assertTrue(has_dec)
-
     def test_show(self):
         serializer = flavors.FlavorXMLSerializer()
 
-        fixture = {
+        input = {
             "flavor": {
                 "id": "12",
                 "name": "asdf",
@@ -348,25 +312,33 @@ class FlavorsXMLSerializationTest(test.TestCase):
             },
         }
 
-        output = serializer.serialize(fixture, 'show')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'flavor')
-        flavor_dict = fixture['flavor']
+        output = serializer.serialize(input, 'show')
+        actual = minidom.parseString(output.replace("  ", ""))
 
-        for key in ['name', 'id', 'ram', 'disk']:
-            self.assertEqual(root.get(key), str(flavor_dict[key]))
+        expected = minidom.parseString("""
+        <flavor xmlns="http://docs.openstack.org/compute/api/v1.1"
+                xmlns:atom="http://www.w3.org/2005/Atom"
+                id="12"
+                name="asdf"
+                ram="256"
+                disk="10"
+                rxtx_cap=""
+                rxtx_quota=""
+                swap=""
+                vcpus="">
+            <atom:link href="http://localhost/v1.1/fake/flavors/12"
+                 rel="self"/>
+            <atom:link href="http://localhost/fake/flavors/12"
+                 rel="bookmark"/>
+        </flavor>
+        """.replace("  ", ""))
 
-        link_nodes = root.findall('{0}link'.format(ATOMNS))
-        self.assertEqual(len(link_nodes), 2)
-        for i, link in enumerate(flavor_dict['links']):
-            for key, value in link.items():
-                self.assertEqual(link_nodes[i].get(key), value)
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_show_handles_integers(self):
         serializer = flavors.FlavorXMLSerializer()
 
-        fixture = {
+        input = {
             "flavor": {
                 "id": 12,
                 "name": "asdf",
@@ -389,25 +361,33 @@ class FlavorsXMLSerializationTest(test.TestCase):
             },
         }
 
-        output = serializer.serialize(fixture, 'show')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'flavor')
-        flavor_dict = fixture['flavor']
+        output = serializer.serialize(input, 'show')
+        actual = minidom.parseString(output.replace("  ", ""))
 
-        for key in ['name', 'id', 'ram', 'disk']:
-            self.assertEqual(root.get(key), str(flavor_dict[key]))
+        expected = minidom.parseString("""
+        <flavor xmlns="http://docs.openstack.org/compute/api/v1.1"
+                xmlns:atom="http://www.w3.org/2005/Atom"
+                id="12"
+                name="asdf"
+                ram="256"
+                disk="10"
+                rxtx_cap=""
+                rxtx_quota=""
+                swap=""
+                vcpus="">
+            <atom:link href="http://localhost/v1.1/fake/flavors/12"
+                 rel="self"/>
+            <atom:link href="http://localhost/fake/flavors/12"
+                 rel="bookmark"/>
+        </flavor>
+        """.replace("  ", ""))
 
-        link_nodes = root.findall('{0}link'.format(ATOMNS))
-        self.assertEqual(len(link_nodes), 2)
-        for i, link in enumerate(flavor_dict['links']):
-            for key, value in link.items():
-                self.assertEqual(link_nodes[i].get(key), value)
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_detail(self):
         serializer = flavors.FlavorXMLSerializer()
 
-        fixture = {
+        input = {
             "flavors": [
                 {
                     "id": "23",
@@ -451,28 +431,47 @@ class FlavorsXMLSerializationTest(test.TestCase):
             ],
         }
 
-        output = serializer.serialize(fixture, 'detail')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'flavors')
-        flavor_elems = root.findall('{0}flavor'.format(NS))
-        self.assertEqual(len(flavor_elems), 2)
-        for i, flavor_elem in enumerate(flavor_elems):
-            flavor_dict = fixture['flavors'][i]
+        output = serializer.serialize(input, 'detail')
+        actual = minidom.parseString(output.replace("  ", ""))
 
-            for key in ['name', 'id', 'ram', 'disk']:
-                self.assertEqual(flavor_elem.get(key), str(flavor_dict[key]))
+        expected = minidom.parseString("""
+        <flavors xmlns="http://docs.openstack.org/compute/api/v1.1"
+                 xmlns:atom="http://www.w3.org/2005/Atom">
+            <flavor id="23"
+                    name="flavor 23"
+                    ram="512"
+                    disk="20"
+                    rxtx_cap=""
+                    rxtx_quota=""
+                    swap=""
+                    vcpus="">
+                <atom:link href="http://localhost/v1.1/fake/flavors/23"
+                     rel="self"/>
+                <atom:link href="http://localhost/fake/flavors/23"
+                     rel="bookmark"/>
+            </flavor>
+            <flavor id="13"
+                    name="flavor 13"
+                    ram="256"
+                    disk="10"
+                    rxtx_cap=""
+                    rxtx_quota=""
+                    swap=""
+                    vcpus="">
+                <atom:link href="http://localhost/v1.1/fake/flavors/13"
+                     rel="self"/>
+                <atom:link href="http://localhost/fake/flavors/13"
+                     rel="bookmark"/>
+            </flavor>
+        </flavors>
+        """.replace("  ", "") % locals())
 
-            link_nodes = flavor_elem.findall('{0}link'.format(ATOMNS))
-            self.assertEqual(len(link_nodes), 2)
-            for i, link in enumerate(flavor_dict['links']):
-                for key, value in link.items():
-                    self.assertEqual(link_nodes[i].get(key), value)
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_index(self):
         serializer = flavors.FlavorXMLSerializer()
 
-        fixture = {
+        input = {
             "flavors": [
                 {
                     "id": "23",
@@ -516,34 +515,42 @@ class FlavorsXMLSerializationTest(test.TestCase):
             ],
         }
 
-        output = serializer.serialize(fixture, 'index')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'flavors_index')
-        flavor_elems = root.findall('{0}flavor'.format(NS))
-        self.assertEqual(len(flavor_elems), 2)
-        for i, flavor_elem in enumerate(flavor_elems):
-            flavor_dict = fixture['flavors'][i]
+        output = serializer.serialize(input, 'index')
+        actual = minidom.parseString(output.replace("  ", ""))
 
-            for key in ['name', 'id']:
-                self.assertEqual(flavor_elem.get(key), str(flavor_dict[key]))
+        expected = minidom.parseString("""
+        <flavors xmlns="http://docs.openstack.org/compute/api/v1.1"
+                 xmlns:atom="http://www.w3.org/2005/Atom">
+            <flavor id="23" name="flavor 23">
+                <atom:link href="http://localhost/v1.1/fake/flavors/23"
+                     rel="self"/>
+                <atom:link href="http://localhost/fake/flavors/23"
+                     rel="bookmark"/>
+            </flavor>
+            <flavor id="13" name="flavor 13">
+                <atom:link href="http://localhost/v1.1/fake/flavors/13"
+                     rel="self"/>
+                <atom:link href="http://localhost/fake/flavors/13"
+                     rel="bookmark"/>
+            </flavor>
+        </flavors>
+        """.replace("  ", "") % locals())
 
-            link_nodes = flavor_elem.findall('{0}link'.format(ATOMNS))
-            self.assertEqual(len(link_nodes), 2)
-            for i, link in enumerate(flavor_dict['links']):
-                for key, value in link.items():
-                    self.assertEqual(link_nodes[i].get(key), value)
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_index_empty(self):
         serializer = flavors.FlavorXMLSerializer()
 
-        fixture = {
+        input = {
             "flavors": [],
         }
 
-        output = serializer.serialize(fixture, 'index')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'flavors_index')
-        flavor_elems = root.findall('{0}flavor'.format(NS))
-        self.assertEqual(len(flavor_elems), 0)
+        output = serializer.serialize(input, 'index')
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString("""
+        <flavors xmlns="http://docs.openstack.org/compute/api/v1.1"
+                 xmlns:atom="http://www.w3.org/2005/Atom" />
+        """.replace("  ", "") % locals())
+
+        self.assertEqual(expected.toxml(), actual.toxml())

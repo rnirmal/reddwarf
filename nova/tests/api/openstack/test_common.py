@@ -19,7 +19,6 @@
 Test suites for 'common' code used throughout the OpenStack HTTP API.
 """
 
-from lxml import etree
 import webob.exc
 import xml.dom.minidom as minidom
 
@@ -27,11 +26,6 @@ from webob import Request
 
 from nova import test
 from nova.api.openstack import common
-from nova.api.openstack import xmlutil
-
-
-NS = "{http://docs.openstack.org/compute/api/v1.1}"
-ATOMNS = "{http://www.w3.org/2005/Atom}"
 
 
 class LimiterTest(test.TestCase):
@@ -340,20 +334,6 @@ class MetadataXMLDeserializationTest(test.TestCase):
 
 class MetadataXMLSerializationTest(test.TestCase):
 
-    def test_xml_declaration(self):
-        serializer = common.MetadataXMLSerializer()
-        fixture = {
-            'metadata': {
-                'one': 'two',
-                'three': 'four',
-            },
-        }
-
-        output = serializer.serialize(fixture, 'index')
-        print output
-        has_dec = output.startswith("<?xml version='1.0' encoding='UTF-8'?>")
-        self.assertTrue(has_dec)
-
     def test_index(self):
         serializer = common.MetadataXMLSerializer()
         fixture = {
@@ -363,16 +343,16 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'index')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'metadata')
-        metadata_dict = fixture['metadata']
-        metadata_elems = root.findall('{0}meta'.format(NS))
-        self.assertEqual(len(metadata_elems), 2)
-        for i, metadata_elem in enumerate(metadata_elems):
-            (meta_key, meta_value) = metadata_dict.items()[i]
-            self.assertEqual(str(metadata_elem.get('key')), str(meta_key))
-            self.assertEqual(str(metadata_elem.text).strip(), str(meta_value))
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString("""
+            <metadata xmlns="http://docs.openstack.org/compute/api/v1.1">
+                <meta key="three">four</meta>
+                <meta key="one">two</meta>
+            </metadata>
+        """.replace("  ", "").replace("\n", ""))
+
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_index_null(self):
         serializer = common.MetadataXMLSerializer()
@@ -382,16 +362,15 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'index')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'metadata')
-        metadata_dict = fixture['metadata']
-        metadata_elems = root.findall('{0}meta'.format(NS))
-        self.assertEqual(len(metadata_elems), 1)
-        for i, metadata_elem in enumerate(metadata_elems):
-            (meta_key, meta_value) = metadata_dict.items()[i]
-            self.assertEqual(str(metadata_elem.get('key')), str(meta_key))
-            self.assertEqual(str(metadata_elem.text).strip(), str(meta_value))
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString("""
+            <metadata xmlns="http://docs.openstack.org/compute/api/v1.1">
+                <meta key="None">None</meta>
+            </metadata>
+        """.replace("  ", "").replace("\n", ""))
+
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_index_unicode(self):
         serializer = common.MetadataXMLSerializer()
@@ -401,16 +380,15 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'index')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'metadata')
-        metadata_dict = fixture['metadata']
-        metadata_elems = root.findall('{0}meta'.format(NS))
-        self.assertEqual(len(metadata_elems), 1)
-        for i, metadata_elem in enumerate(metadata_elems):
-            (meta_key, meta_value) = metadata_dict.items()[i]
-            self.assertEqual(str(metadata_elem.get('key')), str(meta_key))
-            self.assertEqual(metadata_elem.text.strip(), meta_value)
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString(u"""
+            <metadata xmlns="http://docs.openstack.org/compute/api/v1.1">
+                <meta key="three">Jos\xe9</meta>
+            </metadata>
+        """.encode("UTF-8").replace("  ", "").replace("\n", ""))
+
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_show(self):
         serializer = common.MetadataXMLSerializer()
@@ -420,12 +398,14 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'show')
-        print output
-        root = etree.XML(output)
-        meta_dict = fixture['meta']
-        (meta_key, meta_value) = meta_dict.items()[0]
-        self.assertEqual(str(root.get('key')), str(meta_key))
-        self.assertEqual(root.text.strip(), meta_value)
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString("""
+            <meta xmlns="http://docs.openstack.org/compute/api/v1.1"
+                 key="one">two</meta>
+        """.replace("  ", "").replace("\n", ""))
+
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_update_all(self):
         serializer = common.MetadataXMLSerializer()
@@ -436,16 +416,16 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'update_all')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'metadata')
-        metadata_dict = fixture['metadata']
-        metadata_elems = root.findall('{0}meta'.format(NS))
-        self.assertEqual(len(metadata_elems), 2)
-        for i, metadata_elem in enumerate(metadata_elems):
-            (meta_key, meta_value) = metadata_dict.items()[i]
-            self.assertEqual(str(metadata_elem.get('key')), str(meta_key))
-            self.assertEqual(str(metadata_elem.text).strip(), str(meta_value))
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString("""
+            <metadata xmlns="http://docs.openstack.org/compute/api/v1.1">
+                <meta key="key6">value6</meta>
+                <meta key="key4">value4</meta>
+            </metadata>
+        """.replace("  ", "").replace("\n", ""))
+
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_update_item(self):
         serializer = common.MetadataXMLSerializer()
@@ -455,12 +435,14 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'update')
-        print output
-        root = etree.XML(output)
-        meta_dict = fixture['meta']
-        (meta_key, meta_value) = meta_dict.items()[0]
-        self.assertEqual(str(root.get('key')), str(meta_key))
-        self.assertEqual(root.text.strip(), meta_value)
+        actual = minidom.parseString(output.replace("  ", ""))
+
+        expected = minidom.parseString("""
+            <meta xmlns="http://docs.openstack.org/compute/api/v1.1"
+                 key="one">two</meta>
+        """.replace("  ", "").replace("\n", ""))
+
+        self.assertEqual(expected.toxml(), actual.toxml())
 
     def test_create(self):
         serializer = common.MetadataXMLSerializer()
@@ -472,16 +454,6 @@ class MetadataXMLSerializationTest(test.TestCase):
             },
         }
         output = serializer.serialize(fixture, 'create')
-        print output
-        root = etree.XML(output)
-        xmlutil.validate_schema(root, 'metadata')
-        metadata_dict = fixture['metadata']
-        metadata_elems = root.findall('{0}meta'.format(NS))
-        self.assertEqual(len(metadata_elems), 3)
-        for i, metadata_elem in enumerate(metadata_elems):
-            (meta_key, meta_value) = metadata_dict.items()[i]
-            self.assertEqual(str(metadata_elem.get('key')), str(meta_key))
-            self.assertEqual(str(metadata_elem.text).strip(), str(meta_value))
         actual = minidom.parseString(output.replace("  ", ""))
 
         expected = minidom.parseString("""
