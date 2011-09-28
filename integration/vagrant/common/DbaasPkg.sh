@@ -135,6 +135,8 @@ Pin-Priority: 700" | sudo -E tee /etc/apt/preferences.d/temp-local-ppa-pin > /de
 }
 
 dbaas_trunk_install_glance() {
+    pkg_remove glance
+    pkg_remove python-glance
     pkg_install glance
     
     sudo -E service glance-registry stop
