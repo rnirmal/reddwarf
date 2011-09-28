@@ -105,7 +105,7 @@
   </complexType>
 
   <complexType name="ManagementInstance">
-    <extension base="dbaas:DatabaseInstance">
+    <extension base="dbaas:instance">
       <attribute name="rootEnabledOn" type="xsd:dateTime">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
