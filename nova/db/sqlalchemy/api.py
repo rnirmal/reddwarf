@@ -1180,7 +1180,7 @@ def instance_state_get_all_by_user(context, user_id):
     results = session.query(models.Instance).\
                       filter_by(user_id=user_id).\
                       filter_by(deleted=False).all()
-    return dict((result['id'], result['state']) for result in results)
+    return dict((result['id'], result['power_state']) for result in results)
 
 
 @require_context
