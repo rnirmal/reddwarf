@@ -128,7 +128,7 @@ class Controller(object):
         instance = self.compute_api.get(context, id)
         LOG.debug("get instance info : %r" % instance)
 
-        server_state_description = instance['state_description']
+        server_state_description = instance['display_description']
 
         if instance['volumes']:
             volume = instance['volumes'][0]

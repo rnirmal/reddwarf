@@ -91,7 +91,7 @@ class Controller(object):
                                                           context.user_id)
         for server in server_list:
             state = server_states[server['id']]
-            server['status'] = nova_common.status_from_power_state(state)
+            server['status'] = nova_common.status_from_state(state)
 
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)

@@ -26,6 +26,7 @@ from nova import flags
 from nova import utils
 from nova import log as logging
 from nova.compute import power_state
+from nova.compute import vm_states
 from nova.exception import OutOfInstanceMemory
 from nova.notifier import api as notifier
 from nova.scheduler import driver
@@ -186,7 +187,10 @@ class UnforgivingMemoryScheduler(MemoryScheduler):
             return base.schedule_run_instance(context, instance_id,
                                               *_args, **_kwargs)
         except driver.NoValidHost:
-            db.instance_set_state(context, instance_id, power_state.FAILED)
+            db.instance_update(context, 
+                               instance_id, 
+                               {'power_state': power_state.FAILED,
+                                'vm_state': vm_states.ERROR})
             memory_mb = db.instance_get(context, instance_id)['memory_mb']
             notifier.notify(manager.publisher_id(), 'out.of.instance.memory',
                             notifier.ERROR,

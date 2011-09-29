@@ -1563,7 +1563,7 @@ def instance_set_state(context, instance_id, state, description=None):
         description = power_state.name(state)
     db.instance_update(context,
                        instance_id,
-                       {'state': state,
+                       {'power_state': state,
                         'state_description': description})
 
 def instance_add_security_group(context, instance_id, security_group_id):
