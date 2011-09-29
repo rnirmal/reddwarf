@@ -113,6 +113,13 @@
           </xsd:documentation>
         </annotation>
       </attribute>
+      <attribute name="root_enabled_by" type="xsd:integer" use="optional">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>ID of the first user to enable MySQL root for the instance.</p>
+          </xsd:documentation>
+        </annotation>
+      </attribute>
     </extension>
   </complexType>
 

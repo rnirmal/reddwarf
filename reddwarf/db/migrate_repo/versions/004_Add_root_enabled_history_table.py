@@ -22,7 +22,7 @@ meta = MetaData()
 
 root_enabled_history = Table('root_enabled_history', meta,
                Column('instance_id', Integer(), primary_key=True),
-               Column('root_enabled_at', DateTime(timezone=False)),
+               Column('user_id', String(length=255)),
                Column('created_at', DateTime(timezone=False)),
                Column('updated_at', DateTime(timezone=False)),
                Column('deleted_at', DateTime(timezone=False)),

@@ -14,7 +14,11 @@ from nova import db
 from nova.guest.dbaas import LocalSqlClient
 from novaclient.exceptions import NotFound
 from reddwarfclient import Dbaas
+
 from nose.tools import assert_equal
+from nose.tools import assert_not_equal
+from nose.tools import assert_true
+from nose.tools import assert_false
 
 from proboscis import before_class
 from proboscis import test
@@ -180,9 +184,8 @@ class TestDatabases(unittest.TestCase):
             self.assertFalse(True)
 
 
-@test(depends_on_classes=[TestDatabases], groups=[GROUP_TEST,
-                                                  "dbaas.guest.mysql",
-                                                  'rootenabled'])
+@test(depends_on_classes=[TestDatabases], groups=[GROUP_TEST, 'rootenabled',
+                                                  "dbaas.guest.mysql"])
 class TestUsers(object):
     """
     Test the creation and deletion of users
@@ -200,18 +203,6 @@ class TestUsers(object):
 
     created_users = [username, username1]
     system_users = ['root', 'debian_sys_maint']
-
-    def assertTrue(self, l, msg=None):
-        assert_equal(l, True, msg)
-
-    def assertFalse(self, l, msg=None):
-        assert_equal(l, False, msg)
-
-    def assertEqual(self, a, b, msg=None):
-        assert_equal(a, b, msg)
-
-    def assertNotEqual(self, a, b, msg=None):
-        assert_equal(a == b, False, msg)
 
     @test()
     def test_create_users(self):
@@ -239,7 +230,7 @@ class TestUsers(object):
             for result in users:
                 if user == result.name:
                     found = True
-            self.assertTrue(found, "User '%s' not found in result" %user)
+            assert_true(found, "User '%s' not found in result" %user)
             found = False
 
     @test(depends_on=[test_create_users_list])
@@ -249,7 +240,7 @@ class TestUsers(object):
         found = False
         for user in self.system_users:
             found = any(result.name == user for result in users)
-            self.assertFalse(found, "User '%s' SHOULD NOT BE found in result" %user)
+            assert_false(found, "User '%s' SHOULD NOT BE found in result" %user)
             found = False
 
     @test(depends_on=[test_create_users_list])
@@ -266,27 +257,30 @@ class TestUsers(object):
         dblist, err = process("sudo mysql    -h %s -u '%s' -p'%s' -e 'show databases;'"
                                 % (instance_info.user_ip, user, password))
         if err:
-            self.assertFalse(True, err)
+            assert_false(True, err)
         for db in dbs:
             default_db = re.compile("[\w\n]*%s[\w\n]*" % db)
             if not default_db.match(dblist):
-                self.assertFalse(True, dblist)
-        self.assertTrue(True)
+                assert_false(True, dblist)
+        assert_true(True)
 
     def _check_connection(self, username, password):
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
         dblist, err = process("sudo mysql -h %s -u '%s' -p'%s' -e 'show databases;'"
                                 % (instance_info.user_ip, username, password))
         if pos_error.match(err):
-            self.assertTrue(True)
+            assert_true(True)
         else:
-            self.assertFalse(True, err)
+            assert_false(True, err)
 
     def _verify_root_timestamp(self, id):
         mgmt_instance = dbaas.management.show(id)
-        self.assertTrue(mgmt_instance is not None)
+        assert_true(mgmt_instance is not None)
         timestamp = mgmt_instance.root_enabled_at
-        self.assertEqual(self.root_enabled_timestamp, timestamp)
+        assert_equal(self.root_enabled_timestamp, timestamp)
+        timestamp = dbaas.management.root_history(id).root_enabled_at
+        print "REH is %s" % timestamp
+        assert_equal(self.root_enabled_timestamp, timestamp)
 
     def _root(self):
         global dbaas
@@ -300,70 +294,70 @@ class TestUsers(object):
             t = text("""SELECT User, Host FROM mysql.user WHERE User=:user AND Host=:host;""")
             result = client.execute(t, user=user, host=host)
             for row in result:
-                self.assertEqual(user, row['User'])
-                self.assertEqual(host, row['Host'])
+                assert_equal(user, row['User'])
+                assert_equal(host, row['Host'])
         root_password = password
         self.root_enabled_timestamp = dbaas.management.show(instance_info.id).root_enabled_at
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
+        assert_not_equal(self.root_enabled_timestamp, 'Never')
 
     @test(depends_on=[test_delete_users])
-    def test_disabled_root(self):
+    def test_root_initially_disabled(self):
         """Test that root is disabled"""
         enabled = dbaas.root.is_root_enabled(instance_info.id)
-        self.assertFalse(enabled, "Root SHOULD NOT be enabled.")
+        assert_false(enabled, "Root SHOULD NOT be enabled.")
 
-    @test(depends_on=[test_delete_users, test_disabled_root])
-    def test_disabled_root_from_details(self):
+    @test(depends_on=[test_delete_users, test_root_initially_disabled])
+    def test_root_initially_disabled_details(self):
         """Use instance details to test that root is disabled."""
         instance = dbaas.instances.get(instance_info.id)
-        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
-        self.assertFalse(instance.rootEnabled, "Root SHOULD NOT be enabled.")
-        self.assertEqual(self.root_enabled_timestamp, 'Never')
+        assert_true(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        assert_false(instance.rootEnabled, "Root SHOULD NOT be enabled.")
+        assert_equal(self.root_enabled_timestamp, 'Never')
         self._verify_root_timestamp(instance_info.id)
 
-    @test(depends_on=[test_disabled_root_from_details])
+    @test(depends_on=[test_root_initially_disabled_details])
     def test_enable_root(self):
         self._root()
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
+        assert_not_equal(self.root_enabled_timestamp, 'Never')
 
     @test(depends_on=[test_enable_root])
-    def test_enable_root_post(self):
+    def test_root_now_enabled(self):
         """Test that root is now enabled."""
         enabled = dbaas.root.is_root_enabled(instance_info.id)
-        self.assertTrue(enabled, "Root SHOULD be enabled.")
+        assert_true(enabled, "Root SHOULD be enabled.")
 
-    @test(depends_on=[test_enable_root_post])
-    def test_enable_root_post_from_details(self):
+    @test(depends_on=[test_root_now_enabled])
+    def test_root_now_enabled_details(self):
         """Use instance details to test that root is now enabled."""
         instance = dbaas.instances.get(instance_info.id)
-        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
-        self.assertTrue(instance.rootEnabled, "Root SHOULD be enabled.")
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
+        assert_true(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        assert_true(instance.rootEnabled, "Root SHOULD be enabled.")
+        assert_not_equal(self.root_enabled_timestamp, 'Never')
         self._verify_root_timestamp(instance_info.id)
 
-    @test(depends_on=[test_enable_root_post_from_details])
+    @test(depends_on=[test_root_now_enabled_details])
     def test_reset_root(self):
         old_ts = self.root_enabled_timestamp
         self._root()
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
-        self.assertEqual(self.root_enabled_timestamp, old_ts)
+        assert_not_equal(self.root_enabled_timestamp, 'Never')
+        assert_equal(self.root_enabled_timestamp, old_ts)
 
     @test(depends_on=[test_reset_root])
-    def test_reset_root_still_enabled(self):
+    def test_root_still_enabled(self):
         """Test that after root was reset it's still enabled."""
         enabled = dbaas.root.is_root_enabled(instance_info.id)
-        self.assertTrue(enabled, "Root SHOULD still be enabled.")
+        assert_true(enabled, "Root SHOULD still be enabled.")
 
-    @test(depends_on=[test_reset_root_still_enabled])
-    def test_reset_root_still_enabled_from_details(self):
+    @test(depends_on=[test_root_still_enabled])
+    def test_root_still_enabled_details(self):
         """Use instance details to test that after root was reset it's still enabled."""
         instance = dbaas.instances.get(instance_info.id)
-        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
-        self.assertTrue(instance.rootEnabled, "Root SHOULD still be enabled.")
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
+        assert_true(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
+        assert_true(instance.rootEnabled, "Root SHOULD still be enabled.")
+        assert_not_equal(self.root_enabled_timestamp, 'Never')
         self._verify_root_timestamp(instance_info.id)
 
-    @test(depends_on=[test_reset_root_still_enabled_from_details])
+    @test(depends_on=[test_root_still_enabled_details])
     def test_reset_root_user_enabled(self):
         created_users= ['root']
         self.system_users.remove('root')
@@ -371,37 +365,13 @@ class TestUsers(object):
         found = False
         for user in created_users:
             found = any(result.name == user for result in users)
-            self.assertTrue(found, "User '%s' not found in result" %user)
+            assert_true(found, "User '%s' not found in result" %user)
             found = False
 
         found = False
         for user in self.system_users:
             found = any(result.name == user for result in users)
-            self.assertFalse(found, "User '%s' SHOULD NOT BE found in result" %user)
+            assert_false(found, "User '%s' SHOULD NOT BE found in result" %user)
             found = False
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
-        self._verify_root_timestamp(instance_info.id)
-
-    @test(depends_on=[test_reset_root_user_enabled])
-    def test_zdisable_root(self):
-        try:
-            dbaas.root.delete(instance_info.id)
-            self.fail("Should not be able to disable root.")
-        except Exception as e:
-            # Calling root.delete should throw an exception.
-            pass
-
-    @test(depends_on=[test_zdisable_root])
-    def test_zdisabled_root(self):
-        """Test that root is still enabled."""
-        enabled = dbaas.root.is_root_enabled(instance_info.id)
-        self.assertTrue(enabled, "Root SHOULD still be enabled.")
-    
-    @test(depends_on=[test_zdisabled_root])
-    def test_zdisabled_root_from_details(self):
-        """Use instance details to test that root is still enabled."""
-        instance = dbaas.instances.get(instance_info.id)
-        self.assertTrue(hasattr(instance, 'rootEnabled'), "Instance has no rootEnabled property.")
-        self.assertTrue(instance.rootEnabled, "Root SHOULD STILL be enabled.")
-        self.assertNotEqual(self.root_enabled_timestamp, 'Never')
+        assert_not_equal(self.root_enabled_timestamp, 'Never')
         self._verify_root_timestamp(instance_info.id)

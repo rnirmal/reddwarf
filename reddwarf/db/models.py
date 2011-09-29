@@ -44,12 +44,13 @@ class RootEnabledHistory(BASE, NovaBase):
     __tablename__ = 'root_enabled_history'
 
     instance_id = Column(Integer, primary_key=True)
-    root_enabled_at = Column(DateTime, onupdate=datetime.datetime.utcnow())
+    user_id = Column(Integer)
 
     def __eq__(self, other):
         return all([
-            self.root_enabled_at == other.root_enabled_at,
-            self.instance_id == other.instance_id])
+            self.created_at == other.created_at,
+            self.instance_id == other.instance_id,
+            self.user_id == other.user_id])
 
     def __str__(self):
-        return '<RootEnabledHistory: instance_id=%s, root_enabled_at=%s>' % (self.instance_id, self.root_enabled_at)
+        return '<RootEnabledHistory: instance_id=%s, root_enabled_at=%s, root_enabled_by=%s>' % (self.instance_id, self.created_at, self.user_id)

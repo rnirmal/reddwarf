@@ -199,7 +199,7 @@ def volume_get_orphans(context, latest_time):
                      all()                     
     return result
 
-def get_root_enabled_timestamp(context, id):
+def get_root_enabled_history(context, id):
     """
     Returns the timestamp recorded when root was first enabled for the
     given instance.
@@ -212,24 +212,23 @@ def get_root_enabled_timestamp(context, id):
     except NoResultFound:
         LOG.debug("No root enabled timestamp found for instance %s." % id)
         return None
-    LOG.debug("Found root enabled timestamp for instance %s: %s"
-              % (id, result.root_enabled_at))
+    LOG.debug("Found root enabled timestamp for instance %s: %s by %s"
+              % (id, result.created_at, result.user_id))
     return result
 
-def record_root_enabled_timestamp(context, id):
+def record_root_enabled_history(context, id, user):
     """
     Records the current time in nova.root_enabled_history so admins can see
     when and if root was ever enabled for a database on an instance.
     """
     LOG.debug("Record root enabled timestamp for instance %s" % id)
-    old_record = get_root_enabled_timestamp(context, id)
+    old_record = get_root_enabled_history(context, id)
     if old_record is not None:
-        LOG.debug("Found existing root enabled timestamp: %s %s" %
-                  (old_record.instance_id, old_record.root_enabled_at))
+        LOG.debug("Found existing root enabled history: %s" % old_record)
         return old_record
     LOG.debug("Creating new root enabled timestamp.")
     new_record = models.RootEnabledHistory()
-    new_record.update({'instance_id': id, 'root_enabled_at': datetime.datetime.utcnow()})
+    new_record.update({'instance_id': id, 'user_id': user})
     session = get_session()
     with session.begin():
         new_record.save()

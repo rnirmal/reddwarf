@@ -88,6 +88,10 @@ class APIRouter(wsgi.Router):
                             controller=management.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
 
+            mapper.connect("/mgmt/instances/{id}/root",
+                            controller=management.create_resource(),
+                            action="root_enabled_history", conditions=dict(method=["GET"]))
+
             mapper.connect("/mgmt/storage",
                             controller=storage.create_resource(),
                             action="index", conditions=dict(method=["GET"]))

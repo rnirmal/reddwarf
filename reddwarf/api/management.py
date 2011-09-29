@@ -48,6 +48,7 @@ def create_resource(version='1.0'):
                              'id',
                              'name',
                              'root_enabled_at',
+                             'root_enabled_by',
                              'server_state_description'],
                 'guest_status': ['created_at',
                            'deleted',
@@ -66,7 +67,10 @@ def create_resource(version='1.0'):
                 'volume': [ 'id',
                             'size',
                             'description',
-                            'name']
+                            'name'],
+                'root_enabled_history': [ 'id',
+                                          'root_enabled_at',
+                                          'root_enabled_by'],
             },
         },
 
@@ -125,13 +129,14 @@ class Controller(object):
             users = self.guest_api.list_users(context, id)
             users = [{'name': user['_name']} for user in users]
 
-        LOG.debug("Fetching root enabled timestamp for instance %s" % id)
-        root_access_timestamp = dbapi.get_root_enabled_timestamp(context, id)
-        if root_access_timestamp:
-            root_access_timestamp = root_access_timestamp.root_enabled_at
-        else:
-            root_access_timestamp = 'Never'
-        LOG.debug("Root enabled timestamp for instance %s is %s" % (id, root_access_timestamp))
+        LOG.debug("Fetching root enabled history for instance %s" % id)
+        root_access_timestamp = 'Never'
+        root_access_user = 0
+        root_access = dbapi.get_root_enabled_history(context, id)
+        if root_access:
+            root_access_timestamp = root_access.created_at
+            root_access_user = root_access.user_id
+        LOG.debug("Root enabled timestamp for instance %s is %s by %s" % (id, root_access_timestamp, root_access_user))
 
         instance = self.compute_api.get(context, id)
         LOG.debug("get instance info : %r" % instance)
@@ -176,4 +181,33 @@ class Controller(object):
         dns_entry = self.dns_entry_factory.create_entry(instance)
         if dns_entry:
             resp["instance"]["hostname"] = dns_entry.name
+        if root_access_timestamp != 'Never':
+            resp["instance"]["root_enabled_by"] = root_access_user
         return resp
+
+    def root_enabled_history(self, req, id):
+        """ Checks the root_enabled_history table to see if root access
+            was ever enabled for this instance, and if so, when and by who. """
+        LOG.info("Call to root_enabled_history for instance %s", id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        ctxt = req.environ['nova.context']
+        common.instance_exists(ctxt, id, self.compute_api)
+        try:
+            result = dbapi.get_root_enabled_history(ctxt, id)
+            if result is not None:
+                return {
+                  'root_enabled_history': {
+                      'id': id,
+                      'root_enabled_at': result.created_at,
+                      'root_enabled_by': result.user_id
+                  }}
+            else:
+              return {
+                  'root_enabled_history': {
+                      'id': id,
+                      'root_enabled_at': 'Never',
+                      'root_enabled_by': 'Nobody'
+                  }}
+        except Exception as err:
+            LOG.error(err)
+            return exc.HTTPError("Error determining root access history")

@@ -37,21 +37,22 @@ class Controller(object):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
-    def delete(self, req, instance_id):
-        raise exc.HTTPNotImplemented()
-
     def create(self, req, instance_id, body):
         """ Enable the root user for the db instance """
         LOG.info("Call to enable root user for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)
-
+        running = power_state.RUNNING
+        status = dbapi.guest_status_get(instance_id).state
+        if status != running:
+            LOG.debug("Instance %s is not running." % instance_id)
+            return exc.HTTPError("Instance %s is not running." % instance_id)
         try:
             result = self.guest_api.enable_root(ctxt, instance_id)
             user = models.MySQLUser()
             user.deserialize(result)
-            dbapi.record_root_enabled_timestamp(ctxt, instance_id)
+            dbapi.record_root_enabled_history(ctxt, instance_id, ctxt.user_id)
             return {'user': {'name': user.name, 'password': user.password}}
         except Exception as err:
             LOG.error(err)
@@ -75,7 +76,6 @@ class Controller(object):
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error determining root access")
-
 
 def create_resource(version='1.0'):
     controller = {

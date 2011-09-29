@@ -256,15 +256,6 @@ class DeleteCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def root(self, options, id):
-        """Delete the instance's root user."""
-        dbaas = _get_client(options)
-        try:
-            dbaas.root.delete(id)
-        except:
-            print sys.exc_info()[1]
-
-
 class MgmtCommands(object):
     """Run various management commands"""
 
@@ -312,6 +303,13 @@ class MgmtCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def root(self, options, id):
+        """List root history for the instance provided"""
+        dbaas = _get_client(options)
+        try:
+          _pretty_print(dbaas.management.root_enabled_history(id)._info)
+        except:
+          print sys.exc_info()[1]
 
 def methods_of(obj):
     """Get all callable methods of an object that don't start with underscore
