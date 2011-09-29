@@ -109,7 +109,7 @@ class Controller(object):
         except InstanceNotFound:
             #raise InstanceNotFound(instance_id=id)
             raise exc.HTTPNotFound("No instance with id %s." % id)
-        if status.power_state != power_state.RUNNING:
+        if status.state != power_state.RUNNING:
             dbs = None
             users = None
         else:
