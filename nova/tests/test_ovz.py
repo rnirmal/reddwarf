@@ -443,7 +443,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'stop', INSTANCE['id'],
                                   run_as_root=True).AndReturn(('', ''))
-        self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
+        self.mox.StubOutWithMock(openvz_conn.db, 'instance_update')
         openvz_conn.db.instance_update(mox.IgnoreArg(),
                                        INSTANCE['id'],
                                        {'power_state': power_state.SHUTDOWN})\
