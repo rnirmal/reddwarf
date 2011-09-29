@@ -278,7 +278,7 @@ class TestUsers(object):
         assert_true(mgmt_instance is not None)
         timestamp = mgmt_instance.root_enabled_at
         assert_equal(self.root_enabled_timestamp, timestamp)
-        timestamp = dbaas.management.root_history(id).root_enabled_at
+        timestamp = dbaas.management.root_enabled_history(id).root_enabled_at
         print "REH is %s" % timestamp
         assert_equal(self.root_enabled_timestamp, timestamp)
 
