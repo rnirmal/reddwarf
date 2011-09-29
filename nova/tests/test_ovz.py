@@ -314,9 +314,9 @@ class OpenVzConnTestCase(test.TestCase):
         openvz_conn.utils.execute('vzctl', 'start', INSTANCE['id'],
                                   run_as_root=True).AndReturn(('', None))
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
-        openvz_conn.db.instance_set_state(mox.IgnoreArg(),
-                                          INSTANCE['id'],
-                                          power_state.RUNNING)
+        openvz_conn.db.instance_update(mox.IgnoreArg(),
+                                       INSTANCE['id'],
+                                       {'power_state': power_state.RUNNING})
 
         # Start the tests
         self.mox.ReplayAll()
@@ -423,9 +423,9 @@ class OpenVzConnTestCase(test.TestCase):
         openvz_conn.utils.execute('vzctl', 'stop', INSTANCE['id'],
                                   run_as_root=True).AndReturn(('', ''))
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
-        openvz_conn.db.instance_set_state(mox.IgnoreArg(),
-                                          INSTANCE['id'],
-                                          power_state.SHUTDOWN)
+        openvz_conn.db.instance_update(mox.IgnoreArg(),
+                                       INSTANCE['id'],
+                                       {'power_state': power_state.SHUTDOWN})
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         conn._stop(INSTANCE)
@@ -444,10 +444,10 @@ class OpenVzConnTestCase(test.TestCase):
         openvz_conn.utils.execute('vzctl', 'stop', INSTANCE['id'],
                                   run_as_root=True).AndReturn(('', ''))
         self.mox.StubOutWithMock(openvz_conn.db, 'instance_set_state')
-        openvz_conn.db.instance_set_state(mox.IgnoreArg(),
-                                          INSTANCE['id'],
-                                          power_state.SHUTDOWN).AndRaise(
-            exception.DBError('FAIL'))
+        openvz_conn.db.instance_update(mox.IgnoreArg(),
+                                       INSTANCE['id'],
+                                       {'power_state': power_state.SHUTDOWN})\
+                                       .AndRaise(exception.DBError('FAIL'))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._stop, INSTANCE)

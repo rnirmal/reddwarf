@@ -141,9 +141,9 @@ class OpenVzConnection(driver.ComputeDriver):
             except exception.NotFound:
                 state = power_state.SHUTOFF
 
-            LOG.debug(_('Current state of %(name)s was %(state)s') %
-                    {'name': instance['name'], 'state': state})
-            db.instance_set_state(ctxt, instance['id'], state)
+            LOG.debug(_('Current state of %(name)s was %(power_state)s') %
+                    {'name': instance['name'], 'power_state': state})
+            db.instance_update(ctxt, instance['id'], {'power_state': state})
 
             if state == power_state.SHUTOFF:
                 db.instance_destroy(ctxt, instance['id'])
@@ -233,11 +233,10 @@ class OpenVzConnection(driver.ComputeDriver):
         """
 
         # Update state to inform the nova stack that the VE is launching
-        db.instance_set_state(context,
-                              instance['id'],
-                              power_state.NOSTATE,
-                              'launching')
-        LOG.debug(_('instance %s: is launching') % instance['name'])
+        db.instance_update(context,
+                           instance['id'],
+                           {'power_state': power_state.BUILDING})
+        LOG.debug(_('instance %s: is building') % instance['name'])
 
         # Get current usages and resource availablity.
         self._get_cpuunits_usage()
@@ -281,8 +280,8 @@ class OpenVzConnection(driver.ComputeDriver):
         def _wait_for_boot():
             try:
                 state = self.get_info(instance['name'])['state']
-                db.instance_set_state(context,
-                                      instance['id'], state)
+                db.instance_update(context,
+                                   instance['id'], {'power_state': state})
                 if state == power_state.RUNNING:
                     LOG.debug(_('instance %s: booted') % instance['name'])
                     timer.stop()
@@ -290,9 +289,8 @@ class OpenVzConnection(driver.ComputeDriver):
             except:
                 LOG.exception(_('instance %s: failed to boot') %
                               instance['name'])
-                db.instance_set_state(context,
-                                      instance['id'],
-                                      power_state.SHUTDOWN)
+                db.instance_update(context, instance['id'],
+                                   {'power_state': power_state.SHUTDOWN})
                 timer.stop()
 
         timer.f = _wait_for_boot
@@ -408,9 +406,8 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error(_('Failed to start %d') % instance['id'])
 
         # Set instance state as RUNNING
-        db.instance_set_state(context.get_admin_context(),
-                              instance['id'],
-                              power_state.RUNNING)
+        db.instance_update(context.get_admin_context(), instance['id'],
+                           {'power_state': power_state.RUNNING})
         return True
 
     def _stop(self, instance):
@@ -431,8 +428,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Update instance state
         try:
-            db.instance_set_state(context.get_admin_context(), instance['id'],
-                                  power_state.SHUTDOWN)
+            db.instance_update(context.get_admin_context(), instance['id'],
+                               {'power_state': power_state.SHUTDOWN})
         except exception.DBError as err:
             LOG.error(_('Database Error: %s') % err)
             raise exception.Error(_('Failed to update db for %s')
@@ -1033,12 +1030,12 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.NotFound('Instance %s Not Found' % instance_name)
 
         # Store the assumed state as the default
-        state = instance['state']
+        state = instance['power_state']
 
-        LOG.debug(_('Instance %(id)s is in state %(state)s') %
-                {'id': instance['id'], 'state': state})
+        LOG.debug(_('Instance %(id)s is in state %(power_state)s') %
+                {'id': instance['id'], 'power_state': state})
 
-        if instance['state'] != power_state.NOSTATE:
+        if instance['power_state'] != power_state.NOSTATE:
             # NOTE(imsplitbit): This is not ideal but it looks like nova uses
             # codes returned from libvirt and xen which don't correlate to
             # the status returned from OpenVZ which is either 'running' or
