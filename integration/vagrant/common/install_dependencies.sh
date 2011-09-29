@@ -34,37 +34,9 @@ exclaim Installing Nova dependencies.
 sudo add-apt-repository ppa:openstack-release/2011.3/ubuntu
 sudo -E apt-get update
 
-cd /src/contrib
-#UGLY(hub-cap): Fixing the nova.sh to use sudo's env setting (-E)
-# check to see if http_proxy is set http_proxy=$http_proxy bash hack
-if [ ! "${http_proxy}" = '' ]; then
-    exclaim Setting up proxy hotfix.
-    PROXY_STR="http_proxy=$http_proxy https_proxy=$https_proxy"
-    #escape out the /. chars that are present for the sed strin
-    PROXY_STR=$(echo $PROXY_STR|sed 's/\([\/\.]\)/\\\1/g')
-    SED_STR="s/sudo /sudo -E $PROXY_STR /g"
-    sed -i.bak -e "$SED_STR" ./nova.sh
-    SED_STR="s/wget /$PROXY_STR wget /g"
-    sed -i.bak.delete -e "$SED_STR" ./nova.sh
-fi
-sudo -E http_proxy=$http_proxy https_proxy=$https_proxy bash ./nova.sh install
-if [ ! "${http_proxy}" = '' ]; then
-    exclaim Reverting proxy hotfix.
-    mv ./nova.sh.bak ./nova.sh
-    rm ./nova.sh.bak.delete
-fi
-
+pkg_install python-nova iptables ebtables screen curl rabbitmq-server
 # Removing the nova trunk ppa that nova.sh adds, we need to be using the diable release ppa instead
 sudo rm /etc/apt/sources.list.d/nova-core-trunk*
-
-#TODO: Make this optional - its only there for OpenVZ environments.
-exclaim Destroying virbr0.
-pkg_remove user-mode-linux kvm libvirt-bin
-sudo -E apt-get -y --allow-unauthenticated autoremove
-
-sudo -E ifconfig virbr0 down
-sudo -E brctl delbr virbr0
-
 
 exclaim Installing additional Nova dependencies.
 
