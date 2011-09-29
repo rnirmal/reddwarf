@@ -42,7 +42,7 @@ Description: Red Dwarf - Nova - API frontend' >> debian/control
 echo '' >> debian/control
 echo 'Package: nova-guest
 Architecture: all
-Depends: ${ostack-lsb-base}, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Depends: python-pexpect, ${ostack-lsb-base}, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
 Description: Red Dwarf - Nova - Guest agent' >> debian/control
 echo '' >> debian/control
 echo 'Package: nova-dns
