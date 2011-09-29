@@ -57,7 +57,7 @@
       </xsd:appinfo>
     </annotation>
   </element>
-  <element name="instance" type="dbaas:DatabaseInstance">
+  <element name="instance" type="dbaas:instance">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>A Database Instance.</p>
@@ -74,7 +74,7 @@
       </xsd:appinfo>
     </annotation>
   </element>
-  <element name="instances" type="dbaas:DatabaseInstances">
+  <element name="instances" type="dbaas:instances">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>Database Instances.</p>
@@ -213,9 +213,9 @@
     </attribute>
   </complexType>
 
-  <complexType name="DatabaseInstances">
+  <complexType name="instances">
     <sequence>
-      <element name="DatabaseInstances" type="dbaas:DatabaseInstance" minOccurs="0" maxOccurs="unbounded">
+      <element name="instance" type="dbaas:instance" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>A list of database instances.</p>
@@ -225,7 +225,7 @@
     </sequence>
   </complexType>
 
-  <complexType name="DatabaseInstance">
+  <complexType name="instance">
    <sequence>
       <element name="databases" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
          <annotation>
@@ -234,6 +234,20 @@
            </xsd:documentation>
          </annotation>
        </element>
+       <xsd:element name="links" type="dbaas:Links" minOccurs="0" maxOccurs="1">
+           <annotation>
+           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+             <p>The links for the type of instance.</p>
+           </xsd:documentation>
+         </annotation>
+       </xsd:element>
+       <xsd:element name="volume" type="dbaas:Volume" minOccurs="0" maxOccurs="1">
+           <annotation>
+           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+             <p>The volume attached to the instance.</p>
+           </xsd:documentation>
+         </annotation>
+       </xsd:element>
    </sequence>
    <attribute name="id" type="xsd:ID" use="optional">
       <annotation>
@@ -277,13 +291,6 @@
        </xsd:documentation>
      </annotation>
    </attribute>
-   <element name="volume" type="dbaas:Volume">
-     <annotation>
-       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>A volume attached to the instance.</p>
-       </xsd:documentation>
-     </annotation>
-   </element>
  </complexType>
 
   <complexType name="Link">
@@ -298,6 +305,13 @@
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
          <p>The URL.</p>
+       </xsd:documentation>
+     </annotation>
+   </attribute>
+    <attribute name="type" type="xsd:string" use="optional">
+     <annotation>
+       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+         <p>The type of link.</p>
        </xsd:documentation>
      </annotation>
    </attribute>
@@ -316,6 +330,15 @@
   </complexType>
 
   <complexType name="Flavor">
+   <sequence>
+      <element name="links" type="dbaas:Link" minOccurs="0" maxOccurs="unbounded">
+         <annotation>
+           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+             <p>A list of links.</p>
+           </xsd:documentation>
+         </annotation>
+       </element>
+   </sequence>
    <attribute name="id" type="xsd:ID" use="required">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
@@ -337,20 +360,23 @@
        </xsd:documentation>
      </annotation>
    </attribute>
-   <sequence>
-      <element name="links" type="dbaas:Link" minOccurs="0" maxOccurs="unbounded">
-         <annotation>
-           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-             <p>A list of links.</p>
-           </xsd:documentation>
-         </annotation>
-       </element>
-   </sequence>
  </complexType>
+    
+  <xsd:complexType name="Links">
+      <xsd:sequence>
+          <xsd:element name="link" type="dbaas:Link" minOccurs="0" maxOccurs="unbounded">
+              <annotation>
+                <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+                    <p>A list of links.</p>
+                </xsd:documentation>
+              </annotation>
+          </xsd:element>
+      </xsd:sequence>
+  </xsd:complexType>
 
   <complexType name="Databases">
     <sequence>
-      <element name="Databases" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
+      <element name="database" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>A list of databases.</p>
