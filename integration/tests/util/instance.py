@@ -155,6 +155,7 @@ class InstanceTest(object):
             time.sleep(1)
             result = True
             while result is not None:
+                time.sleep(2)
                 attempts += 1
                 result = None
                 result = self.dbaas.instances.get(self.id)

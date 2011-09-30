@@ -32,8 +32,10 @@ from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 
 from novaclient.exceptions import NotFound
-from nova import context, utils
+from nova import context
+from nova import utils
 from nova.compute import power_state
+from nova.compute import vm_states
 from reddwarf.api.instances import _dbaas_mapping
 from reddwarf.db import api as dbapi
 from nova import flags
@@ -267,6 +269,13 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
 
     @test(depends_on=[destroy_guest_and_wait_for_failure])
     def delete_instance(self):
+        # Now that its suspended, we have to put the instance back into a
+        # valid state for deletion. the compute api only allows 3 states
+        # to be deleted, so we set it back to building.
+        self.db.instance_update(context.get_admin_context(), 
+                           self.id, 
+                           {'vm_state': vm_states.BUILDING})
+
         self._delete_instance()
 
     @test(depends_on=[delete_instance])
