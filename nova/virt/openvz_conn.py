@@ -1061,9 +1061,9 @@ class OpenVzConnection(driver.ComputeDriver):
             # 'stopped'.  There is some contention on how to handle systems
             # that were shutdown intentially however I am defaulting to the
             # nova expected behavior.
-            if meta['power_state'] == 'running':
+            if meta['state'] == 'running':
                 state = power_state.RUNNING
-            elif meta['power_state'] == None or meta['power_state'] == '-':
+            elif meta['state'] == None or meta['state'] == '-':
                 state = power_state.NOSTATE
             else:
                 state = power_state.SHUTDOWN
