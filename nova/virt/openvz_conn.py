@@ -1052,7 +1052,7 @@ class OpenVzConnection(driver.ComputeDriver):
         state = instance['power_state']
 
         LOG.debug('Instance %s is in state %s' %
-                  (instance['id'], instance['power_state']))
+                  (instance['id'], instance['state']))
 
         if instance['power_state'] != power_state.NOSTATE:
             # NOTE(imsplitbit): This is not ideal but it looks like nova uses
