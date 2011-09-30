@@ -197,7 +197,7 @@ class OpenVzConnection(driver.ComputeDriver):
         for name in out.splitlines():
             name = name.split()[0]
             status = self.get_info(name)
-            infos.append(driver.InstanceInfo(name, status['power_state']))
+            infos.append(driver.InstanceInfo(name, status['state']))
 
         return infos
 
