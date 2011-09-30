@@ -96,6 +96,9 @@ echo 'usr/bin/reddwarf-manage' >> debian/reddwarf-api.install
 echo '--sql_connection=mysql://nova:novapass@10.0.2.15/nova' >> debian/nova.conf
 sed -i.bak 's/mkdir -p doc\/build\/html/mkdir -p doc\/doc\/build\/html/g' debian/rules
 
+#now copy over the paste ini
+cp /tmp/build/dbaas/etc/nova/reddwarf-api-paste.ini /tmp/build/dbaas/debian/
+
 #now build the sucker
 DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
 
