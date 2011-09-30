@@ -195,7 +195,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         """Retrieve the power state for the given instance."""
         LOG.debug(_('Checking state of %s'), instance['name'])
         try:
-            return self.driver.get_info(instance['name'])["power_state"]
+            return self.driver.get_info(instance['name'])["state"]
         except exception.NotFound:
             return power_state.FAILED
 

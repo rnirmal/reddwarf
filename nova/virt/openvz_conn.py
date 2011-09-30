@@ -607,7 +607,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Break the output into usable chunks
         out = out.split()
-        return {'name': out[4], 'id': out[0], 'power_state': out[2]}
+        return {'name': out[4], 'id': out[0], 'state': out[2]}
 
     def _access_control(self, instance, host, mask=32, port=None,
                         protocol='tcp', access_type='allow'):
@@ -1069,7 +1069,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 state = power_state.SHUTDOWN
 
         # TODO(imsplitbit): Need to add all metrics to this dict.
-        return {'power_state': state,
+        return {'state': state,
                 'max_mem': 0,
                 'mem': 0,
                 'num_cpu': 0,
