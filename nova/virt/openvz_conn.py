@@ -127,7 +127,7 @@ class OpenVzConnection(driver.ComputeDriver):
         for instance in db.instance_get_all_by_host(ctxt, host):
             try:
                 LOG.debug('Checking state of %s' % instance['name'])
-                state = self.get_info(instance['name'])['power_state']
+                state = self.get_info(instance['name'])['state']
             except exception.NotFound:
                 state = power_state.SHUTOFF
 
@@ -269,7 +269,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # away we can defer all of this.
         def _wait_for_boot():
             try:
-                state = self.get_info(instance['name'])['power_state']
+                state = self.get_info(instance['name'])['state']
                 db.instance_set_state(context,
                                       instance['id'], state)
                 if state == power_state.RUNNING:
