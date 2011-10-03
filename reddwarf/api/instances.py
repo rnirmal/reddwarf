@@ -94,12 +94,6 @@ class Controller(object):
                         for server in server_list]
         return {'instances': instances}
 
-    @staticmethod
-    def get_guest_state_mapping(id_list):
-        """Returns a dictionary of guest statuses keyed by guest ids."""
-        results = dbapi.guest_status_get_list(id_list)
-        return dict([(r.instance_id, r.state) for r in results])
-
     def detail(self, req):
         """ Returns a list of instance details for a given user """
         LOG.debug("%s - %s", req.environ, req.body)
@@ -152,7 +146,20 @@ class Controller(object):
             # very own UnforgivingMemoryScheduler. So as of today ERROR is
             # also a viable state for deletion.
             db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
-        
+
+        # Checking the server state to see if it is building or not
+        server_response = self.server_controller.show(req, id)
+        LOG.debug("server_response - %s", server_response)
+        if isinstance(server_response, Exception):
+            return server_response  # Just return the exception to throw it
+        build_states = [
+             nova_common.vm_states.REBUILDING,
+             nova_common.vm_states.BUILDING,
+        ]
+        if server_response['server']['vm_state'] in build_states:
+            # If the state is building then we throw an exception back
+            raise exc.HTTPUnprocessableEntity("Instance %s is not ready." % id)
+
         self.server_controller.delete(req, id)
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(id)
@@ -202,6 +209,12 @@ class Controller(object):
         LOG.debug("adding the volume information to the response...")
         instance['volume'] = {'size': volume_ref['size']}
         return { 'instance': instance }
+
+    @staticmethod
+    def get_guest_state_mapping(id_list):
+        """Returns a dictionary of guest statuses keyed by guest ids."""
+        results = dbapi.guest_status_get_list(id_list)
+        return dict([(r.instance_id, r.state) for r in results])
 
     def create_volume(self, context, body):
         """Creates the volume for the instance and returns its ID."""
