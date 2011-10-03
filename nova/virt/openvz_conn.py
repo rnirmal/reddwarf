@@ -484,16 +484,15 @@ class OpenVzConnection(driver.ComputeDriver):
         I exist because it is possible in nova to have a recently released
         ip address given to a new container.  We need to send a gratuitous arp
         on each interface for the address assigned.
+
+        The command looks like this:
+        arping -q -c 5 -A -I eth0 10.0.2.4
         """
-        # TODO(imsplitbit): fix send_garp to work with current arping utility.
-        # the syntax is now:
-        #
-        # arping -c 5 -i <iface> -s <container mac> -S <container ip> <gateway>
         try:
             LOG.debug(_('Sending arp for %(ip_address)s over %(interface)s') %
                       locals())
-            out, err = utils.execute('vzctl', 'exec', instance_id,
-                                     'arping', '-c', '5', '-w', '5', '-U',
+            out, err = utils.execute('vzctl', 'exec2', instance_id,
+                                     'arping', '-q', '-c', '5', '-A',
                                      '-I', interface, ip_address,
                                      run_as_root=True)
             LOG.debug(_('Stdout output from vzctl: %s') % out)
