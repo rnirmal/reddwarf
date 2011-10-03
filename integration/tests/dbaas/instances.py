@@ -47,8 +47,10 @@ from proboscis.decorators import time_out
 from proboscis import before_class
 from proboscis import test
 from proboscis.asserts import assert_equal
+from proboscis.asserts import assert_false
 from proboscis.asserts import assert_not_equal
 from proboscis.asserts import assert_true
+from proboscis.asserts import fail
 
 
 from tests.util import test_config
@@ -243,11 +245,6 @@ class CreateInstance(unittest.TestCase):
 
     """
 
-    @before_class
-    def setUp(self):
-        """Sets up the instance listing tests"""
-        self.instance_list = InstanceList()
-
     @test
     def test_before_instances_are_started(self):
         # give the services some time to start up
@@ -284,19 +281,16 @@ class CreateInstance(unittest.TestCase):
         instance_info.id = result.id
 
         if create_new_instance:
-            self.assertEqual(result.status, dbaas_mapping[power_state.BUILDING])
+            assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
 
         # Check these attrs only are returned in create response
         expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
                           'name', 'status', 'updated', 'volume']
-        try:
-            self.instance_list.check_attrs_exist(result._info, expected_attrs,
-                                                 msg="Create response")
-            self.instance_list.check_flavor(result._info)
-            self.instance_list.check_links(result._info)
-            self.instance_list.check_volume(result._info)
-        except Exception as e:
-            self.fail(msg=e)
+        CheckInstance(result._info).attrs_exist(result._info, expected_attrs,
+                                                msg="Create response")
+        CheckInstance(result._info).flavor()
+        CheckInstance(result._info).links(result._info['links'])
+        CheckInstance(result._info).volume()
 
     @test
     def test_mgmt_get_instance_on_create(self):
@@ -306,18 +300,15 @@ class CreateInstance(unittest.TestCase):
                           'name', 'server_state_description', 'status',
                           'updated', 'users', 'volume', 'root_enabled_at',
                           'root_enabled_by']
-        try:
-            self.instance_list.check_attrs_exist(result._info, expected_attrs,
-                                                 msg="Mgmt get instance")
-            self.instance_list.check_flavor(result._info)
-            self.instance_list.check_guest_status(result._info)
-        except Exception as e:
-            self.fail(msg=e)
+        CheckInstance(result._info).attrs_exist(result._info, expected_attrs,
+                                                msg="Mgmt get instance")
+        CheckInstance(result._info).flavor()
+        CheckInstance(result._info).guest_status()
 
     @test
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
-            self.assertFalse(True, "Security groups did not get created")
+            assert_false(True, "Security groups did not get created")
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
@@ -448,11 +439,6 @@ class TestVolume(unittest.TestCase):
 class TestInstanceListing(unittest.TestCase):
     """ Test the listing of the instance information """
 
-    @before_class
-    def setUp(self):
-        """Sets up the instance listing tests"""
-        self.instance_list = InstanceList()
-
     @test
     def test_detail_list(self):
         expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
@@ -460,15 +446,12 @@ class TestInstanceListing(unittest.TestCase):
         instances = dbaas.instances.details()
         for instance in instances:
             instance_dict = instance._info
-            try:
-                self.instance_list.check_attrs_exist(instance_dict,
+            CheckInstance(instance_dict).attrs_exist(instance_dict,
                                                      expected_attrs,
                                                      msg="Instance Details")
-                self.instance_list.check_flavor(instance_dict)
-                self.instance_list.check_links(instance_dict)
-                self.instance_list.check_volume(instance_dict)
-            except Exception as e:
-                self.fail(msg=e)
+            CheckInstance(instance_dict).flavor()
+            CheckInstance(instance_dict).links(instance_dict['links'])
+            CheckInstance(instance_dict).volume()
 
     @test
     def test_index_list(self):
@@ -476,13 +459,10 @@ class TestInstanceListing(unittest.TestCase):
         instances = dbaas.instances.index()
         for instance in instances:
             instance_dict = instance._info
-            try:
-                self.instance_list.check_attrs_exist(instance_dict,
+            CheckInstance(instance_dict).attrs_exist(instance_dict,
                                                      expected_attrs,
                                                      msg="Instance Index")
-                self.instance_list.check_links(instance_dict)
-            except Exception as e:
-                self.fail(msg=e)
+            CheckInstance(instance_dict).links(instance_dict['links'])
 
     @test
     def test_get_instance(self):
@@ -491,39 +471,36 @@ class TestInstanceListing(unittest.TestCase):
                           'volume']
         instance = dbaas.instances.get(instance_info.id)
         instance_dict = instance._info
-        try:
-            self.instance_list.check_attrs_exist(instance_dict,
+        CheckInstance(instance_dict).attrs_exist(instance_dict,
                                                  expected_attrs,
                                                  msg="Get Instance")
-            self.instance_list.check_flavor(instance_dict)
-            self.instance_list.check_links(instance_dict)
-            self.instance_list.check_volume(instance_dict)
-            self.instance_list.check_databases(instance_dict)
-        except Exception as e:
-            self.fail(msg=e)
+        CheckInstance(instance_dict).flavor()
+        CheckInstance(instance_dict).links(instance_dict['links'])
+        CheckInstance(instance_dict).volume()
+        CheckInstance(instance_dict).databases()
 
     @test
     def test_instance_hostname(self):
         instance = dbaas.instances.get(instance_info.id)
         dns_entry = instance_info.expected_dns_entry()
         if dns_entry:
-            self.assertEqual(dns_entry.name, instance.hostname)
+            assert_equal(dns_entry.name, instance.hostname)
         else:
             table = string.maketrans("_ ", "--")
             deletions = ":."
             name = instance_info.name.translate(table, deletions).lower()
             expected_hostname = "%s-instance-%s" % (name, instance_info.id)
-            self.assertEqual(expected_hostname, instance.hostname)
+            assert_equal(expected_hostname, instance.hostname)
 
     @test
     def test_get_instance_status(self):
         result = dbaas.instances.get(instance_info.id)
-        self.assertEqual(dbaas_mapping[power_state.RUNNING], result.status)
+        assert_equal(dbaas_mapping[power_state.RUNNING], result.status)
 
     @test
     def test_get_legacy_status(self):
         result = dbaas.instances.get(instance_info.id)
-        self.assertTrue(result is not None)
+        assert_true(result is not None)
 
     @test
     def test_get_legacy_status_notfound(self):
@@ -532,7 +509,7 @@ class TestInstanceListing(unittest.TestCase):
     @test
     def test_volume_found(self):
         instance = dbaas.instances.get(instance_info.id)
-        self.assertEqual(instance_info.volume['size'], instance.volume['size'])
+        assert_equal(instance_info.volume['size'], instance.volume['size'])
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])
@@ -715,54 +692,57 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
                 (k, v, getattr(mgmt_details, k)))
 
 
-class InstanceList(object):
+class CheckInstance(object):
     """Class to check various attributes of Instance details"""
 
-    def check_attrs_exist(self, instance, expected_attrs, msg=None):
+    def __init__(self, instance):
+        self.instance = instance
+
+    @staticmethod
+    def attrs_exist(list, expected_attrs, msg=None):
         # Check these attrs only are returned in create response
-        for attr in instance:
+        for attr in list:
             if attr not in expected_attrs:
-                raise Exception("%s should not contain '%s'" % (msg, attr))
+                fail("%s should not contain '%s'" % (msg, attr))
 
-    def check_links(self, instance):
+    def links(self, links):
         expected_attrs = ['href', 'rel']
-        for link in instance['links']:
-            self.check_attrs_exist(link, expected_attrs,
-                                   msg="Links")
+        for link in links:
+            self.attrs_exist(link, expected_attrs, msg="Links")
 
-    def check_flavor(self, instance):
+    def flavor(self):
         expected_attrs = ['id', 'links']
-        self.check_attrs_exist(instance['flavor'], expected_attrs,
-                               msg="Flavor")
-        self.check_links(instance['flavor'])
+        self.attrs_exist(self.instance['flavor'], expected_attrs,
+                         msg="Flavor")
+        self.links(self.instance['flavor']['links'])
 
-    def check_volume(self, instance):
+    def volume(self):
         expected_attrs = ['size']
-        self.check_attrs_exist(instance['volume'], expected_attrs,
-                               msg="Volumes")
+        self.attrs_exist(self.instance['volume'], expected_attrs,
+                         msg="Volumes")
 
-    def check_databases(self, instance):
+    def databases(self):
         expected_attrs = ['character_set', 'collate', 'name']
-        for database in instance['databases']:
-            self.check_attrs_exist(database, expected_attrs,
-                                   msg="Database")
+        for database in self.instance['databases']:
+            self.attrs_exist(database, expected_attrs,
+                             msg="Database")
 
-    def check_addresses(self, instance):
+    def addresses(self):
         expected_attrs = ['addr', 'version']
-        print instance
+        print self.instance
         networks = ['infranet', 'usernet']
         for network in networks:
-            for address in instance['addresses'][network]:
-                self.check_attrs_exist(address, expected_attrs,
-                                       msg="Address")
+            for address in self.instance['addresses'][network]:
+                self.attrs_exist(address, expected_attrs,
+                                 msg="Address")
 
-    def check_guest_status(self, instance):
+    def guest_status(self):
         expected_attrs = ['created_at', 'deleted', 'deleted_at', 'instance_id',
                           'state', 'state_description', 'updated_at']
-        self.check_attrs_exist(instance['guest_status'], expected_attrs,
-                               msg="Guest status")
+        self.attrs_exist(self.instance['guest_status'], expected_attrs,
+                         msg="Guest status")
 
-    def check_mgmt_volume(self, instance):
+    def mgmt_volume(self):
         expected_attrs = ['description', 'id', 'name', 'size']
-        self.check_attrs_exist(instance['volume'], expected_attrs,
-                               msg="Volume")
+        self.attrs_exist(self.instance['volume'], expected_attrs,
+                         msg="Volume")
