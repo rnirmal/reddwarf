@@ -35,6 +35,9 @@ from nova.compute import instance_types
 from nova.exception import ProcessExecutionError
 from nova.virt import images
 from nova.virt import driver
+from nova.virt.vif import VIFDriver
+from nova.network import linux_net
+from Cheetah.Template import Template
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('ovz_template_path',
@@ -58,9 +61,6 @@ flags.DEFINE_string('ovz_config_dir',
 flags.DEFINE_string('ovz_bridge_device',
                     'br100',
                     'Bridge device to map veth devices to')
-flags.DEFINE_string('ovz_network_template',
-                    utils.abspath('virt/openvz_interfaces.template'),
-                    'OpenVz network interface template file')
 flags.DEFINE_bool('ovz_use_cpuunit',
                   True,
                   'Use OpenVz cpuunits for guaranteed minimums')
@@ -88,6 +88,15 @@ flags.DEFINE_string('ovz_disk_space_increment',
 flags.DEFINE_bool('ovz_use_disk_quotas',
                   True,
                   'Use disk quotas to contain disk usage')
+flags.DEFINE_string('ovz_vif_driver',
+                    'nova.virt.openvz_conn.OVZNetworkBridgeDriver',
+                    'The openvz VIF driver to configures the VIFs')
+flags.DEFINE_bool('ovz_use_veth_devs',
+                  True,
+                  'Use veth devices rather than venet')
+flags.DEFINE_bool('ovz_use_dhcp',
+                  False,
+                  'Use dhcp for network configuration')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -106,7 +115,8 @@ class OpenVzConnection(driver.ComputeDriver):
                 'CPULIMIT': 0
             }
         self.read_only = read_only
-        LOG.debug("__init__ complete in OpenVzConnection")
+        self.vif_driver = utils.import_object(FLAGS.ovz_vif_driver)
+        LOG.debug(_('__init__ complete in OpenVzConnection'))
 
     @classmethod
     def instance(cls):
@@ -121,19 +131,19 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         ctxt = context.get_admin_context()
 
-        LOG.debug('Hostname: %s' % (host,))
-        LOG.debug('Instances: %s' % (db.instance_get_all_by_host(ctxt, host)))
+        LOG.debug(_('Hostname: %s') % host)
+        LOG.debug(_('Instances: %s') % db.instance_get_all_by_host(ctxt, host))
 
         for instance in db.instance_get_all_by_host(ctxt, host):
             try:
-                LOG.debug('Checking state of %s' % instance['name'])
+                LOG.debug(_('Checking state of %s') % instance['name'])
                 state = self.get_info(instance['name'])['state']
             except exception.NotFound:
                 state = power_state.SHUTOFF
 
-            LOG.debug('Current state of %s was %s.' %
-                      (instance['name'], state))
-            db.instance_set_state(ctxt, instance['id'], state)
+            LOG.debug(_('Current state of %(name)s was %(power_state)s') %
+                    {'name': instance['name'], 'power_state': state})
+            db.instance_update(ctxt, instance['id'], {'power_state': state})
 
             if state == power_state.SHUTOFF:
                 db.instance_destroy(ctxt, instance['id'])
@@ -141,13 +151,13 @@ class OpenVzConnection(driver.ComputeDriver):
             if state != power_state.RUNNING:
                 continue
 
-        LOG.debug("Determining the computing power of the host")
+        LOG.debug(_('Determining the computing power of the host'))
 
         self._get_cpuunits_capability()
         self._get_cpulimit()
         self._get_memory()
 
-        LOG.debug("init_host complete in OpenVzConnection")
+        LOG.debug(_('init_host complete in OpenVzConnection'))
 
     def list_instances(self):
         """
@@ -155,12 +165,13 @@ class OpenVzConnection(driver.ComputeDriver):
         layer, as a list.
         """
         try:
-            out, err = utils.execute(
-                'sudo', 'vzlist', '--all', '--no-header', '--output', 'ctid')
+            out, err = utils.execute('vzlist', '--all', '--no-header',
+                                     '--output', 'ctid', run_as_root=True)
             if err:
-                LOG.error(err)
-        except ProcessExecutionError:
-            raise exception.Error('Failed to list VZs')
+                LOG.error(_('Stderr output from vzlist: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzlist: %s') % err)
+            raise exception.Error(_('Failed to list VZs'))
 
         ctids = []
         for line in out.splitlines():
@@ -186,13 +197,13 @@ class OpenVzConnection(driver.ComputeDriver):
             # NOTE: This can be an issue if nova decides to change
             # the format of names.  We would need to have a migration process
             # to change the names in the name field of the CTs.
-            out, err = utils.execute('sudo', 'vzlist', '--all', '-o',
-                                     'name', '-H')
+            out, err = utils.execute('vzlist', '--all', '-o',
+                                     'name', '-H', run_as_root=True)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzlist: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Problem listing Vzs')
+            LOG.error(_('Stderr output from vzlist: %s') % err)
+            raise exception.Error(_('Problem listing Vzs'))
 
         for name in out.splitlines():
             name = name.split()[0]
@@ -222,11 +233,10 @@ class OpenVzConnection(driver.ComputeDriver):
         """
 
         # Update state to inform the nova stack that the VE is launching
-        db.instance_set_state(context,
-                              instance['id'],
-                              power_state.NOSTATE,
-                              'launching')
-        LOG.debug('instance %s: is launching' % instance['name'])
+        db.instance_update(context,
+                           instance['id'],
+                           {'power_state': power_state.BUILDING})
+        LOG.debug(_('instance %s: is building') % instance['name'])
 
         # Get current usages and resource availablity.
         self._get_cpuunits_usage()
@@ -240,7 +250,7 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_vz_os_hint(instance)
         self._configure_vz(instance)
         self._set_name(instance)
-        self._setup_networks(instance, network_info)
+        self.plug_vifs(instance, network_info)
         self._set_hostname(instance)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
@@ -270,18 +280,17 @@ class OpenVzConnection(driver.ComputeDriver):
         def _wait_for_boot():
             try:
                 state = self.get_info(instance['name'])['state']
-                db.instance_set_state(context,
-                                      instance['id'], state)
+                db.instance_update(context,
+                                   instance['id'], {'power_state': state})
                 if state == power_state.RUNNING:
-                    LOG.debug('instance %s: booted' % instance['name'])
+                    LOG.debug(_('instance %s: booted') % instance['name'])
                     timer.stop()
 
             except:
-                LOG.exception('instance %s: failed to boot' %
+                LOG.exception(_('instance %s: failed to boot') %
                               instance['name'])
-                db.instance_set_state(context,
-                                      instance['id'],
-                                      power_state.SHUTDOWN)
+                db.instance_update(context, instance['id'],
+                                   {'power_state': power_state.SHUTDOWN})
                 timer.stop()
 
         timer.f = _wait_for_boot
@@ -303,14 +312,15 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # This will actually drop the os from the local image cache
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'create', instance['id'],
-                                     '--ostemplate', instance['image_ref'])
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'create', instance['id'],
+                                     '--ostemplate', instance['image_ref'],
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except exception.ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Failed creating VE %s from image cache' %
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Failed creating VE %s from image cache') %
                                   instance['id'])
         return True
 
@@ -318,15 +328,17 @@ class OpenVzConnection(driver.ComputeDriver):
         # This sets the distro hint for OpenVZ to later use for the setting
         # of resolver, hostname and the like
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--ostemplate', ostemplate)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--ostemplate', ostemplate,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except exception.ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set ostemplate to \'%s\' for %s' %
-                                  (ostemplate, instance['id']))
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(
+                _('Cant set ostemplate to \'%(ostemplate)s\' for %(id)s') %
+                {'ostemplate': ostemplate, 'id': instance['id']})
 
     def _cache_image(self, context, instance):
         """
@@ -361,14 +373,16 @@ class OpenVzConnection(driver.ComputeDriver):
             # Set the base config for the VE, this currently defaults to the
             # basic config.
             # TODO(imsplitbit): add guest flavor support here
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--applyconfig', config)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--applyconfig', config,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
 
-        except ProcessExecutionError:
-            raise exception.Error('Failed to add %s to OpenVz'
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Failed to add %s to OpenVz')
                                   % instance['id'])
 
     def _start(self, instance):
@@ -382,18 +396,18 @@ class OpenVzConnection(driver.ComputeDriver):
             # NOTE: The VE will throw a warning that the hostname is invalid
             # if it isn't valid.  This is logged in LOG.error and is not
             # an indication of failure.
-            out, err = utils.execute('sudo', 'vzctl', 'start', instance['id'])
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'start', instance['id'],
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Failed to start %d' % instance['id'])
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Failed to start %d') % instance['id'])
 
         # Set instance state as RUNNING
-        db.instance_set_state(context.get_admin_context(),
-                              instance['id'],
-                              power_state.RUNNING)
+        db.instance_update(context.get_admin_context(), instance['id'],
+                           {'power_state': power_state.RUNNING})
         return True
 
     def _stop(self, instance):
@@ -403,98 +417,38 @@ class OpenVzConnection(driver.ComputeDriver):
         will call it from expected methods.  i.e. pause
         """
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'stop', instance['id'])
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'stop', instance['id'],
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
-        except ProcessExecutionError:
-            raise exception.Error('Failed to stop %s' % instance['id'])
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Failed to stop %s') % instance['id'])
 
         # Update instance state
         try:
-            db.instance_set_state(context.get_admin_context(), instance['id'],
-                                  power_state.SHUTDOWN)
+            db.instance_update(context.get_admin_context(), instance['id'],
+                               {'power_state': power_state.SHUTDOWN})
         except exception.DBError as err:
-            LOG.error(err)
-            raise exception.Error('Failed to update db for %s'
+            LOG.error(_('Database Error: %s') % err)
+            raise exception.Error(_('Failed to update db for %s')
                                   % instance['id'])
 
-    def _setup_networks(self, instance, network_info):
-        """Setup all the provided networks
+    def _set_hostname(self, instance, hostname=False):
+        if not hostname:
+            hostname = instance['hostname']
 
-        Add the specified network interfaces.
-        Assign ips for those interfaces and bridge them.
-        Add nameserver information for all the interfaces
-        """
-        for eth_id, network in enumerate(network_info):
-            bridge = network[0]["bridge"]
-            netif = network[0]["bridge_interface"] \
-                        if "bridge_interface" in network[0] \
-                        else "eth%s" % eth_id
-            ip = network[1]["ips"][0]["ip"]
-            netmask = network[1]["ips"][0]["netmask"]
-            gateway = network[1]["gateway"]
-            dns = network[1]["dns"][0]
-
-            self._add_netif(instance, netif=netif, bridge=bridge)
-            self._add_ip(instance, ip, netmask, gateway, netif=netif)
-            self._set_nameserver(instance, dns)
-
-    def _add_netif(self, instance, netif="eth0",
-                   host_if=False,
-                   bridge=FLAGS.ovz_bridge_device):
-        """
-        This is more of a work around to add the eth devs
-        the way OpenVZ wants them. Currently only bridged networking
-        is supported in this driver.
-        """
-        # TODO(imsplitbit): fix this to be nova-ish i.e. async
         try:
-            # Command necessary to create a bridge networking setup.
-            # right now this is the only supported networking model
-            # in the openvz connector.
-            if not host_if:
-                host_if = 'veth%s.%s' % (instance['id'], netif)
-
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--netif_add',
-                                     '%s,,%s,,%s' % (netif, host_if, bridge))
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--hostname', hostname,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
-
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError:
-            raise exception.Error(
-                    'Error adding network device to container %s' %
-                    instance['id'])
-
-    def _add_ip(self, instance, ip, netmask, gateway, netif='eth0',
-                if_file='etc/network/interfaces'):
-        """
-        Add an ip to the container
-        """
-        net_path = '%s/%s' % (FLAGS.ovz_ve_private_dir, instance['id'])
-        if_file_path = net_path + '/' + if_file
-
-        try:
-            os.chdir(net_path)
-            with open(FLAGS.ovz_network_template) as fh:
-                network_file = fh.read() % {'gateway_dev': netif,
-                                            'address': ip,
-                                            'netmask': netmask,
-                                            'gateway': gateway}
-
-            # TODO(imsplitbit): Find a way to write to this file without
-            # mangling the perms.
-            utils.execute('sudo', 'chmod', '666', if_file_path)
-            fh = open(if_file_path, 'a')
-            fh.write(network_file)
-            fh.close()
-            utils.execute('sudo', 'chmod', '644', if_file_path)
-
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Error adding IP')
+            raise exception.Error(_('Cannot set the hostname on %s') %
+                                  instance['id'])
 
     def _gratuitous_arp_all_addresses(self, instance, network_info):
         """
@@ -502,24 +456,26 @@ class OpenVzConnection(driver.ComputeDriver):
         a gratuitous arp over it's interface to make sure arp caches have
         the proper mac address.
         """
-        #TODO(imsplitbit): refactor all networking stuff into a class/object
+        # TODO(imsplitbit): send id, iface, container mac, container ip and
+        # gateway to _send_garp
         for network in network_info:
             bridge_info = network[0]
-            LOG.debug('bridge interface: %s' %
-                      (bridge_info['bridge_interface'],))
-            LOG.debug('bridge: %s' % (bridge_info['bridge'],))
-            LOG.debug('address block: %s' % (bridge_info['cidr']))
+            LOG.debug(_('bridge interface: %s') %
+                      bridge_info['bridge_interface'])
+            LOG.debug(_('bridge: %s') % bridge_info['bridge'])
+            LOG.debug(_('address block: %s') % bridge_info['cidr'])
             address_info = network[1]
-            LOG.debug('network label: %s' % (address_info['label']))
+            LOG.debug(_('network label: %s') % address_info['label'])
             for address in address_info['ips']:
-                LOG.debug('Address enabled: %s' % (address['enabled'],))
-                LOG.debug('Address enabled type: %s' %
-                          (type(address['enabled'],)))
+                LOG.debug(_('Address enabled: %s') % address['enabled'])
+                LOG.debug(_('Address enabled type: %s') %
+                          (type(address['enabled'])))
                 if address['enabled'] == u'1':
-                    LOG.debug('Address: %s' % (address['ip'],))
-                    LOG.debug('Running _send_garp(%s, %s, %s)' %
-                              (instance['id'], address['ip'],
-                               bridge_info['bridge_interface']))
+                    LOG.debug(_('Address: %s') % address['ip'])
+                    LOG.debug(
+                        _('Running _send_garp(%(id) %(ip)s %(bridge)s)') %
+                        {'id': instance['id'], 'ip': address['ip'],
+                         'bridge': bridge_info['bridge_interface']})
                     self._send_garp(instance['id'], address['ip'],
                                     bridge_info['bridge_interface'])
 
@@ -529,79 +485,54 @@ class OpenVzConnection(driver.ComputeDriver):
         ip address given to a new container.  We need to send a gratuitous arp
         on each interface for the address assigned.
         """
-        # TODO(imsplitbit): refactor all networking stuff into a class/object
+        # TODO(imsplitbit): fix send_garp to work with current arping utility.
+        # the syntax is now:
+        #
+        # arping -c 5 -i <iface> -s <container mac> -S <container ip> <gateway>
         try:
-            LOG.debug('Sending a gratuitous arp for %s over %s' %
-                      (ip_address, interface))
-            out, err = utils.execute('sudo', 'vzctl', 'exec', instance_id,
-                                     'arping', '-c', '5', '-w', '5', '-U', '-I',
-                                     interface, ip_address)
-            LOG.debug(out)
-            LOG.debug('Gratuitous arp sent for %s over %s' %
-                      (ip_address, interface))
+            LOG.debug(_('Sending arp for %(ip_address)s over %(interface)s') %
+                      locals())
+            out, err = utils.execute('vzctl', 'exec', instance_id,
+                                     'arping', '-c', '5', '-w', '5', '-U',
+                                     '-I', interface, ip_address,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
+            LOG.debug(_('Arp sent for %(ip_address)s over %(interface)s') %
+                      locals())
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            LOG.error('Failed arping through VE')
-
-    def _set_nameserver(self, instance, dns):
-        """
-        Get the nameserver for the assigned network and set it using
-        OpenVz's tools.
-        """
-        try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--nameserver', dns)
-            LOG.debug(out)
-            if err:
-                LOG.error(err)
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set nameserver for %s' %
-            instance['id'])
-
-    def _set_hostname(self, instance, hostname=None):
-        if not hostname:
-            hostname = instance['hostname']
-
-        try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--hostname', hostname)
-            LOG.debug(out)
-            if err:
-                LOG.error(err)
-        except ProcessExecutionError:
-            raise exception.Error('Cannot set the hostname on %s' %
-                                  instance['id'])
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            LOG.error(_('Failed arping through VE'))
 
     def _set_name(self, instance):
         # This stores the nova 'name' of an instance in the name field for
         # openvz.  This is done to facilitate the get_info method which only
         # accepts an instance name.
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--name', instance['name'])
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--save', '--name', instance['name'],
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
 
-        except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Unable to save metadata for %s' %
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Unable to save metadata for %s') %
                                   instance['id'])
 
     def _find_by_name(self, instance_name):
         # The required method get_info only accepts a name so we need a way
         # to correlate name and id without maintaining another state/meta db
         try:
-            out, err = utils.execute('sudo', 'vzlist', '-H', '--all',
-                                     '--name', instance_name)
-            LOG.debug(out)
+            out, err = utils.execute('vzlist', '-H', '--all', '--name',
+                                     instance_name, run_as_root=True)
+            LOG.debug(_('Stdout output from vzlist: %s') % out)
             if err:
-                LOG.error(err)
-        except Exception as err:
-            LOG.error(err)
+                LOG.error(_('Stderr output from vzlist: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzlist: %s') % err)
             raise exception.NotFound('Unable to load metadata for %s' %
                                   instance_name)
 
@@ -622,13 +553,13 @@ class OpenVzConnection(driver.ComputeDriver):
         elif access_type == 'deny':
             access_type = 'REJECT'
         else:
-            LOG.error('Invalid access_type: %s' % access_type)
-            raise exception.Error('Invalid access_type: %s' % access_type)
+            LOG.error(_('Invalid access_type: %s') % access_type)
+            raise exception.Error(_('Invalid access_type: %s') % access_type)
 
-        if port == None:
+        if port is None:
             port = ''
         else:
-            port = '--dport %s' % (port,)
+            port = '--dport %s' % port
 
         # Create our table instance
         tables = [
@@ -679,14 +610,15 @@ class OpenVzConnection(driver.ComputeDriver):
         vmguarpages = self._calc_pages(instance)
 
         try:
-            out, err =  utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                      '--save', '--vmguarpages', vmguarpages)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                      '--save', '--vmguarpages', vmguarpages,
+                                      run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error("Cannot set vmguarpages for %s" %
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Cannot set vmguarpages for %s') %
                                   instance['id'])
 
     def _set_privvmpages(self, instance):
@@ -699,14 +631,15 @@ class OpenVzConnection(driver.ComputeDriver):
         privvmpages = self._calc_pages(instance)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--privvmpages', privvmpages)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--privvmpages', privvmpages,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error("Cannot set privvmpages for %s" %
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Cannot set privvmpages for %s') %
                                   instance['id'])
 
     def _set_cpuunits(self, instance, units=None):
@@ -716,8 +649,8 @@ class OpenVzConnection(driver.ComputeDriver):
         container has access to during one complete cycle.
         """
         if not units:
-            LOG.debug("Reported cpuunits %s" % self.utility['UNITS'])
-            LOG.debug("Reported percent of resource: %s" %
+            LOG.debug(_('Reported cpuunits %s') % self.utility['UNITS'])
+            LOG.debug(_('Reported percent of resource: %s') %
                       self._percent_of_resource(instance))
             units = int(self.utility['UNITS'] *
                         self._percent_of_resource(instance))
@@ -729,15 +662,15 @@ class OpenVzConnection(driver.ComputeDriver):
                 units = self.utility['UNITS']
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--cpuunits', units)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--cpuunits', units, run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Cannot set cpuunits for %s' %
-                                  (instance['id'],))
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Cannot set cpuunits for %s') %
+                                  instance['id'])
 
     def _set_cpulimit(self, instance, cpulimit=None):
         """
@@ -759,15 +692,15 @@ class OpenVzConnection(driver.ComputeDriver):
                 cpulimit = self.utility['CPULIMIT']
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--cpulimit', cpulimit)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--cpulimit', cpulimit, run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set cpulimit for %s' %
-                                  (instance['id'],))
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Unable to set cpulimit for %s') %
+                                  instance['id'])
 
     def _set_cpus(self, instance, cpus=None, multiplier=2):
         """
@@ -784,15 +717,15 @@ class OpenVzConnection(driver.ComputeDriver):
                 cpus = self.utility['CPULIMIT'] / 100
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--cpus', cpus)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--cpus', cpus, run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set cpus for %s' %
-                                  (instance['id'],))
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Unable to set cpus for %s') %
+                                  instance['id'])
 
     def _set_ioprio(self, instance, ioprio=None):
         """
@@ -806,15 +739,15 @@ class OpenVzConnection(driver.ComputeDriver):
                 FLAGS.ovz_ioprio_limit))
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--ioprio', ioprio)
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--ioprio', ioprio, run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set IO priority for %s' % (
-                instance['id'],))
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Unable to set IO priority for %s') %
+                instance['id'])
 
     def _set_diskspace(self, instance, soft=None, hard=None):
         """
@@ -840,16 +773,56 @@ class OpenVzConnection(driver.ComputeDriver):
         hard = '%s%s' % (hard, FLAGS.ovz_disk_space_increment)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'set', instance['id'],
-                                     '--save', '--diskspace', '%s:%s' %
-                                                              (soft, hard))
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--diskspace', '%s:%s' % (soft, hard),
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Error setting diskspace quota for %s' %
-                                  (instance['id'],))
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Error setting diskspace quota for %s') %
+                                  instance['id'])
+
+    def plug_vifs(self, instance, network_info):
+        """
+        I plug vifs into networks and configure devices in the container.
+        """
+        interfaces = []
+        interface_num = -1
+        for (network, mapping) in network_info:
+            self.vif_driver.plug(instance, network, mapping)
+            interface_num += 1
+
+            #TODO(imsplitbit): make this work for ipv6
+            address_v6 = None
+            gateway_v6 = None
+            netmask_v6 = None
+            if FLAGS.use_ipv6:
+                address_v6 = mapping['ip6s'][0]['ip']
+                netmask_v6 = mapping['ip6s'][0]['netmask']
+                gateway_v6 = mapping['gateway6']
+
+            interface_info = {
+                'id': instance['id'],
+                'interface_number': interface_num,
+                'bridge': network['bridge'],
+                'name': 'eth%d' % interface_num,
+                'mac': mapping['mac'],
+                'address': mapping['ips'][0]['ip'],
+                'netmask': mapping['ips'][0]['netmask'],
+                'gateway': mapping['gateway'],
+                'broadcast': mapping['broadcast'],
+                'dns': ' '.join(mapping['dns']),
+                'address_v6': address_v6,
+                'gateway_v6': gateway_v6,
+                'netmask_v6': netmask_v6
+            }
+
+            interfaces.append(interface_info)
+
+        ifaces_fh = OVZNetworkInterfaces(interfaces)
+        ifaces_fh.add()
 
     def snapshot(self, instance, name):
         """
@@ -877,13 +850,14 @@ class OpenVzConnection(driver.ComputeDriver):
         task that allows the caller to detect when it is complete.
         """
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'restart',
-                                     instance['id'])
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'restart', instance['id'],
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
-        except ProcessExecutionError:
-            raise exception.Error('Failed to restart container: %d' %
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Failed to restart container: %d') %
                                   instance['id'])
 
     def set_admin_password(self, instance, new_pass):
@@ -935,7 +909,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         self._start(instance)
 
-    def destroy(self, instance, network_info=None):
+    def destroy(self, instance, network_info, cleanup=True):
         """
         Destroy (shutdown and delete) the specified instance.
 
@@ -952,13 +926,17 @@ class OpenVzConnection(driver.ComputeDriver):
         self._stop(instance)
 
         try:
-            out, err = utils.execute('sudo', 'vzctl', 'destroy',
-                                     instance['id'])
-            LOG.debug(out)
+            out, err = utils.execute('vzctl', 'destroy', instance['id'],
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
             if err:
-                LOG.error(err)
-        except ProcessExecutionError:
-            raise exception.Error('Error destroying %d' % instance['id'])
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Error destroying %d') % instance['id'])
+
+        for (network, mapping) in network_info:
+            self.vif_driver.unplug(instance, network, mapping)
 
     def _attach_volumes(self, instance):
         """
@@ -995,20 +973,20 @@ class OpenVzConnection(driver.ComputeDriver):
                     # UUID instead of the device name.
                     volumes = OVZVolumes(instance['id'], mountpoint, None,
                                          vol['uuid'])
-                    LOG.debug('Adding volume %s to %s' %
-                                (vol['uuid'], instance['id']))
+                    LOG.debug(_('Adding volume %(uuid)s to %(id)s') %
+                            {'uuid': vol['uuid'], 'id': instance['id']})
                 elif vol['mountpoint'] == mountpoint and device_path:
                     volumes = OVZVolumes(instance['id'], mountpoint,
                                          device_path, None)
-                    LOG.debug('Adding volume %s to %s' %
-                                (device_path, instance['id']))
+                    LOG.debug(_('Adding volume %(path)s to %(id)s') %
+                            {'path': device_path, 'id': instance['id']})
         # If volumes is None we have problems.
         if volumes is None:
-            LOG.error('No volume in the db for this instance')
-            LOG.error('Instance: %s' % (instance_name,))
-            LOG.error('Device: %s' % (device_path,))
-            LOG.error('Mount: %s' % (mountpoint,))
-            raise exception.Error('No volume in the db for this instance')
+            LOG.error(_('No volume in the db for this instance'))
+            LOG.error(_('Instance: %s') % instance_name)
+            LOG.error(_('Device: %s') % device_path)
+            LOG.error(_('Mount: %s') % mountpoint)
+            raise exception.Error(_('No volume in the db for this instance'))
         else:
             # Run all the magic to make the mounts happen
             volumes.setup()
@@ -1020,10 +998,13 @@ class OpenVzConnection(driver.ComputeDriver):
 
         # Find the instance ref so we can pass it to the
         # _mount_script_modify method.
+        LOG.debug(_('Looking up %(instance_name)s') % locals())
         meta = self._find_by_name(instance_name)
+        LOG.debug(_('Found %(instance_name)s') % locals())
+        LOG.debug(_('Fetching the instance from the db'))
         instance = db.instance_get(context.get_admin_context(), meta['id'])
-        self._mount_script_modify(instance, None, None, mountpoint, 'del')
-        volumes = OVZVolumes(instance['id'], mountpoint, None, None)
+        LOG.debug(_('Found instance %s') % instance['id'])
+        volumes = OVZVolumes(instance['id'], mountpoint)
         volumes.setup()
         volumes.detach()
         volumes.write_and_close()
@@ -1044,17 +1025,17 @@ class OpenVzConnection(driver.ComputeDriver):
             meta = self._find_by_name(instance_name)
             instance = db.instance_get(context.get_admin_context(), meta['id'])
         except exception.NotFound as err:
-            LOG.error(err)
-            LOG.error('Instance %s Not Found' % instance_name)
+            LOG.error(_('Output from db call: %s') % err)
+            LOG.error(_('Instance %s Not Found') % instance_name)
             raise exception.NotFound('Instance %s Not Found' % instance_name)
 
         # Store the assumed state as the default
-        state = instance['state']
+        state = instance['power_state']
 
-        LOG.debug('Instance %s is in state %s' %
-                  (instance['id'], instance['state']))
+        LOG.debug(_('Instance %(id)s is in state %(power_state)s') %
+                {'id': instance['id'], 'power_state': state})
 
-        if instance['state'] != power_state.NOSTATE:
+        if instance['power_state'] != power_state.NOSTATE:
             # NOTE(imsplitbit): This is not ideal but it looks like nova uses
             # codes returned from libvirt and xen which don't correlate to
             # the status returned from OpenVZ which is either 'running' or
@@ -1063,7 +1044,7 @@ class OpenVzConnection(driver.ComputeDriver):
             # nova expected behavior.
             if meta['state'] == 'running':
                 state = power_state.RUNNING
-            elif meta['state'] == None or meta['state'] == '-':
+            elif meta['state'] is None or meta['state'] == '-':
                 state = power_state.NOSTATE
             else:
                 state = power_state.SHUTDOWN
@@ -1122,7 +1103,7 @@ class OpenVzConnection(driver.ComputeDriver):
         Note that this function takes an instance ID, not a
         compute.service.Instance, so that it can be called by compute.monitor.
         """
-        return [0L, 0L, 0L, 0L, null]
+        return [0L, 0L, 0L, 0L, None]
 
     def interface_stats(self, instance_name, iface_id):
         """
@@ -1238,7 +1219,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # reason we do, lets limit it to 1 to make all of the other
         # calculations come out clean.
         if cont_mem_mb > 1:
-            LOG.error('_percent_of_resource came up with more than 100%')
+            LOG.error(_('_percent_of_resource came up with more than 100%'))
             return 1
         else:
             return cont_mem_mb
@@ -1251,21 +1232,21 @@ class OpenVzConnection(driver.ComputeDriver):
         isn't a problem.
         """
         try:
-            out, err = utils.execute('sudo', 'cat', '/proc/meminfo')
-            LOG.debug(out)
+            out, err = utils.execute('cat', '/proc/meminfo', run_as_root=True)
+            LOG.debug(_('Stdout output from cat: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from cat: %s') % err)
             for line in out.splitlines():
                 line = line.split()
                 if line[0] == 'MemTotal:':
-                    LOG.debug('Total memory for host %s MB' % (line[1],))
+                    LOG.debug(_('Total memory for host %s MB') % line[1])
                     self.utility['MEMORY_MB'] = int(line[1]) / 1024
             return True
 
         except ProcessExecutionError as err:
-            LOG.error('Cannot get memory info for host')
-            LOG.error(err)
-            raise exception.Error('Cannot get memory info for host')
+            LOG.error(_('Cannot get memory info for host'))
+            LOG.error(_('Stderr output from cat: %s') % err)
+            raise exception.Error(_('Cannot get memory info for host'))
 
     def _get_cpulimit(self):
         """
@@ -1277,10 +1258,10 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         proc_count = 0
         try:
-            out, err = utils.execute('sudo', 'cat', '/proc/cpuinfo')
-            LOG.debug(out)
+            out, err = utils.execute('cat', '/proc/cpuinfo', run_as_root=True)
+            LOG.debug(_('Stdout output from cat %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from cat: %s') % err)
 
             for line in out.splitlines():
                 line = line.split()
@@ -1292,8 +1273,8 @@ class OpenVzConnection(driver.ComputeDriver):
             return True
 
         except ProcessExecutionError as err:
-            LOG.error('Cannot get host node cpulimit')
-            LOG.error(err)
+            LOG.error(_('Cannot get host node cpulimit'))
+            LOG.error(_('Stderr output from cat: %s') % err)
             raise exception.Error(err)
 
     def _get_cpuunits_capability(self):
@@ -1302,21 +1283,21 @@ class OpenVzConnection(driver.ComputeDriver):
         host node.  This is done using the vzcpucheck utility.
         """
         try:
-            out, err = utils.execute('sudo', 'vzcpucheck')
-            LOG.debug(out)
+            out, err = utils.execute('vzcpucheck', run_as_root=True)
+            LOG.debug(_('Stdout output from vzcpucheck %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzcpucheck: %s') % err)
 
             for line in out.splitlines():
                 line = line.split()
                 if len(line) > 0:
                     if line[0] == 'Power':
-                        LOG.debug('Power of host: %s' % (line[4],))
+                        LOG.debug(_('Power of host: %s') % line[4])
                         self.utility['UNITS'] = int(line[4])
 
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Problem getting cpuunits for host')
+            LOG.error(_('Stderr output from vzcpucheck: %s') % err)
+            raise exception.Error(_('Problem getting cpuunits for host'))
 
     def _get_cpuunits_usage(self):
         """
@@ -1324,24 +1305,25 @@ class OpenVzConnection(driver.ComputeDriver):
         done using the vzcpucheck -v command.
         """
         try:
-            out, err = utils.execute('sudo', 'vzcpucheck', '-v')
-            LOG.debug(out)
+            out, err = utils.execute('vzcpucheck', '-v', run_as_root=True)
+            LOG.debug(_('Stdout output from vzcpucheck %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from vzcpucheck: %s') % err)
 
             for line in out.splitlines():
                 line = line.split()
                 if len(line) > 0:
                     if line[0] == 'Current':
-                        LOG.debug('Current usage of host: %s' % (line[3],))
+                        LOG.debug(_('Current usage of host: %s') % line[3])
                         self.utility['TOTAL'] = int(line[3])
                     elif line[0].isdigit():
-                        LOG.debug('Usage for CTID %s: %s' % (line[0], line[1]))
+                        LOG.debug(_('Usage for CTID %(id)s: %(usage)s') %
+                                {'id': line[0], 'usage': line[1]})
                         self.utility['CTIDS'][line[0]] = line[1]
 
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Problem getting cpuunits for host')
+            LOG.error(_('Stderr output from vzcpucheck: %s') % err)
+            raise exception.Error(_('Problem getting cpuunits for host'))
 
         return True
 
@@ -1364,8 +1346,8 @@ class OVZFile(object):
             with open(self.filename, 'r') as fh:
                 self.contents = fh.readlines()
         except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Failed to read %s' % (self.filename,))
+            LOG.error(_('Output from open: %s') % err)
+            raise exception.Error(_('Failed to read %s') % self.filename)
 
     def write(self):
         """
@@ -1377,8 +1359,8 @@ class OVZFile(object):
             with open(self.filename, 'w') as fh:
                 fh.writelines('\n'.join(self.contents) + '\n')
         except Exception as err:
-            LOG.error(err)
-            raise exception.Error('Failed to write %s' % (self.filename,))
+            LOG.error(_('Output from open: %s') % err)
+            raise exception.Error(_('Failed to write %s') % self.filename)
 
     def touch(self):
         """
@@ -1388,13 +1370,13 @@ class OVZFile(object):
         """
         self.make_path()
         try:
-            out, err = utils.execute('sudo', 'touch', self.filename)
-            LOG.debug(out)
+            out, err = utils.execute('touch', self.filename, run_as_root=True)
+            LOG.debug(_('Stdout output from touch: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from touch: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Failed to touch %s' % (self.filename,))
+            LOG.error(_('Stderr output from touch: %s') % err)
+            raise exception.Error(_('Failed to touch %s') % self.filename)
 
     def append(self, contents):
         """
@@ -1435,15 +1417,15 @@ class OVZFile(object):
         permissions on files that may be owned by root for manipulation
         """
         try:
-            out, err = utils.execute('sudo', 'chmod', permissions,
-                                     self.filename)
-            LOG.debug(out)
+            out, err = utils.execute('chmod', permissions, self.filename,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from chmod: %s') % out)
             if err:
-                LOG.error(err)
-        except exception.Error as err:
-            LOG.error(err)
-            raise exception.Error('Unable to set permissions on %s'
-                                  % (self.filename,))
+                LOG.error(_('Stderr output from chmod: %s') % err)
+        except exception.ProcessExecutionError as err:
+            LOG.error(_('Stderr output from chmod: %s') % err)
+            raise exception.Error(_('Unable to set permissions on %s')
+                                  % self.filename)
 
     def make_path(self, path=None):
         """
@@ -1464,16 +1446,16 @@ class OVZFile(object):
         """
         try:
             if not os.path.exists(path):
-                LOG.debug('Path %s doesnt exist, creating now' % (path,))
-                out, err = utils.execute('sudo', 'mkdir', '-p', path)
-                LOG.debug(out)
+                LOG.debug(_('Path %s doesnt exist, creating now') % path)
+                out, err = utils.execute('mkdir', '-p', path, run_as_root=True)
+                LOG.debug(_('Stdout output from mkdir: %s') % out)
                 if err:
-                    LOG.error(err)
+                    LOG.error(_('Stderr output from mkdir: %s') % err)
             else:
-                LOG.debug('Path %s exists, skipping' % (path,))
+                LOG.debug(_('Path %s exists, skipping') % path)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Unable to make %s' % (path,))
+            LOG.error(_('Stderr output from mkdir: %s') % err)
+            raise exception.Error(_('Unable to make %s') % path)
 
 
 class OVZMounts(OVZFile):
@@ -1530,8 +1512,8 @@ class OVZMountFile(OVZMounts):
         elif self.uuid:
             mount_line = 'mount UUID=%s %s' % (self.uuid, self.host_mount)
         else:
-            LOG.error('No device or uuid given')
-            raise exception.Error('No device or uuid given')
+            LOG.error(_('No device or uuid given'))
+            raise exception.Error(_('No device or uuid given'))
         return mount_line
 
     def container_mount_line(self):
@@ -1617,7 +1599,7 @@ class OVZUmountFile(OVZMounts):
         stopped the filesystem will already have all descriptors closed so the
         lazy forced unmount has no adverse affect.
         """
-        return 'umount -l -f %s' % (mount,)
+        return 'umount -l -f %s' % mount
 
     def add_host_umount_line(self):
         """
@@ -1658,12 +1640,12 @@ class OVZUmountFile(OVZMounts):
         """
         try:
             out, err = utils.execute(mount_line.split())
-            LOG.debug(out)
+            LOG.debug(_('Stdout output from umount: %s') % out)
             if err:
-                LOG.error(err)
+                LOG.error(_('Stderr output from umount: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error('Failed to umount: "%s"' % (mount_line,))
+            LOG.error(_('Stderr output from umount: %s') % err)
+            raise exception.Error(_('Failed to umount: "%s"') % mount_line)
 
 
 class OVZVolumes(object):
@@ -1741,3 +1723,204 @@ class OVZVolumes(object):
         # Finish by setting the permissions back to more secure permissions
         self.mountfh.set_permissions(755)
         self.umountfh.set_permissions(755)
+
+
+class OVZNetworkBridgeDriver(VIFDriver):
+    """
+    VIF driver for a Linux Bridge
+    """
+
+    def plug(self, instance, network, mapping):
+        """
+        Ensure that the bridge exists and add a vif to it.
+        """
+        if (not network.get('should_create_bridge') and
+            mapping.get('should_create_vlan')):
+            if mapping.get('should_create_vlan'):
+                LOG.debug(_('Ensuring bridge %(bridge)s and vlan %(vlan)s') %
+                        {'bridge': network['bridge'],
+                         'vlan': network['vlan']})
+                linux_net.LinuxBridgeInterfaceDriver.ensure_vlan_bridge(
+                        network['vlan'],
+                        network['bridge'],
+                        network['bridge_interface'])
+            else:
+                LOG.debug(_('Ensuring bridge %s') % network['bridge'])
+                linux_net.LinuxBridgeInterfaceDriver.ensure_bridge(
+                        network['bridge'],
+                        network['bridge_interface'])
+
+    def unplug(self, instance, network, mapping):
+        """
+        No manual unplugging required
+        """
+        pass
+
+
+class OVZNetworkInterfaces(object):
+    """
+    Helper class for managing interfaces in OpenVz
+    """
+    #TODO(imsplitbit): fix this to work with redhat based distros
+    def __init__(self, interface_info):
+        """
+        I exist to manage the network interfaces for your OpenVz containers.
+        """
+        self.interface_info = interface_info
+
+    def add(self):
+        """
+        I add all interfaces and addresses to the container.
+        """
+        if FLAGS.ovz_use_veth_devs:
+            for net_dev in self.interface_info:
+                self._add_netif(net_dev['id'], net_dev['name'],
+                                net_dev['bridge'], net_dev['mac'])
+
+            self._load_template()
+            self._fill_templates()
+        else:
+            for net_dev in self.interface_info:
+                self._add_ip(net_dev['id'], net_dev['address'])
+                self._set_nameserver(net_dev['id'], net_dev['dns'])
+
+    def _load_template(self):
+        """
+        I load templates needed for network interfaces.
+        """
+        if FLAGS.ovz_use_veth_devs:
+            if not FLAGS.ovz_use_dhcp:
+                self.template = open(FLAGS.injected_network_template).read()
+            else:
+                #TODO(imsplitbit): make a cheetah template for DHCP interfaces
+                # when using veth devices.
+                self.template = None
+        else:
+            self.template = None
+
+    def _fill_templates(self):
+        """
+        I iterate through each file necessary for creating interfaces on a
+        given platform, open the file and write the contents of the template
+        to the file.
+        """
+        for filename in self._filename_factory():
+            network_file = OVZNetworkFile(filename)
+            self.iface_file = str(
+                Template(self.template,
+                         searchList=[{'interfaces': self.interface_info,
+                                      'use_ipv6': FLAGS.use_ipv6}]))
+            network_file.append(self.iface_file.split('\n'))
+            network_file.write()
+
+    def _filename_factory(self, variant='debian'):
+        """
+        I generate a path for the file needed to implement an interface
+        """
+        #TODO(imsplitbit): Figure out how to introduce OS hints into nova
+        # so we can generate support for redhat based distros.  This will
+        # require an os hint to be placed in glance to use for making
+        # decisions.  Then we can create a generator that will generate
+        # redhat style interface paths like:
+        #
+        # /etc/sysconfig/network-scripts/ifcfg-eth0
+        #
+        # for now, we just return the debian path.
+
+        redhat_path = '/etc/sysconfig/network-scripts/'
+        debian_path = '/etc/network/interfaces'
+        prefix = '%(private_dir)s/%(instance_id)s' % \
+                 {'private_dir': FLAGS.ovz_ve_private_dir,
+                  'instance_id': self.interface_info[0]['id']}
+        prefix = os.path.abspath(prefix)
+
+        #TODO(imsplitbit): fix this placeholder for RedHat compatibility.
+        if variant == 'redhat':
+            for net_dev in self.interface_info:
+                path = prefix + redhat_path + ('ifcfg-%s' % net_dev['name'])
+                path = os.path.abspath(path)
+                LOG.debug(_('Generated filename %(path)s') % locals())
+                yield path
+        elif variant == 'debian':
+            path = prefix + debian_path
+            path = os.path.abspath(path)
+            LOG.debug(_('Generated filename %(path)s') % locals())
+            yield path
+        else:
+            raise exception.Error(_('Variant %(variant)s is not known',
+                                    locals()))
+
+    def _add_netif(self, instance_id, netif, bridge, host_mac):
+        """
+        I am a work around to add the eth devices the way OpenVZ
+        wants them.
+
+        When I work, I run a command similar to this:
+        vzctl set 1 --save --netif_add \
+            eth0,,veth1.eth0,11:11:11:11:11:11,br100
+        """
+        try:
+            # Command necessary to create a bridge networking setup.
+            # right now this is the only supported networking model
+            # in the openvz connector.
+            host_if = 'veth%s.%s' % (instance_id, netif)
+
+            out, err = utils.execute('vzctl', 'set', instance_id,
+                                     '--save', '--netif_add',
+                                     '%s,,%s,%s,%s' %
+                                     (netif, host_if, host_mac, bridge),
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
+            if err:
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(
+                    'Error adding network device to container %s' %
+                    instance_id)
+
+    def _add_ip(self, instance_id, ip):
+        """
+        I add an IP address to a container if you are not using veth devices.
+        """
+        try:
+            out, err = utils.execute('vzctl', 'set', instance_id,
+                                     '--save', '--ipadd', ip, run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
+            if err:
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Error adding %(ip)s to %(instance_id)s' %
+                                    {'ip': ip, 'instance_id': instance_id}))
+
+    def _set_nameserver(self, instance_id, dns):
+        """
+        Get the nameserver for the assigned network and set it using
+        OpenVz's tools.
+        """
+        try:
+            out, err = utils.execute('vzctl', 'set', instance_id,
+                                     '--save', '--nameserver', dns,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
+            if err:
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            raise exception.Error(_('Unable to set nameserver for %s') %
+            instance_id)
+
+
+class OVZNetworkFile(OVZFile):
+    """
+    An abstraction for network files.  I am necessary for multi-platform
+    support.  OpenVz runs on all linux distros and can host all linux distros
+    but they don't all create interfaces the same way.  I make it easy to add
+    interface files to all flavors of linux.
+    """
+
+    def __init__(self, filename):
+        super(OVZNetworkFile, self).__init__(filename)
