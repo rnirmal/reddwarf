@@ -193,8 +193,12 @@ class APIRouterV10(APIRouter):
 class APIRouterV11(APIRouter):
     """Define routes specific to OpenStack API V1.1."""
 
-    def _mapper(self):
-        return ProjectMapper()
+# TODO (rnirmal): Need to figure out what to do with this. Nova has added
+# a projectid in the URL for every call.
+# "http://example.com/v1.0/projectid/flavors" instead of
+# "http://example.com/v1.0/flavors"
+#    def _mapper(self):
+#        return ProjectMapper()
 
     def _setup_routes(self, mapper):
         self._setup_base_routes(mapper, '1.1')

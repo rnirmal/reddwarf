@@ -66,7 +66,7 @@ install_image = False
 
 @test(groups=["services.initialize", "services.initialize.glance"])
 class GlanceRegistry(unittest.TestCase):
-    """Starts the glance registry."""
+    """Starts the Glance Registry."""
 
     def setUp(self):
         if os.path.exists("%sglance-registry" % glance_bin_root()):
@@ -83,7 +83,7 @@ class GlanceRegistry(unittest.TestCase):
 @test(groups=["services.initialize", "services.initialize.glance"],
       depends_on_classes=[GlanceRegistry])
 class GlanceApi(unittest.TestCase):
-    """Starts the glance registry."""
+    """Starts the Glance API."""
 
     def setUp(self):
         if os.path.exists("%sglance-api" % glance_bin_root()):
@@ -100,7 +100,7 @@ class GlanceApi(unittest.TestCase):
 @test(groups=["services.initialize", "services.initialize.glance"],
       depends_on_classes=[GlanceApi])
 class AddGlanceImage(unittest.TestCase):
-    """Starts the glance registry."""
+    """Adds the default glance image for reddwarf"""
 
     def test_start(self):
         if os.environ.get("INSTALL_GLANCE_IMAGE", "False") == 'True':
@@ -121,7 +121,7 @@ class AddGlanceImage(unittest.TestCase):
 
 @test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
 class Network(unittest.TestCase):
-    """Starts the network service."""
+    """Starts the Network Service."""
 
     def setUp(self):
         self.service = Service(python_cmd_list() +
@@ -135,7 +135,7 @@ class Network(unittest.TestCase):
 
 @test(groups=["services.initialize"], depends_on_classes=[GlanceApi])
 class Dns(unittest.TestCase):
-    """Starts the network service."""
+    """Starts the DNS Service."""
 
     def setUp(self):
         self.service = Service(python_cmd_list() +
@@ -149,7 +149,7 @@ class Dns(unittest.TestCase):
 
 @test(groups=["services.initialize"])
 class Scheduler(unittest.TestCase):
-    """Starts the scheduler service."""
+    """Starts the Scheduler Service."""
 
     def setUp(self):
         self.service = Service(python_cmd_list() +
@@ -163,7 +163,7 @@ class Scheduler(unittest.TestCase):
 
 @test(groups=["services.initialize"], depends_on_classes=[GlanceApi, Network])
 class Compute(unittest.TestCase):
-    """Starts the compute service."""
+    """Starts the Compute Service."""
 
     def setUp(self):
         self.service = test_config.compute_service
@@ -175,7 +175,7 @@ class Compute(unittest.TestCase):
 
 @test(groups=["services.initialize"], depends_on_classes=[Scheduler])
 class Volume(unittest.TestCase):
-    """Starts the volume service."""
+    """Starts the Volume Service."""
 
     def setUp(self):
         self.service = test_config.volume_service
@@ -218,7 +218,7 @@ class KeystoneAdmin(unittest.TestCase):
 @test(groups=["services.initialize"],
       depends_on_classes=[Compute, Network, Scheduler, Volume])
 class Reaper(unittest.TestCase):
-    """Starts the compute service."""
+    """Starts the Reaper."""
 
     def setUp(self):
         self.service = Service(python_cmd_list() +
@@ -234,7 +234,7 @@ class Reaper(unittest.TestCase):
       depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
                           KeystoneAPI])
 class Api(unittest.TestCase):
-    """Starts the compute service."""
+    """Starts the Servers API."""
 
     def setUp(self):
         self.service = test_config.nova
@@ -248,7 +248,7 @@ class Api(unittest.TestCase):
       depends_on_classes=[Compute, Network, Scheduler, Volume, KeystoneAdmin,
                           KeystoneAPI])
 class PlatformApi(unittest.TestCase):
-    """Starts the compute service."""
+    """Starts the Reddwarf API."""
 
     def setUp(self):
         self.service = test_config.dbaas

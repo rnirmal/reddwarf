@@ -17,6 +17,7 @@ import gettext
 import os
 import json
 import re
+import string
 import sys
 import time
 import unittest
@@ -30,15 +31,13 @@ GROUP_STOP="dbaas.guest.shutdown"
 
 from datetime import datetime
 from nose.plugins.skip import SkipTest
-from novaclient.exceptions import ClientException
-from novaclient.exceptions import NotFound
 from nose.tools import assert_true
 from novaclient.exceptions import ClientException
 from novaclient.exceptions import NotFound
 from nova import context
 from nova import db
 from nova import utils
-from reddwarf.api.instances import _dbaas_mapping
+from reddwarf.api.common import dbaas_mapping
 from reddwarf.api.instances import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
@@ -48,8 +47,10 @@ from proboscis.decorators import time_out
 from proboscis import before_class
 from proboscis import test
 from proboscis.asserts import assert_equal
+from proboscis.asserts import assert_false
 from proboscis.asserts import assert_not_equal
 from proboscis.asserts import assert_true
+from proboscis.asserts import fail
 
 
 from tests.util import test_config
@@ -244,10 +245,12 @@ class CreateInstance(unittest.TestCase):
 
     """
 
+    @test
     def test_before_instances_are_started(self):
         # give the services some time to start up
         time.sleep(2)
 
+    @test
     @expect_exception(ClientException)
     def test_instance_size_too_big(self):
         too_big = dbaas_FLAGS.reddwarf_max_accepted_volume_size
@@ -255,6 +258,7 @@ class CreateInstance(unittest.TestCase):
                                   instance_info.dbaas_flavor_href,
                                   {'size': too_big + 1}, [])
 
+    @test
     def test_create(self):
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
@@ -277,22 +281,34 @@ class CreateInstance(unittest.TestCase):
         instance_info.id = result.id
 
         if create_new_instance:
-            self.assertEqual(result.status,
-                             _dbaas_mapping[power_state.BUILDING])
-        
-        # checks to be sure these are not found in the result
-        for attr in ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
-                     'volumes', 'addresses']:
-            self.assertFalse(hasattr(result, attr),
-                            "Create response should not contain %r." % attr)
-        # checks to be sure these are found in the result
-        for attr in ['flavor', 'id', 'name', 'status', 'links', 'volume']:
-            self.assertTrue(hasattr(result, attr),
-                            "Create response should contain %r attribute." % attr)
+            assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
 
+        # Check these attrs only are returned in create response
+        expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
+                          'name', 'status', 'updated', 'volume']
+        CheckInstance(result._info).attrs_exist(result._info, expected_attrs,
+                                                msg="Create response")
+        CheckInstance(result._info).flavor()
+        CheckInstance(result._info).links(result._info['links'])
+        CheckInstance(result._info).volume()
+
+    @test
+    def test_mgmt_get_instance_on_create(self):
+        result = dbaas.management.show(instance_info.id)
+        expected_attrs = ['account_id', 'addresses', 'created', 'databases',
+                          'flavor', 'guest_status', 'host', 'hostname', 'id',
+                          'name', 'server_state_description', 'status',
+                          'updated', 'users', 'volume', 'root_enabled_at',
+                          'root_enabled_by']
+        CheckInstance(result._info).attrs_exist(result._info, expected_attrs,
+                                                msg="Mgmt get instance")
+        CheckInstance(result._info).flavor()
+        CheckInstance(result._info).guest_status()
+
+    @test
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
-            self.assertFalse(True, "Security groups did not get created")
+            assert_false(True, "Security groups did not get created")
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
@@ -321,7 +337,6 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
 
     @time_out(60 * 8)
     def test_instance_created(self):
-        #/vz/private/1/var/log/nova/nova-guest.log
         while True:
             guest_status = dbapi.guest_status_get(instance_info.id)
             if guest_status.state != power_state.RUNNING:
@@ -330,8 +345,8 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
                 # between the time you grab "guest_status" and "result," so
                 # RUNNING is allowed in addition to BUILDING.
                 self.assertTrue(
-                    result.status == _dbaas_mapping[power_state.BUILDING] or
-                    result.status == _dbaas_mapping[power_state.RUNNING],
+                    result.status == dbaas_mapping[power_state.BUILDING] or
+                    result.status == dbaas_mapping[power_state.RUNNING],
                     "Result status was %s" % result.status)
                 time.sleep(5)
             else:
@@ -400,20 +415,9 @@ class TestGuestProcess(unittest.TestCase):
                         self.assertFalse(False, guest_process)
                     break
 
-    @time_out(130)
-    def test_guest_status_db_running(self):
-        state = power_state.BUILDING
-        while state != power_state.RUNNING:
-            time.sleep(10)
-            result = dbapi.guest_status_get(instance_info.id)
-            state = result.state
-        time.sleep(1)
-        self.assertEqual(state, power_state.RUNNING)
-
-
     def test_guest_status_get_instance(self):
         result = dbaas.instances.get(instance_info.id)
-        self.assertEqual(_dbaas_mapping[power_state.RUNNING], result.status)
+        self.assertEqual(dbaas_mapping[power_state.RUNNING], result.status)
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, "nova.volumes.instance"])
@@ -430,91 +434,82 @@ class TestVolume(unittest.TestCase):
         self.assertEqual(description, volumes[0]['display_description'])
 
 
-@test(depends_on_classes=[WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START, "dbaas.listing"])
+@test(depends_on_classes=[WaitForGuestInstallationToFinish],
+      groups=[GROUP, GROUP_START, "dbaas.listing"])
 class TestInstanceListing(unittest.TestCase):
     """ Test the listing of the instance information """
 
+    @test
     def test_detail_list(self):
+        expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
+                          'name', 'status', 'updated', 'volume']
         instances = dbaas.instances.details()
         for instance in instances:
-            self._detail_instances_exist(instance)
-            self._instances_attributes_should_not_exist(instance)
+            instance_dict = instance._info
+            CheckInstance(instance_dict).attrs_exist(instance_dict,
+                                                     expected_attrs,
+                                                     msg="Instance Details")
+            CheckInstance(instance_dict).flavor()
+            CheckInstance(instance_dict).links(instance_dict['links'])
+            CheckInstance(instance_dict).volume()
 
+    @test
     def test_index_list(self):
+        expected_attrs = ['id', 'links', 'name', 'status']
         instances = dbaas.instances.index()
         for instance in instances:
-            self._index_instances_exist(instance)
-            self._index_instances_attrs_should_not_exist(instance)
-            self._instances_attributes_should_not_exist(instance)
+            instance_dict = instance._info
+            CheckInstance(instance_dict).attrs_exist(instance_dict,
+                                                     expected_attrs,
+                                                     msg="Instance Index")
+            CheckInstance(instance_dict).links(instance_dict['links'])
 
+    @test
     def test_get_instance(self):
+        expected_attrs = ['created', 'databases', 'flavor', 'hostname', 'id',
+                          'links', 'name', 'rootEnabled', 'status', 'updated',
+                          'volume']
         instance = dbaas.instances.get(instance_info.id)
-        self._assert_instances_exist(instance)
-        self._instances_attributes_should_not_exist(instance)
+        instance_dict = instance._info
+        CheckInstance(instance_dict).attrs_exist(instance_dict,
+                                                 expected_attrs,
+                                                 msg="Get Instance")
+        CheckInstance(instance_dict).flavor()
+        CheckInstance(instance_dict).links(instance_dict['links'])
+        CheckInstance(instance_dict).volume()
+        CheckInstance(instance_dict).databases()
 
+    @test
+    def test_instance_hostname(self):
+        instance = dbaas.instances.get(instance_info.id)
+        dns_entry = instance_info.expected_dns_entry()
+        if dns_entry:
+            assert_equal(dns_entry.name, instance.hostname)
+        else:
+            table = string.maketrans("_ ", "--")
+            deletions = ":."
+            name = instance_info.name.translate(table, deletions).lower()
+            expected_hostname = "%s-instance-%s" % (name, instance_info.id)
+            assert_equal(expected_hostname, instance.hostname)
+
+    @test
     def test_get_instance_status(self):
         result = dbaas.instances.get(instance_info.id)
-        self.assertEqual(_dbaas_mapping[power_state.RUNNING], result.status)
+        assert_equal(dbaas_mapping[power_state.RUNNING], result.status)
 
+    @test
     def test_get_legacy_status(self):
         result = dbaas.instances.get(instance_info.id)
-        self.assertTrue(result is not None)
+        assert_true(result is not None)
 
+    @test
     def test_get_legacy_status_notfound(self):
         self.assertRaises(NotFound, dbaas.instances.get, -2)
 
-    # Calling has_key on the instance triggers a lazy load.
-    # We don't want that here, so the next two methods use the _info dict.
-
-    def _check_attr_in_instances(self, instance, attrs):
-        for attr in attrs:
-            msg = "Missing attribute %r" % attr
-            self.assertTrue(instance._info.has_key(attr), msg)
-
-    def _check_should_not_show_attr_in_instances(self, instance, attrs):
-        for attr in attrs:
-            msg = "Attribute %r should not be returned" % attr
-            self.assertFalse(instance._info.has_key(attr), msg)
-
-    def _detail_instances_exist(self, instance):
-        attrs = ['status', 'name', 'links', 'id', 'volume']
-        self._check_attr_in_instances(instance, attrs)
-
-    def _instances_attributes_should_not_exist(self, instance):
-        attrs = ['hostId', 'imageRef', 'metadata', 'adminPass', 'uuid',
-                 'volumes', 'addresses']
-        self._check_should_not_show_attr_in_instances(instance, attrs)
-
-    def _index_instances_exist(self, instance):
-        attrs = ['id', 'name', 'links', 'status']
-        self._check_attr_in_instances(instance, attrs)
-
-    def _index_instances_attrs_should_not_exist(self, instance):
-        attrs = ['flavorRef', 'rootEnabled', 'volume', 'databases']
-        self._check_should_not_show_attr_in_instances(instance, attrs)
-
+    @test
     def test_volume_found(self):
         instance = dbaas.instances.get(instance_info.id)
-        self.assertEqual(instance_info.volume['size'], instance.volume['size'])
-
-    def _assert_instances_exist(self, instance):
-        self.assertEqual(instance_info.id, instance.id)
-        attrs = ['name', 'links', 'id', 'flavor', 'status', 'volume', 'databases']
-        self._check_attr_in_instances(instance, attrs)
-        print("instance_info.databases : %r" % instance.databases)
-        print("instance_info.databases : %r" % instance_info.databases)
-        self.assertEqual(len(instance_info.databases), len(instance.databases))
-        for db in instance.databases:
-            print("db : %r" % db)            
-            self.assertTrue(db.has_key('character_set'))
-            print("db['charset'] : %r" % db['character_set'])
-            self.assertTrue(db.has_key('name'))
-            print("db['name'] : %r" % db['name'])
-            self.assertTrue(db.has_key('collate'))
-            print("db['collate'] : %r" % db['collate'])
-        dns_entry = instance_info.expected_dns_entry()
-        if dns_entry:
-            self.assertEqual(dns_entry.name, instance.hostname)
+        assert_equal(instance_info.volume['size'], instance.volume['size'])
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])
@@ -599,7 +594,7 @@ class DeleteInstance(unittest.TestCase):
             while result is not None:
                 attempts += 1
                 result = dbaas.instances.get(instance_info.id)
-                self.assertEqual(_dbaas_mapping[power_state.SHUTDOWN], result.status)
+                self.assertEqual(dbaas_mapping[power_state.SHUTDOWN], result.status)
         except NotFound:
             pass
         except Exception as ex:
@@ -663,7 +658,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
         volume = volumes[0]
 
         expected = {
-            'id': str(ir.id),
+            'id': ir.id,
             'name': ir.name,
             'account_id': info.user.auth_user,
             # TODO(hub-cap): fix this since its a flavor object now
@@ -690,10 +685,64 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
             expected['hostname'] = expected_entry.name
 
         self.assertTrue(mgmt_details is not None)
-        failures = []
         for (k,v) in expected.items():
             self.assertTrue(hasattr(mgmt_details, k), "Attr %r is missing." % k)
             self.assertEqual(getattr(mgmt_details, k), v,
                 "Attr %r expected to be %r but was %r." %
                 (k, v, getattr(mgmt_details, k)))
 
+
+class CheckInstance(object):
+    """Class to check various attributes of Instance details"""
+
+    def __init__(self, instance):
+        self.instance = instance
+
+    @staticmethod
+    def attrs_exist(list, expected_attrs, msg=None):
+        # Check these attrs only are returned in create response
+        for attr in list:
+            if attr not in expected_attrs:
+                fail("%s should not contain '%s'" % (msg, attr))
+
+    def links(self, links):
+        expected_attrs = ['href', 'rel']
+        for link in links:
+            self.attrs_exist(link, expected_attrs, msg="Links")
+
+    def flavor(self):
+        expected_attrs = ['id', 'links']
+        self.attrs_exist(self.instance['flavor'], expected_attrs,
+                         msg="Flavor")
+        self.links(self.instance['flavor']['links'])
+
+    def volume(self):
+        expected_attrs = ['size']
+        self.attrs_exist(self.instance['volume'], expected_attrs,
+                         msg="Volumes")
+
+    def databases(self):
+        expected_attrs = ['character_set', 'collate', 'name']
+        for database in self.instance['databases']:
+            self.attrs_exist(database, expected_attrs,
+                             msg="Database")
+
+    def addresses(self):
+        expected_attrs = ['addr', 'version']
+        print self.instance
+        networks = ['infranet', 'usernet']
+        for network in networks:
+            for address in self.instance['addresses'][network]:
+                self.attrs_exist(address, expected_attrs,
+                                 msg="Address")
+
+    def guest_status(self):
+        expected_attrs = ['created_at', 'deleted', 'deleted_at', 'instance_id',
+                          'state', 'state_description', 'updated_at']
+        self.attrs_exist(self.instance['guest_status'], expected_attrs,
+                         msg="Guest status")
+
+    def mgmt_volume(self):
+        expected_attrs = ['description', 'id', 'name', 'size']
+        self.attrs_exist(self.instance['volume'], expected_attrs,
+                         msg="Volume")

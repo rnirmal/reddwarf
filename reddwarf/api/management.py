@@ -22,10 +22,12 @@ from nova import utils
 from nova import volume
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
-from reddwarf.api import common
 from nova.compute import power_state
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest
+
+from reddwarf.api import common
+from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi
 
 LOG = logging.getLogger('reddwarf.api.management')
@@ -99,6 +101,7 @@ class Controller(object):
         self.server_controller = servers.ControllerV11()
         self.volume_api = volume.API()
         self.guest_api = guest.API()
+        self.instance_view = instances.MgmtViewBuilder()
         super(Controller, self).__init__()
 
     def show(self, req, id):
@@ -114,6 +117,26 @@ class Controller(object):
         except InstanceNotFound:
             #raise InstanceNotFound(instance_id=id)
             raise exc.HTTPNotFound("No instance with id %s." % id)
+
+        server = self.server_controller.show(req, id)['server']
+        if isinstance(server, Exception):
+            # The server controller has a habit of returning exceptions
+            # instead of raising them.
+            return server
+
+        # Use the compute api response to add additional information
+        instance_ref = self.compute_api.get(context, id)
+        LOG.debug("Instance Info from Compute API : %r" % instance_ref)
+
+        guest_state = {server['id']: status.state}
+        instance = self.instance_view.build_mgmt_single(server, instance_ref,
+                                                        req.application_url,
+                                                        guest_state)
+        instance = self._get_guest_info(context, id, status, instance)
+        return {'instance': instance}
+
+    def _get_guest_info(self, context, id, status, instance):
+        """Get all the guest details and add it to the response"""
         if status.state != power_state.RUNNING:
             dbs = None
             users = None
@@ -129,61 +152,12 @@ class Controller(object):
             users = self.guest_api.list_users(context, id)
             users = [{'name': user['_name']} for user in users]
 
-        LOG.debug("Fetching root enabled history for instance %s" % id)
-        root_access_timestamp = 'Never'
-        root_access_user = 0
         root_access = dbapi.get_root_enabled_history(context, id)
-        if root_access:
-            root_access_timestamp = root_access.created_at
-            root_access_user = root_access.user_id
-        LOG.debug("Root enabled timestamp for instance %s is %s by %s" % (id, root_access_timestamp, root_access_user))
 
-        instance = self.compute_api.get(context, id)
-        LOG.debug("get instance info : %r" % instance)
-
-        server_state_description = instance['display_description']
-
-        if instance['volumes']:
-            volume = instance['volumes'][0]
-            volume = {
-                'id': volume['id'],
-                'name': volume['display_name'],
-                'size': volume['size'],
-                'description': volume['display_description'],
-                }
-        else:
-            volume = None
-
-        server = self.server_controller.show(req, id)
-        if isinstance(server, Exception):
-            # The server controller has a habit of returning exceptions
-            # instead of raising them.
-            return server
-        flavorRef = server['server']['flavor']['id']
-        addresses = server['server']['addresses']
-
-        resp = {
-            'instance': {
-                'id': id,
-                'server_state_description': server_state_description,
-                'guest_status': status,
-                'name': instance['display_name'],
-                'host': instance['host'],
-                'account_id': instance['user_id'],
-                'flavor': flavorRef,
-                'addresses': addresses,
-                'databases': dbs,
-                'users': users,
-                'volume': volume,
-                'root_enabled_at': root_access_timestamp
-            },
-        }
-        dns_entry = self.dns_entry_factory.create_entry(instance)
-        if dns_entry:
-            resp["instance"]["hostname"] = dns_entry.name
-        if root_access_timestamp != 'Never':
-            resp["instance"]["root_enabled_by"] = root_access_user
-        return resp
+        instance = self.instance_view.build_guest_info(instance, status=status,
+                                                       dbs=dbs, users=users,
+                                                       root_enabled=root_access)
+        return instance
 
     def root_enabled_history(self, req, id):
         """ Checks the root_enabled_history table to see if root access
@@ -194,20 +168,8 @@ class Controller(object):
         common.instance_exists(ctxt, id, self.compute_api)
         try:
             result = dbapi.get_root_enabled_history(ctxt, id)
-            if result is not None:
-                return {
-                  'root_enabled_history': {
-                      'id': id,
-                      'root_enabled_at': result.created_at,
-                      'root_enabled_by': result.user_id
-                  }}
-            else:
-              return {
-                  'root_enabled_history': {
-                      'id': id,
-                      'root_enabled_at': 'Never',
-                      'root_enabled_by': 'Nobody'
-                  }}
+            root_history = self.instance_view.build_root_history(id, result)
+            return {'root_enabled_history': root_history}
         except Exception as err:
             LOG.error(err)
             return exc.HTTPError("Error determining root access history")

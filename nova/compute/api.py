@@ -74,7 +74,9 @@ def generate_default_hostname(instance):
             deletions += c
     if isinstance(display_name, unicode):
         display_name = display_name.encode('latin-1', 'ignore')
-    return display_name.translate(table, deletions)
+    hostname = "%s-instance-%s" % (display_name.translate(table, deletions),
+                                   instance['id'])
+    return hostname
 
 
 def generate_dns_hostname(instance):

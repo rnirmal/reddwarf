@@ -36,7 +36,7 @@ from nova import context
 from nova import utils
 from nova.compute import power_state
 from nova.compute import vm_states
-from reddwarf.api.instances import _dbaas_mapping
+from reddwarf.api.common import dbaas_mapping
 from reddwarf.db import api as dbapi
 from nova import flags
 from reddwarf.compute.manager import ReddwarfInstanceMetaData
@@ -214,7 +214,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
                 # Make sure the guest status is BUILDING during this time.
                 assert_equal(guest_status.state, power_state.BUILDING)
                 # REST API should return BUILDING as the status as well.
-                assert_equal(_dbaas_mapping[power_state.BUILDING],
+                assert_equal(dbaas_mapping[power_state.BUILDING],
                              rest_api_result.status)
                 time.sleep(10)
 
