@@ -23,6 +23,7 @@ from nova import flags
 from nova import log as logging
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
+from sqlalchemy.orm.exc import NoResultFound
 from nova.db.sqlalchemy.api import require_admin_context
 from nova.db.sqlalchemy.models import Instance
 from nova.db.sqlalchemy.models import Service
@@ -198,4 +199,38 @@ def volume_get_orphans(context, latest_time):
                      all()                     
     return result
 
+def get_root_enabled_history(context, id):
+    """
+    Returns the timestamp recorded when root was first enabled for the
+    given instance.
+    """
+    LOG.debug("Get root enabled timestamp for instance %s" % id)
+    session = get_session()
+    try:
+        result = session.query(models.RootEnabledHistory).\
+                     filter_by(instance_id=id).one()
+    except NoResultFound:
+        LOG.debug("No root enabled timestamp found for instance %s." % id)
+        return None
+    LOG.debug("Found root enabled timestamp for instance %s: %s by %s"
+              % (id, result.created_at, result.user_id))
+    return result
 
+def record_root_enabled_history(context, id, user):
+    """
+    Records the current time in nova.root_enabled_history so admins can see
+    when and if root was ever enabled for a database on an instance.
+    """
+    LOG.debug("Record root enabled timestamp for instance %s" % id)
+    old_record = get_root_enabled_history(context, id)
+    if old_record is not None:
+        LOG.debug("Found existing root enabled history: %s" % old_record)
+        return old_record
+    LOG.debug("Creating new root enabled timestamp.")
+    new_record = models.RootEnabledHistory()
+    new_record.update({'instance_id': id, 'user_id': user})
+    session = get_session()
+    with session.begin():
+        new_record.save()
+    LOG.debug("New root enabled timestamp: %s" % new_record)
+    return new_record

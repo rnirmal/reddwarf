@@ -16,6 +16,11 @@
 from novaclient import base
 from reddwarfclient.instances import Instance
 
+class RootHistory(base.Resource):
+    def __repr__(self):
+      return ("<Root History: Instance %s enabled at %s by %s>"
+            % (self.id, self.root_enabled_at, self.root_enabled_by))
+
 class Management(base.ManagerWithFind):
     """
     Manage :class:`Instances` resources.
@@ -37,3 +42,14 @@ class Management(base.ManagerWithFind):
         
         return self._list("/mgmt/instances/%s" % base.getid(instance),
             'instance')
+
+    def root_enabled_history(self, instance):
+        """
+        Get root access history of one instance.
+
+        """
+        url = "/mgmt/instances/%s/root" % base.getid(instance)
+        resp, body = self.api.client.get(url)
+        if not body:
+            raise Exception("Call to " + url + " did not return a body.")
+        return RootHistory(self, body['root_enabled_history'])
