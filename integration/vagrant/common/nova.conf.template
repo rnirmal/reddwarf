@@ -49,6 +49,7 @@
 --logfile=/vagrant/nova.log
 --verbose
 --notification_driver=nova.notifier.log_notifier
+--notifier_logfile=/vagrant/notification.log
 
 # Reaper config
 --reaper_driver=reddwarf.reaper.driver.ReddwarfReaperDriver
