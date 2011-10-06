@@ -38,6 +38,7 @@ class Controller(object):
         self.compute_api = compute.API()
         super(Controller, self).__init__()
 
+    @common.verify_admin_context
     def upgrade(self, req, id):
         """Upgrade the guest for a specific instance"""
         LOG.info("Upgrade of nova-guest issued for instance : %s", id)
@@ -48,6 +49,7 @@ class Controller(object):
         self.guest_api.upgrade(ctxt, id)
         return exc.HTTPAccepted()
 
+    @common.verify_admin_context
     def upgradeall(self, req):
         """Upgrade the guests for all the instances"""
         LOG.info("Upgrade all nova-guest issued")

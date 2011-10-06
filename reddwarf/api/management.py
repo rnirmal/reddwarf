@@ -23,6 +23,7 @@ from nova import volume
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
+from nova.db.sqlalchemy.api import is_admin_context
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest
 
@@ -32,7 +33,6 @@ from reddwarf.db import api as dbapi
 
 LOG = logging.getLogger('reddwarf.api.management')
 LOG.setLevel(logging.DEBUG)
-
 
 FLAGS = flags.FLAGS
 
@@ -104,6 +104,7 @@ class Controller(object):
         self.instance_view = instances.MgmtViewBuilder()
         super(Controller, self).__init__()
 
+    @common.verify_admin_context
     def show(self, req, id):
         """ Returns instance details by instance id """
         LOG.info("Get Instance Detail by ID - %s", id)
@@ -159,6 +160,7 @@ class Controller(object):
                                                        root_enabled=root_access)
         return instance
 
+    @common.verify_admin_context
     def root_enabled_history(self, req, id):
         """ Checks the root_enabled_history table to see if root access
             was ever enabled for this instance, and if so, when and by who. """

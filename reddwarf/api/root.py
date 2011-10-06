@@ -18,10 +18,10 @@ from webob import exc
 from nova import compute
 from nova import log as logging
 from nova.api.openstack import wsgi
-from reddwarf.api import common
 from nova.compute import power_state
 from nova.guest import api as guest_api
 from nova.guest.db import models
+from reddwarf.api import common
 from reddwarf.db import api as dbapi
 
 

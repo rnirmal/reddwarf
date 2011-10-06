@@ -311,6 +311,23 @@ class MgmtCommands(object):
         except:
           print sys.exc_info()[1]
 
+    def upgrade(self, options, id):
+        """Upgrade a single instance."""
+        dbaas = _get_client(options)
+        try:
+          _pretty_print(dbaas.guests.upgrade(id)._info)
+        except:
+          print sys.exc_info()[1]
+
+    def upgradeall(self, options):
+        """Upgrade a single instance."""
+        dbaas = _get_client(options)
+        try:
+          _pretty_print(dbaas.guests.upgradeall()._info)
+        except:
+          print sys.exc_info()[1]
+
+
 def methods_of(obj):
     """Get all callable methods of an object that don't start with underscore
     returns a list of tuples of the form (method_name, method)"""

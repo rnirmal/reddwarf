@@ -67,6 +67,7 @@ class Controller(object):
     def __init__(self):
         super(Controller, self).__init__()
 
+    @common.verify_admin_context
     def show(self, req, id):
         """ Returns account details by account id """
         try:

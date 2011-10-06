@@ -580,8 +580,9 @@ keystone_initialize() {
     keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
     keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
 
-    # Add "Boss"
+    # Add "Boss" and "Chunk"
     keystone_manage user add Boss admin dbaas
+    keystone_manage user add chunk chunk dbaas
 
     SERVICE_ADMIN_USER="service-admin"
     SERVICE_ADMIN_PASSWORD="serviceadmin"
