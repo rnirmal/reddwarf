@@ -41,10 +41,10 @@ def create_resource(version='1.0'):
     }[version]()
 
     metadata = {
-        "attributes": {
-            "account": ["name"],
-            "hosts": ["id", "hostname", "name"],
-            "instances": ["id", "status"],
+        'attributes': {
+            'account': ['name'],
+            'host': ['id', 'hostname', 'name'],
+            'instance': ['id', 'name', 'status'],
         },
     }
 
@@ -87,7 +87,7 @@ class Controller(object):
             LOG.debug("instances - %s", instances)
 
             # Prune away all the columns but the ones in key_list
-            key_list = ['id', 'display_name', 'host', 'power_state']
+            key_list = ['id', 'display_name', 'host', 'vm_state']
             instances = [dict([(k, c[k]) for k in key_list])
                 for c in instances]
             LOG.debug("instances - %s", instances)
@@ -102,10 +102,8 @@ class Controller(object):
                     if c['host'] == hostname]
                 hosts_instances = [{'id': c['id'],
                                      'name': c['display_name'],
-                                     'status': c['power_state'],
+                                     'status': c['vm_state'],
                                     } for c in hosts_instances]
-                hosts_instances = [{'instance': c}
-                    for c in hosts_instances]
                 host['instances'] = hosts_instances
                 hosts.append(host)
 

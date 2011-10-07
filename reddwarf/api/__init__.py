@@ -137,6 +137,6 @@ class APIRouter(wsgi.Router):
                        action="is_root_enabled", conditions=dict(method=["GET"]))
 
         mapper.connect("/", controller=versions.create_resource(),
-                       action='show')
+                       action="dispatch")
 
         super(APIRouter, self).__init__(mapper)

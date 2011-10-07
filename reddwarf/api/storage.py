@@ -45,10 +45,10 @@ class Controller(object):
                                  FLAGS.volume_topic,
                                  {"method": "get_storage_device_info",
                                   "args": {}})
-        return {'storage': { 'name': storage_info['name'],
+        return {'devices': [{ 'name': storage_info['name'],
                              'type': storage_info['type'],
                              'availablesize': storage_info['prov_avail'],
-                             'totalsize': storage_info['prov_total']}}
+                             'totalsize': storage_info['prov_total']}]}
 
 
 def create_resource(version='1.0'):

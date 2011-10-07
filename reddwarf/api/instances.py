@@ -368,7 +368,7 @@ def create_resource(version='1.0'):
             'instance': ['created', 'hostname', 'id', 'name', 'rootEnabled',
                          'status', 'updated'],
             'dbtype': ['name', 'version'],
-            'flavor': ['id', 'links'],
+            'flavor': ['id'],
             'link': ['rel', 'href'],
             'volume': ['size'],
             'database': ['name', 'collate', 'character_set'],
