@@ -148,15 +148,16 @@ class Controller(object):
             db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
 
         # Checking the server state to see if it is building or not
-        server_response = self.server_controller.show(req, id)
-        LOG.debug("server_response - %s", server_response)
-        if isinstance(server_response, Exception):
-            return server_response  # Just return the exception to throw it
+        try:
+            compute_response = self.compute_api.get(context, id)
+        except exception.NotFound:
+            raise exc.HTTPNotFound()
+        LOG.debug("server_response - %s", compute_response)
         build_states = [
              nova_common.vm_states.REBUILDING,
              nova_common.vm_states.BUILDING,
         ]
-        if server_response['server']['vm_state'] in build_states:
+        if compute_response['vm_state'] in build_states:
             # If the state is building then we throw an exception back
             raise exc.HTTPUnprocessableEntity("Instance %s is not ready." % id)
 

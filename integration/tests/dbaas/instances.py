@@ -330,7 +330,7 @@ class AccountMgmtData(unittest.TestCase):
     @expect_exception(Exception)
     def test_delete_instance_right_after_create(self):
         result = dbaas.instances.delete(instance_info.id)
-        self.assertFail("Instance should not exist yet. Should throw exception")
+        self.fail("Instance should not exist yet. Should throw exception")
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
