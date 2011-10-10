@@ -1811,7 +1811,9 @@ class OVZNetworkInterfaces(object):
                          searchList=[{'interfaces': self.interface_info,
                                       'use_ipv6': FLAGS.use_ipv6}]))
             network_file.append(self.iface_file.split('\n'))
+            network_file.set_permissions(777)
             network_file.write()
+            network_file.set_permissions(644)
 
     def _filename_factory(self, variant='debian'):
         """
