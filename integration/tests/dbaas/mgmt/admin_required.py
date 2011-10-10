@@ -8,17 +8,13 @@ from tests.dbaas.instances import GROUP_START
 from tests.dbaas.instances import GROUP_TEST
 from tests.util.users import Requirements
 
-"""
-These tests verify that admin privileges are checked
-when calling management level functions.
-"""
 
 @test(depends_on_groups=[GROUP_START],
   groups=[GROUP_TEST, 'dbaas.admin_required'])
 class TestAdminRequired(object):
    """
-   Test that the created instance has 2 nics with the specified ip
-   address as allocated to it.
+   These tests verify that admin privileges are checked
+   when calling management level functions.
    """
 
    @test()
@@ -55,8 +51,10 @@ class TestAdminRequired(object):
    @test(depends_on=[create_user_and_client])
    @expect_exception(ClientException)
    def test_mgmt_root_history(self):
-      """ A regular user may not view the root access history of
-      any instance. """
+      """
+      A regular user may not view the root access history of
+      any instance.
+      """
       self.dbaas.management.root_enabled_history(0)
 
    @test(depends_on=[create_user_and_client])

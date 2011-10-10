@@ -79,9 +79,11 @@ def instance_exists(ctxt, id, compute_api):
         raise exc.HTTPNotFound()
 
 def verify_admin_context(f):
-    """Verify that the current context has administrative access,
+    """
+    Verify that the current context has administrative access,
     or throw an exception. Reddwarf API functions typically take the form
-    function(self, req), or function(self, req, id)."""
+    function(self, req), or function(self, req, id).
+    """
     def wrapper(*args, **kwargs):
         if not 'req' in kwargs:
           raise exception.Error("Need a reddwarf request to extract the context.")
