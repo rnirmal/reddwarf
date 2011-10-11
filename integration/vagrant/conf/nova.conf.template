@@ -14,7 +14,7 @@
 # Nova Volume
 # Volume configuration for vagrant vm
 --volume_driver=reddwarf.tests.volume.driver.ISCSITestDriver
---san_ip=33.33.33.10
+--san_ip=33.33.33.11
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
 

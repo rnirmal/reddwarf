@@ -21,6 +21,8 @@ LOG = logging.getLogger("reddwarf.tests.volume.driver")
 
 FLAGS = flags.FLAGS
 
+TESTS_VOLUME_SIZE_MULTIPLIER = 256
+
 
 class ISCSITestDriver(HpSanISCSIDriver):
     """ISCSILite Driver, basic ISCSI target features
@@ -53,7 +55,7 @@ class ISCSITestDriver(HpSanISCSIDriver):
         name = volume['name']
         # We only use this for testing, so its a hassle to make 1 GB volumes
         # for stuff. Instead, we make it a multiple of 128 megabytes.
-        size = volume['size'] * 128
+        size = volume['size'] * TESTS_VOLUME_SIZE_MULTIPLIER
         id = volume['id']
         LOG.debug(_("Creating volume of size %s MB") % str(size))
         try:
@@ -116,7 +118,7 @@ class ISCSITestDriver(HpSanISCSIDriver):
         # Offset only applies to the ISCSI Lite Driver per create_volume(128MB)
         offset = (1024 ** 3) * 2
         LOG.debug("offset : %r" % offset)
-        raw_used = (int(cmd_list[0]) / 128) * offset
+        raw_used = (int(cmd_list[0]) / TESTS_VOLUME_SIZE_MULTIPLIER) * offset
         LOG.debug("raw_space_used : %r" % raw_used)
         LOG.debug("space_total : %r" % space_total)
         LOG.debug("spaceAvail : %r" % (space_total - raw_used))

@@ -27,6 +27,7 @@ __all__ = [
     "dbaas",
     "dbaas_image",
     "glance_code_root",
+    "glance_image",
     "nova",
     "nova_code_root",
     "python_cmd_list",
@@ -114,6 +115,7 @@ def _setup():
     global values
     global dbaas_url
     global volume_service
+    global glance_image
     values = load_configuration()
     use_venv = values.get("use_venv", True)
     nova_auth_url = str(values.get("nova_auth_url", "http://localhost:5000/v2.0"))
@@ -122,6 +124,7 @@ def _setup():
     nova_url = str(values.get("nova_url", "http://localhost:8774/v1.1"))
     nova_code_root = str(values["nova_code_root"])
     nova_conf = str(values["nova_conf"])
+    glance_image = str(values["glance_image"])
     if not nova_conf:
         raise ValueError("Configuration value \"nova_conf\" not found.")
 

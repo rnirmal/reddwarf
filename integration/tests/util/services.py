@@ -153,7 +153,7 @@ class Service(object):
         time.sleep(2)
         self.start(extra_args=extra_args)
     
-    def start(self, time_out=3, extra_args=None):
+    def start(self, time_out=30, extra_args=None):
         """Starts the service if necessary."""
         extra_args = extra_args or []
         if self.is_running:

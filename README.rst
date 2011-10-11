@@ -19,7 +19,7 @@ Get more information and get involved with the OpenStack community.
 Getting Started
 -----------------------------
 
-The information below is set to be run on a VM. Inside this folder
+The information below is set to be run on a VM. Inside 'integration/vagrant' folder
 is a file called 'VagrantFile'. This is a script that runs with Vagrant
 (http://www.vagrantup.com) and VirtualBox (http://www.virtualbox.org/).
 
@@ -32,52 +32,25 @@ is a file called 'VagrantFile'. This is a script that runs with Vagrant
 
     [nix:~/dev]$ mkdir ~/dev/glanceimg
     [nix:~/dev]$ cd ~/dev/glanceimg
-    [nix:~/dev/glanceimg]$ wget http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz
+    [nix:~/dev/glanceimg]$ wget http://c629296.r96.cf2.rackcdn.com/debian-squeeze-x86_64-openvz.tar.gz
 
-#. (Optional) Install bzr if not already installed::
+#. (Required) Define the environment variable for glance images (path to directory 
+   of debian-squeeze-x86_64-openvz.tar.gz)::
 
-    [nix:~]$ cd ~/dev
-    [linux:~/dev]$ sudo apt-get install bzr     (install ubuntu)
-    [mac:~/dev]$ sudo port install bzr          (install mac via macports)
-    [mac:~/dev]$ brew install bzr               (install mac via homebrew)
-
-#. (Optional) Check out the latest Glance source::
-
-    [nix:~/dev]$ bzr branch lp:glance
-
-#. (Required) Define the environment variables to the path to launchpad trunk
-   of glance (the bzr checkout folder) and the glance images (path to directory 
-   of ubuntu-10.04-x86_64-openvz.tar.gz)::
-
-    [nix:~/dev]$ echo "export GLANCESRC=~/dev/glance" >> ~/.bashrc
-    [nix:~/dev]$ echo "export GLANCEIMAGES=~/dev/glanceimg" >> ~/.bashrc
-    [nix:~/dev]$ . ~/.bashrc
+    [nix:~/dev]$ export GLANCEIMAGES=~/dev/glanceimg
 
 #. Fresh check out from github.::
 
     [nix:~/dev]$ git clone git://github.com/rackspace/reddwarf.git
 
-#. (Optional) If you want to get the latest changes from the git repository
-   on github.com::
+#. Enter the directory reddwarf/integration/vagrant::
 
-    [nix:~/dev]$ cd ~/dev/reddwarf
-    [nix:~/dev/reddwarf]$ git pull
-
-#. Enter the directory reddwarf/integration/vagrant/host::
-
-    [nix:~/dev]$ cd reddwarf/integration/vagrant/host
+    [nix:~/dev]$ cd reddwarf/integration/vagrant
 
 #. Startup the Virtual Machine with Vagrant::
 
-    [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant up
+    [nix:~/dev/reddwarf/integration/vagrant]$ vagrant up
 
-*Note: There is a known bug with Vagrant and the first time you do the
-'vagrant up' the downloads work correctly but when starting up the machines
-there are problems. To resolve this issue just run the follow commands::
-
-    [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant destroy
-    [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant up
-    
 Command Downloads the necessary files and starts up a Virtual Box image to
 start using.
 
@@ -87,14 +60,14 @@ Quick Setup
 
 #. On your host machine (i.e. do NOT use vagrant ssh to enter it)::
 
-    [nix:~/dev/reddwarf/integration/vagrant/host]$ ./run_ci.sh
+    [nix:~/dev/reddwarf/integration/vagrant]$ ./reddwarf-ci vagrantci
 
 This automates all the manual steps below in order.
 
-1. initialize
-2. build
-3. setup nova
-4. run tests
+1. Install dependencies (install)
+2. Build all the required packages (build)
+3. Initialize Nova environemnt (initialize)
+4. Run the CI tests (test)
 
 ---------------------
 Manual Setup Reddwarf
@@ -102,35 +75,26 @@ Manual Setup Reddwarf
 
 #. This will ssh in to the virtual machine::
 
-    [nix:~/dev/reddwarf/integration/vagrant/host]$ vagrant ssh host
+    [nix:~/dev/reddwarf/integration/vagrant]$ vagrant ssh
 
-#. This is the home location of all the phases of the integration testing::
+#. This is the home location for vagrant and will have all the files in the integration/vagrant folder::
 
     [vagrant:~]$ cd /vagrant
 
 #. This will be sure the environment has all the required dependencies installed::
 
-    [vagrant:/vagrant]$ /vagrant/initialize.sh
-
-    OR
-
-    [vagrant:~]$ cd /vagrant
-    [vagrant:/vagrant]$ ./initialize.sh
+    [vagrant:/vagrant]$ reddwarf-ci install
 
 #. This will build all the packages required to start and run nova. This
    includes the guest-agent package that will run on the instances that listens
    for events from the API::
 
-    [vagrant:~]$ /vagrant/build.sh
-
-    OR
-
-    [vagrant:/vagrant]$ ./build.sh
+    [vagrant:/vagrant]$ reddwarf-ci build
 
 #. This will clean and prepare the environment to start running nova as a
-   clean setup::
+   clean setup. You can run this multiple times to refresh the environment::
 
-    [vagrant:~]$ /vagrant-common/initialize-nova.sh
+    [vagrant:/vagrant]$ reddwarf-ci initialize
 
 ----------------
 Testing Reddwarf
@@ -139,38 +103,35 @@ Testing Reddwarf
 This is the integration tests for reddwarf that will run a plethora of tests
 and be sure that everything is setup and working correctly.::
 
-    [vagrant:/vagrant]$ ./test.sh
+    [vagrant:/vagrant]$ reddwarf-ci test
 
-This is the integration test for the volume specific code path. This will test
-the configuration and connections of the SAN.::
+You can run specific groups of tests by specifying the group paramter. The below example shows running just the volume tests::
 
-    [vagrant:/vagrant]$ ./test.sh --group=nova.volumes.driver
-
-Using this test.sh script you can choose to select your own path that you
-would like the tests to run via the flag --group=name.of.group.to.run.tests
+    [vagrant:/vagrant]$ reddwarf-ci test --group=nova.volumes.driver
 
 ----------------------------------
 Starting Up Reddwarf/Nova Manually
 ----------------------------------
 
-Bring up Reddwarf/Nova in wait mode::
+#. Start all the services in a screen session::
 
-    [vagrant:/vagrant]$ SERVICE_WAIT=True ./test.sh --group=start_and_wait
+    [vagrant:/vagrant]$ reddwarf-ci start
 
-Some startup scripts below ...
-https://github.com/cp16net/reddwarf-helpers
+#. Stop all the screen services, also kills all the screen sessions::
+
+    [vagrant:/vagrant]$ reddwarf-ci stop
 
 ----------------------------------------
 Example Calls/Utilties for Reddwarf/Nova
 ----------------------------------------
 
-#. Open up a new terminal and goto directory vagrant host directory::
+#. Open up a new terminal and goto integration/vagrant::
 
-    [nix:~]$ cd ~/devreddwarf/integration/vagrant/host
+    [nix:~]$ cd ~/dev/reddwarf/integration/vagrant
 
-#. SSH into the host::
+#. SSH into the vagrant box::
 
-    [nix:~]$ vagrant ssh host
+    [nix:~]$ vagrant ssh
 
 #. Go to the source bin directory::
 
@@ -182,11 +143,11 @@ Example Calls/Utilties for Reddwarf/Nova
 
 #. Authenticate::
 
-    [vagrant:/src/bin]$ ./reddwarf-cli auth login admin admin
+    [vagrant:/src/bin]$ ./reddwarf-cli auth login admin admin dbaas
 
 #. Create an instance::
 
-    [vagrant:/src/bin]$ ./reddwarf-cli create instance instance 1 flavors/1
+    [vagrant:/src/bin]$ ./reddwarf-cli create instance test 1 flavors/2
     [vagrant:/src/bin]$ ./reddwarf-cli list instances
     [vagrant:/src/bin]$ sudo vzlist
     [vagrant:/src/bin]$ sudo vzctl enter 1
