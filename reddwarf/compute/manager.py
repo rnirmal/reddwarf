@@ -18,9 +18,11 @@
 import json
 
 from nova.exception import VolumeProvisioningError
+from nova.compute import power_state
 from nova import flags
 from nova import log as logging
 from nova import exception
+from nova.compute import vm_states
 from reddwarf.api import common
 from nova.compute import power_state
 from nova import guest
@@ -182,8 +184,16 @@ class ReddwarfInstanceInitializer(object):
             return True
         except Exception as exception:
             self._set_instance_status_to_fail()
-            self.compute_manager.suspend_instance(self.context,
-                                                  self.instance_id)
+            # If we call suspend, the compute driver throws an error because
+            # it can't find the instance, since it does not yet exist...
+            #self.compute_manager.suspend_instance(self.context,
+            #                                      self.instance_id)
+            # ... so we have to duplicate some code from the Compute manager.
+            compute_manager._instance_update(self.context,
+                              self.instance_id,
+                              power_state=power_state.SHUTOFF,
+                              vm_state=vm_states.SUSPENDED,
+                              task_state=None)
             self._notify_of_failure(exception=exception,
                 event_type='reddwarf.instance.abort.volume',
                 audit_msg=_("Aborting instance %(instance_id)d because "

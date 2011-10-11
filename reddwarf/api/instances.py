@@ -31,6 +31,7 @@ from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
+from nova.compute import vm_states
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
 
@@ -140,6 +141,15 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
+        instance = db.instance_get(context, instance_id)
+        if instance['vm_state'] == vm_states.SUSPENDED:
+            # SUSPENDED is not a valid 'shut_down' state to the Compute API.
+            # But we want our customers to be able to delete things in the
+            # event of failure, in which case we set the state to SUSPENDED.
+            db.instance_update(context.get_admin_context(),
+                               id,
+                               {'vm_state': vm_states.ACTIVE,})
+        
         self.server_controller.delete(req, id)
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(id)
