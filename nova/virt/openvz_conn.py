@@ -473,7 +473,7 @@ class OpenVzConnection(driver.ComputeDriver):
                 if address['enabled'] == u'1':
                     LOG.debug(_('Address: %s') % address['ip'])
                     LOG.debug(
-                        _('Running _send_garp(%(id) %(ip)s %(bridge)s)') %
+                        _('Running _send_garp(%(id)s %(ip)s %(bridge)s)') %
                         {'id': instance['id'], 'ip': address['ip'],
                          'bridge': bridge_info['bridge_interface']})
                     self._send_garp(instance['id'], address['ip'],
