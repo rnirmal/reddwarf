@@ -35,6 +35,7 @@ from sqlalchemy import create_engine
 
 from nova import flags
 from nova import utils
+from nova.notifier import log_notifier  # This is here so flags are loaded
 from nose.tools import assert_false
 from nova.utils import PollTimeOut
 from reddwarfclient import Dbaas
@@ -74,7 +75,7 @@ def check_database(instance_id, dbname):
 def count_message_occurrence_in_logs(msg):
     """Counts the number of times some message appears in the log."""
     count = 0
-    with open(FLAGS.logfile, 'r') as log:
+    with open(FLAGS.notifier_logfile, 'r') as log:
         for line in log:
             if msg in line:
                 count = count + 1
