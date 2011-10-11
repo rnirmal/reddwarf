@@ -45,6 +45,9 @@
 --sql_min_pool_size=1
 --rabbit_host=10.0.4.15
 
+# AMQP Backend
+--rpc_backend=nova.rpc.impl_carrot
+
 # Logging
 --logfile=/vagrant/nova.log
 --verbose
@@ -53,9 +56,6 @@
 
 # Reaper config
 --reaper_driver=reddwarf.reaper.driver.ReddwarfReaperDriver
-
-# AMQP Backend
---rpc_backend=nova.rpc.impl_carrot
 
 #Extra ending line needed so that other conf files can be appended to this one.
 

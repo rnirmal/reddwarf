@@ -1,0 +1,865 @@
+#!/usr/bin/env bash
+###############################################################################
+# Reddwarf Continuous Integration Script                                      #
+###############################################################################
+#                                                                             #
+# This script provides all the functionality to run all the steps from        #
+# setting up the enviornment, resetting the nova database to running the      #
+# test.                                                                       #
+#                                                                             # 
+###############################################################################
+
+# Global Configuration
+
+PYTHON_NOVACLIENT_VERSION=113
+GLANCE_VERSION="ecbcc09ce5c337a84d8adf19f957529c4f76a075"
+KEYSTONE_VERSION="f5d73af8f1bde3818f6d46cc0ccd327667d53535"
+
+PACKAGE_VERSION="2012.12"
+
+NOVA_HOME="/src"
+NOVA_CONF="/home/vagrant/nova.conf"
+
+GLANCE_HOME="/usr"
+GLANCE_REG_CONF="/vagrant/conf/glance-registry.conf"
+GLANCE_API_CONF="/vagrant/conf/glance-api.conf"
+
+KEYSTONE_HOME="/keystone"
+KEYSTONE_CONF="/etc/keystone/keystone.conf"
+
+USERNET="br100"
+INFRANET="br200"
+
+PACKAGES_DIR="/var/www/ubuntu/"
+BUILD_DIR="/tmp/build/"
+
+TEST_HOME="/src/integration/"
+NEMESIS_CONF="/vagrant/conf/host.nemesis.conf"
+
+GUEST_IMAGE="ubuntu-10.04-x86_64-openvz.tar.gz"
+
+###############################################################################
+# Usage and list of available commands                                        #
+###############################################################################
+
+print_usage() {
+    echo "Usage: $0 [command]"
+    echo ""
+    echo "Commands:
+            vagrantci       - Run CI from the host
+            run             - Run install, build, initialize and test
+            install         - Install all the required dependencies
+            build           - Build the packages
+            initialize      - Initialize Reddwarf environment
+            test            - Run the tests
+            start           - Start Reddwarf in a screen session
+            stop            - Stop Reddwarf screen session"
+    exit 1
+}
+
+###############################################################################
+
+
+###############################################################################
+# Utility functions
+###############################################################################
+
+APT_GET_ARGS="-y --allow-unauthenticated --force-yes"
+
+exclaim () {
+    echo "*******************************************************************************"
+    echo "$@"
+    echo "*******************************************************************************"
+}
+
+ip_chunk() {
+    # Given 1-4 returns a bit of where the ip range starts.
+    # Full IP= `ip_chunk 1`.`ip_chunk 2`.`ip_chunk 3`.`ip_chunk 4`
+    get_ip_for_device $1 | cut -d. -f$2
+}
+
+get_ip_for_device() {
+    ifconfig $1 | awk '/inet addr/{gsub(/addr:/,"");print $2}'
+}
+
+pkg_install () {
+    echo Installing $@...
+    sudo -E DEBIAN_FRONTEND=noninteractive $HTTP_PROXY apt-get $APT_GET_ARGS install $@
+}
+
+pkg_remove () {
+    echo Uninstalling $@...
+    sudo -E apt-get $APT_GET_ARGS remove $@
+}
+
+set_home_dir() {
+    self="${0#./}"
+    base="${self%/*}"
+    current=`pwd`
+    if [ "$base" = "$self" ] ; then
+        HOME="$current/"
+    elif [[ $base =~ ^/ ]]; then
+        HOME="$base/"
+    else
+        HOME="$current/$base/"
+    fi
+}
+
+set_http_proxy() {
+    if [ ! "${http_proxy}" = '' ]; then
+        HTTP_PROXY="http_proxy=$http_proxy https_proxy=$https_proxy"
+    fi
+}
+
+check_network() {
+    # Check that network is first up and the apt repository reachable
+    while true; do
+        if (ping -c 1 -W 1 archive.ubuntu.com 2>&1); then
+            break;
+        else
+            sudo ip route del default via 10.0.4.2
+        fi
+    done
+}
+
+glance_stop() {
+    # Stop the glance services if they are running
+    echo "Stopping Glance Service"
+    if sudo service glance-registry stop; then
+        echo "Stopped Glance Registry"
+    fi
+    if sudo service glance-api stop; then
+        echo "Stopped Glance API"
+    fi
+}
+
+###############################################################################
+
+# Global generated args
+
+setup_ips() {
+    USERNET_IP=`get_ip_for_device $USERNET`
+    INFRANET_IP=`get_ip_for_device $INFRANET`
+}
+
+###############################################################################
+# Install all the required dependencies
+###############################################################################
+
+install_apt_cacher_ng() {
+    exclaim "Installing Apt Cache NG..."
+    APT_CACHER_CONF="/etc/apt-cacher-ng/acng.conf"
+    pkg_install apt-cacher-ng
+    echo 'Acquire::http { Proxy "http://'${INFRANET_IP}':3142"; };' | sudo tee /etc/apt/apt.conf.d/01proxy
+    echo "BindAddress: ${INFRANET_IP}" | sudo tee -a $APT_CACHER_CONF
+    sudo service apt-cacher-ng restart
+    sudo apt-get update
+}
+
+install_apt_repo() {
+    exclaim "Installing Apt Repo...using reprepro"
+    DUPLOAD_CONF="/etc/dupload.conf"
+    pkg_install reprepro
+
+    # install the apt repo from /var/www
+    # add distributions file to conf
+    # TODO (rnirmal): (This should be /var/lib/packages)
+    sudo mkdir -p $PACKAGES_DIR/{conf,incoming}
+
+    echo 'Origin: Rackspace
+Label: Rackspace
+Codename: lucid
+Architectures: i386 amd64
+Components: main
+Description: Rackspace DBaaS APT Repository' | sudo tee $PACKAGES_DIR/conf/distributions
+
+    # Add dupload stuff so we can upload if necessary
+    sudo cp $DUPLOAD_CONF $DUPLOAD_CONF.bak
+    echo '$cfg{"nova"} = {
+    fqdn => "10.127.2.126",
+    login => "apt-upload",
+    method => "scpb",
+    incoming => "/home/apt-upload/incoming_packages",
+    dinstall_runs => 1,
+};' | sudo tee -a $DUPLOAD_CONF
+
+}
+
+install_jenkins() {
+    exclaim "Installing Jenkins and adding it to apt sources list"
+    pkg_install jenkins
+    wget $HTTP_PROXY -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+    echo "deb http://pkg.jenkins-ci.org/debian binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
+    sudo apt-get update
+}
+
+install_packages() {
+    exclaim 'Installing Dependencies...'
+    pkg_install git-core python-all python-setuptools python-sphinx python-distutils-extra pep8 debhelper apache2 dupload bzr devscripts gawk iptables ebtables screen curl rabbitmq-server lvm2 socat unzip python-twisted python-mox python-ipy python-paste python-migrate python-gflags python-greenlet python-libxml2 python-routes python-netaddr python-pastedeploy python-eventlet python-novaclient python-glance python-cheetah python-carrot python-tempita python-sqlalchemy python-suds mysql-server python-mysqldb python-paramiko python-lockfile python-pip cdbs python-mock uuid python-webob python-m2crypto python-twisted-web python-boto python-amqplib python-unittest2 python-feedparser python-kombu
+
+    # The default version of pip Ubuntu installs is old.
+    cd /tmp
+    sudo pip install --upgrade pip
+    sudo pip install proboscis
+    cd -
+}
+
+install_open_iscsi() {
+    exclaim "Installing and configuring Open ISCSI..."
+    pkg_install open-iscsi
+
+    # Update the conf file
+    ISCSID_CONF=/etc/iscsi/iscsid.conf
+    sudo sed -i 's/node.startup = manual/node.startup = automatic/' $ISCSID_CONF
+    sudo sed -i 's/#node.session.auth.authmethod = CHAP/node.session.auth.authmethod = CHAP/' $ISCSID_CONF
+    sudo sed -i 's/#node.session.auth.username = username/node.session.auth.username = username/' $ISCSID_CONF
+    sudo sed -i 's/#node.session.auth.password = password/node.session.auth.password = password1234/' $ISCSID_CONF
+    sudo sed -i 's/#discovery.sendtargets.auth.authmethod = CHAP/discovery.sendtargets.auth.authmethod = CHAP/' $ISCSID_CONF
+    sudo sed -i 's/#discovery.sendtargets.auth.username = username/discovery.sendtargets.auth.username = username/' $ISCSID_CONF
+    sudo sed -i 's/#discovery.sendtargets.auth.password = password/discovery.sendtargets.auth.password = password1234/' $ISCSID_CONF
+
+    # Restart the iscsi initiator
+    sudo service open-iscsi restart
+}
+
+add_apt_repos() {
+    exclaim "Adding additional Apt repositories..."
+
+    pkg_install python-software-properties
+    # Get proper sphinx version from the drizzle ppa
+    sudo add-apt-repository ppa:drizzle-developers/ppa
+    sudo add-apt-repository ppa:bzr/ppa
+    sudo add-apt-repository ppa:openstack-release/2011.3/ubuntu
+    sudo apt-get update
+}
+
+setup_ssh_keys() {
+    exclaim 'Installing SSH keys...'
+    pkg_install expect
+    # Setup the keys for the vagrant user
+    if [ ! -f /home/vagrant/.ssh/id_rsa.pub ]; then
+        ssh-keygen -q -t rsa -N "" -f /home/vagrant/.ssh/id_rsa
+        sudo ssh-keygen -q -t rsa -N "" -f /root/.ssh/id_rsa
+    fi
+
+    # Copy the public keys to the volume server
+    /vagrant/scripts/sshcopy.exp /home/vagrant/.ssh/id_rsa.pub
+    sudo /vagrant/scripts/sshcopy.exp /root/.ssh/id_rsa.pub
+}
+
+update_config() {
+    exclaim "Updating configurations to use infra net..."
+    # Set Rabbitmq to listen on infranet only
+    echo "[
+    {rabbit, [{tcp_listeners, [{'$INFRANET_IP', 5672}]}]}
+]." | sudo tee /etc/rabbitmq/rabbitmq.config
+    sudo service rabbitmq-server restart
+
+    # Set Mysql (Nova DB) to listen on infranet only
+    sudo sed -i "s/^bind-address[ \t]*= 127.0.0.1/bind-address\t\t = $INFRANET_IP/g" /etc/mysql/my.cnf
+    sudo service mysql restart
+
+    # TODO (rnirmal): Not sure if we need this
+    echo "127.0.0.1    apt.rackspace.com ppa.rackspace.com" | sudo tee -a /etc/hosts
+}
+
+install_deps() {
+    check_network
+    sudo usermod -g root vagrant
+
+    add_apt_repos
+    setup_ssh_keys
+    install_apt_cacher_ng
+    install_packages
+    install_open_iscsi
+    update_config
+    install_apt_repo
+    # TODO (rnirmal): Not sure where this needs to be enabled
+    #sudo install_jenkins
+}
+
+###############################################################################
+
+
+###############################################################################
+# Build nova, glance and reddwarf-api and nova-guest packages
+# Use this to rebuild guest packages
+###############################################################################
+
+dbaas_pkg_build_dbaasmycnf() {
+    exclaim "Building and uploading dbaasmycnf package..."
+
+    cd $BUILD_DIR/dbaas/dbaas-mycnf
+    sudo -E ./builddeb.sh
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid dbaas-mycnf
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include lucid *.changes
+}
+
+dbaas_pkg_build_firstboot() {
+    exclaim "Building and uploading firstboot package...."
+
+    cd $BUILD_DIR/dbaas/firstboot
+    sudo -E ./builddeb.sh
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid firstboot
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include lucid *.changes
+}
+
+dbaas_pkg_install_glance() {
+    exclaim "Installing Glance..."
+    GLANCE_IMAGES="/glance_images/"
+
+    pkg_install glance
+
+    glance_stop
+    sudo cp $GLANCE_API_CONF /etc/glance/
+    sudo cp $GLANCE_REG_CONF /etc/glance/
+
+    sudo mkdir -p $GLANCE_IMAGES
+    # Check to see if the glance images folder has files in it
+    if [ "`ls $GLANCE_IMAGES/$GUEST_IMAGE`" == "" ]; then
+        # If there are no files then we should curl the ovz image to the glance images folder
+        sudo -E curl http://c629296.r96.cf2.rackcdn.com/$GUEST_IMAGE --output $GLANCE_IMAGES/$GUEST_IMAGE
+    fi
+}
+
+dbaas_pkg_setup_keystone() {
+    # Download keystone and setup
+    sudo rm -rf $KEYSTONE_HOME
+    sudo git clone https://github.com/openstack/keystone.git $KEYSTONE_HOME
+    cd $KEYSTONE_HOME
+    sudo git checkout -b stable $KEYSTONE_VERSION
+
+    # Apply any patches if necessary
+    sudo git am -3 /vagrant/patches/keystone/*
+
+    # Install Dependenciens
+    pkg_install python-lxml python-pastescript python-pysqlite2 python-httplib2
+
+    sudo python setup.py install
+    sudo mkdir -p /etc/keystone
+    sudo mkdir -p /var/log/keystone
+    sudo cp /vagrant/conf/keystone.conf $KEYSTONE_CONF
+}
+
+dbaas_pkg_install_novaclient() {
+    pkg_install python-novaclient
+}
+
+dbaas_pkg_build_nova() {
+    exclaim "Building Nova packages..."
+
+    cd $BUILD_DIR
+    cp -R /src $BUILD_DIR/dbaas
+    rm -rf $BUILD_DIR/dbaas/.bzr
+    $HTTP_PROXY bzr checkout --lightweight lp:~openstack-ubuntu-packagers/nova/diablo dbaas
+    cd dbaas
+
+    # add the packages to the control file to make sure we also build our packages
+    # Build package section, adding in the platform api and nova guest!
+    echo '
+Package: reddwarf-api
+Architecture: all
+Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Description: Red Dwarf - Nova - API frontend
+
+Package: nova-guest
+Architecture: all
+Depends: python-pexpect, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Description: Red Dwarf - Nova - Guest agent
+
+Package: nova-dns
+Architecture: all
+Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Description: Red Dwarf - Nova - DNS' >> debian/control
+
+    echo "nova ($PACKAGE_VERSION~$GIT_REVISION) lucid; urgency=low
+
+  [aut-gen]
+  * generated version from the integration build.
+
+ -- Apt Repo <dbaas-dev@rackspace.com>  `date +'%a, %d %b %Y %I:%M:%S %z'`
+
+" | cat - debian/changelog >> debian/changelog.tmp
+    mv debian/changelog.tmp debian/changelog
+
+    # change the packages to lucid packages in the existing bzr checked out code
+    sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
+
+    # Remove the dependency on python-tempo
+    # TODO(rnirmal): Remove this once we have python-flask for lucid or don't require it anymore
+    sed -i.bak -e 's/python-tempo//g' debian/control
+    sed -i.bak -e 's/python-pastedeploy (>= 1.5.0)/python-pastedeploy/g' debian/control
+
+    # now hot-mod the guest file and platform api based on the existing stuff
+    for file in `ls debian/ |grep nova-api`
+    do
+        cp debian/$file "debian/nova-guest."`echo $file|cut -d'.' -f2`
+        cp debian/$file "debian/reddwarf-api."`echo $file|cut -d'.' -f2`
+        cp debian/$file "debian/nova-dns."`echo $file|cut -d'.' -f2`
+    done
+    sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
+    sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
+    sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
+
+    cp debian/mans/nova-api.8 debian/mans/nova-guest.8
+    cp debian/mans/nova-api.8 debian/mans/reddwarf-api.8
+    cp debian/mans/nova-api.8 debian/mans/nova-dns.8
+
+    sed -i.bak -e 's/api/guest/g' debian/mans/nova-guest.8
+    sed -i.bak -e 's/nova/reddwarf/g' debian/mans/reddwarf-api.8
+    sed -i.bak -e 's/api/dns/g' debian/mans/nova-dns.8
+
+    # Fix the api paste config
+    sed -i.bak -e 's/api-paste\.ini/reddwarf-api-paste\.ini/g' debian/reddwarf-api.install
+    echo 'usr/bin/reddwarf-cli' >> debian/reddwarf-api.install
+    echo 'usr/bin/reddwarf-manage' >> debian/reddwarf-api.install
+
+    # hack up the rules file thats broken
+    echo "--sql_connection=mysql://nova:novapass@$INFRANET_IP/nova" >> debian/nova.conf
+    sed -i.bak 's/mkdir -p doc\/build\/html/mkdir -p doc\/doc\/build\/html/g' debian/rules
+
+    #now copy over the paste ini
+    cp $BUILD_DIR/dbaas/etc/nova/reddwarf-api-paste.ini $BUILD_DIR/dbaas/debian/
+
+    DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+}
+
+dbaas_pkg_upload_nova() {
+    exclaim "Removing old versions of the packages and adding new ones..."
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-ajax-console-proxy
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-api
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-common
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-kvm
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-lxc
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-uml
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-xen
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-doc
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-dns
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-guest
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-instancemonitor
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-network
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-objectstore
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-scheduler
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-vncproxy
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-volume
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid reddwarf-api
+    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid python-nova
+
+    cd $BUILD_DIR
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include lucid nova_${PACKAGE_VERSION}~${GIT_REVISION}_amd64.changes
+}
+
+dbaas_pkg_upload_release() {
+    exclaim "Installing the release... Assumes the $BUILD_DIR stuff is already done and exists"
+    cd $BUILD_DIR/dbaas
+    output=`grep 'BEGIN PGP SIGNED MESSAGE' /tmp/build/nova_${PACKAGE_VERSION}~${GIT_REVISION}_amd64.changes|wc -l`
+    if [ $output == 0 ]
+    then
+      echo "Signing packages..."
+      sudo -E debsign $BUILD_DIR/nova_`echo ${PACKAGE_VERSION}~${GIT_REVISION}`_amd64.changes
+    fi
+    sudo -E dupload -f --to nova $BUILD_DIR/nova_`echo ${PACKAGE_VERSION}~${GIT_REVISION}`_amd64.changes
+}
+
+build() {
+    GIT_REVISION=`git --git-dir=${NOVA_HOME}/.git rev-parse HEAD`
+
+    # Clean the build dir
+    sudo rm -rf $BUILD_DIR
+    mkdir -p $BUILD_DIR
+
+    dbaas_pkg_setup_keystone
+    dbaas_pkg_install_novaclient
+    dbaas_pkg_install_glance
+    dbaas_pkg_build_nova
+    dbaas_pkg_upload_nova
+    dbaas_pkg_build_dbaasmycnf
+    dbaas_pkg_build_firstboot
+
+    #now nuke the cacher-ng mirror of our code
+    sudo rm -rf /var/cache/apt-cacher-ng/apt.rackspace.com/
+    # TODO(rnirmal): Where to add this
+    #dbaas_pkg_upload_release
+}
+
+###############################################################################
+
+
+###############################################################################
+# Initialize or re-initalize nova
+# 
+# Clean the Nova environment removing all vms, volumes and database entries
+# Setup all the configuration and database entries
+###############################################################################
+###############################################################################
+
+GLANCE_SQL_CONNECTION="--sql-connection=mysql://nova:novapass@${INFRANET_IP}/glance"
+NOVA_SQL_CONNECTION="--sql_connection=mysql://nova:novapass@${INFRANET_IP}/nova"
+
+mysql_query () {
+    mysql -u root -e "$1"
+}
+
+glance_manage () {
+    echo glance-manage $@
+    $GLANCE_HOME/bin/glance-manage --config-file=$GLANCE_REG_CONF $@
+}
+
+nova_manage () {
+    echo nova-manage $@
+    $NOVA_HOME/bin/nova-manage --flagfile=$NOVA_CONF $@
+}
+
+reddwarf_manage () {
+    echo reddwarf-manage $@
+    $NOVA_HOME/bin/reddwarf-manage $NOVA_SQL_CONNECTION $@
+}
+
+keystone_manage () {
+    echo keystone-manage $@
+    sudo $KEYSTONE_HOME/bin/keystone-manage -c $KEYSTONE_CONF $@
+}
+
+# Delete all extra IPs grabbed by Nova.
+delete_extra_ips() {
+    for (( x=0; x <= `ip_chunk $1 4`; x += 1))
+    do
+        mysql_query "DELETE FROM nova.fixed_ips WHERE address='$2.$x';"
+    done
+}
+
+setup_nova_db() {
+    # Drop these in case this command is being run again.
+    mysql_query "DROP DATABASE IF EXISTS nova;"
+    mysql_query "DROP DATABASE IF EXISTS glance;"
+    mysql_query "DROP DATABASE IF EXISTS keystone;"
+
+    mysql_query "CREATE DATABASE nova;"
+    mysql_query "CREATE DATABASE glance;"
+    mysql_query "CREATE DATABASE keystone;"
+    mysql_query "GRANT ALL PRIVILEGES ON *.* TO 'nova'@'%' IDENTIFIED BY 'novapass' WITH GRANT OPTION;"
+    mysql_query "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost';"
+    mysql_query "DELETE FROM mysql.user WHERE User='';"
+    mysql_query "FLUSH PRIVILEGES;"
+}
+
+glance_cleanup() {
+    sudo rm -rf /var/lib/glance
+    sudo mkdir -p /var/lib/glance/images
+    sudo rm -rf /vz/template/cache/*
+}
+
+setup_nova_conf() {
+    cat /vagrant/conf/nova.conf.template > $NOVA_CONF
+    # Add the domain name, make it different each time
+    uuid | sed s/^/--dns_domain_name=/ | sed s/$/-dbaas-tests.com/  >> $NOVA_CONF
+    if [ -d /extra ]; then
+        cat /extra/nova.conf >> $NOVA_CONF
+    fi
+
+    # Copy and update the paste.ini files
+    cp /src/etc/nova/api-paste_keystone.ini /home/vagrant
+    cp /src/etc/nova/reddwarf-api-paste.ini /home/vagrant
+}
+
+glance_initialize() {
+    glance_manage version_control
+    glance_manage db_sync
+}
+
+keystone_initialize() {
+    # Keystone - Add a regular system admin
+    AUTH_TENANT="dbaas"
+    AUTH_USER="admin"
+    AUTH_PASSWORD="admin"
+    AUTH_ADMIN_ROLE="Admin"
+    keystone_manage tenant add $AUTH_TENANT
+    keystone_manage user add $AUTH_USER $AUTH_PASSWORD $AUTH_TENANT
+    keystone_manage role add $AUTH_ADMIN_ROLE
+    keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER
+    keystone_manage role grant $AUTH_ADMIN_ROLE $AUTH_USER $AUTH_TENANT
+
+    # Add "Boss"
+    keystone_manage user add Boss admin dbaas
+
+    SERVICE_ADMIN_USER="service-admin"
+    SERVICE_ADMIN_PASSWORD="serviceadmin"
+    SERVICE_ADMIN_ROLE="KeystoneServiceAdmin"
+    keystone_manage user add $SERVICE_ADMIN_USER $SERVICE_ADMIN_PASSWORD
+    keystone_manage role add $SERVICE_ADMIN_ROLE
+    keystone_manage role grant $SERVICE_ADMIN_ROLE $SERVICE_ADMIN_USER
+
+    SERVICE_REGION="ci"
+    REDDWARF_SERVICE_NAME="reddwarf"
+    NOVA_SERVICE_NAME="nova"
+    REDDWARF_SERVICE_URL="http://localhost:8775/v1.0"
+    NOVA_SERVICE_URL="http://localhost:8774/v1.1"
+    keystone_manage service add $REDDWARF_SERVICE_NAME
+    keystone_manage service add $NOVA_SERVICE_NAME
+    keystone_manage endpointTemplates add $SERVICE_REGION $REDDWARF_SERVICE_NAME $REDDWARF_SERVICE_URL $REDDWARF_SERVICE_URL $REDDWARF_SERVICE_URL 1 0
+    keystone_manage endpointTemplates add $SERVICE_REGION $NOVA_SERVICE_NAME $NOVA_SERVICE_URL $NOVA_SERVICE_URL $NOVA_SERVICE_URL 1 0
+    keystone_manage endpoint add $AUTH_TENANT 1
+    keystone_manage endpoint add $AUTH_TENANT 2
+}
+
+nova_initialize() {
+    nova_manage db sync
+    nova_manage user admin admin admin admin
+    nova_manage user admin boss admin admin
+    nova_manage project create dbaas admin
+
+    reddwarf_manage db sync
+}
+
+setup_dns() {
+    cd $TEST_HOME
+    if [ ! -z "$SETUP_DNS" ]; then
+        # Make sure the domain name exists (must happen before the image is added)
+        sudo -E ADD_DOMAINS=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=rsdns.domains
+    fi
+}
+
+upload_glance_image() {
+    glance_stop
+    # Install glance_image if one isn't found.
+    if [ ! -f /var/lib/glance/1 ]; then
+        echo "Installing Glance Image."
+        cd /tests
+        sudo INSTALL_GLANCE_IMAGE=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=services.initialize.glance
+    fi
+}
+
+setup_networking() {
+    exclaim "Setting up Networking"
+
+    # This next value will be something like '10.0.0'
+    ip_startbr100=`ip_chunk br100 1`.`ip_chunk br100 2`.`ip_chunk br100 3`
+    ip_startbr200=`ip_chunk br200 1`.`ip_chunk br200 2`.`ip_chunk br200 3`
+
+    gateway_ip=`route -n|grep ^0.0.0.0|sed 's/ \+/ /g'|cut -d' ' -f2`
+    dns_ip=`grep -m1 nameserver /etc/resolv.conf |cut -d' ' -f2`
+
+    echo "--flat_network_dns=$dns_ip" >> $NOVA_CONF
+
+    # Can't figure out the CIDR rules, so I'm giving it 256 ips.
+    nova_manage network create --label=usernet --fixed_range_v4=$ip_startbr100.0/24 --num_networks=1 --network_size=256 --bridge=br100 --bridge_interface=eth0 --dns1=$dns_ip
+    nova_manage network create --label=infranet --fixed_range_v4=$ip_startbr200.0/24 --num_networks=1 --network_size=256 --bridge=br200 --bridge_interface=eth1 --dns1=$dns_ip
+    # This for some reason is not being added, nor is it a option in nova manage.
+    # We NEED to get the project associated w/ the network and this is a nasty hack
+    # TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
+    mysql_query "update nova.networks set project_id = '$AUTH_TENANT';"
+    hostname=`hostname`
+
+    # Assume there is only one network and `update all rows.
+    mysql_query "UPDATE nova.networks SET gateway='$gateway_ip';"
+    mysql_query "UPDATE nova.networks SET host='$hostname';"
+
+    delete_extra_ips br100 $ip_startbr100
+    delete_extra_ips br200 $ip_startbr200
+}
+
+reset_services() {
+    # Remove all the devices on the Host
+    sudo iscsiadm -m node --logout
+
+    # Remove vz private area
+    for i in `sudo vzlist --all --output ctid --no-header` ; do sudo vzctl stop $i && sudo vzctl destroy $i ; done
+    sudo rm -fr /var/lib/vz/private/*
+
+    # Delete all of the volumes on the Volumes VM since the DB will now
+    # be out of sync.
+    ssh vagrant@33.33.33.10 "sudo /vagrant/volumeserver delete"
+
+    # Restart Rabbit MQ so all the old queues are cleared
+    sudo service rabbitmq-server restart
+}
+
+initialize() {
+    exclaim "Initializing Nova...."
+
+    setup_nova_db
+    glance_cleanup
+
+    setup_nova_conf
+
+    glance_initialize
+    nova_initialize
+    keystone_initialize
+
+    setup_dns
+    upload_glance_image
+    setup_networking
+
+    reset_services
+}
+
+###############################################################################
+# Run the CI Tests
+###############################################################################
+
+run_tests() {
+    cd $TEST_HOME
+    if [ $# -lt 1 ]; then
+        sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=host.ovz
+    else
+        sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF $@
+    fi
+}
+
+run_host_tests() {
+    cd $TEST_HOME
+    sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=dbaas.guests
+}
+
+###############################################################################
+
+
+###############################################################################
+# All in One run the complete CI steps
+#
+# 1. Install
+# 2. Build
+# 3. Initialize
+# 4. Test
+###############################################################################
+###############################################################################
+
+run_ci() {
+    install_deps
+    build
+    initialize
+    run_tests
+}
+
+###############################################################################
+# Start Reddwarf interactively in a screen session
+###############################################################################
+###############################################################################
+
+function screen_it {
+    screen -S nova -X screen -t $1
+    screen -S nova -p $1 -X stuff "$2$NL"
+}
+
+start_reddwarf() {
+    if [ ! -f ~/.screenrc ]; then
+    cat >~/.screenrc <<EOF
+hardstatus on
+hardstatus alwayslastline
+hardstatus string "%{.bW}%-w%{.rW}%n %t%{-}%+w %=%{..G}%H %{..Y}%d/%m %c"
+
+defscrollback 1024
+
+vbell off
+startup_message off
+EOF
+    fi
+
+    NL=`echo -ne '\015'`
+
+    screen -d -m -S nova -t nova
+    sleep 1
+
+    screen_it glance-reg "sudo $GLANCE_HOME/bin/glance-registry $GLANCE_REG_CONF --debug"
+    screen_it glance-api "sudo $GLANCE_HOME/bin/glance-api $GLANCE_API_CONF --debug"
+
+    screen_it keystone-admin "sudo $KEYSTONE_HOME/bin/keystone-admin -c $KEYSTONE_CONF"
+    screen_it keystone-service "sudo $KEYSTONE_HOME/bin/keystone-auth -c $KEYSTONE_CONF"
+
+    screen_it reddwarf "sudo $NOVA_HOME/bin/reddwarf-api $NOVA_CONF"
+    screen_it nova-api "sudo $NOVA_HOME/bin/nova-api $NOVA_CONF"
+    screen_it compute "sudo $NOVA_HOME/bin/nova-compute $NOVA_CONF"
+    screen_it network "sudo $NOVA_HOME/bin/nova-network $NOVA_CONF"
+    screen_it scheduler "sudo $NOVA_HOME/bin/nova-scheduler $NOVA_CONF"
+    screen_it volume "sudo $NOVA_HOME/bin/nova-volume $NOVA_CONF"
+    screen -S nova -x
+}
+
+###############################################################################
+# Stop any active Reddwarf screen session
+###############################################################################
+###############################################################################
+
+stop_reddwarf() {
+    screen -S nova -X quit
+    rm *.pid*
+}
+
+###############################################################################
+
+
+###############################################################################
+# Misc services and tests
+###############################################################################
+###############################################################################
+
+show_dns_entries() {
+    cd $NOVA_HOME
+    export PYTHONPATH=$PYTHONPATH:$NOVA_HOME
+    python integration/show_dns_entries.py --flagfile=$NOVA_CONF
+}
+
+###############################################################################
+
+
+###############################################################################
+# Various utils and commands to access the vagrant environment from the host
+# machine without having to manually ssh into the vagrant environment
+###############################################################################
+###############################################################################
+
+# Get all the information required to ssh into the host vm and run ci
+vagrant_ssh() {
+    VHOST=`vagrant ssh_config host | awk '/HostName/{print $2}'`
+    VUSER=`vagrant ssh_config host | awk '/User /{print $2}'`
+    VPORT=`vagrant ssh_config host | awk '/Port/{print $2}'`
+    VIDFILE=`vagrant ssh_config host | awk '/IdentityFile/{print $2}'`
+    ssh ${VUSER}@${VHOST} -p ${VPORT} -i ${VIDFILE} -o NoHostAuthenticationForLocalhost=yes "$@"
+}
+
+run_vagrant_ci() {
+    vagrant_ssh $HTTP_PROXY /vagrant/reddwarf-ci run
+}
+
+###############################################################################
+
+###############################################################################
+# Process the user provided command and run the appropriate command
+###############################################################################
+
+# Lets not run this as the root user
+if [ $EUID -eq 0 ]; then
+   echo "You are running this script as root. You need to run as a regular user"
+   exit 1
+fi
+
+# Print the available commands
+if [ $# -lt 1 ]; then
+    print_usage
+fi
+
+# Set this to exit immediately on error
+set -o errexit
+
+set_home_dir
+set_http_proxy
+
+if [ "$1" != "vagrantci" ]; then
+    setup_ips
+fi
+
+case "$1" in
+    "vagrantci" ) run_vagrant_ci;;
+    "run" ) run_ci;;
+    "install" ) install_deps;;
+    "build" ) build;;
+    "initialize" ) initialize;;
+    "test" ) run_tests;;
+    "start" ) start_reddwarf;;
+    "stop" ) stop_reddwarf;;
+    "show_dns_entries" ) show_dns_entries;;
+    * )
+        echo "'$1' not a valid command"
+        exit 1
+esac

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+###############################################################################
+# Reddwarf Continuous Integration Script                                      #
+###############################################################################
+#                                                                             #
+# This script provides all the functionality to manage the volume server vm.  #
+#                                                                             # 
+###############################################################################
+
+###############################################################################
+# Usage and list of available commands                                        #
+###############################################################################
+print_usage() {
+    echo "Usage: $0 [command]"
+    echo ""
+    echo "Commands:
+            delete          - Delete all the volumes"
+    exit 1
+}
+###############################################################################
+
+
+###############################################################################
+# Delete all the volume on this server
+###############################################################################
+
+delete() {
+    echo "Deleting volumes..."
+    sudo service iscsitarget restart
+    sudo rm -rf /san/*
+    echo "Finished deleting volumes."
+}
+
+###############################################################################
+
+
+###############################################################################
+# Process the user provided command and run the appropriate command
+
+if [ $# -lt 1 ]; then
+    print_usage
+fi
+
+case "$1" in
+    "delete" ) delete;;
+    * )
+        echo "'$1' not a valid command"
+        exit 1
+esac
+
+exit 0
