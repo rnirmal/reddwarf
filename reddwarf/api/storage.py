@@ -35,6 +35,7 @@ class Controller(object):
     def __init__(self):
         super(Controller, self).__init__()
 
+    @common.verify_admin_context
     def index(self, req):
         """List all the storage devices in the system"""
         LOG.info("List all the storage devices in the system")

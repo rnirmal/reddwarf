@@ -37,6 +37,7 @@ class Controller(object):
     def __init__(self):
         super(Controller, self).__init__()
 
+    @common.verify_admin_context
     def index(self, req):
         """List all the hosts on the system"""
         LOG.info("List all the nova-compute hosts in the system")
@@ -52,6 +53,7 @@ class Controller(object):
 
     #TODO(cp16net): this would be nice to use if zones are working for us
     #@check_host
+    @common.verify_admin_context
     def show(self, req, id):
         """List all the instances on the host given"""
         try:

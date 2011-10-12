@@ -76,7 +76,7 @@ class Controller(object):
         """ Creates a new user for the db instance """
         self._validate(body)
 
-        LOG.info("Call to Create Useres for instance %s", instance_id)
+        LOG.info("Call to Create Users for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)

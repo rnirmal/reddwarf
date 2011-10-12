@@ -20,11 +20,14 @@ from webob import exc
 
 
 from nova import exception
+from nova import log as logging
 from nova.compute import power_state
+from nova.db.sqlalchemy.api import is_admin_context
 from nova.guest.db import models
 
 
 XML_NS_V10 = 'http://docs.rackspacecloud.com/dbaas/api/v1.0'
+LOG = logging.getLogger('reddwarf.api.common')
 
 dbaas_mapping = {
     None: 'BUILD',
@@ -74,3 +77,23 @@ def instance_exists(ctxt, id, compute_api):
         return compute_api.get(ctxt, id)
     except exception.NotFound:
         raise exc.HTTPNotFound()
+
+def verify_admin_context(f):
+    """
+    Verify that the current context has administrative access,
+    or throw an exception. Reddwarf API functions typically take the form
+    function(self, req), or function(self, req, id).
+    """
+    def wrapper(*args, **kwargs):
+        if not 'req' in kwargs:
+          raise exception.Error("Need a reddwarf request to extract the context.")
+        req = kwargs['req']
+        if not hasattr(req, 'environ'):
+          raise exception.Error("Request needs an environment to extract the context.")
+        context = req.environ.get('nova.context', None)
+        if context is None:
+          raise exception.Error("Request context is None; cannot verify admin access.")
+        if not is_admin_context(context):
+            raise exception.AdminRequired()
+        return f(*args, **kwargs)
+    return wrapper
