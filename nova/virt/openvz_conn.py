@@ -107,6 +107,9 @@ def get_connection(read_only):
 
 class OpenVzConnection(driver.ComputeDriver):
     def __init__(self, read_only):
+        """
+        I create an instance of the openvz connection.
+        """
         self.utility = {
                 'CTIDS': {},
                 'TOTAL': 0,
@@ -120,6 +123,9 @@ class OpenVzConnection(driver.ComputeDriver):
 
     @classmethod
     def instance(cls):
+        """
+        This is borrowed from the fake driver.  
+        """
         if not hasattr(cls, '_instance'):
             cls._instance = cls()
         return cls._instance
@@ -185,6 +191,14 @@ class OpenVzConnection(driver.ComputeDriver):
         Satisfy the requirement for this method in the manager codebase.
         This fascilitates the regular status polls that happen within the
         manager code.
+
+        I execute the command:
+
+        vzlist --all -o name -H
+
+        If I fail to run an exception is raised because a failure to run is
+        disruptive to the driver's ability to support the instances on
+        the host through nova's interface.
         """
 
         # TODO(imsplitbit): need to ask around if this is the best way to do
@@ -300,6 +314,14 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Attempt to load the image from openvz's image cache, upon failure
         cache the image and then retry the load.
+
+        I run the command:
+
+        vzctl create <ctid> --ostemplate <image_ref>
+
+        If I fail to execute an exception is raised because this is the first
+        in a long list of many critical steps that are necessary for creating
+        a working VE.
         """
 
         # TODO(imsplitbit): This needs to set an os template for the image
@@ -325,8 +347,30 @@ class OpenVzConnection(driver.ComputeDriver):
         return True
 
     def _set_vz_os_hint(self, instance, ostemplate='ubuntu'):
+        """
+        I exist as a stopgap because currently there are no os hints
+        in the image managment of nova.  There are ways of hacking it in
+        via image_properties but this requires special case code just for 
+        this driver.  I will be working to hack in an oshint feature once
+        the driver is accepted into nova.
+
+        I run the command:
+
+        vzctl set <ctid> --save --ostemplate <ostemplate>
+
+        Currently ostemplate defaults to ubuntu.  This facilitates setting
+        the ostemplate setting in OpenVZ to allow the OpenVz helper scripts
+        to setup networking, nameserver and hostnames.  Because of this, the
+        openvz driver only works with debian based distros.
+
+        If I fail to run an exception is raised as this is a critical piece
+        in making openvz run a container.
+        """
+
         # This sets the distro hint for OpenVZ to later use for the setting
         # of resolver, hostname and the like
+
+        # TODO(imsplitbit): change the ostemplate default value to a flag
         try:
             out, err = utils.execute('vzctl', 'set', instance['id'],
                                      '--save', '--ostemplate', ostemplate,
@@ -342,7 +386,10 @@ class OpenVzConnection(driver.ComputeDriver):
 
     def _cache_image(self, context, instance):
         """
-        Create the disk image for the virtual environment.
+        Create the disk image for the virtual environment.  This uses the
+        image library to pull the image down the distro image into the openvz
+        template cache.  This is the method that openvz wants to operate
+        properly.
         """
 
         image_name = '%s.tar.gz' % instance['image_ref']
@@ -368,6 +415,16 @@ class OpenVzConnection(driver.ComputeDriver):
         This adds the container root into the vz meta data so that
         OpenVz acknowledges it as a container.  Punting to a basic
         config for now.
+
+        I run the command:
+
+        vzctl set <ctid> --save --applyconfig <config>
+
+        This sets the default configuration file for openvz containers.  This
+        is a requisite step in making a container from an image tarball.
+
+        If I fail to run successfully I raise an exception because the
+        container I execute against requires a base config to start.
         """
         try:
             # Set the base config for the VE, this currently defaults to the
@@ -390,6 +447,13 @@ class OpenVzConnection(driver.ComputeDriver):
         Method to start the instance, I don't believe there is a nova-ism
         for starting so I am wrapping it under the private namespace and
         will call it from expected methods.  i.e. resume
+
+        I run the command:
+
+        vzctl start <ctid>
+
+        If I fail to run an exception is raised.  I don't think it needs to be
+        explained why.
         """
         try:
             # Attempt to start the VE.
@@ -415,6 +479,12 @@ class OpenVzConnection(driver.ComputeDriver):
         Method to stop the instance.  This doesn't seem to be a nova-ism but
         it is for openvz so I am wrapping it under the private namespace and
         will call it from expected methods.  i.e. pause
+
+        I run the command:
+
+        vzctl stop <ctid>
+
+        If I fail to run an exception is raised for obvious reasons.
         """
         try:
             out, err = utils.execute('vzctl', 'stop', instance['id'],
@@ -436,6 +506,23 @@ class OpenVzConnection(driver.ComputeDriver):
                                   % instance['id'])
 
     def _set_hostname(self, instance, hostname=False):
+        """
+        I exist to set the hostname of a given container.  The option to pass
+        a hostname to the method was added with the intention to allow the
+        flexibility to override the hostname listed in the instance ref.  A
+        good person wouldn't do this but it was needed for some testing and
+        therefore remains for future use.
+
+        I run the command:
+
+        vzctl set <ctid> --save --hostname <hostname>
+
+        If I fail to execute an exception is raised because the hostname is
+        used in most cases for connecting to the guest.  While having the
+        hostname not match the dns name is not a complete problem it can lead
+        name mismatches.  One could argue that this should be a softer error
+        and I might have a hard time arguing with that one.
+        """
         if not hostname:
             hostname = instance['hostname']
 
@@ -486,7 +573,12 @@ class OpenVzConnection(driver.ComputeDriver):
         on each interface for the address assigned.
 
         The command looks like this:
+
         arping -q -c 5 -A -I eth0 10.0.2.4
+
+        If I fail to execute no exception is raised because even if the
+        gratuitous arp fails the container will most likely be available as
+        soon as the switching/routing infrastructure's arp cache clears.
         """
         try:
             LOG.debug(_('Sending arp for %(ip_address)s over %(interface)s') %
@@ -505,9 +597,19 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(_('Failed arping through VE'))
 
     def _set_name(self, instance):
-        # This stores the nova 'name' of an instance in the name field for
-        # openvz.  This is done to facilitate the get_info method which only
-        # accepts an instance name.
+        """
+        I exist to store the name of an instance in the name field for
+        openvz.  This is done to facilitate the get_info method which only
+        accepts an instance name as an argument.
+
+        I run the command:
+
+        vzctl set <ctid> --save --name <name>
+
+        If I fail to run an exception is raised.  This is due to the
+        requirement of the get_info method to have the name field filled out.
+        """
+
         try:
             out, err = utils.execute('vzctl', 'set', instance['id'],
                                      '--save', '--name', instance['name'],
@@ -522,6 +624,18 @@ class OpenVzConnection(driver.ComputeDriver):
                                   instance['id'])
 
     def _find_by_name(self, instance_name):
+        """
+        This method exists to facilitate get_info.  The get_info method only
+        takes an instance name as it's argument.
+
+        I run the command:
+
+        vzlist -H --all --name <name>
+
+        If I fail to run an exception is raised because if I cannot locate an
+        instance by it's name then the driver will fail to work.
+        """
+
         # The required method get_info only accepts a name so we need a way
         # to correlate name and id without maintaining another state/meta db
         try:
@@ -604,7 +718,15 @@ class OpenVzConnection(driver.ComputeDriver):
     def _set_vmguarpages(self, instance):
         """
         Set the vmguarpages attribute for a container.  This number represents
-        the number of 4k blocks that are guaranteed to the container.
+        the number of 4k blocks of memory that are guaranteed to the container.
+        This is what shows up when you run the command 'free' in the container.
+
+        I run the command:
+
+        vzctl set <ctid> --save --vmguarpages <num_pages>
+
+        If I fail to run then an exception is raised because this affects the
+        memory allocation for the container.
         """
         vmguarpages = self._calc_pages(instance)
 
@@ -626,6 +748,13 @@ class OpenVzConnection(driver.ComputeDriver):
         memory allocation limit.  Think of this as a bursting limit.  For now
         We are setting to the same as vmguarpages but in the future this can be
         used to thin provision a box.
+
+        I run the command:
+
+        vzctl set <ctid> --save --privvmpages <num_pages>
+
+        If I fail to run an exception is raised as this is essential for the
+        running container to operate properly within it's memory constraints.
         """
         privvmpages = self._calc_pages(instance)
 
@@ -646,6 +775,14 @@ class OpenVzConnection(driver.ComputeDriver):
         Set the cpuunits setting for the container.  This is an integer
         representing the number of cpu fair scheduling counters that the
         container has access to during one complete cycle.
+
+        I run the command:
+
+        vzctl set <ctid> --save --cpuunits <units>
+
+        If I fail to run an exception is raised because this is the secret
+        sauce to constraining each container within it's subscribed slice of 
+        the host node.
         """
         if not units:
             LOG.debug(_('Reported cpuunits %s') % self.utility['UNITS'])
@@ -677,6 +814,14 @@ class OpenVzConnection(driver.ComputeDriver):
         the container gets.  NOTE: 100% is 1 logical cpu so if you have 12
         cores with hyperthreading enabled then 100% of the whole host machine
         would be 2400% or --cpulimit 2400.
+
+        I run the command:
+
+        vzctl set <ctid> --save --cpulimit <cpulimit>
+
+        If I fail to run an exception is raised because this is the secret
+        sauce to constraining each container within it's subscribed slice of 
+        the host node.
         """
 
         if not cpulimit:
@@ -704,6 +849,15 @@ class OpenVzConnection(driver.ComputeDriver):
     def _set_cpus(self, instance, cpus=None, multiplier=2):
         """
         The number of logical cpus that are made available to the container.
+        I default to showing 2 cpus to each container at a minimum.
+
+        I run the command:
+
+        vzctl set <ctid> --save --cpus <num_cpus>
+
+        If I fail to run an exception is raised because this limits the number
+        of cores that are presented to each container and if this fails to set
+        *ALL* cores will be presented to every container, that be bad.
         """
         if not cpus:
             inst_typ = instance_types.get_instance_type(
@@ -732,6 +886,14 @@ class OpenVzConnection(driver.ComputeDriver):
         by an integer between 0 and 7.  If no priority is given one will be
         automatically calculated based on the percentage of allocated memory
         for the container.
+
+        I run the command:
+
+        vzctl set <ctid> --save --ioprio <iopriority>
+
+        If I fail to run an exception is raised because all containers are
+        given the same weight by default which will cause bad performance
+        across all containers when there is input/outpu contention.
         """
         if not ioprio:
             ioprio = int(self._percent_of_resource(instance) * float(
@@ -755,6 +917,13 @@ class OpenVzConnection(driver.ComputeDriver):
         of diskspace that is reported by system tools such as du and df inside
         the container.  If no argument is given then one will be calculated
         based on the values in the instance_types table within the database.
+
+        I run the command:
+
+        vzctl set <ctid> --save --diskspace <soft_limit:hard_limit>
+
+        If I fail to run an exception is raised because this command limits a
+        container's ability to hijack all available disk space.
         """
         instance_type = instance_types.get_instance_type(
             instance['instance_type_id'])
@@ -785,7 +954,8 @@ class OpenVzConnection(driver.ComputeDriver):
 
     def plug_vifs(self, instance, network_info):
         """
-        I plug vifs into networks and configure devices in the container.
+        I plug vifs into networks and configure network devices in the 
+        container.  I am necessary to make multi-nic go.
         """
         interfaces = []
         interface_num = -1
@@ -842,12 +1012,15 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Reboot the specified instance.
 
-        The given parameter is an instance of nova.compute.service.Instance,
-        and so the instance is being specified as instance.name.
+        I run the command:
 
-        The work will be done asynchronously.  This function returns a
-        task that allows the caller to detect when it is complete.
+        vzctl restart <ctid>
+
+        If I fail to run an exception is raised because the container given to
+        this method will be in an inconsistent state.
         """
+
+        # TODO(imsplitbit): make this an async call
         try:
             out, err = utils.execute('vzctl', 'restart', instance['id'],
                                      run_as_root=True)
@@ -912,12 +1085,16 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Destroy (shutdown and delete) the specified instance.
 
-        The given parameter is an instance of nova.compute.service.Instance,
-        and so the instance is being specified as instance.name.
+        I run the command:
 
-        The work will be done asynchronously.  This function returns a
-        task that allows the caller to detect when it is complete.
+        vzctl destroy <ctid>
+
+        If I do not run successfully then an exception is raised.  This is
+        because a failure to destroy would leave the database and container
+        in a disparate state.
         """
+        # TODO(imsplitbit): make this async
+
         # TODO(imsplitbit): This needs to check the state of the VE
         # and if it isn't stopped it needs to stop it first.  This is
         # an openvz limitation that needs to be worked around.
@@ -955,7 +1132,17 @@ class OpenVzConnection(driver.ComputeDriver):
                                        volume['mountpoint'])
 
     def attach_volume(self, instance_name, device_path, mountpoint):
-        """Attach the disk at device_path to the instance at mountpoint"""
+        """
+        Attach the disk at device_path to the instance at mountpoint.  For
+        volumes being attached to OpenVz we require a filesystem be created
+        already.  We have not included code to create filesystems here as it
+        was assumed that would be the responsiblity of the volume server.
+
+        The reddwarf team has extended the volume code to include a flag that
+        will cause the volume server to create a filesystem and attach a
+        uuid to the filesystem.  While a uuid is not required it makes
+        migration easier as device names can change from host to host.
+        """
 
         # Find the actual instance ref so we can see if it has a Reddwarf
         # friendly volume.  i.e. a formatted filesystem with UUID attribute
@@ -993,7 +1180,9 @@ class OpenVzConnection(driver.ComputeDriver):
             volumes.write_and_close()
 
     def detach_volume(self, instance_name, mountpoint):
-        """Detach the disk attached to the instance at mountpoint"""
+        """
+        Detach the disk attached to the instance at mountpoint
+        """
 
         # Find the instance ref so we can pass it to the
         # _mount_script_modify method.
@@ -1229,6 +1418,13 @@ class OpenVzConnection(driver.ComputeDriver):
         accurately compute how many cpuunits a container should get.  This is
         Linux specific code but because OpenVz only runs on linux this really
         isn't a problem.
+
+        I run the command:
+
+        cat /proc/meminfo
+
+        If I fail to run an exception is raised as the returned value of this
+        method is required for all resource isolation to work correctly.
         """
         try:
             out, err = utils.execute('cat', '/proc/meminfo', run_as_root=True)
@@ -1254,6 +1450,14 @@ class OpenVzConnection(driver.ComputeDriver):
         being added up by logical processor.  If there are 24 logical
         processors then the total cpulimit for the host node will be
         2400.
+
+        I run the command:
+
+        cat /proc/cpuinfo
+
+        If I fail to run an exception is raised because the returned value
+        of this method is essential in calculating the number of cores
+        available on the host to be carved up for the guests.
         """
         proc_count = 0
         try:
@@ -1280,6 +1484,14 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Use openvz tools to discover the total processing capability of the
         host node.  This is done using the vzcpucheck utility.
+
+        I run the command:
+
+        vzcpucheck
+
+        If I fail to run an exception is raised because the output of this
+        method is required to calculate the overall bean count available on the
+        host to be carved up for guests to use.
         """
         try:
             out, err = utils.execute('vzcpucheck', run_as_root=True)
@@ -1302,6 +1514,14 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         Use openvz tools to discover the total used processing power. This is
         done using the vzcpucheck -v command.
+
+        I run the command:
+
+        vzcpucheck -v
+
+        If I fail to run an exception should not be raised as this is a soft
+        error and results only in the lack of knowledge of what the current
+        cpuunit usage of each container.
         """
         try:
             out, err = utils.execute('vzcpucheck', '-v', run_as_root=True)
@@ -1322,10 +1542,6 @@ class OpenVzConnection(driver.ComputeDriver):
 
         except ProcessExecutionError as err:
             LOG.error(_('Stderr output from vzcpucheck: %s') % err)
-            raise exception.Error(_('Problem getting cpuunits for host'))
-
-        return True
-
 
 class OVZFile(object):
     """
@@ -1366,6 +1582,13 @@ class OVZFile(object):
         There are certain conditions where we create an OVZFile object but that
         file may or may not exist and this provides us with a way to create
         that file if it doesn't exist.
+
+        I run the command:
+
+        touch <filename>
+
+        If I do not run an exception is raised as a failure to touch a file
+        when you intend to do so would cause a serious failure of procedure.
         """
         self.make_path()
         try:
@@ -1414,6 +1637,14 @@ class OVZFile(object):
         """
         Because nova runs as an unprivileged user we need a way to mangle
         permissions on files that may be owned by root for manipulation
+
+        I run the command:
+
+        chmod <permissions> <filename>
+
+        If I do not run an exception is raised because the permissions not
+        being set to what the application believes they are set to can cause
+        a failure of epic proportions.
         """
         try:
             out, err = utils.execute('chmod', permissions, self.filename,
@@ -1442,6 +1673,14 @@ class OVZFile(object):
         This is the method that actually creates directories. This is used by
         make_path and can be called directly as a utility to create
         directories.
+
+        I run the command:
+
+        mkdir -p <path>
+
+        If I do not run an exception is raised as this path creation is
+        required to ensure that other file operations are successful. Such
+        as creating the path for a file yet to be created.
         """
         try:
             if not os.path.exists(path):
@@ -1884,6 +2123,14 @@ class OVZNetworkInterfaces(object):
     def _add_ip(self, instance_id, ip):
         """
         I add an IP address to a container if you are not using veth devices.
+
+        I run the command:
+
+        vzctl set <ctid> --save --ipadd <ip>
+
+        If I fail to run an exception is raised as this indicates a failure to
+        create a network available connection within the container thus making
+        it unusable to all but local users and therefore unusable to nova.
         """
         try:
             out, err = utils.execute('vzctl', 'set', instance_id,
@@ -1901,6 +2148,13 @@ class OVZNetworkInterfaces(object):
         """
         Get the nameserver for the assigned network and set it using
         OpenVz's tools.
+
+        I run the command:
+
+        vzctl set <ctid> --save --nameserver <nameserver>
+
+        If I fail to run an exception is raised as this will indicate
+        the container's inability to do name resolution.
         """
         try:
             out, err = utils.execute('vzctl', 'set', instance_id,
