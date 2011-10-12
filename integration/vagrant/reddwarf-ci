@@ -856,7 +856,7 @@ case "$1" in
     "install" ) install_deps;;
     "build" ) build;;
     "initialize" ) initialize;;
-    "test" ) run_tests;;
+    "test" ) run_tests $@;;
     "start" ) start_reddwarf;;
     "stop" ) stop_reddwarf;;
     "show_dns_entries" ) show_dns_entries;;
