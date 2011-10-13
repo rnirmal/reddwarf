@@ -141,14 +141,16 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
-        instance = db.instance_get(context, instance_id)
-        if instance['vm_state'] == vm_states.SUSPENDED:
-            # SUSPENDED is not a valid 'shut_down' state to the Compute API.
-            # But we want our customers to be able to delete things in the
-            # event of failure, in which case we set the state to SUSPENDED.
-            db.instance_update(context.get_admin_context(),
-                               id,
-                               {'vm_state': vm_states.ACTIVE,})
+        instance = db.instance_get(context, id)
+        if instance['vm_state'] in [vm_states.SUSPENDED, vm_states.ERROR]:
+            # SUSPENDED and ERROR are not valid 'shut_down' states to the
+            # Compute API. But we want our customers to be able to delete
+            # things in the event of failure, in which case we set the state to
+            # SUSPENDED. Additionally as of 2011-10-12 ERROR is used in two
+            # places: 1, the compute manager when a resize fails, or 2. by our
+            # very own UnforgivingMemoryScheduler. So as of today ERROR is
+            # also a viable state for deletion.
+            db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
         
         self.server_controller.delete(req, id)
         #TODO(rnirmal): Use a deferred here to update status

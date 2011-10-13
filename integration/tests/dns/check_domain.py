@@ -35,6 +35,7 @@ import rsdns
 from nova.dns.driver import DnsEntry
 from nova.dns.rsdns.driver import RsDnsDriver
 from nova.dns.rsdns.driver import RsDnsZone
+from tests.util import should_run_rsdns_tests
 
 FLAGS = flags.FLAGS
 TEST_CONTENT="126.1.1.1"
@@ -60,7 +61,8 @@ class ClientTests(object):
         print(domains)
 
 
-@test(groups=["rsdns.domains"], depends_on=[ClientTests])
+@test(groups=["rsdns.domains"], depends_on=[ClientTests],
+      enabled=should_run_rsdns_tests())
 class RsDnsDriverTests(object):
     """Tests the RS DNS Driver."""
 

@@ -245,12 +245,10 @@ class CreateInstance(unittest.TestCase):
 
     """
 
-    @test
     def test_before_instances_are_started(self):
         # give the services some time to start up
         time.sleep(2)
 
-    @test
     @expect_exception(ClientException)
     def test_instance_size_too_big(self):
         too_big = dbaas_FLAGS.reddwarf_max_accepted_volume_size
@@ -258,7 +256,6 @@ class CreateInstance(unittest.TestCase):
                                   instance_info.dbaas_flavor_href,
                                   {'size': too_big + 1}, [])
 
-    @test
     def test_create(self):
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",
@@ -292,7 +289,6 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).links(result._info['links'])
         CheckInstance(result._info).volume()
 
-    @test
     def test_mgmt_get_instance_on_create(self):
         result = dbaas.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
@@ -305,7 +301,6 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).flavor()
         CheckInstance(result._info).guest_status()
 
-    @test
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
             assert_false(True, "Security groups did not get created")
@@ -439,7 +434,6 @@ class TestVolume(unittest.TestCase):
 class TestInstanceListing(unittest.TestCase):
     """ Test the listing of the instance information """
 
-    @test
     def test_detail_list(self):
         expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
                           'name', 'status', 'updated', 'volume']
@@ -453,7 +447,6 @@ class TestInstanceListing(unittest.TestCase):
             CheckInstance(instance_dict).links(instance_dict['links'])
             CheckInstance(instance_dict).volume()
 
-    @test
     def test_index_list(self):
         expected_attrs = ['id', 'links', 'name', 'status']
         instances = dbaas.instances.index()
@@ -464,7 +457,6 @@ class TestInstanceListing(unittest.TestCase):
                                                      msg="Instance Index")
             CheckInstance(instance_dict).links(instance_dict['links'])
 
-    @test
     def test_get_instance(self):
         expected_attrs = ['created', 'databases', 'flavor', 'hostname', 'id',
                           'links', 'name', 'rootEnabled', 'status', 'updated',
@@ -479,7 +471,6 @@ class TestInstanceListing(unittest.TestCase):
         CheckInstance(instance_dict).volume()
         CheckInstance(instance_dict).databases()
 
-    @test
     def test_instance_hostname(self):
         instance = dbaas.instances.get(instance_info.id)
         dns_entry = instance_info.expected_dns_entry()
@@ -492,21 +483,17 @@ class TestInstanceListing(unittest.TestCase):
             expected_hostname = "%s-instance-%s" % (name, instance_info.id)
             assert_equal(expected_hostname, instance.hostname)
 
-    @test
     def test_get_instance_status(self):
         result = dbaas.instances.get(instance_info.id)
         assert_equal(dbaas_mapping[power_state.RUNNING], result.status)
 
-    @test
     def test_get_legacy_status(self):
         result = dbaas.instances.get(instance_info.id)
         assert_true(result is not None)
 
-    @test
     def test_get_legacy_status_notfound(self):
         self.assertRaises(NotFound, dbaas.instances.get, -2)
 
-    @test
     def test_volume_found(self):
         instance = dbaas.instances.get(instance_info.id)
         assert_equal(instance_info.volume['size'], instance.volume['size'])
@@ -609,13 +596,9 @@ class DeleteInstance(unittest.TestCase):
 class InstanceHostCheck2(InstanceHostCheck):
     """Class to run tests after delete"""
 
-    @expect_exception(Exception)
+    @expect_exception(NotFound)
     def test_host_not_found(self):
-        instance_info.myresult = dbaas.hosts.get('host-dne')
-
-    @expect_exception(Exception)
-    def test_host_not_found(self):
-        instance_info.myresult = dbaas.hosts.get('host@$%3dne')
+        dbaas.hosts.get('host-dne')
 
     def test_no_details_empty_account(self):
         account_info = dbaas.accounts.show(instance_info.user.auth_user)

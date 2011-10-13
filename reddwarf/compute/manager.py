@@ -189,11 +189,11 @@ class ReddwarfInstanceInitializer(object):
             #self.compute_manager.suspend_instance(self.context,
             #                                      self.instance_id)
             # ... so we have to duplicate some code from the Compute manager.
-            compute_manager._instance_update(self.context,
-                              self.instance_id,
-                              power_state=power_state.SHUTOFF,
-                              vm_state=vm_states.SUSPENDED,
-                              task_state=None)
+            self.compute_manager._instance_update(self.context,
+                                              self.instance_id,
+                                              power_state=power_state.SHUTOFF,
+                                              vm_state=vm_states.SUSPENDED,
+                                              task_state=None)
             self._notify_of_failure(exception=exception,
                 event_type='reddwarf.instance.abort.volume',
                 audit_msg=_("Aborting instance %(instance_id)d because "
