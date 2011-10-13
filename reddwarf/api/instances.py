@@ -142,6 +142,7 @@ class Controller(object):
         context = req.environ['nova.context']
 
         instance = db.instance_get(context, id)
+        #TODO(tim.simpson): Try to get this fixed for real in Nova.
         if instance['vm_state'] in [vm_states.SUSPENDED, vm_states.ERROR]:
             # SUSPENDED and ERROR are not valid 'shut_down' states to the
             # Compute API. But we want our customers to be able to delete
