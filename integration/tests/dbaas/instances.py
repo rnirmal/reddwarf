@@ -331,8 +331,12 @@ class AccountMgmtData(unittest.TestCase):
     # not throwing it back as an exception as expected.
 #    @expect_exception(ClientException)
     def test_delete_instance_right_after_create(self):
+        def raised_the_right_HTTP_code():
+            return util.check_logs_for_message("INFO nova.api.openstack.wsgi [-] http://localhost:8775/v1.0/instances/%s returned with HTTP 422"
+                                        % str(instance_info.id))
         try:
             dbaas.instances.delete(instance_info.id)
+            utils.poll_until(raised_the_right_HTTP_code, sleep_time=2, time_out=60)
         except Exception as ex:
             assert_equal(type(string), type(ex))
 
