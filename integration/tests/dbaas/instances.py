@@ -217,6 +217,10 @@ class InstanceHostCheck(unittest.TestCase):
     def test_host_not_found(self):
         instance_info.myresult = dbaas.hosts.get('host@$%3dne')
 
+    @expect_exception(NotFound)
+    def test_delete_instance_not_found(self):
+        result = dbaas.instances.delete(1)
+
     def test_storage_on_host(self):
         storage = dbaas.storage.index()
         print("storage : %r" % storage)
@@ -273,7 +277,7 @@ class CreateInstance(unittest.TestCase):
         else:
             id = existing_instance()
             instance_info.initial_result = dbaas.instances.get(id)
-        
+
         result = instance_info.initial_result
         instance_info.id = result.id
 
@@ -321,6 +325,20 @@ class AccountMgmtData(unittest.TestCase):
         print("instances in account: %s" % instance)
         self.assertEqual(instance['id'], instance_info.id)
         self.assertEqual(instance['name'], instance_info.name)
+
+    #TODO(cp16net) nova-client is not throwing back an exception here
+    # it is logging the body as 422 and the correct msg but
+    # not throwing it back as an exception as expected.
+#    @expect_exception(ClientException)
+    def test_delete_instance_right_after_create(self):
+        def raised_the_right_HTTP_code():
+            return util.check_logs_for_message("INFO nova.api.openstack.wsgi [-] http://localhost:8775/v1.0/instances/%s returned with HTTP 422"
+                                        % str(instance_info.id))
+        try:
+            dbaas.instances.delete(instance_info.id)
+            utils.poll_until(raised_the_right_HTTP_code, sleep_time=2, time_out=60)
+        except Exception as ex:
+            assert_equal(type(string), type(ex))
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
@@ -421,7 +439,7 @@ class TestVolume(unittest.TestCase):
 
     def test_db_should_have_instance_to_volume_association(self):
         """The compute manager should associate a volume to the instance."""
-        volumes = db.volume_get_all_by_instance(context.get_admin_context(), 
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
                                                 instance_info.id)
         self.assertEqual(1, len(volumes))
         description = "Volume ID: %s assigned to Instance: %s" \
@@ -630,7 +648,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
         # The client reshapes the exception into just an OpenStackException.
         #self.assertRaises(nova.exception.InstanceNotFound, dbaas.management.show, -1)
         self.assertRaises(NotFound, dbaas.management.show, -1)
-    
+
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
         info = instance_info

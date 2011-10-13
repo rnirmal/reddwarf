@@ -107,7 +107,7 @@ class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
         self.init("TEST_FAIL_VOLUME_")
         self.instance_exists = False
 
-    @after_class
+    @after_class(always_run=True)
     def tearDown(self):
         """Be nice to other tests and restart the compute service normally."""
         # Wipe the instance from the DB so it won't count against us.
@@ -175,7 +175,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
                                  % GUEST_INSTALL_TIMEOUT])
         self.init("TEST_FAIL_GUEST_")
 
-    @after_class
+    @after_class(always_run=True)
     def tearDown(self):
         """Be nice to other tests and restart the compute service normally."""
         restart_compute_service()
@@ -282,7 +282,21 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
 
     @test(depends_on=[destroy_guest_and_wait_for_failure])
     @time_out(2 * 60)
-    def delete_instance(self):        
+    def delete_instance(self):
+        # Now that its suspended, we have to put the instance back into a
+        # valid state for deletion. the compute api only allows 3 states
+        # to be deleted, so we set it back to building.
+        #
+        #  valid_shutdown_states = [
+        #     vm_states.ACTIVE,
+        #     vm_states.REBUILDING,
+        #     vm_states.BUILDING,
+        # ]
+        #
+        # Any building state will now throw back an exception and not delete.
+        self.db.instance_update(context.get_admin_context(),
+                           self.id,
+                           {'vm_state': vm_states.ACTIVE})
         self._delete_instance()
 
     @test(depends_on=[delete_instance])

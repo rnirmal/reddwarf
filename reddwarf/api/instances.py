@@ -94,12 +94,6 @@ class Controller(object):
                         for server in server_list]
         return {'instances': instances}
 
-    @staticmethod
-    def get_guest_state_mapping(id_list):
-        """Returns a dictionary of guest statuses keyed by guest ids."""
-        results = dbapi.guest_status_get_list(id_list)
-        return dict([(r.instance_id, r.state) for r in results])
-
     def detail(self, req):
         """ Returns a list of instance details for a given user """
         LOG.debug("%s - %s", req.environ, req.body)
@@ -141,18 +135,32 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
-        instance = db.instance_get(context, id)
-        #TODO(tim.simpson): Try to get this fixed for real in Nova.
-        if instance['vm_state'] in [vm_states.SUSPENDED, vm_states.ERROR]:
-            # SUSPENDED and ERROR are not valid 'shut_down' states to the
-            # Compute API. But we want our customers to be able to delete
-            # things in the event of failure, in which case we set the state to
-            # SUSPENDED. Additionally as of 2011-10-12 ERROR is used in two
-            # places: 1, the compute manager when a resize fails, or 2. by our
-            # very own UnforgivingMemoryScheduler. So as of today ERROR is
-            # also a viable state for deletion.
-            db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
-        
+        # Checking the server state to see if it is building or not
+        try:
+            instance = self.compute_api.get(context, id)
+            #TODO(tim.simpson): Try to get this fixed for real in Nova.
+            if instance['vm_state'] in [vm_states.SUSPENDED, vm_states.ERROR]:
+                # SUSPENDED and ERROR are not valid 'shut_down' states to the
+                # Compute API. But we want our customers to be able to delete
+                # things in the event of failure, in which case we set the state to
+                # SUSPENDED. Additionally as of 2011-10-12 ERROR is used in two
+                # places: 1, the compute manager when a resize fails, or 2. by our
+                # very own UnforgivingMemoryScheduler. So as of today ERROR is
+                # also a viable state for deletion.
+                db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
+
+            compute_response = self.compute_api.get(context, id)
+        except exception.NotFound:
+            raise exc.HTTPNotFound()
+        LOG.debug("server_response - %s", compute_response)
+        build_states = [
+             nova_common.vm_states.REBUILDING,
+             nova_common.vm_states.BUILDING,
+        ]
+        if compute_response['vm_state'] in build_states:
+            # If the state is building then we throw an exception back
+            raise exc.HTTPUnprocessableEntity("Instance %s is not ready." % id)
+
         self.server_controller.delete(req, id)
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(id)
@@ -202,6 +210,12 @@ class Controller(object):
         LOG.debug("adding the volume information to the response...")
         instance['volume'] = {'size': volume_ref['size']}
         return { 'instance': instance }
+
+    @staticmethod
+    def get_guest_state_mapping(id_list):
+        """Returns a dictionary of guest statuses keyed by guest ids."""
+        results = dbapi.guest_status_get_list(id_list)
+        return dict([(r.instance_id, r.state) for r in results])
 
     def create_volume(self, context, body):
         """Creates the volume for the instance and returns its ID."""

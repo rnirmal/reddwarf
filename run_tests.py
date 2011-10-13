@@ -186,7 +186,7 @@ class _NullColorizer(object):
 
 def get_elapsed_time_color(elapsed_time):
     if elapsed_time > 1.0:
-        return 'red'
+        return 'cyan'
     elif elapsed_time > 0.25:
         return 'yellow'
     else:
