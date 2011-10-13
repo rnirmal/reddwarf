@@ -36,6 +36,7 @@ from nova import context
 from nova import utils
 from nova.compute import power_state
 from nova.compute import vm_states
+from nova.notifier import api as notifier
 from reddwarf.api.common import dbaas_mapping
 from reddwarf.db import api as dbapi
 from nova import flags
@@ -43,6 +44,7 @@ from reddwarf.compute.manager import ReddwarfInstanceMetaData
 from tests.util import test_config
 from tests.util import test_config
 from tests.util import check_database
+from tests.util import count_notifications
 from tests.util import create_dns_entry
 from tests.util import create_test_client
 from tests.util import process
@@ -118,6 +120,8 @@ class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
     @test
     def create_instance(self):
         """Create a new instance."""
+        self.abort_count = count_notifications(notifier.ERROR,
+                                               "reddwarf.instance.abort.volume")
         self._create_instance()
         # Use an admin context to avoid the possibility that in between the
         # previous line and this one the request goes through and the instance
@@ -131,6 +135,10 @@ class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
         """Make sure the Reddwarf Compute Manager FAILS a timed-out volume."""
         self.instance_exists = True
         self.wait_for_rest_api_to_show_status_as_failed(VOLUME_TIME_OUT + 30)
+        abort_count2 = count_notifications(notifier.ERROR,
+                                           "reddwarf.instance.abort.volume")
+        assert_true(self.abort_count < abort_count2)
+
 
     @test(depends_on=[wait_for_failure])
     @time_out(2 * 60)
@@ -193,6 +201,8 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
 
     @test(depends_on=[wait_for_compute_host_up])
     def create_instance(self):
+        self.abort_count = count_notifications(notifier.ERROR,
+                                               "reddwarf.instance.abort.guest")
         self._create_instance()
         metadata = ReddwarfInstanceMetaData(self.db,
             context.get_admin_context(), self.id)
@@ -266,16 +276,13 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         #                   no matter what after it was suspended it was set
         #                   to such.  Although maybe that's overkill.
         self._assert_status_failure(self._get_status_tuple())
+        abort_count2 = count_notifications(notifier.ERROR,
+                                           "reddwarf.instance.abort.guest")
+        assert_true(self.abort_count < abort_count2)
 
     @test(depends_on=[destroy_guest_and_wait_for_failure])
-    def delete_instance(self):
-        # Now that its suspended, we have to put the instance back into a
-        # valid state for deletion. the compute api only allows 3 states
-        # to be deleted, so we set it back to building.
-        self.db.instance_update(context.get_admin_context(), 
-                           self.id, 
-                           {'vm_state': vm_states.BUILDING})
-
+    @time_out(2 * 60)
+    def delete_instance(self):        
         self._delete_instance()
 
     @test(depends_on=[delete_instance])

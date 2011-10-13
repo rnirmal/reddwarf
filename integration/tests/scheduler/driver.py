@@ -20,6 +20,7 @@ from nose.tools import assert_almost_equal
 from nose.tools import assert_equal
 from nose.tools import assert_not_almost_equal
 from nose.tools import assert_true
+from novaclient import exceptions
 from proboscis import test
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
@@ -129,9 +130,9 @@ def destroy_instance():
     """Delete the instance we tried to create for this test."""
     client.instances.delete(initial_instance)
     id = initial_instance.id
-    lc = LoopingCall(f=lambda : client.instances.get(id)).start(2, True)
     try:
+        lc = LoopingCall(f=lambda : client.instances.get(id)).start(2, True)
         lc.wait()
         self.fail("Expected exception.NotFound.")
-    except exception.NotFound:
+    except exceptions.NotFound:
         pass

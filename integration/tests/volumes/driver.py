@@ -112,6 +112,7 @@ class SetUp(VolumeTest):
         # Give some time for the services to startup
         time.sleep(10)
 
+    @time_out(60)
     def test_30_mgmt_volume_check(self):
         """Get the volume information from the mgmt API"""
         device_info = self.story.api.get_storage_device_info(self.story.context)
@@ -119,6 +120,7 @@ class SetUp(VolumeTest):
         self.assertNotEqual(device_info, None, "the storage device information should exist")
         self.story.original_device_info = device_info
 
+    @time_out(60)
     def test_31_mgmt_volume_info(self):
         """Check the available space against the mgmt API info."""
         device_info = self.story.api.get_storage_device_info(self.story.context)
@@ -127,6 +129,7 @@ class SetUp(VolumeTest):
                 'spaceAvail': device_info['raw_avail']}
         self._assert_avilable_space(info)
 
+    @time_out(60)
     def test_check_available_space(self):
         """Check for available space on SAN"""
         if FLAGS.volume_driver == 'nova.volume.san.HpSanISCSIDriver':
@@ -175,6 +178,7 @@ class SetUp(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
 class AddVolumeFailure(VolumeTest):
 
+    @time_out(60)
     def test_add(self):
         """Make call to FAIL a prov. volume and assert the return value is a FAILURE."""
         self.assertEqual(None, self.storyFail.volume_id)
@@ -208,6 +212,7 @@ class AfterVolumeFailureIsAdded(VolumeTest):
         self.assertEqual(volume["status"], "error")
         self.assertTrue(volume["attach_status"], "detached")
 
+    @time_out(60)
     def test_mgmt_volume_check(self):
         """Get the volume information from the mgmt API"""
         info = self.story.api.get_storage_device_info(self.story.context)
@@ -220,6 +225,7 @@ class AfterVolumeFailureIsAdded(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[SetUp])
 class AddVolume(VolumeTest):
 
+    @time_out(60)
     def test_add(self):
         """Make call to prov. a volume and assert the return value is OK."""
         self.assertEqual(None, self.story.volume_id)
@@ -254,6 +260,7 @@ class AfterVolumeIsAdded(VolumeTest):
         self.assert_volume_as_expected(volume)
         self.assertTrue(volume["attach_status"], "detached")
 
+    @time_out(60)
     def test_mgmt_volume_check(self):
         """Get the volume information from the mgmt API"""
         print("self.story.original_device_info : %r" % self.story.original_device_info)
@@ -272,6 +279,7 @@ class AfterVolumeIsAdded(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[AfterVolumeIsAdded])
 class SetupVolume(VolumeTest):
 
+    @time_out(60)
     def test_assign_volume(self):
         """Tell the volume it belongs to this host node."""
         #TODO(tim.simpson) If this is important, could we add a test to
@@ -281,6 +289,7 @@ class SetupVolume(VolumeTest):
         self.story.api.assign_to_compute(self.story.context, self.story.volume_id,
                                          self.story.host)
 
+    @time_out(60)
     def test_setup_volume(self):
         """Set up the volume on this host. AKA discovery."""
         self.assertNotEqual(None, self.story.volume_id)
@@ -297,6 +306,7 @@ class SetupVolume(VolumeTest):
 class FormatVolume(VolumeTest):
 
     @expect_exception(IOError)
+    @time_out(60)
     def test_10_should_raise_IOError_if_format_fails(self):
         """
 
@@ -315,7 +325,7 @@ class FormatVolume(VolumeTest):
         bad_client = volume.Client(volume_driver=BadFormatter())
         bad_client._format(self.story.device_path)
 
-
+    @time_out(60)
     def test_20_format(self):
         self.assertNotEqual(None, self.story.device_path)
         self.story.client._format(self.story.device_path)
@@ -324,6 +334,7 @@ class FormatVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[FormatVolume])
 class MountVolume(VolumeTest):
 
+    @time_out(60)
     def test_mount(self):
         self.story.client._mount(self.story.device_path, self.story.mount_point)
         with open(self.story.test_mount_file_path, 'w') as file:
@@ -334,6 +345,7 @@ class MountVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[MountVolume])
 class UnmountVolume(VolumeTest):
 
+    @time_out(60)
     def test_unmount(self):
         self.story.client._unmount(self.story.mount_point)
         child = pexpect.spawn("sudo mount %s" % self.story.mount_point)
@@ -343,6 +355,7 @@ class UnmountVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[UnmountVolume])
 class GrabUuid(VolumeTest):
 
+    @time_out(60)
     def test_uuid_must_match_pattern(self):
         """UUID must be hex chars in the form 8-4-4-4-12."""
         client = self.story.client # volume.Client()
@@ -351,7 +364,7 @@ class GrabUuid(VolumeTest):
         self.story.original_uuid = uuid
         self.assertTrue(is_uuid(uuid), "uuid must match regex")
 
-
+    @time_out(60)
     def test_get_invalid_uuid(self):
         """DevicePathInvalidForUuid is raised if device_path is wrong."""
         client = self.story.client
@@ -363,6 +376,7 @@ class GrabUuid(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[GrabUuid])
 class RemoveVolume(VolumeTest):
 
+    @time_out(60)
     def test_remove(self):
         self.story.client.remove_volume(self.story.context,
                                  self.story.volume_id,
@@ -417,6 +431,7 @@ class Initialize(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[Initialize])
 class DeleteVolume(VolumeTest):
 
+    @time_out(60)
     def test_delete(self):
         self.story.api.delete(self.story.context, self.story.volume_id)
 
@@ -424,11 +439,11 @@ class DeleteVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
-    @expect_exception(Exception)
+    @expect_exception(exception.Error)
     @time_out(60)
     def test_discover_should_fail(self):
         self.story.client.driver.discover_volume(self.story.context,
-                                                self.story.volume)
+                                                 self.story.volume)
 
     @time_out(60)
     def test_get_missing_volume(self):
