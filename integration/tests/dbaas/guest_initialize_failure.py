@@ -294,7 +294,6 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         # ]
         #
         # Any building state will now throw back an exception and not delete.
-        # Any building state will now throw back an exception and not delete.
         self.db.instance_update(context.get_admin_context(),
                            self.id,
                            {'vm_state': vm_states.ACTIVE})
