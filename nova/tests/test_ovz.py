@@ -833,6 +833,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(conn, '_send_garp')
         conn._send_garp(INSTANCE['id'],
                         mox.IgnoreArg(),
+                        mox.IgnoreArg(),
                         mox.IgnoreArg()).MultipleTimes()
         self.mox.ReplayAll()
         conn._gratuitous_arp_all_addresses(INSTANCE, NETWORKINFO)
@@ -840,12 +841,16 @@ class OpenVzConnTestCase(test.TestCase):
     def test_send_garp(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'exec', INSTANCE['id'], 'arping',
-                                  '-c', '5', '-w', '5', '-U', '-I', 'eth0',
-                                  '1.1.1.1', run_as_root=True)\
-                                  .AndReturn(('', ''))
+                                  '-c', '5', '-I',
+                                  NETWORKINFO[0][0]['bridge_interface'],
+                                  '-s', NETWORKINFO[0][1]['mac'], '-S',
+                                  NETWORKINFO[0][1]['ips'][0]['ip'],
+                                  '-B', run_as_root=True).AndReturn(('', ''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        conn._send_garp(INSTANCE['id'], '1.1.1.1', 'eth0')
+        conn._send_garp(INSTANCE['id'], NETWORKINFO[0][1]['ips'][0]['ip'],
+                        NETWORKINFO[0][0]['bridge_interface'],
+                        NETWORKINFO[0][1]['mac'], NETWORKINFO[0][1]['gateway'])
 
     def test_ovz_network_bridge_driver_plug(self):
         self.mox.StubOutWithMock(
