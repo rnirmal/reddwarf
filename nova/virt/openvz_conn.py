@@ -571,7 +571,7 @@ class OpenVzConnection(driver.ComputeDriver):
                (host, mask, protocol, port, access_type)
 
         for table in tables:
-            table.add_rule(instance['name'], rule)
+            table.add_rule(str(instance['id']), rule)
 
         # Apply the rules
         linux_net.iptables_manager.apply()
@@ -589,8 +589,8 @@ class OpenVzConnection(driver.ComputeDriver):
         # Create our table instance and add our chains for the instance
         table_ipv4 = linux_net.iptables_manager.ipv4['filter']
         table_ipv6 = linux_net.iptables_manager.ipv6['filter']
-        table_ipv4.add_chain(instance['name'])
-        table_ipv6.add_chain(instance['name'])
+        table_ipv4.add_chain(str(instance['id']))
+        table_ipv6.add_chain(str(instance['id']))
 
         # As of right now there is no API call to manage security
         # so there are no rules applied, this really is just a pass.
