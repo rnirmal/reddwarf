@@ -108,15 +108,12 @@ def find_evidence_scheduler_failed_in_logs():
 @test(groups=[GROUP], depends_on=[find_evidence_scheduler_failed_in_logs])
 class AfterSchedulingHasFailed(unittest.TestCase):
 
-#    def test_confirm_instance_is_in_error_state(self):
-#        """Retrieve the instance and make sure its status is 'ERROR.'"""
-#        instance = client.servers.get(initial_instance.id)
-#        assert_equal("ERROR", instance.status)
-
     def test_confirm_ops_was_notified(self):
         current_count = out_of_instance_memory_nofication_count()
-        assert_true(original_notification_count < current_count,
-                    "Additional ops notifications should have been added.")
+        # Additional ops notifications should have been added.
+        poll_until(out_of_instance_memory_nofication_count,
+                   lambda count : original_notification_count < count,
+                   sleep_time=1, time_out=60)
 
     def test_confirm_instance_is_in_error_state(self):
         """Retrieve the instance and make sure its status is 'ERROR.'"""

@@ -1,17 +1,22 @@
+To run these tests, do the following:
+
+1. Install Vagrant:
+     http://vagrantup.com/docs/getting-started/index.html
 1. Do a fresh check out.
-2. Download the virtualbox lucid_ext3_openvz box from
-   http://c629296.r96.cf2.rackcdn.com/lucid_ext3_openvz.box
+2. Create a directory to store some glance images. Then set the environment
+   variable GLANCEIMAGES to the path to this directory.
 3. Download the openvz glance image from
    http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz
-4. Define the environment variables`
-     GLANCESRC = path to launchpad trunk of glance (we are assuming you know
-     how to get this)
-     GLANCEIMAGES = the glance images (path to directory of #3)
-5. Make sure you have the box "ovz_attempt_9" (We should rename this in the
-   future). Add it with the command "vagrant box add ovz_attempt_9 [path to file
-   downloaded in #2]"
-6. Enter the directory integration/vagrant/host.
-7. vagrant up
-8. make sure its running, then, on your host machine (i.e. do NOT use vagrant
-   ssh to enter it)
-     ./run_ci.sh
+   to the directory created in step 2.
+4. Enter the directory integration/vagrant.
+5. Run the command
+     vagrant up
+6. You can run all the steps automatically from your host machine (i.e., do NOT
+   use "vagrant ssh host" to enter the VM) with the following command:
+     ./reddwarf-ci vagrantci
+   Or, you can enter the VM using "vagrant ssh host" and then execute the
+   following commands:
+     /vagrant/reddwarf-ci install
+     /vagrant/reddwarf-ci build
+     /vagrant/reddwarf-ci initialize
+     /vagrant/reddwarf-ci test
