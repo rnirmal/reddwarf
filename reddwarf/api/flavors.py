@@ -41,12 +41,20 @@ def create_resource(version='1.0'):
         '1.0': ControllerV10,
     }[version]()
 
+    metadata = {
+        'attributes': {
+            'flavor': ['id', 'name', 'ram', 'vcpus'],
+            'link': ['rel', 'href']
+        },
+    }
+
     xmlns = {
         '1.0': wsgi.XMLNS_V10,
     }[version]
 
     body_serializers = {
-        'application/xml': wsgi.XMLDictSerializer(xmlns=xmlns),
+        'application/xml': wsgi.XMLDictSerializer(metadata=metadata,
+                                                  xmlns=xmlns),
     }
 
     serializer = wsgi.ResponseSerializer(body_serializers)

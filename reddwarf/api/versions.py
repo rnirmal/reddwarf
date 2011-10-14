@@ -16,8 +16,10 @@
 #    under the License.
 
 import nova.api.openstack.views.versions
+
 from nova.api.openstack import wsgi
 from reddwarf.api import common
+
 
 VERSIONS = {
     "v1.0": {
@@ -29,20 +31,21 @@ VERSIONS = {
     },
 }
 
+
 class Controller(object):
     """Supported versions"""
 
     def __init__(self):
         super(Controller, self).__init__()
 
-    def dispatch(self, request, *args):
-        """Respond to a request for all OpenStack API versions."""
-        builder = nova.api.openstack.views.versions.get_view_builder(request)
-        return builder.build_versions(VERSIONS)
-
-    def show(self, req):
+    def dispatch(self, req, *args):
+        """Respond to a request for all Reddwarf API versions."""
         builder = nova.api.openstack.views.versions.get_view_builder(req)
-        return builder.build_version(VERSIONS['v1.0'])
+        if req.path == '/':
+            return builder.build_versions(VERSIONS)
+        else:
+            return builder.build_version(VERSIONS['v1.0'])
+
 
 def create_resource(version='1.0'):
     controller = {
@@ -50,9 +53,9 @@ def create_resource(version='1.0'):
     }[version]()
 
     metadata = {
-        "attributes": {
-            "version": ["status", "id"],
-            "link": ["rel", "href"],
+        'attributes': {
+            'version': ['id', 'status', 'updated'],
+            'link': ['rel', 'href', 'type'],
         }
     }
 

@@ -61,7 +61,9 @@ class Controller(object):
             LOG.debug("%s - %s", req.environ, req.body)
             ctxt = req.environ['nova.context']
             instances = dbapi.show_instances_on_host(ctxt, id)
-            instances = [{'id':c.id, 'state': c.display_description} for c in instances]
+            instances = [{'id': c.id,
+                          'name': c.display_description,
+                          'status': c.vm_state} for c in instances]
             total_ram = FLAGS.max_instance_memory_mb
             used_ram = dbapi.instance_get_memory_sum_by_host(ctxt, id)
             percent = int(round((used_ram / total_ram) * 100))
@@ -80,10 +82,10 @@ def create_resource(version='1.0'):
     }[version]()
 
     metadata = {
-        "attributes": {
-            "host": ["name", "instanceCount", "percentUsed",
-                     "totalRAM", "usedRAM"],
-            "instance": ["id"],
+        'attributes': {
+            'host': ['name', 'instanceCount', 'percentUsed',
+                     'totalRAM', 'usedRAM'],
+            'instance': ['id', 'name', 'status'],
         },
     }
 

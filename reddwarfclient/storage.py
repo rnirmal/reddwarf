@@ -34,4 +34,4 @@ class StorageInfo(base.ManagerWithFind):
 
         :rtype: list of :class:`Storages`.
         """
-        return self._get("/mgmt/storage", "storage")
+        return self._list("/mgmt/storage", "devices")

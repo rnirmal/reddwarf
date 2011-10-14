@@ -31,9 +31,12 @@ class ViewBuilder(os_flavors.ViewBuilderV11):
     def _build_detail(self, flavor_obj):
         """Build a more complete representation of a flavor."""
         LOG.debug("_build_detail of a flavor")
-        detail = super(ViewBuilder, self)._build_detail(flavor_obj)
-        del detail['disk']
-        return detail
+        flavor = self._build_simple(flavor_obj)
+
+        flavor['ram'] = flavor_obj['memory_mb']
+        flavor['vcpus'] = flavor_obj['vcpus']
+
+        return flavor
 
     def _build_links(self, flavor_obj):
         """Generate a container of links that refer to the provided flavor."""

@@ -224,12 +224,13 @@ class InstanceHostCheck(unittest.TestCase):
     def test_storage_on_host(self):
         storage = dbaas.storage.index()
         print("storage : %r" % storage)
-        self.assertTrue(hasattr(storage, 'name'))
-        self.assertTrue(hasattr(storage, 'availablesize'))
-        self.assertTrue(hasattr(storage, 'totalsize'))
-        print("storage.name : %r" % storage.name)
-        print("storage.availablesize : %r" % storage.availablesize)
-        print("storage.totalsize : %r" % storage.totalsize)
+        for device in storage:
+            self.assertTrue(hasattr(device, 'name'))
+            self.assertTrue(hasattr(device, 'availablesize'))
+            self.assertTrue(hasattr(device, 'totalsize'))
+            print("device.name : %r" % device.name)
+            print("device.availablesize : %r" % device.availablesize)
+            print("device.totalsize : %r" % device.totalsize)
         instance_info.storage = storage
 
     @expect_exception(NotFound)
@@ -321,7 +322,7 @@ class AccountMgmtData(unittest.TestCase):
         self.assertEqual(1, len(account_info.hosts))
         self.assertEqual(1, len(account_info.hosts[0]['instances']))
         # We know that the host should contain only one instance.
-        instance = account_info.hosts[0]['instances'][0]['instance']
+        instance = account_info.hosts[0]['instances'][0]
         print("instances in account: %s" % instance)
         self.assertEqual(instance['id'], instance_info.id)
         self.assertEqual(instance['name'], instance_info.name)
@@ -559,23 +560,21 @@ class MgmtHostCheck(unittest.TestCase):
               str(myresult.instances))
         for index, instance in enumerate(myresult.instances, start=1):
             print("%d instance: %s" % (index, instance))
-            self.assertEquals(['id', 'state'], sorted(instance.keys()))
+            self.assertEquals(['id', 'name', 'status'], sorted(instance.keys()))
 
     def test_storage_on_host(self):
         storage = dbaas.storage.index()
         print("storage : %r" % storage)
-        self.assertTrue(hasattr(storage, 'name'))
-        self.assertTrue(hasattr(storage, 'availablesize'))
-        self.assertTrue(hasattr(storage, 'totalsize'))
-        self.assertTrue(hasattr(storage, 'type'))
-        print("storage : %r" % storage.__dict__)
-        print("instance_info.dbaas_flavor : %r" % instance_info.dbaas_flavor.__dict__)
-        print("instance_info.storage : %r" % instance_info.storage.__dict__)
-        self.assertEquals(storage.name, instance_info.storage.name)
-        self.assertEquals(storage.totalsize, instance_info.storage.totalsize)
-        self.assertEquals(storage.type, instance_info.storage.type)
-        avail = instance_info.storage.availablesize - instance_info.volume['size']
-        self.assertEquals(storage.availablesize, avail)
+        print("instance_info.storage : %r" % instance_info.storage)
+        expected_attrs = ['name', 'availablesize', 'totalsize', 'type']
+        for index, device in enumerate(storage):
+            CheckInstance(None).attrs_exist(device._info, expected_attrs,
+                                            msg="Storage")
+            self.assertEquals(device.name, instance_info.storage[index].name)
+            self.assertEquals(device.totalsize, instance_info.storage[index].totalsize)
+            self.assertEquals(device.type, instance_info.storage[index].type)
+            avail = instance_info.storage[index].availablesize - instance_info.volume['size']
+            self.assertEquals(device.availablesize, avail)
 
     def test_account_details_available(self):
         account_info = dbaas.accounts.show(instance_info.user.auth_user)

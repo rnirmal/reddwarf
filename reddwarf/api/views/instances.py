@@ -153,7 +153,7 @@ class MgmtViewBuilder(ViewBuilder):
     def build_guest_info(self, instance, status=None, dbs=None, users=None,
                          root_enabled=None):
         """Build out all possible information for a guest"""
-        instance['guest_status'] = status
+        instance['guest_status'] = self._build_guest_status(status)
         instance['databases'] = dbs
         instance['users'] = users
         root_history = self.build_root_history(instance['id'],
@@ -189,6 +189,19 @@ class MgmtViewBuilder(ViewBuilder):
         instance['host'] = instance_ref['host']
         instance['account_id'] = instance_ref['user_id']
         return instance
+
+    @staticmethod
+    def _build_guest_status(status):
+        """Build out the guest status information"""
+        guest_status = {}
+        guest_status['created_at'] = status.created_at
+        guest_status['deleted'] = status.deleted
+        guest_status['deleted_at'] = status.deleted_at
+        guest_status['instance_id'] = status.instance_id
+        guest_status['state'] = status.state
+        guest_status['state_description'] = status.state_description
+        guest_status['updated_at'] = status.updated_at
+        return guest_status
 
     @staticmethod
     def build_volume(server):
