@@ -571,7 +571,7 @@ class OpenVzConnection(driver.ComputeDriver):
                (host, mask, protocol, port, access_type)
 
         for table in tables:
-            table.add_rule(instance['name'], rule)
+            table.add_rule(instance['id'], rule)
 
         # Apply the rules
         linux_net.iptables_manager.apply()
