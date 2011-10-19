@@ -768,12 +768,12 @@ EOF
     screen_it keystone-admin "sudo $KEYSTONE_HOME/bin/keystone-admin -c $KEYSTONE_CONF"
     screen_it keystone-service "sudo $KEYSTONE_HOME/bin/keystone-auth -c $KEYSTONE_CONF"
 
-    screen_it reddwarf "sudo $NOVA_HOME/bin/reddwarf-api $NOVA_CONF"
-    screen_it nova-api "sudo $NOVA_HOME/bin/nova-api $NOVA_CONF"
-    screen_it compute "sudo $NOVA_HOME/bin/nova-compute $NOVA_CONF"
-    screen_it network "sudo $NOVA_HOME/bin/nova-network $NOVA_CONF"
-    screen_it scheduler "sudo $NOVA_HOME/bin/nova-scheduler $NOVA_CONF"
-    screen_it volume "sudo $NOVA_HOME/bin/nova-volume $NOVA_CONF"
+    screen_it reddwarf "sudo $NOVA_HOME/bin/reddwarf-api --flagfile=$NOVA_CONF"
+    screen_it nova-api "sudo $NOVA_HOME/bin/nova-api --flagfile=$NOVA_CONF"
+    screen_it compute "sudo $NOVA_HOME/bin/nova-compute --flagfile=$NOVA_CONF"
+    screen_it network "sudo $NOVA_HOME/bin/nova-network --flagfile=$NOVA_CONF"
+    screen_it scheduler "sudo $NOVA_HOME/bin/nova-scheduler --flagfile=$NOVA_CONF"
+    screen_it volume "sudo $NOVA_HOME/bin/nova-volume --flagfile=$NOVA_CONF"
     screen -S nova -x
 }
 
