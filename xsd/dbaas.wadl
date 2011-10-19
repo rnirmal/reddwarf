@@ -134,7 +134,7 @@
     <wadl:doc xml:lang="EN" title="Create Database Instance"  xmlns="http://docbook.org/ns/docbook">    
       <para role="shortdesc">Creates a new database instance.</para>
       <para>This operation asynchronously provisions a new database instance. This call requires the user to specify a flavor and a volume size. The service then provisions the instance with the requested flavor and sets up a volume of the specified size, which is the storage for the database instance.</para>
-        <note>You can create only one database instance per &POST; request.</note>
+        <note>You can create only one database instance per <command>POST</command> request.</note>
         <para>The new database instance has the following attributes:</para>
       <itemizedlist spacing="compact">
           <listitem>
@@ -194,10 +194,15 @@
             <para role="shortdesc">Deletes the specified database instance.</para>
             <para>This operation deletes the specified database instance, including any associated data.</para>
             <note>This operation does not delete any read slaves.</note>
-            <remark>Reviewer: please provide a description of read slaves that I can add to the previous note.</remark>       
+            <remark>Reviewer: please provide a description of read slaves that I can add to the previous note.</remark>
+            <note>This operation is not allowed when the instance state is either <code>REBUILDING</code> or <code>BUILDING</code>.</note>         
         </wadl:doc>
         <response status="202" />
     &commonFaults;
+        <response status="422" xmlns="http://wadl.dev.java.net/2009/02">
+            <representation mediaType="application/xml" element="dbaas:unprocessableEntity"/>
+            <representation mediaType="application/json"/>
+        </response>
     &getFaults;
     </method>
 
@@ -560,6 +565,7 @@
         <wadl:doc xml:lang="EN" title="Enable Root User"  xmlns="http://docbook.org/ns/docbook">    
             <para role="shortdesc">Enables the root user for the specified database instance and returns the root password.</para>
             <para>This operation enables login from any host for the root user and provides the user with a generated root password.</para>
+            <note>Enabling root user access to your cloud database can cause detrimental effects for your instance and unpredictable behavior for API operations. When you enable the root user, you accept the possibility that we will not be able to support your database instance. While enabling root does not prevent us from a “best effort” approach to helping you if something goes wrong with your instance, we cannot ensure that we will be able to assist you if you change core MySQL settings. These changes can be (but are not limited to) turning off binlogs, removing users that we use to access your instance, and so forth.</note>
         </wadl:doc>
         <request>
             <representation mediaType="application/xml" />
