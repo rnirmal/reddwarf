@@ -48,6 +48,18 @@ flags.DEFINE_string('default_firewall_rule_name',
 flags.DEFINE_string('nova_api_version', '1.1',
                     'The default nova api version for reddwarf')
 
+class APIMapper(routes.Mapper):
+    """
+    Handles a Routes bug that drops an error for version requests that don't end in /
+    If and when
+    https://github.com/openstack/nova/commit/000174461a96ca70c76c8f3a85d9bf25fe673a2d
+    gets merged in, this class can be replaced with the one in the commit.
+    """
+    def routematch(self, url=None, environ=None):
+        if url is "":
+            result = self._match("", environ)
+            return result[0], result[1]
+        return routes.Mapper.routematch(self, url, environ)
 
 class APIRouter(wsgi.Router):
     """
@@ -61,7 +73,7 @@ class APIRouter(wsgi.Router):
         return cls()
 
     def __init__(self):
-        mapper = routes.Mapper()
+        mapper = APIMapper()
 
         instance_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
@@ -131,12 +143,13 @@ class APIRouter(wsgi.Router):
                        action="create", conditions=dict(method=["POST"]))
         mapper.connect("/instances/{instance_id}/root",
                        controller=root.create_resource(),
-                       action="delete", conditions=dict(method=["DELETE"]))
-        mapper.connect("/instances/{instance_id}/root",
-                       controller=root.create_resource(),
                        action="is_root_enabled", conditions=dict(method=["GET"]))
 
         mapper.connect("/", controller=versions.create_resource(),
                        action="dispatch")
+
+        # Instead of dropping out with a Routes fault, we gently redirect
+        # with a 302 to "/vX.Y/", our current version.
+        mapper.redirect("", "/")
 
         super(APIRouter, self).__init__(mapper)
