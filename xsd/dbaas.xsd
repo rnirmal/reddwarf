@@ -481,7 +481,6 @@
 
 
     <!-- Fault Elements -->
-    <element name="identityFault" type="dbaas:IdentityFault"/>
     <element name="serviceUnavailable" type="dbaas:ServiceUnavailableFault"/>
     <element name="badRequest" type="dbaas:BadRequestFault"/>
     <element name="unauthorized" type="dbaas:UnauthorizedFault"/>
@@ -490,9 +489,10 @@
     <element name="forbidden" type="dbaas:ForbiddenFault"/>
     <element name="itemNotFound" type="dbaas:ItemNotFoundFault"/>
     <element name="tenantConflict" type="dbaas:TenantConflictFault"/>
+    <element name="unprocessableEntityFault" type="dbaas:UnprocessableEntityFault"/>
 
     <!-- Fault Types -->
-    <complexType name="IdentityFault">
+    <complexType name="BaseFault">
         <sequence>
             <element name="message" type="xsd:string">
                 <annotation>
@@ -538,63 +538,63 @@
 
     <complexType name="ServiceUnavailableFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="BadRequestFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="UnauthorizedFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="UserDisabledFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="ForbiddenFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="ItemNotFoundFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="TenantConflictFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="UnprocessableEntityFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
             </extension>
         </complexContent>
     </complexType>
 
     <complexType name="OverLimitFault">
         <complexContent>
-            <extension base="dbaas:IdentityFault">
+            <extension base="dbaas:BaseFault">
                 <attribute name="retryAt" type="xsd:dateTime" use="optional">
                     <annotation>
                         <xsd:documentation
