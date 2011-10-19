@@ -489,7 +489,7 @@
     <element name="forbidden" type="dbaas:ForbiddenFault"/>
     <element name="itemNotFound" type="dbaas:ItemNotFoundFault"/>
     <element name="tenantConflict" type="dbaas:TenantConflictFault"/>
-    <element name="unprocessableEntityFault" type="dbaas:UnprocessableEntityFault"/>
+    <element name="unprocessableEntity" type="dbaas:UnprocessableEntityFault"/>
 
     <!-- Fault Types -->
     <complexType name="BaseFault">
