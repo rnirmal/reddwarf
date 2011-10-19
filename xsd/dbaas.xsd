@@ -585,6 +585,13 @@
         </complexContent>
     </complexType>
 
+    <complexType name="UnprocessableEntityFault">
+        <complexContent>
+            <extension base="dbaas:IdentityFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
     <complexType name="OverLimitFault">
         <complexContent>
             <extension base="dbaas:IdentityFault">
