@@ -67,6 +67,7 @@ if __name__ == '__main__':
     conf_file = "~/nemesis.conf"
     show_elapsed = True
     groups = []
+    print("RUNNING TEST ARGS :  " + str(sys.argv))
     for arg in sys.argv[1:]:
         if arg[:7] == "--conf=":
             conf_file = os.path.expanduser(arg[7:])
