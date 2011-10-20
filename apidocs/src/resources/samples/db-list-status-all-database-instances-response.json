@@ -1,0 +1,46 @@
+{
+    "instances": [
+        {
+            "name": "testing",
+            "links": [
+                {
+                    "href": "http://localhost:8775/v1.0/servers/55",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://localhost:8775/v1.0/servers/55",
+                    "type": "application/json",
+                    "rel": "bookmark"
+                },
+                {
+                    "href": "http://localhost:8775/v1.0/servers/55",
+                    "type": "application/xml",
+                    "rel": "bookmark"
+                }
+            ],
+            "id": "55",
+            "status": "ACTIVE"
+        },
+        {
+            "name": "testing2",
+            "links": [
+                {
+                    "href": "http://localhost:8775/v1.0/servers/56",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://localhost:8775/v1.0/servers/56",
+                    "type": "application/json",
+                    "rel": "bookmark"
+                },
+                {
+                    "href": "http://localhost:8775/v1.0/servers/56",
+                    "type": "application/xml",
+                    "rel": "bookmark"
+                }
+            ],
+            "id": "56",
+            "status": "ACTIVE"
+        }
+    ]
+}

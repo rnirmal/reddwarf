@@ -1,0 +1,10 @@
+<versions xmlns=" xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
+    <version id="v1.0" status="CURRENT">
+        <updated>
+            2012-01-01T00:00:00Z
+        </updated>
+        <links>
+            <link href="http://localhost:8775/" rel="self"/>
+        </links>
+    </version>
+</versions>

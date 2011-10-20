@@ -1,0 +1,13 @@
+{
+    "databases": [
+        {
+            "name": "sampledb",
+            "character_set": "utf8",
+            "collate": "utf8_general_ci"
+        },
+               
+        {
+            "name": "nextround"
+        }
+    ]
+}

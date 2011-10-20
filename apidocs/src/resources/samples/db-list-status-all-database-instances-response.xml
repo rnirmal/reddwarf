@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<instances xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
+    <instance id="55" name="testing" status="ACTIVE">
+        <links>
+            <link href="http://localhost:8775/v1.0/servers/55" rel="self"/>
+            <link href="http://localhost:8775/v1.0/servers/55" rel="bookmark" type="application/json"/>
+            <link href="http://localhost:8775/v1.0/servers/55" rel="bookmark" type="application/xml"/>
+        </links>
+    </instance>
+    <instance id="56" name="testing2" status="ACTIVE">
+        <links>
+            <link href="http://localhost:8775/v1.0/servers/56" rel="self"/>
+            <link href="http://localhost:8775/v1.0/servers/56" rel="bookmark" type="application/json"/>
+            <link href="http://localhost:8775/v1.0/servers/56" rel="bookmark" type="application/xml"/>
+        </links>
+    </instance>
+</instances>

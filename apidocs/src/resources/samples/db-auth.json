@@ -1,0 +1,40 @@
+{
+    "auth" : {
+        "token" : {
+            "id" : "asdasdasd-adsasdads-asdasdasd-adsadsasd",
+            "expires" : "2010-11-01T03:32:15-05:00"
+        },
+        "serviceCatalog" : {
+            "cloudDB" : [
+                {
+                    "region" : "DFW",
+                    "v1Default" : true,
+                    "publicURL" : "https://dfw.dbaas.rackspacecloud.com/v1.0/",
+                    "internalURL" : "https://dfw.dbaas-snet.rackspacecloud.com/v1.0/"
+                },
+                {
+                    "region" : "ORD",
+                    "publicURL" : "https://ord.dbaas.rackspacecloud.com/v1.0/",
+                    "internalURL" : "https://ord.dbaas-snet.rackspacecloud.com/v1.0/"
+                }
+            ],
+            "cloudFilesCDN" : [
+                {
+                    "region" : "DFW",
+                    "v1Default" : true,
+                    "publicURL" : "https://cdn.clouddrive.com/v1/RackCloudFS_demo"
+                },
+                {
+                    "region" : "ORD",
+                    "publicURL" : "https://othercdn.clouddrive.com/v1/RackCloudFS_demo"
+                }
+            ],
+            "cloudServers" : [
+                {
+                    "v1Default" : true,
+                    "publicURL" : "https://servers.api.rackspacecloud.com/v1.0/322781"
+                }
+            ]
+        }
+    }
+}

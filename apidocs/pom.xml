@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.rackspace.cloud.dbaas</groupId>
+    <artifactId>dbaas-docs</artifactId>
+    <version>1.0.0</version>
+
+    <name>Database Public API Spec</name>
+    <packaging>jar</packaging>
+
+  <profiles>                                                                                              
+    <profile>                                                                                           
+      <id>Rackspace Research Repositories</id>                                                        
+      <activation>                                                                                    
+        <activeByDefault>true</activeByDefault>                                                     
+      </activation>                                                                                   
+      <repositories>                                                                                  
+        <repository>                                                                                
+          <id>rackspace-research</id>                                                             
+          <name>Rackspace Research Repository</name>                                              
+          <url>http://maven.research.rackspacecloud.com/content/groups/public/</url>              
+        </repository>                                                                               
+      </repositories>                                                                                 
+      <pluginRepositories>                                                                            
+        <pluginRepository>                                                                          
+          <id>rackspace-research</id>                                                             
+          <name>Rackspace Research Repository</name>                                              
+          <url>http://maven.research.rackspacecloud.com/content/groups/public/</url>              
+        </pluginRepository>                                                                         
+      </pluginRepositories>                                                                           
+    </profile> 
+  </profiles>
+  <properties>
+    <doctools.version>1.0.7-SNAPSHOT</doctools.version>
+  </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.rackspace.cloud.api</groupId>
+            <artifactId>clouddocs-maven-plugin</artifactId>
+            <version>${doctools.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+                   <plugin>
+      	<groupId>org.apache.maven.plugins</groupId>
+      	<artifactId>maven-dependency-plugin</artifactId>
+      	<executions>
+      	  <execution>
+      	    <id>unpack-shared-resources</id>
+      	    <goals>
+      	      <goal>unpack-dependencies</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <includeGroupIds>com.rackspace.cloud.api</includeGroupIds>
+              <includeArtifactIds>clouddocs-maven-plugin</includeArtifactIds>
+              <excludeTransitive>true</excludeTransitive>
+	      <includes>**/normalizeWadl/*.xsl</includes>
+            </configuration>
+          </execution>
+      	</executions>
+      </plugin>
+
+      <!-- Run the normalize wadl xslts on the source wadl files -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>xml-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>transform</goal>
+            </goals>
+	    <phase>generate-sources</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <transformationSets>
+            <transformationSet>
+	      <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+	      <!-- Add wadls to be normalized below       -->
+	      <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+              <dir>../xsd</dir>
+	      <includes>
+		<include>dbaas.wadl</include>
+	    <include>management.wadl</include>
+	      </includes>
+	      <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+	      <!-- Add wadls to be normalized above       -->
+	      <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+              <stylesheet>${project.build.directory}/generated-resources/cloud/normalizeWadl/normalizeWadl.xsl</stylesheet>
+            </transformationSet>
+          </transformationSets>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>net.sf.saxon</groupId>
+            <artifactId>saxon</artifactId>
+            <version>8.7</version>
+          </dependency>
+        </dependencies>
+      </plugin> 
+            <plugin>
+                <groupId>com.rackspace.cloud.api</groupId>
+                <artifactId>clouddocs-maven-plugin</artifactId>
+                <!-- this <version> relates only to the *plugin* used for document formatting -->
+                <!-- the version of the *API* that is the subject of the document is indicated within each document -->
+                <version>${doctools.version}</version>
+                <executions>
+                    <execution>
+                        <id>g1</id>
+                        <goals>
+                            <goal>generate-pdf</goal>
+                            <goal>generate-webhelp</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <xincludeSupported>true</xincludeSupported>
+                            <sourceDirectory>src/resources</sourceDirectory>
+                            <highlightSource>false</highlightSource>
+                            <!-- this is the Rackspace-internal service developer guide formerly known as ManagementAPISpec.xml -->
+			    <security>internal</security>
+                            <includes>cdb-mgmt-devguide.xml</includes>
+			    <pdfUrl>../../cdb-mgmt-devguide-internal.pdf</pdfUrl>
+                          <enableDisqus>0</enableDisqus>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>g2</id>
+                        <goals>
+                            <goal>generate-pdf</goal>
+                            <goal>generate-webhelp</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <security>writeronly</security>
+                            <xincludeSupported>true</xincludeSupported>
+                            <sourceDirectory>src/resources</sourceDirectory>
+                            <highlightSource>false</highlightSource>
+                            <trimWadlUriCount>1</trimWadlUriCount>
+                            <!-- this is the public-facing client developer guide formerly known as PublicAPISpec.xml -->
+                            <!-- this document that will be published as clb-devguide-latest.pdf at http://docs.rackspacecloud.com/api/ --> 
+			    <pdfUrl>../../cdb-devguide-latest.pdf</pdfUrl>
+                          <enableDisqus>intranet</enableDisqus>
+                          <disqusShortname>rc-docs-beta</disqusShortname>
+			    <googleAnalyticsId>UA-23102455-4</googleAnalyticsId>
+                            <includes>cdb-devguide.xml</includes>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.docbook</groupId>
+                        <artifactId>docbook-xml</artifactId>
+                        <version>4.4</version>
+                        <scope>runtime</scope>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.rackspace.cloud.api</groupId>
+                        <artifactId>clouddocs-maven-plugin</artifactId>
+                        <version>1.0.4-SNAPSHOT</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+           
+        </plugins>
+    </build>
+</project>
