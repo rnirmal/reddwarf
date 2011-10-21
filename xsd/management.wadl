@@ -89,8 +89,8 @@
   </method>
   <method name="GET" id="indexstorage">
     <response status="200">
-      <representation mediaType="application/xml" element="dbaas:Storage"/>
-      <representation mediaType="application/json" element="dbaas:Storage"/>
+      <representation mediaType="application/xml" element="dbaas:Devices"/>
+      <representation mediaType="application/json" element="dbaas:Devices"/>
     </response>
     &commonFaults;
     &getFaults;

@@ -55,10 +55,10 @@
     </annotation>
   </element>
 
-  <element name="storage" type="dbaas:Storage">
+  <element name="devices" type="dbaas:Devices">
     <annotation>
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-        <p>Information about storage.</p>
+        <p>Information about storage devices.</p>
       </xsd:documentation>
       <xsd:appinfo>
         <xsdxt:samples>
@@ -174,12 +174,12 @@
     </attribute>
   </complexType>
 
-  <complexType name="Storage">
+  <complexType name="Devices">
     <sequence>
       <element name="device" type="dbaas:Device" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>A database device on the Host.</p>
+            <p>A storage device on the Host.</p>
           </xsd:documentation>
         </annotation>
       </element>
