@@ -629,7 +629,7 @@ class InstanceHostCheck2(InstanceHostCheck):
         account_info = dbaas.accounts.show(instance_info.user.auth_user)
         # Instances were created and then deleted or crashed.
         # In the process, one host was created.
-        self.assertEqual(1, len(account_info.hosts))
+        self.assertEqual(0, len(account_info.hosts))
 
 
 @test(depends_on_classes=[CreateInstance, VerifyGuestStarted,
