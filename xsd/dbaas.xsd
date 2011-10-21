@@ -256,6 +256,20 @@
         </xsd:documentation>
       </annotation>
     </attribute>
+   <attribute name="created" type="xsd:dateTime" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Date/Time the instance was created.</p>
+        </xsd:documentation>
+      </annotation>
+   </attribute>
+   <attribute name="updated" type="xsd:dateTime" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Date/Time the instance was last updated.</p>
+        </xsd:documentation>
+      </annotation>
+   </attribute>
    <attribute name="name" type="xsd:string" use="required">
      <annotation>
        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
