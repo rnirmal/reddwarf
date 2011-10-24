@@ -504,6 +504,7 @@
     <element name="itemNotFound" type="dbaas:ItemNotFoundFault"/>
     <element name="tenantConflict" type="dbaas:TenantConflictFault"/>
     <element name="unprocessableEntity" type="dbaas:UnprocessableEntityFault"/>
+    <element name="serverError" type="dbaas:ServerErrorFault" />
 
     <!-- Fault Types -->
     <complexType name="BaseFault">
@@ -600,6 +601,13 @@
     </complexType>
 
     <complexType name="UnprocessableEntityFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ServerErrorFault">
         <complexContent>
             <extension base="dbaas:BaseFault">
             </extension>

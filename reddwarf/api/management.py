@@ -136,7 +136,11 @@ class Controller(object):
         instance = self.instance_view.build_mgmt_single(server, instance_ref,
                                                         req.application_url,
                                                         guest_state)
-        instance = self._get_guest_info(context, id, status, instance)
+        try:
+            instance = self._get_guest_info(context, id, status, instance)
+        except Exception as err:
+            LOG.error(err)
+            raise exc.HTTPServerError(explanation="Unable to retrieve information from the guest")
         return {'instance': instance}
 
     def _get_guest_info(self, context, id, status, instance):

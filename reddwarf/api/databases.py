@@ -49,7 +49,11 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)
-        result = self.guest_api.list_databases(ctxt, instance_id)
+        try:
+            result = self.guest_api.list_databases(ctxt, instance_id)
+        except Exception as err:
+            LOG.error(err)
+            raise exc.HTTPServerError(explanation="Unable to get the list of databases")
         LOG.debug("LIST DATABASES RESULT - %s", str(result))
         databases = {'databases':[]}
         for database in result:
