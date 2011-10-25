@@ -6,7 +6,7 @@ To run these tests, do the following:
 2. Create a directory to store some glance images. Then set the environment
    variable GLANCEIMAGES to the path to this directory.
 3. Download the openvz glance image from
-   http://c629296.r96.cf2.rackcdn.com/ubuntu-10.04-x86_64-openvz.tar.gz
+   http://c629296.r96.cf2.rackcdn.com/debian-squeeze-x86_64-openvz.tar.gz
    to the directory created in step 2.
 4. Enter the directory integration/vagrant.
 5. Run the command

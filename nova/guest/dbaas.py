@@ -53,9 +53,8 @@ FLAGS = flags.FLAGS
 FLUSH = text("""FLUSH PRIVILEGES;""")
 
 ENGINE = None
-MYSQL_NOT_INSTALLED = re.compile("[\w\n]*mysql[.]* unrecognized service[\w\n]*")
-MYSQL_STOPPED = re.compile("[\w\n]*mysql stop/waiting[\w\n]*")
-MYSQL_RUNNING = re.compile("[\w\n]*mysql start/running. process [0-9]*[\w\n]*")
+MYSQLD_ARGS = None
+PREPARING = False
 
 
 def generate_random_password():
@@ -81,6 +80,22 @@ def get_engine():
         else:
             LOG.error(_(err))
         return ENGINE
+
+
+def load_mysqld_options():
+    try:
+        out, err = utils.execute("/usr/sbin/mysqld", "--print-defaults", run_as_root=True)
+        arglist = re.split("\n", out)[1].split()
+        args = {}
+        for item in arglist:
+            if "=" in item:
+                key, value = item.split("=")
+                args[key.lstrip("--")] = value
+            else:
+                args[item.lstrip("--")] = None
+        return args
+    except ProcessExecutionError as e:
+        return None
 
 
 class DBaaSAgent(object):
@@ -244,32 +259,44 @@ class DBaaSAgent(object):
 
     def prepare(self, databases):
         """Makes ready DBAAS on a Guest container."""
+        global PREPARING
+        PREPARING = True
         from nova.guest.pkg import PkgAgent
         if not isinstance(self, PkgAgent):
             raise TypeError("This must also be an instance of Pkg agent.")
         preparer = DBaaSPreparer(self)
         preparer.prepare()
-
         self.create_database(databases)
+        PREPARING = False
 
     def update_status(self):
         """Update the status of the MySQL service"""
-        try:
-            out, err = utils.execute("sudo", "service", "mysql", "status")
-            instance_id = guest_utils.get_instance_id()
-            if err:
-                LOG.error(err)
+        global MYSQLD_ARGS
+        global PREPARING
+        instance_id = guest_utils.get_instance_id()
 
-            if MYSQL_RUNNING.match(out):
-                dbapi.guest_status_update(instance_id, power_state.RUNNING)
-            elif MYSQL_STOPPED.match(out):
-                dbapi.guest_status_update(instance_id, power_state.SHUTDOWN)
-            elif MYSQL_NOT_INSTALLED.match(out):
-                dbapi.guest_status_update(instance_id, power_state.BUILDING)
-            else:
-                dbapi.guest_status_update(instance_id, power_state.NOSTATE)
-        except:
-            LOG.error(sys.exc_info()[0])
+        if PREPARING:
+            dbapi.guest_status_update(instance_id, power_state.BUILDING)
+            return
+
+        try:
+            out, err = utils.execute("/usr/bin/mysqladmin", "ping", run_as_root=True)
+            dbapi.guest_status_update(instance_id, power_state.RUNNING)
+        except ProcessExecutionError as e:
+            try:
+                out, err = utils.execute("ps", "-C", "mysqld", "h")
+                pid = out.split()[0]
+                # TODO(rnirmal): Need to create new statuses for instances where
+                # the mysql service is up, but unresponsive
+                dbapi.guest_status_update(instance_id, power_state.BLOCKED)
+            except ProcessExecutionError as e:
+                if not MYSQLD_ARGS:
+                    MYSQLD_ARGS = load_mysqld_options()
+                pid_file = MYSQLD_ARGS.get('pid-file', '/var/run/mysqld/mysqld.pid')
+                if os.path.exists(pid_file):
+                    dbapi.guest_status_update(instance_id, power_state.CRASHED)
+                else:
+                    dbapi.guest_status_update(instance_id, power_state.SHUTDOWN)
 
 
 class LocalSqlClient(object):
@@ -325,7 +352,7 @@ class KeepAliveConnection(interfaces.PoolListener):
 class DBaaSPreparer(object):
     """Prepares DBaaS on a Guest container."""
 
-    TIME_OUT = 500
+    TIME_OUT = 1000
 
     def __init__(self, pkg_agent):
         """ By default login with root no password for initial setup. """

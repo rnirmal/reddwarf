@@ -111,9 +111,9 @@ class AddGlanceImage(unittest.TestCase):
             else:
                 exec_str = "/usr/bin/glance-upload"
             proc = start_proc([exec_str, "--type=raw",
-                               "%s/ubuntu-10.04-x86_64-openvz.tar.gz" %
-                               glance_images_directory(),
-                               "ubuntu-10.04-x86_64-openvz"])
+                               "%s/%s" % (glance_images_directory(),
+                                          test_config.glance_image),
+                               test_config.glance_image.rstrip(".tar.gz")])
             (stdoutdata, stderrdata) = proc.communicate()
             print "proc.communicate()'s stdout\n%s" % stdoutdata
             print "proc.communicate()'s stderr\n%s" % stderrdata
@@ -241,7 +241,7 @@ class Api(unittest.TestCase):
 
     def test_start(self):
         if not self.service.is_service_alive():
-            self.service.start(time_out=60)
+            self.service.start(time_out=60 * 3)
 
 
 @test(groups=["services.initialize"],

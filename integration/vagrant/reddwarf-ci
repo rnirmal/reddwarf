@@ -15,7 +15,7 @@ PYTHON_NOVACLIENT_VERSION=113
 GLANCE_VERSION="ecbcc09ce5c337a84d8adf19f957529c4f76a075"
 KEYSTONE_VERSION="f5d73af8f1bde3818f6d46cc0ccd327667d53535"
 
-PACKAGE_VERSION="2012.12"
+PACKAGE_VERSION="2012.21.12"
 
 NOVA_HOME="/src"
 NOVA_CONF="/home/vagrant/nova.conf"
@@ -30,13 +30,13 @@ KEYSTONE_CONF="/etc/keystone/keystone.conf"
 USERNET="br100"
 INFRANET="br200"
 
-PACKAGES_DIR="/var/www/ubuntu/"
+PACKAGES_DIR="/var/www/debian/"
 BUILD_DIR="/tmp/build/"
 
 TEST_HOME="/src/integration/"
 NEMESIS_CONF="/vagrant/conf/host.nemesis.conf"
 
-GUEST_IMAGE="ubuntu-10.04-x86_64-openvz.tar.gz"
+GUEST_IMAGE="debian-squeeze-x86_64-openvz.tar.gz"
 
 ###############################################################################
 # Usage and list of available commands                                        #
@@ -79,7 +79,7 @@ ip_chunk() {
 }
 
 get_ip_for_device() {
-    ifconfig $1 | awk '/inet addr/{gsub(/addr:/,"");print $2}'
+    /sbin/ifconfig $1 | awk '/inet addr/{gsub(/addr:/,"");print $2}'
 }
 
 pkg_install () {
@@ -114,23 +114,12 @@ set_http_proxy() {
 check_network() {
     # Check that network is first up and the apt repository reachable
     while true; do
-        if (ping -c 1 -W 1 archive.ubuntu.com 2>&1); then
+        if (ping -c 1 -W 1 mirror.rackspace.com 2>&1); then
             break;
         else
             sudo ip route del default via 10.0.4.2
         fi
     done
-}
-
-glance_stop() {
-    # Stop the glance services if they are running
-    echo "Stopping Glance Service"
-    if sudo service glance-registry stop; then
-        echo "Stopped Glance Registry"
-    fi
-    if sudo service glance-api stop; then
-        echo "Stopped Glance API"
-    fi
 }
 
 ###############################################################################
@@ -152,7 +141,7 @@ install_apt_cacher_ng() {
     pkg_install apt-cacher-ng
     echo 'Acquire::http { Proxy "http://'${INFRANET_IP}':3142"; };' | sudo tee /etc/apt/apt.conf.d/01proxy
     echo "BindAddress: ${INFRANET_IP}" | sudo tee -a $APT_CACHER_CONF
-    sudo service apt-cacher-ng restart
+    sudo /etc/init.d/apt-cacher-ng restart
     sudo apt-get update
 }
 
@@ -168,7 +157,7 @@ install_apt_repo() {
 
     echo 'Origin: Rackspace
 Label: Rackspace
-Codename: lucid
+Codename: squeeze
 Architectures: i386 amd64
 Components: main
 Description: Rackspace DBaaS APT Repository' | sudo tee $PACKAGES_DIR/conf/distributions
@@ -183,19 +172,12 @@ Description: Rackspace DBaaS APT Repository' | sudo tee $PACKAGES_DIR/conf/distr
     dinstall_runs => 1,
 };' | sudo tee -a $DUPLOAD_CONF
 
-}
-
-install_jenkins() {
-    exclaim "Installing Jenkins and adding it to apt sources list"
-    pkg_install jenkins
-    wget $HTTP_PROXY -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
-    echo "deb http://pkg.jenkins-ci.org/debian binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
-    sudo apt-get update
+    echo "deb http://apt.rackspace.com/debian squeeze main" | sudo tee -a /etc/apt/sources.list
 }
 
 install_packages() {
     exclaim 'Installing Dependencies...'
-    pkg_install git-core python-all python-setuptools python-sphinx python-distutils-extra pep8 debhelper apache2 dupload bzr devscripts gawk iptables ebtables screen curl rabbitmq-server lvm2 socat unzip python-twisted python-mox python-ipy python-paste python-migrate python-gflags python-greenlet python-libxml2 python-routes python-netaddr python-pastedeploy python-eventlet python-novaclient python-glance python-cheetah python-carrot python-tempita python-sqlalchemy python-suds mysql-server python-mysqldb python-paramiko python-lockfile python-pip cdbs python-mock uuid python-webob python-m2crypto python-twisted-web python-boto python-amqplib python-unittest2 python-feedparser python-kombu
+    pkg_install git-core python-all python-setuptools python-sphinx python-distutils-extra pep8 debhelper apache2 dupload bzr gawk iptables ebtables screen curl rabbitmq-server lvm2 socat unzip python-twisted python-mox python-ipy python-paste python-migrate python-gflags python-greenlet python-libxml2 python-routes python-netaddr python-pastedeploy python-eventlet python-novaclient python-glance python-cheetah python-carrot python-tempita python-sqlalchemy python-suds mysql-server python-mysqldb python-paramiko python-lockfile python-pip cdbs python-mock uuid python-webob python-m2crypto python-twisted-web python-boto python-amqplib python-unittest2 python-feedparser python-kombu python-pexpect
 
     # The default version of pip Ubuntu installs is old.
     cd /tmp
@@ -219,7 +201,13 @@ install_open_iscsi() {
     sudo sed -i 's/#discovery.sendtargets.auth.password = password/discovery.sendtargets.auth.password = password1234/' $ISCSID_CONF
 
     # Restart the iscsi initiator
-    sudo service open-iscsi restart
+    sudo /etc/init.d/open-iscsi restart
+}
+
+add_ppas() {
+    echo "deb http://ppa.launchpad.net/$1/ubuntu maverick main" | sudo tee -a /etc/apt/sources.list
+    shift
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys $@
 }
 
 add_apt_repos() {
@@ -227,9 +215,9 @@ add_apt_repos() {
 
     pkg_install python-software-properties
     # Get proper sphinx version from the drizzle ppa
-    sudo add-apt-repository ppa:drizzle-developers/ppa
-    sudo add-apt-repository ppa:bzr/ppa
-    sudo add-apt-repository ppa:openstack-release/2011.3/ubuntu
+    add_ppas drizzle-developers/ppa 06899068
+    add_ppas bzr/ppa 73C60F57
+    add_ppas openstack-release/2011.3 D702BF6B8C6C1EFD 7D21C2EC3D1B4472
     sudo apt-get update
 }
 
@@ -253,14 +241,11 @@ update_config() {
     echo "[
     {rabbit, [{tcp_listeners, [{'$INFRANET_IP', 5672}]}]}
 ]." | sudo tee /etc/rabbitmq/rabbitmq.config
-    sudo service rabbitmq-server restart
+    sudo /etc/init.d/rabbitmq-server restart
 
     # Set Mysql (Nova DB) to listen on infranet only
     sudo sed -i "s/^bind-address[ \t]*= 127.0.0.1/bind-address\t\t = $INFRANET_IP/g" /etc/mysql/my.cnf
-    sudo service mysql restart
-
-    # TODO (rnirmal): Not sure if we need this
-    echo "127.0.0.1    apt.rackspace.com ppa.rackspace.com" | sudo tee -a /etc/hosts
+    sudo /etc/init.d/mysql restart
 }
 
 install_deps() {
@@ -274,8 +259,6 @@ install_deps() {
     install_open_iscsi
     update_config
     install_apt_repo
-    # TODO (rnirmal): Not sure where this needs to be enabled
-    #sudo install_jenkins
 }
 
 ###############################################################################
@@ -291,8 +274,8 @@ dbaas_pkg_build_dbaasmycnf() {
 
     cd $BUILD_DIR/dbaas/dbaas-mycnf
     sudo -E ./builddeb.sh
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid dbaas-mycnf
-    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include lucid *.changes
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze dbaas-mycnf
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze *.changes
 }
 
 dbaas_pkg_build_firstboot() {
@@ -300,17 +283,34 @@ dbaas_pkg_build_firstboot() {
 
     cd $BUILD_DIR/dbaas/firstboot
     sudo -E ./builddeb.sh
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid firstboot
-    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include lucid *.changes
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze firstboot
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze *.changes
+}
+
+build_install_glance() {
+    cd $BUILD_DIR
+    git clone https://github.com/openstack/glance.git
+    cd glance
+    git checkout stable/diablo
+    cp -R $BUILD_DIR/oizys/generic_package_scripts/glance_diablo_scripts/debian .
+
+    pkg_install python-swift
+    rm debian/*.upstart
+    sed -i.bak "s/JENKINS_REVNO/$GIT_REVISION/g" debian/changelog
+    DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    pkg_remove glance python-glance
+
+    cd $BUILD_DIR
+    sudo dpkg -i *glance*.deb
 }
 
 dbaas_pkg_install_glance() {
     exclaim "Installing Glance..."
     GLANCE_IMAGES="/glance_images/"
 
-    pkg_install glance
+    # TODO(rnirmal): Just install python-glance and use the code. Don't need to repackage
+    build_install_glance
 
-    glance_stop
     sudo cp $GLANCE_API_CONF /etc/glance/
     sudo cp $GLANCE_REG_CONF /etc/glance/
 
@@ -345,142 +345,91 @@ dbaas_pkg_install_novaclient() {
     pkg_install python-novaclient
 }
 
+dbaas_pkg_build_reddwarf_config() {
+    cd $BUILD_DIR
+    mkdir -p reddwarf-config
+    cd reddwarf-config
+    cp -R $BUILD_DIR/oizys/generic_package_scripts/reddwarf_config_diablo_scripts/debian .
+
+    # Change config values
+    sed -i.bak "s/JENKINS_REVNO/$GIT_REVISION/g" debian/changelog
+    sed -i.bak "s/MYSQL_USER/nova/g" debian/guest.conf
+    sed -i.bak "s/MYSQL_PASS/novapass/g" debian/guest.conf
+    sed -i.bak "s/MYSQL_HOST/$INFRANET_IP/g" debian/guest.conf
+    sed -i.bak "s/RABBIT_HOST/$INFRANET_IP/g" debian/guest.conf
+    sed -i.bak "s/RABBIT_PORT/5672/g" debian/guest.conf
+    sed -i.bak "s/RABBIT_USER/guest/g" debian/guest.conf
+    sed -i.bak "s/RABBIT_PASS/guest/g" debian/guest.conf
+    DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+}
+
 dbaas_pkg_build_nova() {
     exclaim "Building Nova packages..."
 
     cd $BUILD_DIR
-    cp -R /src $BUILD_DIR/dbaas
-    rm -rf $BUILD_DIR/dbaas/.bzr
-    $HTTP_PROXY bzr checkout --lightweight lp:~openstack-ubuntu-packagers/nova/diablo dbaas
+    mkdir -p $BUILD_DIR/dbaas
     cd dbaas
-
-    # add the packages to the control file to make sure we also build our packages
-    # Build package section, adding in the platform api and nova guest!
-    echo '
-Package: reddwarf-api
-Architecture: all
-Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
-Description: Red Dwarf - Nova - API frontend
-
-Package: nova-guest
-Architecture: all
-Depends: python-pexpect, nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
-Description: Red Dwarf - Nova - Guest agent
-
-Package: nova-dns
-Architecture: all
-Depends: nova-common (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
-Description: Red Dwarf - Nova - DNS' >> debian/control
-
-    echo "nova ($PACKAGE_VERSION~$GIT_REVISION) lucid; urgency=low
-
-  [aut-gen]
-  * generated version from the integration build.
-
- -- Apt Repo <dbaas-dev@rackspace.com>  `date +'%a, %d %b %Y %I:%M:%S %z'`
-
-" | cat - debian/changelog >> debian/changelog.tmp
-    mv debian/changelog.tmp debian/changelog
-
-    # change the packages to lucid packages in the existing bzr checked out code
-    sed -i.bak -e 's/ natty;/ lucid;/g' debian/changelog
-
-    # Remove the dependency on python-tempo
-    # TODO(rnirmal): Remove this once we have python-flask for lucid or don't require it anymore
-    sed -i.bak -e 's/python-tempo//g' debian/control
-    sed -i.bak -e 's/python-pastedeploy (>= 1.5.0)/python-pastedeploy/g' debian/control
-
-    # now hot-mod the guest file and platform api based on the existing stuff
-    for file in `ls debian/ |grep nova-api`
-    do
-        cp debian/$file "debian/nova-guest."`echo $file|cut -d'.' -f2`
-        cp debian/$file "debian/reddwarf-api."`echo $file|cut -d'.' -f2`
-        cp debian/$file "debian/nova-dns."`echo $file|cut -d'.' -f2`
-    done
-    sed -i.bak -e 's/nova-api/nova-guest/g' debian/nova-guest.*
-    sed -i.bak -e 's/nova-api/reddwarf-api/g' debian/reddwarf-api.*
-    sed -i.bak -e 's/nova-api/nova-dns/g' debian/nova-dns.*
-
-    cp debian/mans/nova-api.8 debian/mans/nova-guest.8
-    cp debian/mans/nova-api.8 debian/mans/reddwarf-api.8
-    cp debian/mans/nova-api.8 debian/mans/nova-dns.8
-
-    sed -i.bak -e 's/api/guest/g' debian/mans/nova-guest.8
-    sed -i.bak -e 's/nova/reddwarf/g' debian/mans/reddwarf-api.8
-    sed -i.bak -e 's/api/dns/g' debian/mans/nova-dns.8
-
-    # Fix the api paste config
-    sed -i.bak -e 's/api-paste\.ini/reddwarf-api-paste\.ini/g' debian/reddwarf-api.install
-    echo 'usr/bin/reddwarf-cli' >> debian/reddwarf-api.install
-    echo 'usr/bin/reddwarf-manage' >> debian/reddwarf-api.install
-
-    # hack up the rules file thats broken
-    echo "--sql_connection=mysql://nova:novapass@$INFRANET_IP/nova" >> debian/nova.conf
-    sed -i.bak 's/mkdir -p doc\/build\/html/mkdir -p doc\/doc\/build\/html/g' debian/rules
-
-    #now copy over the paste ini
-    cp $BUILD_DIR/dbaas/etc/nova/reddwarf-api-paste.ini $BUILD_DIR/dbaas/debian/
+    cp -R /src/* .
+    cp -R $BUILD_DIR/oizys/generic_package_scripts/nova_diablo_scripts/debian .
+    sed -i.bak "s/JENKINS_REVNO/$GIT_REVISION/g" debian/changelog
 
     DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
 }
 
 dbaas_pkg_upload_nova() {
     exclaim "Removing old versions of the packages and adding new ones..."
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-ajax-console-proxy
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-api
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-common
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-kvm
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-lxc
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-uml
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-compute-xen
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-doc
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-dns
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-guest
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-instancemonitor
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-network
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-objectstore
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-scheduler
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-vncproxy
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid nova-volume
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid reddwarf-api
-    sudo -E reprepro -Vb $PACKAGES_DIR remove lucid python-nova
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-ajax-console-proxy
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-api
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-common
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-compute
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-compute-kvm
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-compute-lxc
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-compute-uml
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-compute-xen
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-compute-openvz
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-doc
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-dns
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-guest
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-instancemonitor
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-network
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-objectstore
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-scheduler
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-vncproxy
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-volume
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze reddwarf-api
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze python-nova
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze python-glance
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze python-glance-doc
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze glance
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze reddwarf-config
 
     cd $BUILD_DIR
-    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include lucid nova_${PACKAGE_VERSION}~${GIT_REVISION}_amd64.changes
-}
-
-dbaas_pkg_upload_release() {
-    exclaim "Installing the release... Assumes the $BUILD_DIR stuff is already done and exists"
-    cd $BUILD_DIR/dbaas
-    output=`grep 'BEGIN PGP SIGNED MESSAGE' /tmp/build/nova_${PACKAGE_VERSION}~${GIT_REVISION}_amd64.changes|wc -l`
-    if [ $output == 0 ]
-    then
-      echo "Signing packages..."
-      sudo -E debsign $BUILD_DIR/nova_`echo ${PACKAGE_VERSION}~${GIT_REVISION}`_amd64.changes
-    fi
-    sudo -E dupload -f --to nova $BUILD_DIR/nova_`echo ${PACKAGE_VERSION}~${GIT_REVISION}`_amd64.changes
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR includedeb squeeze reddwarf-config_${PACKAGE_VERSION}-${GIT_REVISION}_all.deb
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze nova_${PACKAGE_VERSION}-${GIT_REVISION}_amd64.changes
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze glance_2011.3-${GIT_REVISION}_amd64.changes
 }
 
 build() {
     GIT_REVISION=`git --git-dir=${NOVA_HOME}/.git rev-parse HEAD`
 
+    # Clean the cacher-ng mirror so that old versions of our code are removed
+    sudo rm -rf /var/cache/apt-cacher-ng/apt.rackspace.com/
+
     # Clean the build dir
     sudo rm -rf $BUILD_DIR
     mkdir -p $BUILD_DIR
+    cd $BUILD_DIR
+    git clone https://github.com/hub-cap/oizys.git
 
     dbaas_pkg_setup_keystone
     dbaas_pkg_install_novaclient
     dbaas_pkg_install_glance
+    dbaas_pkg_build_reddwarf_config
     dbaas_pkg_build_nova
     dbaas_pkg_upload_nova
     dbaas_pkg_build_dbaasmycnf
     dbaas_pkg_build_firstboot
-
-    #now nuke the cacher-ng mirror of our code
-    sudo rm -rf /var/cache/apt-cacher-ng/apt.rackspace.com/
-    # TODO(rnirmal): Where to add this
-    #dbaas_pkg_upload_release
+    sudo apt-get update
 }
 
 ###############################################################################
@@ -622,12 +571,15 @@ setup_dns() {
 }
 
 upload_glance_image() {
-    glance_stop
     # Install glance_image if one isn't found.
-    if [ ! -f /var/lib/glance/1 ]; then
+    if [ ! -f /var/lib/glance/images/1 ]; then
         echo "Installing Glance Image."
-        cd /tests
+        cd $TEST_HOME
         sudo INSTALL_GLANCE_IMAGE=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=services.initialize.glance
+        if [ ! -f /var/lib/glance/images/1 ]; then
+            echo "ERROR: The glance image didn't not get uploaded correctly. Rerun initialize"
+            exit 1
+        fi
     fi
 }
 
@@ -638,7 +590,7 @@ setup_networking() {
     ip_startbr100=`ip_chunk br100 1`.`ip_chunk br100 2`.`ip_chunk br100 3`
     ip_startbr200=`ip_chunk br200 1`.`ip_chunk br200 2`.`ip_chunk br200 3`
 
-    gateway_ip=`route -n|grep ^0.0.0.0|sed 's/ \+/ /g'|cut -d' ' -f2`
+    gateway_ip=`/sbin/route -n|sed 's/ \+/ /g'|grep "^0.0.0.0 ${ip_startbr100}"|cut -d' ' -f2`
     dns_ip=`grep -m1 nameserver /etc/resolv.conf |cut -d' ' -f2`
 
     echo "--flat_network_dns=$dns_ip" >> $NOVA_CONF
@@ -670,10 +622,10 @@ reset_services() {
 
     # Delete all of the volumes on the Volumes VM since the DB will now
     # be out of sync.
-    ssh vagrant@33.33.33.10 "sudo /vagrant/volumeserver delete"
+    ssh vagrant@33.33.33.11 "sudo /vagrant/volumeserver delete"
 
     # Restart Rabbit MQ so all the old queues are cleared
-    sudo service rabbitmq-server restart
+    sudo /etc/init.d/rabbitmq-server restart
 }
 
 initialize() {
