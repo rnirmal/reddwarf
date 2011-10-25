@@ -42,9 +42,6 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('dhcpbridge_flagfile',
                     '/etc/nova/nova-dhcpbridge.conf',
                     'location of flagfile for dhcpbridge')
-flags.DEFINE_string('dhcp_domain',
-                    'novalocal',
-                    'domain to use for building the hostnames')
 flags.DEFINE_string('networks_path', '$state_path/networks',
                     'Location to keep network config files')
 flags.DEFINE_string('public_interface', 'eth0',
@@ -486,11 +483,24 @@ def initialize_gateway_device(dev, network_ref):
             if ip_params[0] != full_ip:
                 new_ip_params.append(ip_params)
     if not old_ip_params or old_ip_params[0][0] != full_ip:
+        gateway = None
+        out, err = _execute('route', '-n', run_as_root=True)
+        for line in out.split('\n'):
+            fields = line.split()
+            if fields and fields[0] == '0.0.0.0' and \
+                            fields[-1] == dev:
+                gateway = fields[1]
+                _execute('route', 'del', 'default', 'gw', gateway,
+                         'dev', dev, check_exit_code=False,
+                         run_as_root=True)
         for ip_params in old_ip_params:
             _execute(*_ip_bridge_cmd('del', ip_params, dev),
                         run_as_root=True)
         for ip_params in new_ip_params:
             _execute(*_ip_bridge_cmd('add', ip_params, dev),
+                        run_as_root=True)
+        if gateway:
+            _execute('route', 'add', 'default', 'gw', gateway,
                         run_as_root=True)
         if FLAGS.send_arp_for_ha:
             _execute('arping', '-U', network_ref['dhcp_server'],

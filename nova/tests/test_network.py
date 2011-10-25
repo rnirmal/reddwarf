@@ -484,6 +484,38 @@ class VlanNetworkTestCase(test.TestCase):
 
 
 class CommonNetworkTestCase(test.TestCase):
+
+    class FakeNetworkManager(network_manager.NetworkManager):
+        """This NetworkManager doesn't call the base class so we can bypass all
+        inherited service cruft and just perform unit tests.
+        """
+
+        class FakeDB:
+            def fixed_ip_get_by_instance(self, context, instance_id):
+                return [dict(address='10.0.0.0'), dict(address='10.0.0.1'),
+                        dict(address='10.0.0.2')]
+
+            def network_get_by_cidr(self, context, cidr):
+                raise exception.NetworkNotFoundForCidr()
+
+            def network_create_safe(self, context, net):
+                fakenet = dict(net)
+                fakenet['id'] = 999
+                return fakenet
+
+            def network_get_all(self, context):
+                raise exception.NoNetworksFound()
+
+        def __init__(self):
+            self.db = self.FakeDB()
+            self.deallocate_called = None
+
+        def deallocate_fixed_ip(self, context, address):
+            self.deallocate_called = address
+
+        def _create_fixed_ips(self, context, network_id):
+            pass
+
     def fake_create_fixed_ips(self, context, network_id):
         return None
 
