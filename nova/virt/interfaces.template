@@ -11,9 +11,11 @@ iface ${ifc.name} inet static
         address ${ifc.address}
         netmask ${ifc.netmask}
         broadcast ${ifc.broadcast}
+        #if $ifc.name == 'eth0'
         gateway ${ifc.gateway}
         dns-nameservers ${ifc.dns}
-
+        #end if
+        
 #if $use_ipv6
 iface ${ifc.name} inet6 static
     address ${ifc.address_v6}
