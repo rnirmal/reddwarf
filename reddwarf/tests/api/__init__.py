@@ -11,27 +11,3 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import os
-import shutil
-
-from nova import flags
-from nova.db import migration as nova_migration
-
-
-database_file = "reddwarf_test.sqlite"
-clean_db = "clean.sqlite"
-reddwarf_db_version = 5
-
-FLAGS = flags.FLAGS
-
-
-def setup():
-    FLAGS.Reset()
-    FLAGS['sql_connection'].SetDefault("sqlite:///%s" % database_file)
-    FLAGS['allow_admin_api'].SetDefault("True")
-    if os.path.exists(database_file):
-        os.remove(database_file)
-    if os.path.exists(clean_db):
-        os.remove(clean_db)
-    nova_migration.db_sync()
-    shutil.copy(database_file, clean_db)

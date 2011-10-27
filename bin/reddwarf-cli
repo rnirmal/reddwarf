@@ -19,7 +19,6 @@ Reddwarf Command line tool
 """
 
 import json
-import pickle
 import optparse
 import os
 import sys
@@ -38,78 +37,14 @@ if os.path.exists(os.path.join(possible_topdir, 'nova', '__init__.py')):
 
 
 from nova import version
-from reddwarfclient import Dbaas
+from reddwarfclient import common
 
 
 oparser = None
-APITOKEN = os.path.expanduser("~/.apitoken")
-
-
-def _get_client(options):
-    """Load an existing apitoken if available"""
-    try:
-        with open(APITOKEN, 'rb') as token:
-            apitoken = pickle.load(token)
-            dbaas = Dbaas(apitoken._user, apitoken._apikey, apitoken._tenant,
-                          apitoken._auth_url, apitoken._service_name,
-                          apitoken._service_url)
-            dbaas.client.auth_token = apitoken._token
-            return dbaas
-    except IOError:
-        print "ERROR: You need to login first and get an auth token\n"
-        print_commands()
-        sys.exit(1)
-    except:
-        print "ERROR: There was an error using your existing auth token, " \
-              "please login again.\n"
-        sys.exit(1)
 
 
 def _pretty_print(info):
     print json.dumps(info, sort_keys=True, indent=4)
-
-
-class APIToken(object):
-    """A token object containing the user, apikey and token which
-       is pickleable."""
-
-    def __init__(self, user, apikey, tenant, token, auth_url, service_name,
-                 service_url):
-        self._user = user
-        self._apikey = apikey
-        self._tenant = tenant
-        self._token = token
-        self._auth_url = auth_url
-        self._service_name = service_name
-        self._service_url = service_url
-
-
-class Auth(object):
-    """
-    Authenticate with your usename and api key to get the auth token
-    for future requests
-    """
-
-    def __init__(self):
-        pass
-
-    def login(self, options, user, apikey, tenant="dbaas", service_name="reddwarf",
-              service_url=None):
-        """Login to retrieve an auth token to use for other api calls"""
-        try:
-            if tenant!=user:
-                tenant = user
-            dbaas = Dbaas(user, apikey, tenant, auth_url=options.url,
-                          service_name=service_name, service_url=service_url)
-            dbaas.authenticate()
-            apitoken = APIToken(user, apikey, tenant, dbaas.client.auth_token,
-                                options.url, service_name, service_url)
-
-            with open(APITOKEN, 'wb') as token:
-                pickle.dump(apitoken, token, protocol=2)
-            print apitoken._token
-        except:
-            print sys.exc_info()[1]
 
 
 class ListCommands(object):
@@ -118,62 +53,62 @@ class ListCommands(object):
     def __init__(self):
         pass
 
-    def instances(self, options):
+    def instances(self):
         """List all Instances for account"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for instance in dbaas.instances.list():
                 _pretty_print(instance._info)
         except:
             print sys.exc_info()[1]
 
-    def instance(self, options, id):
+    def instance(self, id):
         """List details for the specified Instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             _pretty_print(dbaas.instances.get(id)._info)
         except:
             print sys.exc_info()[1]
 
-    def flavors(self, options):
+    def flavors(self):
         """List the available flavors"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for flavor in dbaas.flavors.list():
                 _pretty_print(flavor._info)
         except:
             print sys.exc_info()[1]
 
-    def images(self, options):
+    def images(self):
         """List the available images"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for image in dbaas.images.list():
                 _pretty_print(image._info)
         except:
             print sys.exc_info()[1]
 
-    def users(self, options, id):
+    def users(self, id):
         """List the users on an instance's database"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for user in dbaas.users.list(id):
                 _pretty_print(user._info)
         except:
             print sys.exc_info()[1]
 
-    def databases(self, options, id):
+    def databases(self, id):
         """List the databases on an instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for database in dbaas.databases.list(id):
                 _pretty_print(database._info)
         except:
             print sys.exc_info()[1]
 
-    def root(self, options, id):
+    def root(self, id):
         """Check the instance for root access"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             _pretty_print(dbaas.root.is_root_enabled(id))
         except:
@@ -186,10 +121,10 @@ class CreateCommands(object):
     def __init__(self):
         pass
 
-    def instance(self, options, name, volume_size,
+    def instance(self, name, volume_size,
                  flavorRef="http://localhost:8775/v1.0/flavors/1"):
         """Create a new instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         volume = {"size": volume_size}
         try:
             result = dbaas.instances.create(name, flavorRef, volume)
@@ -197,18 +132,18 @@ class CreateCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def database(self, options, id, dbname):
+    def database(self, id, dbname):
         """Create a database within the specified instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             databases = [{'name': dbname}]
             dbaas.databases.create(id, databases)
         except:
             print sys.exc_info()[1]
 
-    def user(self, options, id, username, password, dbname, *args):
+    def user(self, id, username, password, dbname, *args):
         """Create a user in instance, with access to one or more databases"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             databases = [{'name': dbname}]
             [databases.append({"name": db}) for db in args]
@@ -218,9 +153,9 @@ class CreateCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def root(self, options, id):
+    def root(self, id):
         """Enabling the instance's root user."""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             user, password = dbaas.root.create(id)
             print "User:\t\t%s\nPassword:\t%s" % (user, password)
@@ -234,25 +169,25 @@ class DeleteCommands(object):
     def __init__(self):
         pass
 
-    def instance(self, options, id):
+    def instance(self, id):
         """Delete the specified instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             dbaas.instances.delete(id)
         except:
             print sys.exc_info()[1]
 
-    def database(self, options, id, dbname):
+    def database(self, id, dbname):
         """Delete the specified database in the instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             dbaas.databases.delete(id, dbname)
         except:
             print sys.exc_info()[1]
 
-    def user(self, options, id, user):
+    def user(self, id, user):
         """Delete the specified user in the instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             dbaas.users.delete(id, user)
         except:
@@ -264,81 +199,71 @@ class MgmtCommands(object):
     def __init__(self):
         pass
 
-    def hosts(self, options):
+    def hosts(self):
         """List all Compute hosts"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for host in dbaas.hosts.index():
                 _pretty_print(host._info)
         except:
             print sys.exc_info()[1]
 
-    def host(self, options, name):
+    def host(self, name):
         """List details for the specified Host"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             _pretty_print(dbaas.hosts.get(name)._info)
         except:
             print sys.exc_info()[1]
 
-    def instance(self, options, id):
+    def instance(self, id):
         """List details for the specified Instance"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             _pretty_print(dbaas.management.show(id)._info)
         except:
             print sys.exc_info()[1]
 
-    def storage(self, options):
+    def storage(self):
         """List details for the storage devices"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             for device in dbaas.storage.index():
                 _pretty_print(device._info)
         except:
             print sys.exc_info()[1]
 
-    def accounts(self, options, acct):
+    def accounts(self, acct):
         """List details for the account provided"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
             _pretty_print(dbaas.accounts.show(acct)._info)
         except:
             print sys.exc_info()[1]
 
-    def root(self, options, id):
+    def root(self, id):
         """List root history for the instance provided"""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
           _pretty_print(dbaas.management.root_enabled_history(id)._info)
         except:
           print sys.exc_info()[1]
 
-    def upgrade(self, options, id):
+    def upgrade(self, id):
         """Upgrade a single instance."""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
           _pretty_print(dbaas.guests.upgrade(id)._info)
         except:
           print sys.exc_info()[1]
 
-    def upgradeall(self, options):
+    def upgradeall(self):
         """Upgrade a single instance."""
-        dbaas = _get_client(options)
+        dbaas = common.get_client()
         try:
           _pretty_print(dbaas.guests.upgradeall()._info)
         except:
           print sys.exc_info()[1]
-
-
-def methods_of(obj):
-    """Get all callable methods of an object that don't start with underscore
-    returns a list of tuples of the form (method_name, method)"""
-    result = {}
-    for i in dir(obj):
-        if callable(getattr(obj, i)) and not i.startswith('_'):
-            result[i] = getattr(obj, i)
-    return result
 
 
 def config_options():
@@ -348,27 +273,7 @@ def config_options():
                             Default: http://localhost:5000/v1.1")
 
 
-def print_actions(cmd, actions):
-    """Print help for the command with list of options and description"""
-    global oparser
-    oparser.print_usage()
-    print ("Available actions for '%s' cmd:") % cmd
-    for k, v in actions.iteritems():
-        print "\t%-20s%s" % (k, v.__doc__)
-    sys.exit(2)
-
-
-def print_commands():
-    """Print the list of available commands and description"""
-    global oparser
-    oparser.print_help()
-    print "Available commands"
-    for k, v in COMMANDS.iteritems():
-        print "\t%-20s%s" % (k, v.__doc__)
-    sys.exit(2)
-
-
-COMMANDS = {'auth': Auth,
+COMMANDS = {'auth': common.Auth,
             'list': ListCommands,
             'create': CreateCommands,
             'delete': DeleteCommands,
@@ -384,7 +289,7 @@ def main():
     (options, args) = oparser.parse_args()
 
     if not args:
-        print_commands()
+        common.print_commands(COMMANDS)
 
     # Pop the command and check if it's in the know commands
     cmd = args.pop(0)
@@ -393,10 +298,10 @@ def main():
         command_object = fn()
 
         # Get a list of supported actions for the command
-        actions = methods_of(command_object)
+        actions = common.methods_of(command_object)
 
         if len(args) < 1:
-            print_actions(cmd, actions)
+            common.print_actions(cmd, actions)
 
         # Check for a valid action and perform that action
         action = args.pop(0)
@@ -404,7 +309,7 @@ def main():
             fn = actions.get(action)
 
             try:
-                fn(options, *args)
+                fn(*args)
                 sys.exit(0)
             except TypeError as err:
                 print "Possible wrong number of arguments supplied"
@@ -416,9 +321,10 @@ def main():
                 print "Command failed, please check log for more info"
                 raise
         else:
-            print_actions(cmd, actions)
+            common.print_actions(cmd, actions)
     else:
-        print_commands()
+        common.print_commands(COMMANDS)
+
 
 if __name__ == '__main__':
     main()

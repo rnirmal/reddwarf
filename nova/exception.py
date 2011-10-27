@@ -343,6 +343,14 @@ class FlagNotSet(NotFound):
     message = _("Required flag %(flag)s not set.")
 
 
+class ConfigNotFound(NotFound):
+    message = _("Configuration %(key)s not found.")
+
+
+class DuplicateConfigEntry(NotFound):
+    message = _("Configuration %(key)s already exists.")
+
+
 class InstanceNotFound(NotFound):
     message = _("Instance %(instance_id)s could not be found.")
 

@@ -21,6 +21,7 @@ import datetime
 from nova import exception
 from nova import flags
 from nova import log as logging
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 from sqlalchemy.orm.exc import NoResultFound
@@ -234,3 +235,84 @@ def record_root_enabled_history(context, id, user):
         new_record.save()
     LOG.debug("New root enabled timestamp: %s" % new_record)
     return new_record
+
+
+def config_create(key, value=None, description=None):
+    """Create a new configuration entry
+
+    :param key: configuration entry name
+    :param value: configuration entry value
+    :param description: configuration entry optional description
+    """
+    config = models.Config()
+    config.update({'key': key,
+                   'value': value,
+                   'description': description})
+
+    session = get_session()
+    try:
+        with session.begin():
+            config.save(session=session)
+        return config
+    except Exception:
+        raise exception.DuplicateConfigEntry(key=key)
+
+
+def config_get(key, session=None):
+    """Get the specified configuration item
+
+    :param key: configuration entry name
+    :param session: pass in a active session if available
+    """
+    if not session:
+        session = get_session()
+    result = session.query(models.Config).\
+                         filter_by(key=key).\
+                         filter_by(deleted=False).\
+                         first()
+    if not result:
+        raise exception.ConfigNotFound(key=key)
+    return result
+
+
+def config_get_all(session=None):
+    """Get all the active configuration values
+
+    :param session: pass in a active session if available
+    """
+    if not session:
+        session = get_session()
+    result = session.query(models.Config).\
+                         filter_by(deleted=False)
+    if not result:
+        raise exception.ConfigNotFound(key="All config values")
+    return result
+
+
+def config_update(key, value=None, description=None):
+    """Update an existing configuration value
+
+    :param key: configuration entry name
+    :param value: configuration entry value
+    :param description: configuration entry optional description
+    """
+    session = get_session()
+    update_dict = {'value': value}
+    if description:
+        update_dict['description'] = description
+    with session.begin():
+        session.query(models.Config).\
+                filter_by(key=key).\
+                update(update_dict)
+
+
+def config_delete(key):
+    """Delete the specified configuration item
+
+    :param key: configuration entry name
+    """
+    session = get_session()
+    with session.begin():
+        session.query(models.Config).\
+                filter_by(key=key).\
+                delete()

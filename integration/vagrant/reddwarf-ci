@@ -463,7 +463,7 @@ nova_manage () {
 
 reddwarf_manage () {
     echo reddwarf-manage $@
-    $NOVA_HOME/bin/reddwarf-manage $NOVA_SQL_CONNECTION $@
+    $NOVA_HOME/bin/reddwarf-manage --flagfile=$NOVA_CONF $@
 }
 
 keystone_manage () {
