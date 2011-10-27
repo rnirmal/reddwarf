@@ -49,7 +49,11 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)
-        result = self.guest_api.list_users(ctxt, instance_id)
+        try:
+            result = self.guest_api.list_users(ctxt, instance_id)
+        except Exception as err:
+            LOG.error(err)
+            raise exc.HTTPServerError(explanation="Unable to get the list of users")
         LOG.debug("LIST USERS RESULT - %s", str(result))
         users = {'users':[]}
         for user in result:
