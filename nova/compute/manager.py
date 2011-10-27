@@ -498,7 +498,10 @@ class ComputeManager(manager.SchedulerDependentManager):
     @checks_instance_lock
     def terminate_instance(self, context, instance_id):
         """Terminate an instance on this host."""
-        self._shutdown_instance(context, instance_id, 'Terminating')
+        try:
+            self._shutdown_instance(context, instance_id, 'Terminating')
+        except Exception as ex:
+            LOG.error(ex)
         instance = self.db.instance_get(context.elevated(), instance_id)
         self._instance_update(context,
                               instance_id,
