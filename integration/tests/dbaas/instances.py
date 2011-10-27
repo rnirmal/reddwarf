@@ -56,6 +56,7 @@ from proboscis.asserts import fail
 from tests.util import test_config
 from tests.util import check_database
 from tests.util import create_dns_entry
+from tests.util import create_dbaas_client
 from tests.util import create_test_client
 from tests.util import process
 from tests.util.users import Requirements
@@ -516,6 +517,13 @@ class TestInstanceListing(unittest.TestCase):
     def test_volume_found(self):
         instance = dbaas.instances.get(instance_info.id)
         assert_equal(instance_info.volume['size'], instance.volume['size'])
+
+    def test_index_detail_match_for_regular_user(self):
+        user = test_config.users.find_user(Requirements(is_admin=False))
+        dbaas = create_dbaas_client(user)
+        details = [instance.id for instance in dbaas.instances.list()]
+        index = [instance.id for instance in dbaas.instances.index()]
+        assert_equal(sorted(details), sorted(index))
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])

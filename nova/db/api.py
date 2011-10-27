@@ -525,9 +525,9 @@ def instance_get_all(context):
     return IMPL.instance_get_all(context)
 
 
-def instance_state_get_all_by_user(context, user_id):
-    """Return a dictionary mapping instance ids to states for a user."""
-    return IMPL.instance_state_get_all_by_user(context, user_id)
+def instance_state_get_all_filtered(context):
+    """Return a dictionary mapping instance ids to states for a project/user."""
+    return IMPL.instance_state_get_all_filtered(context)
 
 
 def instance_get_all_by_filters(context, filters):

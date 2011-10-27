@@ -56,7 +56,7 @@ class Controller(object):
             return {'user': {'name': user.name, 'password': user.password}}
         except Exception as err:
             LOG.error(err)
-            return exc.HTTPError("Error enabling the root password")
+            raise exc.HTTPServerError(explanation="Error enabling the root password")
 
     def is_root_enabled(self, req, instance_id):
         """ Returns True if root is enabled for the given instance;
@@ -75,7 +75,7 @@ class Controller(object):
             return {'rootEnabled': result}
         except Exception as err:
             LOG.error(err)
-            return exc.HTTPError("Error determining root access")
+            raise exc.HTTPServerError(explanation="Error determining root access")
 
 def create_resource(version='1.0'):
     controller = {

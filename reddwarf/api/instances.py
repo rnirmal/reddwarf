@@ -81,8 +81,7 @@ class Controller(object):
 
         # Instances need the status for each instance in all circumstances,
         # unlike servers.
-        server_states = db.instance_state_get_all_by_user(context,
-                                                          context.user_id)
+        server_states = db.instance_state_get_all_filtered(context)
         for server in server_list:
             state = server_states[server['id']]
             server['status'] = nova_common.status_from_state(state)
