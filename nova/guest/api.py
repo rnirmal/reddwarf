@@ -39,7 +39,7 @@ class API(base.Base):
     def _get_routing_key(self, context, id):
         """Create the routing key based on the container id"""
         instance_ref = dbapi.instance_get(context, id)
-        return "guest.%s" % instance_ref['hostname']
+        return "guest.%s" % instance_ref['hostname'].split(".")[0]
 
     def create_user(self, context, id, users):
         """Make an asynchronous call to create a new database user"""
