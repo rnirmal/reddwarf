@@ -390,6 +390,7 @@ dbaas_pkg_upload_nova() {
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-doc
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-dns
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-guest
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-reaper
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-instancemonitor
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-network
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-objectstore
