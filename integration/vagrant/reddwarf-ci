@@ -556,6 +556,7 @@ keystone_initialize() {
     # Add new project and user separate
     keystone_manage tenant add daffy
     keystone_manage endpoint add daffy 1
+    keystone_manage endpoint add daffy 2
     keystone_manage user add daffy daffy daffy
 }
 
@@ -604,10 +605,6 @@ setup_networking() {
     # Can't figure out the CIDR rules, so I'm giving it 256 ips.
     nova_manage network create --label=usernet --fixed_range_v4=$ip_startbr100.0/24 --num_networks=1 --network_size=256 --bridge=br100 --bridge_interface=eth0 --dns1=$dns_ip
     nova_manage network create --label=infranet --fixed_range_v4=$ip_startbr200.0/24 --num_networks=1 --network_size=256 --bridge=br200 --bridge_interface=eth1 --dns1=$dns_ip
-    # This for some reason is not being added, nor is it a option in nova manage.
-    # We NEED to get the project associated w/ the network and this is a nasty hack
-    # TODO(mbasnight) figure out why this doesnt pass a project but needs it set in the db
-    mysql_query "update nova.networks set project_id = '$AUTH_TENANT';"
     hostname=`hostname`
 
     # Assume there is only one network and `update all rows.
