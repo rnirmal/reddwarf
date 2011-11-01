@@ -462,6 +462,11 @@ class DBaaSPreparer(object):
     def prepare(self):
         """Prepare the guest machine with a secure mysql server installation"""
         LOG.info(_("Preparing Guest as MySQL Server"))
+        try:
+            utils.execute("apt-get", "update", run_as_root=True)
+        except ProcessExecutionError as e:
+            LOG.error(_("Error updating the apt sources"))
+
         self._install_mysql()
 
         admin_password = generate_random_password()
