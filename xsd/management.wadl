@@ -29,17 +29,6 @@
           <method href="#showinstances"/>
         </resource>
       </resource>
-      <resource id="guests" path="guests">
-         <resource id="resourceGuestUpgradeAll" path="upgradeall">
-            <method href="#guestUpgradeAll"/>
-         </resource>
-         <resource id="guestUpgradeInstance" path="{instanceId}">
-            <param name="instanceId" style="template" type="xsd:string"/>
-            <resource id="resourceGuestUpgrade" path="upgrade">
-               <method href="#guestUpgrade"/>
-            </resource>
-         </resource>
-      </resource>
       <resource id="storage" path="storage">
         <method href="#indexstorage"/>
       </resource>
@@ -53,16 +42,6 @@
   </resources>
 
   <!--Methods-->
-  <method name="POST" id="guestUpgradeAll">
-    <response status="202"/>
-    &commonFaults;
-    &getFaults;
-  </method>
-  <method name="POST" id="guestUpgrade">
-    <response status="202"/>
-    &commonFaults;
-    &getFaults;
-  </method>
   <method name="GET" id="gethosts">
     <response status="200">
       <representation mediaType="application/xml" element="dbaas:Hosts"/>
