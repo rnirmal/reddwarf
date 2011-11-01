@@ -552,6 +552,11 @@ keystone_initialize() {
     keystone_manage endpointTemplates add $SERVICE_REGION $NOVA_SERVICE_NAME $NOVA_SERVICE_URL $NOVA_SERVICE_URL $NOVA_SERVICE_URL 1 0
     keystone_manage endpoint add $AUTH_TENANT 1
     keystone_manage endpoint add $AUTH_TENANT 2
+
+    # Add new project and user separate
+    keystone_manage tenant add daffy
+    keystone_manage endpoint add daffy 1
+    keystone_manage user add daffy daffy daffy
 }
 
 nova_initialize() {
