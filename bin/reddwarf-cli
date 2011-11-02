@@ -93,10 +93,12 @@ class Auth(object):
     def __init__(self):
         pass
 
-    def login(self, options, user, apikey, tenant, service_name="reddwarf",
+    def login(self, options, user, apikey, tenant="dbaas", service_name="reddwarf",
               service_url=None):
         """Login to retrieve an auth token to use for other api calls"""
         try:
+            if tenant!=user:
+                tenant = user
             dbaas = Dbaas(user, apikey, tenant, auth_url=options.url,
                           service_name=service_name, service_url=service_url)
             dbaas.authenticate()
