@@ -308,7 +308,7 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).guest_status()
 
     def test_security_groups_created(self):
-        if not db.security_group_exists(context.get_admin_context(), "dbaas", "tcp_3306"):
+        if not db.security_group_exists(context.get_admin_context(), instance_info.user.auth_user, "tcp_3306"):
             assert_false(True, "Security groups did not get created")
 
 
@@ -524,6 +524,22 @@ class TestInstanceListing(unittest.TestCase):
         details = [instance.id for instance in dbaas.instances.list()]
         index = [instance.id for instance in dbaas.instances.index()]
         assert_equal(sorted(details), sorted(index))
+
+    def test_instance_not_shown_to_other_user(self):
+        daffy_user = test_config.users.find_user_by_name("daffy")
+        daffy_client = create_test_client(daffy_user)
+        daffy_ids = [instance.id for instance in daffy_client.instances.list()]
+        admin_ids = [instance.id for instance in dbaas.instances.list()]
+        self.assertRaises(NotFound, daffy_client.instances.get, instance_info.id)
+        assert_equal(len(daffy_ids), 0)
+        assert_not_equal(sorted(admin_ids), sorted(daffy_ids))
+        for id in admin_ids:
+            assert_equal(daffy_ids.count(id), 0)
+
+    def test_instance_not_deleted_by_other_user(self):
+        daffy_user = test_config.users.find_user_by_name("daffy")
+        daffy_client = create_test_client(daffy_user)
+        self.assertRaises(NotFound, daffy_client.instances.delete, instance_info.id)
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])

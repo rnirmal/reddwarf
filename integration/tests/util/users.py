@@ -78,3 +78,10 @@ class Users(object):
         user = min(users, key=lambda user: user.test_count)
         user.test_count += 1
         return user
+
+    def find_user_by_name(self, name):
+        """Finds a user who meets the requirements and has been used least."""
+        users = (user for user in self.users if user.auth_user==name)
+        user = min(users, key=lambda user: user.test_count)
+        user.test_count += 1
+        return user

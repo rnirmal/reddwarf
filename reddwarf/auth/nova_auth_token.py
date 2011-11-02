@@ -56,16 +56,20 @@ class KeystoneAuthShim(wsgi.Middleware):
         except:
             user_ref = self.auth.create_user(user_id)
 
-        # create a project for tenant
+        # validate that the project_id matches the user_id
+        # TODO(cp16net) needs to change when moving to Auth 2.0
         project_id = req.headers['X_TENANT']
-        if project_id:
-            try:
-                self.auth.get_project(project_id)
-            except:
-                self.auth.create_project(project_id, user_id)
-            # ensure user is a member of project
-            if not self.auth.is_project_member(user_id, project_id):
-                self.auth.add_to_project(user_id, project_id)
+        if project_id!=user_id:
+            req.headers['X_TENANT'] = project_id = user_id
+
+        # create a project for tenant
+        try:
+            self.auth.get_project(project_id)
+        except:
+            self.auth.create_project(project_id, user_id)
+        # ensure user is a member of project
+        if not self.auth.is_project_member(user_id, project_id):
+            self.auth.add_to_project(user_id, project_id)
 
         # Get the auth token
         auth_token = req.headers.get('X_AUTH_TOKEN')
