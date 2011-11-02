@@ -291,7 +291,8 @@ class MgmtCommands(object):
         """List details for the storage devices"""
         dbaas = _get_client(options)
         try:
-            _pretty_print(dbaas.storage.index()._info)
+            for device in dbaas.storage.index():
+                _pretty_print(device._info)
         except:
             print sys.exc_info()[1]
 

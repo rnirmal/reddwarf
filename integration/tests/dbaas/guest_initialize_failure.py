@@ -283,20 +283,6 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
     @test(depends_on=[destroy_guest_and_wait_for_failure])
     @time_out(2 * 60)
     def delete_instance(self):
-        # Now that its suspended, we have to put the instance back into a
-        # valid state for deletion. the compute api only allows 3 states
-        # to be deleted, so we set it back to building.
-        #
-        #  valid_shutdown_states = [
-        #     vm_states.ACTIVE,
-        #     vm_states.REBUILDING,
-        #     vm_states.BUILDING,
-        # ]
-        #
-        # Any building state will now throw back an exception and not delete.
-        self.db.instance_update(context.get_admin_context(),
-                           self.id,
-                           {'vm_state': vm_states.ACTIVE})
         self._delete_instance()
 
     @test(depends_on=[delete_instance])
