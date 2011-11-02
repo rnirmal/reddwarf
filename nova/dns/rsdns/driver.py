@@ -19,6 +19,8 @@
 Dns Driver that uses Rackspace DNSaaS.
 """
 
+import hashlib
+
 from novaclient.exceptions import NotFound
 from rsdns.client import DNSaas
 
@@ -115,7 +117,7 @@ class RsDnsDriver(object):
         if dns_zone.id == None:
             raise TypeError("The entry's dns_zone must have an ID specified.")
         name = entry.name  # + "." + dns_zone.name
-        LOG.debug("Going to create RSDNS entry %s." % name);
+        LOG.debug("Going to create RSDNS entry %s." % name)
         future = self.dns_client.records.create(domain=dns_zone.id,
                                                 record_name=name,
                                                 record_data=entry.content,
@@ -177,24 +179,11 @@ class RsDnsInstanceEntryFactory(object):
         self.default_dns_zone = find_default_zone(dns_client)
 
     def create_entry(self, instance):
-        # Don't need the driver param here.
-
-        # TODO (mbasnight): This should be extracted to a utility method so the
-        #                   ovz conn can use it.
-        # TODO (mbasnight): This, as-is wont work unless we are very strict
-        #                   with what constitutes a valid display_name
-        user_id = instance.get('user_id', None)
-        id = instance.get('id', None)
-        if not user_id:
-            raise ValueError('"user_id" not found or empty in instance.')
+        id = instance.get("uuid", "")
         if not id:
-            raise ValueError('"id" not found or empty in instance.')
-        hostname = ("%s-%s.%s" % (user_id, id, self.default_dns_zone.name))
-        # TODO (mbasnight): Figure out what to do with the initial TTLs
-        # TODO (mbasnight): Remove this hack by fixing the code above it so the
-        #                   ip can be gotten without a sleep, ugh
-        import time
-        time.sleep(1)
+            id = str(instance['id'])
+        hostname = ("%s.%s" % (hashlib.sha1(id).hexdigest(),
+                               self.default_dns_zone.name))
         return DnsEntry(name=hostname, content=None, type="A",
                         priority=3600, dns_zone=self.default_dns_zone)
 
