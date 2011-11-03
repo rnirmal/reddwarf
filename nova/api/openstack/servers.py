@@ -306,6 +306,9 @@ class Controller(object):
     def _action_confirm_resize(self, input_dict, req, id):
         try:
             self.compute_api.confirm_resize(req.environ['nova.context'], id)
+        except exception.MigrationNotFound:
+            msg = _("Instance has not been resized.")
+            raise exc.HTTPBadRequest(explanation=msg)
         except Exception, e:
             LOG.exception(_("Error in confirm-resize %s"), e)
             raise exc.HTTPBadRequest()
@@ -314,6 +317,9 @@ class Controller(object):
     def _action_revert_resize(self, input_dict, req, id):
         try:
             self.compute_api.revert_resize(req.environ['nova.context'], id)
+        except exception.MigrationNotFound:
+            msg = _("Instance has not been resized.")
+            raise exc.HTTPBadRequest(explanation=msg)
         except Exception, e:
             LOG.exception(_("Error in revert-resize %s"), e)
             raise exc.HTTPBadRequest()
@@ -834,7 +840,10 @@ class ControllerV11(Controller):
 
         # build location of newly-created image entity
         image_id = str(image['id'])
-        image_ref = os.path.join(req.application_url, 'images', image_id)
+        image_ref = os.path.join(req.application_url,
+                                 context.project_id,
+                                 'images',
+                                 image_id)
 
         resp = webob.Response(status_int=202)
         resp.headers['Location'] = image_ref
