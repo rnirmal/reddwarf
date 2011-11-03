@@ -17,6 +17,8 @@ import sys
 
 from migrate.versioning import api as versioning_api
 
+from nova import flags
+
 try:
     from migrate.versioning import exceptions as versioning_exceptions
 except ImportError:
@@ -27,67 +29,63 @@ except ImportError:
     except ImportError:
         sys.exit(_("python-migrate is not installed. Exiting."))
 
+FLAGS = flags.FLAGS
 
-def db_sync(sql_connection):
+
+def db_sync():
     """
     Syncs the database to the latest version. If it is not under version control
     then it's first version controlled and upgraded to the latest version
-
-    :param sql_connection: sql connection url
     """
     repo_path = _find_migrate_repo()
-    version_control(sql_connection)
-    versioning_api.upgrade(sql_connection, repo_path)
-    return db_version(sql_connection)
+    version_control()
+    versioning_api.upgrade(FLAGS.sql_connection, repo_path)
+    return db_version()
 
 
-def db_version(sql_connection):
+def db_version():
     """
     Get the current version of the database. Throws a DatabaseNotControlledError
     if the database is not under version control
-
-    :param sql_connection: sql connection url
     """
     repo_path = _find_migrate_repo()
-    return versioning_api.db_version(sql_connection, repo_path)
+    return versioning_api.db_version(FLAGS.sql_connection, repo_path)
 
 
-def db_upgrade(sql_connection, version):
+def db_upgrade(version):
     """Upgrades the database to the specified version
-    
-    :param sql_connection: sql connection url
+
     :param version: upgrade to version
     """
     repo_path = _find_migrate_repo()
     try:
-        versioning_api.upgrade(sql_connection, repo_path,
+        versioning_api.upgrade(FLAGS.sql_connection, repo_path,
                                version=version)
-        return db_version(sql_connection)
+        return db_version()
     except (ValueError, KeyError):
         raise  ValueError("Invalid version '%s'" % version)
 
 
-def db_downgrade(sql_connection, version):
+def db_downgrade(version):
     """Downgrades the database to the specified version
 
-    :param sql_connection: sql connection url
     :param version: downgrade to version
     """
     repo_path = _find_migrate_repo()
     try:
-        versioning_api.downgrade(sql_connection, repo_path,
+        versioning_api.downgrade(FLAGS.sql_connection, repo_path,
                                  version=version)
-        return db_version(sql_connection)
+        return db_version()
     except (ValueError, KeyError):
         raise  ValueError("Invalid version '%s'" % version)
 
 
-def version_control(sql_connection):
+def version_control():
     """Setup version control if not already done"""
     try:
-        db_version(sql_connection)
+        db_version()
     except versioning_exceptions.DatabaseNotControlledError:
-        versioning_api.version_control(sql_connection, _find_migrate_repo())
+        versioning_api.version_control(FLAGS.sql_connection, _find_migrate_repo())
 
 
 def _find_migrate_repo():

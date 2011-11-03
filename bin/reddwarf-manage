@@ -18,8 +18,10 @@
 Reddwarf Management Command Line Utility
 """
 
+import json
 import optparse
 import os
+import pickle
 import sys
 
 # If ../reddwarf/__init__.py exists, add ../ to Python search path, so that
@@ -29,10 +31,25 @@ possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                    os.pardir))
 if os.path.exists(os.path.join(possible_topdir, 'reddwarf', '__init__.py')):
     sys.path.insert(0, possible_topdir)
+if os.path.exists(os.path.join(possible_topdir, 'reddwarfclient',
+                               '__init__.py')):
+    sys.path.insert(0, possible_topdir)
+if os.path.exists(os.path.join(possible_topdir, 'nova', '__init__.py')):
+    sys.path.insert(0, possible_topdir)
 
 
+from nova import flags
+from nova import utils
 from nova import version
+from nova import log as logging
 from reddwarf.db import migration
+from reddwarfclient import common
+
+
+FLAGS = flags.FLAGS
+oparser = None
+format = "%-25s\t%-25s\t%-30s"
+dash = "----------------------------"
 
 
 class DbCommands(object):
@@ -41,110 +58,143 @@ class DbCommands(object):
     def __init__(self):
         pass
 
-    def sync(self, options):
+    def sync(self):
         """Sync the database up to the most recent version"""
         print "Current Version = %s" \
-                    % migration.db_sync(options.sql_connection)
+                    % migration.db_sync()
 
-    def version(self, options):
+    def version(self):
         """Print the current database version"""
         print "Current Version = %s" \
-                    % migration.db_version(options.sql_connection)
+                    % migration.db_version()
 
-    def upgrade(self, options, version):
+    def upgrade(self, version):
         """Upgrade the database to the specified version"""
         print "Current Version = %s" \
-                    % migration.db_upgrade(options.sql_connection, version)
+                    % migration.db_upgrade(version)
 
-    def downgrade(self, options, version):
+    def downgrade(self, version):
         """Downgrade the database to the specified version"""
         print "Current Version = %s" \
-                    % migration.db_downgrade(options.sql_connection, version)
+                    % migration.db_downgrade(version)
 
 
-def methods_of(obj):
-    """Get all callable methods of an object that don't start with underscore
-    returns a list of tuples of the form (method_name, method)"""
-    result = {}
-    for i in dir(obj):
-        if callable(getattr(obj, i)) and not i.startswith('_'):
-            result[i] = getattr(obj, i)
-    return result
+class ConfigCommands(object):
+    """Commands to manage the configuration values"""
+
+    def __init__(self):
+        pass
+
+    def create(self, key, value=None, description=None):
+        """Create a new configuration entry"""
+        dbaas = common.get_client()
+        config = {'key': key}
+        if value:
+            config['value'] = value
+        if description:
+            config['description'] = description
+        try:
+            dbaas.configs.create([config])
+        except:
+            print sys.exc_info()[1]
+
+    def list(self):
+        """Print the list of current configuration values"""
+        dbaas = common.get_client()
+        configs = dbaas.configs.list()
+        print format % ("Key", "Value", "Description")
+        print format % (dash, dash, dash)
+        for config in configs:
+            print format % (config.key, config.value, config.description)
+
+    def get(self, config):
+        """Get the value for the specified config item"""
+        dbaas = common.get_client()
+        config = dbaas.configs.get(config)
+        print format % ("Key", "Value", "Description")
+        print format % (dash, dash, dash)
+        print format % (config.key, config.value, config.description)
+
+    def update(self, key, value, description=None):
+        """Update the specified configuration value"""
+        dbaas = common.get_client()
+        config = {'key': key, 'value': value}
+
+        if description:
+            config['description'] = description
+        try:
+            dbaas.configs.update(config)
+        except:
+            print sys.exc_info()[1]
+
+    def delete(self, config):
+        """Delete the specified configuration value"""
+        dbaas = common.get_client()
+        dbaas.configs.delete(config)
 
 
 def config_options(oparser):
-    oparser.add_option("-s", "--sql_connection",
-                        help="Specifies the SQL Connection to use")
+    oparser.add_option("-f", "--flagfile", default="/etc/nova/nova.conf",
+                        help="Flag file with reddwarf conf")
 
 
-def print_actions(oparser, cmd, actions):
-    """Print help for the command with list of options and description"""
-    oparser.print_usage()
-    print ("Available actions for '%s' cmd:") % cmd
-    for k, v in actions.iteritems():
-        print "\t%s\t\t%s" % (k, v.__doc__)
-    sys.exit(2)
-
-
-def print_commands(oparser):
-    """Print the list of available commands and description"""
-    oparser.print_help()
-    print "Available commands"
-    for k, v in COMMANDS.iteritems():
-        print "\t%s\t\t%s" % (k, v.__doc__)
-    sys.exit(2)
-
-
-COMMANDS = {'db': DbCommands}
+COMMANDS = {'auth': common.Auth,
+            'config': ConfigCommands,
+            'db': DbCommands}
 
 
 def main():
+    utils.default_flagfile()
+    FLAGS(sys.argv)
+    logging.setup()
+
     # Parse arguments
+    global oparser
     oparser = optparse.OptionParser("%prog [options] <cmd> <action> <args>",
                                     version=version.version_string)
     config_options(oparser)
     (options, args) = oparser.parse_args()
 
     if not args:
-        print_commands(oparser)
+        oparser.print_help()
+        common.print_commands(COMMANDS)
 
-    # Check that the sql connection is provided
-    if not options.sql_connection:
-        print ("%s needs to be specified" % oparser.get_option("-s"))
-        sys.exit(1)
-    else:
-        # Pop the command and check if it's in the know commands
-        cmd = args.pop(0)
-        if cmd in COMMANDS:
-            fn = COMMANDS.get(cmd)
-            command_object = fn()
+    cmd = args.pop(0)
+    if cmd in COMMANDS:
+        fn = COMMANDS.get(cmd)
+        command_object = fn()
 
-            # Get a list of supported actions for the command
-            actions = methods_of(command_object)
+        # Get a list of supported actions for the command
+        actions = common.methods_of(command_object)
 
-            if len(args) < 1:
-                print_actions(oparser, cmd, actions)
+        if len(args) < 1:
+            oparser.print_usage()
+            common.print_actions(cmd, actions)
 
-            # Check for a valid action and perform that action
-            action = args.pop(0)
-            if action in actions:
-                fn = actions.get(action)
+        # Check for a valid action and perform that action
+        action = args.pop(0)
+        if action in actions:
+            fn = actions.get(action)
 
-                try:
-                    fn(options, *args)
-                    sys.exit(0)
-                except TypeError as err:
-                    print "Possible wrong number of arguments supplied"
-                    print "%s %s: %s" % (cmd, action, fn.__doc__)
-                    print "\t\t%s" % str(fn.func_code.co_varnames)
-                    print "ERROR: %s" % err
-                except Exception:
-                    print "Command failed, please check log for more info"
-                    raise
-            else:
-                print_actions(oparser, cmd, actions)
+            try:
+                fn(*args)
+                sys.exit(0)
+            except TypeError as err:
+                print "Possible wrong number of arguments supplied"
+                print "%s %s: %s" % (cmd, action, fn.__doc__)
+                print "\t\t", [fn.func_code.co_varnames[i] for i in
+                                            range(fn.func_code.co_argcount)]
+                print "ERROR: %s" % err
+            except Exception:
+                print "Command failed, please check log for more info"
+                raise
         else:
-            print_commands(oparser)
+            oparser.print_help()
+            common.print_actions(cmd, actions)
+    else:
+        oparser.print_usage()
+        common.print_commands(COMMANDS)
+
 
 if __name__ == '__main__':
     main()

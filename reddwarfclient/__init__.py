@@ -27,6 +27,7 @@ from novaclient.v1_1.client import Client
 
 
 from reddwarfclient.accounts import Accounts
+from reddwarfclient.config import  Configs
 from reddwarfclient.databases import Databases
 from reddwarfclient.instances import Instances
 from reddwarfclient.hosts import Hosts
@@ -125,3 +126,4 @@ class Dbaas(Client):
         self.storage = StorageInfo(self)
         self.management = Management(self)
         self.accounts = Accounts(self)
+        self.configs = Configs(self)

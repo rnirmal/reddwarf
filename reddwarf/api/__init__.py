@@ -26,6 +26,7 @@ from nova import log as logging
 from nova import wsgi
 from nova.api.openstack import images
 from reddwarf.api import accounts
+from reddwarf.api import config
 from reddwarf.api import databases
 from reddwarf.api import instances
 from reddwarf.api import guests
@@ -111,6 +112,10 @@ class APIRouter(wsgi.Router):
             mapper.connect("/mgmt/accounts/{id}",
                             controller=accounts.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
+
+            mapper.resource("config", "configs",
+                            controller=config.create_resource(),
+                            path_prefix="mgmt")
 
             #TODO(rnirmal): Right now any user can access these
             # functions as long as the allow_admin_api flag is set.

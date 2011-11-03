@@ -34,6 +34,7 @@ from nova.compute import power_state
 from nova.compute import vm_states
 from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
+from nova.notifier import api as notifier
 
 from reddwarf.api import common
 from reddwarf.api import deserializer
@@ -46,8 +47,6 @@ LOG.setLevel(logging.DEBUG)
 
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('reddwarf_imageRef', 'http://localhost:8775/v1.0/images/1',
-                    'Default image for reddwarf')
 flags.DEFINE_string('reddwarf_mysql_data_dir', '/var/lib/mysql',
                     'Mount point within the instance for MySQL data.')
 flags.DEFINE_string('reddwarf_volume_description',
@@ -56,6 +55,10 @@ flags.DEFINE_string('reddwarf_volume_description',
 flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128*1024,
                     'Maximum accepted volume size (in megabytes) when creating'
                     ' an instance.')
+
+
+def publisher_id(host=None):
+    return notifier.publisher_id("reddwarf-api", host)
 
 
 class Controller(object):
@@ -263,7 +266,15 @@ class Controller(object):
         server = copy.copy(instance)
         # Append additional stuff to create.
         # Add image_ref
-        server['imageRef'] = FLAGS.reddwarf_imageRef
+        try:
+            server['imageRef'] = dbapi.config_get("reddwarf_imageref").value
+        except exception.ConfigNotFound:
+            msg = "Cannot find the reddwarf_imageref config value, " \
+                  "using default of 1"
+            LOG.warn(msg)
+            notifier.notify(publisher_id(), "reddwarf.image", notifier.WARN,
+                            msg)
+            server['imageRef'] = 1
         # Add Firewall rules
         firewall_rules = [FLAGS.default_firewall_rule_name]
         server['firewallRules'] = firewall_rules

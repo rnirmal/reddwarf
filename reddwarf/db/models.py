@@ -36,6 +36,7 @@ class GuestStatus(BASE, NovaBase):
     state = Column(Integer)
     state_description = Column(String(255))
 
+
 class RootEnabledHistory(BASE, NovaBase):
     """
     Represents the date and time root was enabled for the MySQL database on an
@@ -54,3 +55,12 @@ class RootEnabledHistory(BASE, NovaBase):
 
     def __str__(self):
         return '<RootEnabledHistory: instance_id=%s, root_enabled_at=%s, root_enabled_by=%s>' % (self.instance_id, self.created_at, self.user_id)
+
+
+class Config(BASE, NovaBase):
+    """Contains configuration data"""
+    __tablename__ = 'config'
+
+    key = Column(String(255), primary_key=True)
+    value = Column(String(255))
+    description = Column(String(255))

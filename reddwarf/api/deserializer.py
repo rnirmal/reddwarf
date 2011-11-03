@@ -162,3 +162,45 @@ class UserXMLDeserializer(XMLDeserializer):
         """Deserialize an xml formatted create users request"""
         dom = minidom.parseString(string)
         return {'body': {'users': self._extract_users(dom)}}
+
+
+class ConfigXMLDeserializer(XMLDeserializer):
+    """
+    Deserializer to handle xml-formatted requests
+    """
+
+    def create(self, string):
+        """Deserialize an xml formatted create config entry request"""
+        try:
+            dom = minidom.parseString(string)
+        except:
+            raise exception.ApiError("Unable to parse the request xml")
+        configs_node = self._find_first_child_named(dom, "configs")
+        if configs_node is None:
+            return None
+        else:
+            config_nodes = self._find_children_named(configs_node, "config")
+
+        configs = []
+        for config_node in config_nodes:
+            configs.append(self._extract_config(config_node))
+        return {'body': {'configs': configs}}
+
+    def update(self, string):
+        """Deserialize an xml formatted create config entry request"""
+        try:
+            dom = minidom.parseString(string)
+        except:
+            raise exception.ApiError("Unable to parse the request xml")
+        config_node = self._find_first_child_named(dom, "config")
+        if config_node is None:
+            return None
+        else:
+            return {'body': {'config': self._extract_config(config_node)}}
+
+    def _extract_config(self, node):
+        config = {}
+        for attr in ['key', 'value', 'description']:
+            if node.hasAttribute(attr):
+                config[attr] = node.getAttribute(attr)
+        return config

@@ -153,6 +153,16 @@ class Setup(object):
         instance_info.dbaas_flavor, instance_info.dbaas_flavor_href = result
 
     @test
+    def test_add_imageref_config(self):
+        key = "reddwarf_imageref"
+        value = 1
+        description = "Default Image for Reddwarf"
+        config = {'key': key, 'value': value, 'description': description}
+        dbaas.configs.create([config])
+        result = dbaas.configs.get(key)
+        assert_equal(result.value, str(value))
+
+    @test
     def create_instance_name(self):
         id = existing_instance()
         if id is None:
