@@ -295,6 +295,17 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).links(result._info['links'])
         CheckInstance(result._info).volume()
 
+    @expect_exception(ClientException)
+    def test_create_failure_with_no_volume_size(self):
+        instance_name = "instance-failure-with-no-volume-size"
+        databases = []
+        volume = {'size': None}
+        result_fail = dbaas.instances.create(
+                               instance_name,
+                               instance_info.dbaas_flavor_href,
+                               volume,
+                               databases)
+
     def test_mgmt_get_instance_on_create(self):
         result = dbaas.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
@@ -310,6 +321,7 @@ class CreateInstance(unittest.TestCase):
     def test_security_groups_created(self):
         if not db.security_group_exists(context.get_admin_context(), instance_info.user.auth_user, "tcp_3306"):
             assert_false(True, "Security groups did not get created")
+
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
