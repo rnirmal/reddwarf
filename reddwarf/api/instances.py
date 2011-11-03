@@ -352,7 +352,13 @@ class Controller(object):
         try:
             body['instance']
             body['instance']['flavorRef']
-            volume_size = float(body['instance']['volume']['size'])
+            try:
+                volume_size = float(body['instance']['volume']['size'])
+            except ValueError as e:
+                LOG.error("Create Instance Required field(s) - "
+                          "['instance']['volume']['size']")
+                raise exception.ApiError("Required element/key - instance "
+                                    "volume size was not specified as a number")
             if int(volume_size) != volume_size or int(volume_size) < 1:
                 msg = "Volume 'size' needs to be a positive integer value, %s"\
                       " cannot be accepted." % volume_size
