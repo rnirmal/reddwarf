@@ -35,7 +35,7 @@ class ViewBuilder(object):
     def _build_basic(self, server, base_url, guest_states=None):
         """Build the very basic information for an instance"""
         instance = {}
-        instance['id'] = server['id']
+        instance['id'] = server['uuid']
         instance['name'] = server['name']
         instance['status'] = self.get_instance_status(server, guest_states)
         instance['links'] = self._build_links(base_url, instance)

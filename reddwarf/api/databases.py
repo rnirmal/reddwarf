@@ -24,6 +24,7 @@ from nova.api.openstack import faults
 from nova.api.openstack import wsgi
 from reddwarf.api import common
 from reddwarf.api import deserializer
+from reddwarf.db import api as dbapi
 from nova.guest import api as guest_api
 from nova.guest.db import models
 
@@ -47,10 +48,11 @@ class Controller(object):
         """ Returns a list of Databases for the Instance """
         LOG.info("Call to Databases index - %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_exists(ctxt, local_id, self.compute_api)
         try:
-            result = self.guest_api.list_databases(ctxt, instance_id)
+            result = self.guest_api.list_databases(ctxt, local_id)
         except Exception as err:
             LOG.error(err)
             raise exc.HTTPServerError(explanation="Unable to get the list of databases")
@@ -68,12 +70,13 @@ class Controller(object):
         LOG.info("Call to Delete Database - %s for instance %s",
                  id, instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_exists(ctxt, local_id, self.compute_api)
         mydb = models.MySQLDatabase()
         mydb.name = id
 
-        self.guest_api.delete_database(ctxt, instance_id, mydb.serialize())
+        self.guest_api.delete_database(ctxt, local_id, mydb.serialize())
         return exc.HTTPAccepted()
 
     def create(self, req, instance_id, body):
@@ -82,11 +85,12 @@ class Controller(object):
 
         LOG.info("Call to Create Databases for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_exists(ctxt, local_id, self.compute_api)
 
         databases = common.populate_databases(body.get('databases', ''))
-        self.guest_api.create_database(ctxt, instance_id, databases)
+        self.guest_api.create_database(ctxt, local_id, databases)
         return exc.HTTPAccepted("")
 
     def _validate(self, body):

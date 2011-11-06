@@ -236,7 +236,6 @@ def record_root_enabled_history(context, id, user):
     LOG.debug("New root enabled timestamp: %s" % new_record)
     return new_record
 
-
 def config_create(key, value=None, description=None):
     """Create a new configuration entry
 
@@ -316,3 +315,17 @@ def config_delete(key):
         session.query(models.Config).\
                 filter_by(key=key).\
                 delete()
+def localid_from_uuid(uuid):
+    """
+    Given an instance's uuid, retrieve the local instance_id for compatibility
+    with nova. When nova uses uuids exclusively, this function will not be
+    needed.
+    """
+    LOG.debug("Retrieving local id for instance %s" % uuid)
+    session = get_session()
+    try:
+        result = session.query(Instance).filter_by(uuid=uuid).one()
+    except NoResultFound:
+        LOG.debug("No such instance found.")
+        return None
+    return result['id']

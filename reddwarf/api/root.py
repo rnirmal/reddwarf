@@ -42,17 +42,18 @@ class Controller(object):
         LOG.info("Call to enable root user for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        local_id = dbapi.localid_from_uuid(instance_id)
+        common.instance_exists(ctxt, local_id, self.compute_api)
         running = power_state.RUNNING
-        status = dbapi.guest_status_get(instance_id).state
+        status = dbapi.guest_status_get(local_id).state
         if status != running:
             LOG.debug("Instance %s is not running." % instance_id)
             return exc.HTTPError("Instance %s is not running." % instance_id)
         try:
-            result = self.guest_api.enable_root(ctxt, instance_id)
+            result = self.guest_api.enable_root(ctxt, local_id)
             user = models.MySQLUser()
             user.deserialize(result)
-            dbapi.record_root_enabled_history(ctxt, instance_id, ctxt.user_id)
+            dbapi.record_root_enabled_history(ctxt, local_id, ctxt.user_id)
             return {'user': {'name': user.name, 'password': user.password}}
         except Exception as err:
             LOG.error(err)
@@ -63,15 +64,16 @@ class Controller(object):
             False otherwise. """
         LOG.info("Call to is_root_enabled for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_exists(ctxt, local_id, self.compute_api)
         running = power_state.RUNNING
-        status = dbapi.guest_status_get(instance_id).state
+        status = dbapi.guest_status_get(local_id).state
         if status != running:
             LOG.debug("Instance %s is not running." % instance_id)
             return exc.HTTPError("Instance %s is not running." % instance_id)
         try:
-            result = self.guest_api.is_root_enabled(ctxt, instance_id)
+            result = self.guest_api.is_root_enabled(ctxt, local_id)
             return {'rootEnabled': result}
         except Exception as err:
             LOG.error(err)

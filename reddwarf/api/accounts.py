@@ -87,7 +87,7 @@ class Controller(object):
             LOG.debug("instances - %s", instances)
 
             # Prune away all the columns but the ones in key_list
-            key_list = ['id', 'display_name', 'host', 'vm_state']
+            key_list = ['uuid', 'display_name', 'host', 'vm_state']
             instances = [dict([(k, c[k]) for k in key_list])
                 for c in instances]
             LOG.debug("instances - %s", instances)
@@ -100,7 +100,7 @@ class Controller(object):
                 host = {'id': hostname}
                 hosts_instances = [c for c in instances
                     if c['host'] == hostname]
-                hosts_instances = [{'id': c['id'],
+                hosts_instances = [{'id': c['uuid'],
                                      'name': c['display_name'],
                                      'status': c['vm_state'],
                                     } for c in hosts_instances]
