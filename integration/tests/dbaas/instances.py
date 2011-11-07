@@ -158,7 +158,12 @@ class Setup(object):
         value = 1
         description = "Default Image for Reddwarf"
         config = {'key': key, 'value': value, 'description': description}
-        dbaas.configs.create([config])
+        try:
+            dbaas.configs.create([config])
+        except ClientException as e:
+            # configs.create will throw an exception if the config already exists
+            # we will check the value after to make sure it is correct and set
+            pass
         result = dbaas.configs.get(key)
         assert_equal(result.value, str(value))
 
@@ -566,6 +571,20 @@ class TestInstanceListing(unittest.TestCase):
         daffy_client = create_test_client(daffy_user)
         self.assertRaises(NotFound, daffy_client.instances.delete, instance_info.id)
 
+    def test_mgmt_get_instance_after_started(self):
+        result = dbaas.management.show(instance_info.id)
+        expected_attrs = ['account_id', 'addresses', 'created', 'databases',
+                          'flavor', 'guest_status', 'host', 'hostname', 'id',
+                          'name', 'root_enabled_at', 'root_enabled_by',
+                          'server_state_description', 'status',
+                          'updated', 'users', 'volume']
+        CheckInstance(result._info).attrs_exist(result._info, expected_attrs,
+                                                msg="Mgmt get instance")
+        CheckInstance(result._info).flavor()
+        CheckInstance(result._info).guest_status()
+        CheckInstance(result._info).addresses()
+        CheckInstance(result._info).volume_mgmt()
+
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])
 class MgmtHostCheck(unittest.TestCase):
@@ -767,6 +786,11 @@ class CheckInstance(object):
 
     def volume(self):
         expected_attrs = ['size']
+        self.attrs_exist(self.instance['volume'], expected_attrs,
+                         msg="Volumes")
+
+    def volume_mgmt(self):
+        expected_attrs = ['description', 'id', 'name', 'size']
         self.attrs_exist(self.instance['volume'], expected_attrs,
                          msg="Volumes")
 
