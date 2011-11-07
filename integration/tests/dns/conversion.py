@@ -14,16 +14,19 @@
 #    under the License.
 """Tests classes which convert RS style-entries to Nova DNS entries."""
 
-import os
+import hashlib
+import re
 import unittest
 from proboscis import test
 from proboscis.decorators import expect_exception
 
+from nova import flags
 from rsdns.client.records import Record
 from nova.dns.rsdns.driver import EntryToRecordConverter
 from nova.dns.rsdns.driver import RsDnsInstanceEntryFactory
 from nova.dns.rsdns.driver import RsDnsZone
 
+FLAGS = flags.FLAGS
 driver = None
 
 DEFAULT_ZONE = RsDnsZone(1, "dbaas.rackspace.org")
@@ -80,24 +83,19 @@ class WhenCreatingAnEntryForAnInstance(unittest.TestCase):
 
     def setUp(self):
         self.creator = RsDnsInstanceEntryFactory()
-        
+
     def test_should_concatanate_strings(self):
         instance = {'user_id':'Tyrannus',
-                    'id':'56'}
+                    'id':'56',
+                    'uuid': '000136c0-effa-4711-a747-a5b9fbfcb3bd'}
         entry = self.creator.create_entry(instance)
-        self.assertEqual("Tyrannus-56", entry.name)
+        expected_name = "%s.%s" % (hashlib.sha1(instance['uuid']).hexdigest(),
+                                   FLAGS.dns_domain_name)
+        self.assertEqual(expected_name, entry.name,
+                         msg="Entry name should match - %s" % entry.name)
         self.assertEqual(None, entry.content)
         self.assertEqual("A", entry.type)
         self.assertEqual(3600, entry.priority)
-        self.assertEqual(None, entry.dns_zone)
-
-    @expect_exception(ValueError)
-    def test_should_concatanate_strings(self):
-        instance = {'user_id':'',
-                    'id':'56'}
-        self.creator.create_entry(instance)
-
-    @expect_exception(ValueError)
-    def test_should_concatanate_strings(self):
-        instance = {'user_id':'Tyrannus'}
-        self.creator.create_entry(instance)
+        self.assertEqual(FLAGS.dns_domain_name, entry.dns_zone.name)
+        if not entry.dns_zone.id:
+            self.fail(msg="DNS Zone Id should not be empty")

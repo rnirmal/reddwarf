@@ -78,6 +78,7 @@ class InstanceTestInfo(object):
         self.dbaas_image = None  # The image used to create the instance.
         self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
+        self.uuid = None # The UUID value of the instance in the database
         self.initial_result = None # The initial result from the create call.
         self.user_ip = None  # The IP address of the instance, given to user.
         self.infra_ip = None # The infrastructure network IP address.
@@ -98,8 +99,7 @@ class InstanceTestInfo(object):
         :rtype: Instance of :class:`DnsEntry`.
 
         """
-        return create_dns_entry(instance_info.user.auth_user,
-                                instance_info.id)
+        return create_dns_entry(instance_info.id, instance_info.uuid)
 
 
 # The two variables are used below by tests which depend on an instance
@@ -292,6 +292,9 @@ class CreateInstance(unittest.TestCase):
 
         result = instance_info.initial_result
         instance_info.id = result.id
+        instance_ref = db.instance_get(context.get_admin_context(),
+                                       instance_info.id)
+        instance_info.uuid = instance_ref.uuid
 
         if create_new_instance:
             assert_equal(result.status, dbaas_mapping[power_state.BUILDING])

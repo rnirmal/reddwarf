@@ -103,10 +103,9 @@ def create_dbaas_client(user):
     return dbaas
 
 
-def create_dns_entry(user_name, instance_id):
+def create_dns_entry(id, uuid):
     """Given the instance_Id and it's owner returns the DNS entry."""
-    instance = {'user_id':user_name,
-                    'id':str(instance_id)}
+    instance = {'uuid': uuid, 'id': str(id)}
     entry_factory = get_dns_entry_factory()
     entry = entry_factory.create_entry(instance)
     # There is a lot of test code which calls this and then, if the entry
