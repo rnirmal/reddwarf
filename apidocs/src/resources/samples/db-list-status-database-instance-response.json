@@ -1,30 +1,38 @@
 {
     "instance": {
-        "status": "ACTIVE",
-        "flavorRef": "url_to_flavor_of_instance",
-        "hostname": "dns.resolvable.hostname",
+        "created": "2011-11-03T15:36:20Z",
+        "databases": [],
+        "flavor": {
+            "id": "2",
+            "links": [
+                {
+                    "href": "http://localhost:8775/v1.0/flavors/2",
+                    "rel": "self"
+                },
+                {
+                    "href": "http://localhost:8775/flavors/2",
+                    "rel": "bookmark"
+                }
+            ]
+        },
+        "hostname": "mytest-instance-1",
+        "id": 1,
         "links": [
             {
-                "href": "url_to_server_version_info",
+                "href": "http://localhost:8775/v1.0/instances/1",
                 "rel": "self"
             },
             {
-                "href": "url_to_server_version_info",
-                "type": "application/json",
-                "rel": "bookmark"
-            },
-            {
-                "href": "url_to_server_version_info",
-                "type": "application/xml",
+                "href": "http://localhost:8775/instances/1",
                 "rel": "bookmark"
             }
         ],
-        "name": "rack_instance_name",
-        "id": "generated-db-instance-id",
-        "volume":
-            {
-                "size": "2"
-            }
-
+        "name": "mytest",
+        "rootEnabled": false,
+        "status": "ACTIVE",
+        "updated": "2011-11-03T15:37:33Z",
+        "volume": {
+            "size": 1
+        }
     }
 }

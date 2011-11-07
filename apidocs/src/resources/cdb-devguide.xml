@@ -55,7 +55,7 @@
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
         <productname>Rackspace Cloud Database</productname>
-        <pubdate>2011-10-19</pubdate>
+        <pubdate>2011-11-4</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -77,9 +77,9 @@
     </info>
     <chapter xml:id="overview">
         <title>Overview</title>
-        <para> Rackspace Cloud Database as a Service (DBaaS) is a
-            database available to Rackspace Cloud customers.
-            Interactions with Rackspace Cloud DBaaS occur
+        <para>Rackspace Cloud Database as a
+            Service (DBaaS) is a database available to Rackspace Cloud
+            customers. Interactions with Rackspace Cloud DBaaS occur
             programmatically via the Rackspace Cloud DBaaS API as
             described in this Cloud Database Developer Guide.</para>
         <remark>Writer: need to synch up Overview section with
@@ -159,6 +159,18 @@
                 </thead>
                 <tbody>
                     <tr align="left">
+                        <td colspan="1">Nov. 4, 2011</td>
+                        <td colspan="4">
+                            <itemizedlist spacing="compact">
+                                <listitem>
+                                    <para>Updated code samples, text,
+                                   and wadl to match the latest API
+                                   version.</para>
+                                </listitem>
+                            </itemizedlist>
+                        </td>
+                    </tr>
+                    <tr align="left">
                         <td colspan="1">Oct. 13, 2011</td>
                         <td colspan="4">
                             <itemizedlist spacing="compact">
@@ -175,7 +187,7 @@
                             <itemizedlist spacing="compact">
                                 <listitem>
                                    <para>Initial version for developer
-                                   review</para>
+                                   review.</para>
                                 </listitem>
                             </itemizedlist>
                         </td>
@@ -212,6 +224,8 @@
         <?dbhtml stop-chunking?>
         <para> To use the DBaaS API effectively, you should understand
             several key concepts: </para>
+        <remark>Reviewer: Daniel  Morris is asking Daniel Salinas to
+            do an initial write-up of this chapter.</remark>
         <section xml:id="DatabaseInstance-d1e588">
             <title>Database Instance</title>
             <para>A database instance is an isolated MySQL instance in
@@ -340,9 +354,6 @@
                     </programlisting>
                 </programlistingco>
             </example>
-            <remark>Writer: the pdf generated for the example above is
-                off by one character on placing the callouts, as
-                compared to the HTML. Ask Rose about it.</remark>
             <calloutlist>
                 <callout arearefs="auth.xml.token.expires">
                     <para> Tokens are valid for a finite duration. The
@@ -467,36 +478,11 @@
                 
             </section>
             <section xml:id="API_Version_Headers-d1e855">
-                <title>API Version Headers</title>
-                <para>Every response from the Cloud DBaaS includes
-                    custom headers that identify the specific release
-                    version of the API that is in use. This
-                    information is used to assist in diagnosing issues
-                    and should be included in any support request. </para>
-                <remark>Writer: hear from Daniel if we will keep this
-                    section or not.</remark>
-                <table rules="all">
-                    <caption>API Version Headers</caption>
-                    <?dbfo keep-together="always"?>
-                    <thead>
-                        <tr align="center">
-                            <td>Header Name</td>
-                            <td>Description</td>
-                            <td>Example Value</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>X-API-VERSION</td>
-                            <td>The deployed version of the Cloud
-                                DBaaS. This is used to identify
-                                releases, and it should correspond to
-                                the contract version in the URL (that
-                                is, v1.0).</td>
-                            <td>X-API-VERSION=1.0.8</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <title>API Version</title>
+                <para>The API List Versions call is available to show
+                    the current API version as well as information
+                    about all versions of the API. Refer to <xref
+                        linkend="API_Versions"/> for details.</para>
             </section>
         </section>
         <section xml:id="Request_Response_Types-d1e903">
@@ -515,13 +501,12 @@
                 specified using both an <code>Accept</code> header and
                 a query extension, the query extension takes
                 precedence.</para>
-            <para>Some operations support an Atom representation that
+            <para security="writeronly">Some operations support an Atom representation that
                 can be used to efficiently determine when the state of
                 services has changed. </para>
-            <remark>Reviewer: does the previous sentence apply to
-                DBaaS or should it be deleted? Daniel says it should
-                be supported since Nova supports it. Has it been
-                implemented yet?</remark>
+            <remark>Reviewer:  the previous sentence will be hidden
+                for the Private Beta, since it does not appear that
+                Atom will be supported yet. Correct?</remark>
             <table rules="all">
                 <caption>Response Formats</caption>
                 <?dbfo keep-together="always"?>
@@ -546,7 +531,7 @@
                         <td>.xml</td>
                         <td>No</td>
                     </tr>
-                    <tr>
+                    <tr security="writeronly">
                         <td>ATOM</td>
                         <td>application/atom+xml</td>
                         <td>.atom</td>
@@ -554,8 +539,11 @@
                     </tr>
                 </tbody>
             </table>
+            <remark>Reviewer:  the ATOM row in the table above will be
+                hidden for the Private Beta, since it does not appear
+                that Atom will be supported yet. Correct?</remark>
         </section>
-        <section xml:id="sync_asynch_responses">
+        <section xml:id="sync_asynch_responses" security="writeronly">
             <title>Synchronous and Asynchronous Responses</title>
             <remark>Reviewer: please give me the updated info for this
                 section. Need to replace info about callback URL,
@@ -646,10 +634,11 @@
                 list of the successful and error response codes for
                 the POST /xxxx call.</para>
         </section>
-           <section xml:id="Content_Compression-d1e1120">
+           <section xml:id="Content_Compression-d1e1120" security="writeronly">
             <title>Content Compression</title>
-            <remark>Reviewer: has support for this been added, since
-                it is supported in Nova?</remark>
+            <remark>Reviewer: I am hiding this entire section for the
+                Private Beta, since I'm not sure that it applies. Is
+                that correct?</remark>
             <para> Request and response body data may be encoded with gzip compression to accelerate
                 interactive performance of API calls and responses. This is controlled using the
                     <code>Accept-Encoding</code> header on the request from the client and indicated
@@ -679,8 +668,11 @@
                 </tbody>
             </table>
         </section>
-        <section xml:id="Persistent_Connections-d1e1187">
+        <section xml:id="Persistent_Connections-d1e1187" security="writeronly">
             <title>Persistent Connections</title>
+            <remark>Reviewer: I am hiding this entire section for the
+                Private Beta, since I'm not sure that it applies. Is
+                that correct?</remark>
             <para>
                 By default, the API supports persistent connections
                 via HTTP/1.1 keepalives.  All connections will be kept
@@ -722,48 +714,110 @@
                     would match the bolded portion of the following
                     URI: https://db.api.rackspacecloud.com<emphasis
                         role="bold">/v1.0/1234/databases</emphasis>. </para>
-                <remark>Need to update this entire section.</remark>
                 <para>The following table specifies the default rate
                     limits for all API operations for all &GET;,
                     &POST;, &PUT;, and &DELETE; calls for databases
                     and database instances: </para>
+                <table rules="all">
+                    <caption>Default Rate Limits</caption>
+                    <thead>
+                        <tr align="center">
+                            <td colspan="1">Verb</td>
+                            <td colspan="2" security="writeronly">URI</td>
+                            <td colspan="2" security="writeronly">RegEx</td>
+                            <td colspan="1">Default</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="1">&GET; changes-since</td>
+                            <td colspan="2" security="writeronly">*/status/*</td>
+                            <td colspan="2" security="writeronly"
+                                >^/v\d+\.\d+/\d+/status.*</td>
+                            <td colspan="1">3/minute</td>
+                        </tr>
+                        <tr>
+                            <td colspan="1">&POST;</td>
+                            <td colspan="2" security="writeronly">*/domains*</td>
+                            <td colspan="2" security="writeronly"
+                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="1">10/minute</td>
+                        </tr>
+                        <tr>
+                            <td colspan="1">&POST; servers</td>
+                            <td colspan="2" security="writeronly">*/domains*</td>
+                            <td colspan="2" security="writeronly"
+                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="1">50/day</td>
+                        </tr>
+                        <tr>
+                            <td colspan="1">&PUT;</td>
+                            <td colspan="2" security="writeronly">*/domains*</td>
+                            <td colspan="2" security="writeronly"
+                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="1">10/minute</td>
+                        </tr>
+                        <tr>
+                            <td colspan="1">&DELETE;</td>
+                            <td colspan="2" security="writeronly">*/domains*</td>
+                            <td colspan="2" security="writeronly"
+                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="1">100/minute</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <remark>Reviewer: please give me the correct info for
+                    the URI and RegEx columns above, which are hidden
+                    for now.</remark>
+               <para> Rate limits are applied in order relative to the
+                    verb, going from least to most specific. For
+                    example, although the threshold for &POST; to
+                    /v1.0/* is 10 per minute, one cannot &POST; to
+                    /v1.0/* more than 50 times within a single day. </para>
                 <remark>Reviewer: please check previous sentence for
                     accuracy.</remark>
-                <remark>Reviewer: please provide updated Default Rate
-                    Limits table so I can add it below.</remark>
-               <para> Rate limits are applied in order relative to the verb, going from least to
-                    most specific. For example, although the threshold for &POST; to /v1.0/* is 25
-                    per minute, one cannot &POST; to /v1.0/* more than 2 times within a single
-                    second because the rate limit for any &POST; is 2 per second. </para>
-                <para> If you exceed the thresholds established for your account, a <errorcode>413
-                        (Rate Control)</errorcode> HTTP response will be returned with a
-                        <code>Reply-After</code> header to notify the client when it can attempt to
-                    try again. <note>
-                        <para>The third entry in the Default Rate
-                            Limits table above is for simple STATUS
-                            calls after a &POST; or &PUT;, to retrieve
-                            the status details, for example:
-                            &lt;reviewer: need example URI >. This
-                            status call has a limit of 5 requests per
-                            second. </para>
-                    </note></para>
-                <remark>Revuewer: please provide example URI for
-                    making a Simple Status Call  in previous
-                    note.</remark>
+                <para> If you exceed the thresholds established for
+                    your account, a <errorcode>413 (Rate
+                        Control)</errorcode> HTTP response will be
+                    returned with a <code>Retry-After</code> header to
+                    notify the client when it can attempt to try
+                    again. </para>
             </section>
             <section xml:id="Absolute_Limits-d1e1397">
                 <title>Absolute Limits</title>
-                <remark>Need to update this entire section.</remark>
-                <para> &POST; and &PUT; calls are limited to the
-                    creation or modification of a maximum of 100
-                    entities per call where an entity is defined as a
-                    &lt;reviewer: please provide definition>. </para>
-                <remark>Reviewer: please define "entity", as used in
-                    previous sentence.</remark>
-                <remark>Reviewer: please provide an example ot
-                    absolute limits to place in the following
-                    paragraph:</remark>
-                <para>&lt;Need example for absolute limits.></para>
+                <remark>Reviewer: Need to update this entire section.
+                    Please give me your updates.</remark>
+                <para>Refer to the following table for the absolute
+                    limits that are set.</para>
+                <table rules="all">
+                    <caption>Absolute Limits</caption>
+                    <thead>
+                        <tr>
+                            <td>Name</td>
+                            <td>Limit</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>quota_instances</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td>reddwarf_max_accepted_volume_size</td>
+                            <td>10</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <note>
+                    <para>The difference between the
+                            <code>max_accepted</code> limit and the
+                            <code>quota</code> limit is that the
+                            <code>max_accepted</code> limit is
+                            <emphasis>per instance</emphasis>, whereas
+                        the <code>quota</code> limit is for
+                            <emphasis>all instances</emphasis> in your
+                        project.</para>
+                </note>
             </section>
         </section>
         <section xml:id="datetimeformat">
@@ -828,12 +882,14 @@
             </table>
             
         </section>
-        <section xml:id="pagination">
+        <section xml:id="pagination" security="writeronly">
             <title>Pagination</title>
             <remark>Reviewer: please review and give me your updates
                 for this section. Dev needs to determine which API
-                calls support pagination and then supply
-                examples.</remark>
+                calls support pagination and then supply examples. I
+                have hidden this entire section for now, since we do
+                not believe that it will be supported for Private
+                Beta. Correct?</remark>
             <para>To reduce load on the service, list operations will
                 return a maximum of 100 items at a time. This is
                 referred to as <emphasis>pagination</emphasis>.</para>
@@ -995,10 +1051,13 @@
                     </itemizedlist></para>
             </section>
         </section>
-        <section xml:id="efficient_polling_changes_since_parm">
+        <section xml:id="efficient_polling_changes_since_parm" security="writeronly">
             <title>Efficient Polling with the
                     <parameter>Changes-Since</parameter>
                 Parameter</title>
+            <remark>Reviewer: I have hidden this section, since it
+                does not appear that it will be supported for Private
+                Beta. Correct?</remark>
             <para> The ReST API allows you to poll for the status of
                 certain operations by performing a &GET; on various
                 URIs. Rather than re-downloading and re-parsing the
@@ -1183,6 +1242,26 @@
                 <programlisting language="xml">Reviewer: need code example.</programlisting>
             </example>
         </section>
+        <section xml:id="database_instance_status">
+            <title>Database Instance Status</title>
+            <para>When making an API call to create, list, or delete
+                database instance(s), the following database instance
+                status values are possible:</para>
+            <itemizedlist spacing="compact">
+                <listitem>
+                    <para>BUILD &ndash; The database instance is being provisioned.</para>
+                </listitem>
+                <listitem>
+                    <para>ACTIVE &ndash; The database instance is in a healthy state.</para>     
+                </listitem> 
+                <listitem>
+                    <para>SHUTDOWN &ndash; The database instance is terminating services. Also, SHUTDOWN is returned if for any reason the MySQL instance is shut down but not the actual server. (At that point, the user is still being charged for that usage.) </para>
+                </listitem>
+                <listitem>
+                    <para>ERROR &ndash; The database instance was not created due to an error.</para>     
+                </listitem> 
+            </itemizedlist>
+        </section>
     </chapter>
     
     <chapter xml:id="API_Operations-d1e2264" 
@@ -1192,7 +1271,9 @@
         
         <section xml:id="API_Versions">
             <title>API Versions</title>
-            <para>This section describes the versions that are supported for the DBaaS API.</para>
+            <para>This
+                section describes the versions that are supported for
+                the DBaaS API.</para>
             <wadl:resources xmlns:wadl="http://wadl.dev.java.net/2009/02">
                 <wadl:resource href="dbaas.wadl#versions">
                     <wadl:method href="getVersions"/>
@@ -1232,7 +1313,6 @@
                     <wadl:method href="getDatabases"/>
                 </wadl:resource>
                 <wadl:resource href="dbaas.wadl#databaseName">
-                    <wadl:method href="getDatabase"/>
                     <wadl:method href="deleteDatabase"/>
                 </wadl:resource>
             </wadl:resources>
@@ -1249,7 +1329,6 @@
                     <wadl:method href="getUsers"/>
                 </wadl:resource>
                 <wadl:resource href="dbaas.wadl#userId">
-                    <wadl:method href="getUser"/>
                     <wadl:method href="deleteUser"/>
                 </wadl:resource>
             </wadl:resources>

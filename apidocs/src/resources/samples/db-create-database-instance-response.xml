@@ -1,11 +1,18 @@
-<?xml version="1.0" ?>
-<instance xmlns="http://docs.rackspacecloud.com/database/api/v1.0"
-    name="myrackinstance" id="generated-db-instance-id" status="BUILD"
-    flavorRef="http://localhost:8775/v1.0/flavors/1">
+<instance created="2011-11-03T15:57:52Z" hostname="orion-instance-5"
+    id="5" name="orion" status="BUILD" updated="2011-11-03T15:57:55Z"
+    xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
     <links>
-        <link href="url_to_server_version_info" rel="self"/>
-        <link href="url_to_server_version_info" rel="bookmark" type="application/json"/>
-        <link href="url_to_server_version_info" rel="bookmark" type="application/xml"/>
+        <link href="http://localhost:8775/v1.0/instances/5" rel="self"/>
+        <link href="http://localhost:8775/instances/5" rel="bookmark"
+        />
     </links>
-    <Volume size="2" />
+    <volume size="2"/>
+    <flavor id="2">
+        <links>
+            <link href="http://localhost:8775/v1.0/flavors/2"
+                rel="self"/>
+            <link href="http://localhost:8775/flavors/2"
+                rel="bookmark"/>
+        </links>
+    </flavor>
 </instance>
