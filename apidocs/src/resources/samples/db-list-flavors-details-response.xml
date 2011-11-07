@@ -6,6 +6,9 @@
         <id>
             3
         </id>
+        <vcpus>
+            1
+        </vcpus>
         <links>
             <link>
                 <href>
@@ -36,6 +39,9 @@
         <id>
             5
         </id>
+        <vcpus>
+            2
+        </vcpus>
         <links>
             <link>
                 <href>

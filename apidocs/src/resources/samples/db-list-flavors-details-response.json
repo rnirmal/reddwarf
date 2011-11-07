@@ -13,6 +13,7 @@
                 }
             ],
             "name": "m1.medium",
+            "vcpus": 1,
             "ram": 2048
         },
         ....
@@ -29,6 +30,7 @@
                 }
             ],
             "name": "m1.xlarge",
+            "vcpus": 2,
             "ram": 8192
         }
     ]

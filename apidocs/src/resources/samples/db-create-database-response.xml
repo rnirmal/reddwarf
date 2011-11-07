@@ -1,4 +1,0 @@
-<Databases xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
-    <Database name="sampledb" character_set="utf8" collate="utf8_general_ci" />
-    <Database name="nextround" />
-</Databases>

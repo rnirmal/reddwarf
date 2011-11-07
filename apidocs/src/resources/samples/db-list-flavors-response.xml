@@ -1,8 +1,5 @@
 <flavors xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
     <flavor>
-        <ram>
-            2048
-        </ram>
         <id>
             3
         </id>
@@ -30,9 +27,6 @@
     </flavor>
     ....
     <flavor>
-        <ram>
-            8192
-        </ram>
         <id>
             5
         </id>
