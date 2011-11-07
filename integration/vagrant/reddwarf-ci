@@ -11,6 +11,8 @@
 
 # Global Configuration
 
+AGENT_DIR=/agent
+
 PYTHON_NOVACLIENT_VERSION=113
 GLANCE_VERSION="ecbcc09ce5c337a84d8adf19f957529c4f76a075"
 KEYSTONE_VERSION="f5d73af8f1bde3818f6d46cc0ccd327667d53535"
@@ -248,6 +250,18 @@ update_config() {
     sudo /etc/init.d/mysql restart
 }
 
+install_sneaky_pete_deps() {
+    exclaim "Installing Sneaky Pete dependencies."
+    if [ ! -d $AGENT_DIR ]; then
+        exclaim "Source not found, cloning from GIT."
+        sudo mkdir -p $AGENT_DIR
+        sudo chown vagrant $AGENT_DIR
+        git clone git://github.com/hub-cap/sneaky-pete.git $AGENT_DIR
+    fi
+    # Install all the stuff needed to build Sneaky Pete.
+    $AGENT_DIR/vagrant/initialize.sh
+}
+
 install_deps() {
     check_network
     sudo usermod -g root vagrant
@@ -259,7 +273,9 @@ install_deps() {
     install_open_iscsi
     update_config
     install_apt_repo
+    install_sneaky_pete_deps
 }
+
 
 ###############################################################################
 
@@ -268,6 +284,7 @@ install_deps() {
 # Build nova, glance and reddwarf-api and nova-guest packages
 # Use this to rebuild guest packages
 ###############################################################################
+
 
 dbaas_pkg_build_dbaasmycnf() {
     exclaim "Building and uploading dbaasmycnf package..."
@@ -398,6 +415,7 @@ dbaas_pkg_upload_nova() {
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-vncproxy
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze nova-volume
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze reddwarf-api
+    sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze reddwarf-mgmt-api
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze python-nova
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze python-glance
     sudo -E reprepro -Vb $PACKAGES_DIR remove squeeze python-glance-doc
@@ -408,6 +426,17 @@ dbaas_pkg_upload_nova() {
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR includedeb squeeze reddwarf-config_${PACKAGE_VERSION}-${GIT_REVISION}_all.deb
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze nova_${PACKAGE_VERSION}-${GIT_REVISION}_amd64.changes
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze glance_2011.3-${GIT_REVISION}_amd64.changes
+}
+
+dbaas_pkg_build_sneaky_pete() {
+    exclaim "Building and packaging Sneaky Pete..."
+    # Remove old guest
+    sudo -E reprepro -Vb /var/www/debian remove squeeze nova-guest
+    # Build new package
+    cd $AGENT_DIR
+    sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    # Install in repo
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze /nova-guest*_amd64.changes
 }
 
 build() {
@@ -421,7 +450,7 @@ build() {
     mkdir -p $BUILD_DIR
     cd $BUILD_DIR
     git clone https://github.com/hub-cap/oizys.git
-
+    
     dbaas_pkg_setup_keystone
     dbaas_pkg_install_novaclient
     dbaas_pkg_install_glance
@@ -430,6 +459,7 @@ build() {
     dbaas_pkg_upload_nova
     dbaas_pkg_build_dbaasmycnf
     dbaas_pkg_build_firstboot
+    dbaas_pkg_build_sneaky_pete
     sudo apt-get update
 }
 
