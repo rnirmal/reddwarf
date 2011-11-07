@@ -17,21 +17,19 @@
 
 import json
 
-from nova.exception import VolumeProvisioningError
-from nova.compute import power_state
 from nova import flags
+from nova import guest
 from nova import log as logging
 from nova import exception
-from nova.compute import vm_states
-from reddwarf.api import common
-from nova.compute import power_state
-from nova import guest
-from nova.notifier import api as notifier
 from nova import utils
-
+from nova.compute import vm_states
+from nova.compute import power_state
 from nova.compute.manager import ComputeManager
+from nova.notifier import api as notifier
+from nova.volume import api as volume_api
 
 from reddwarf.db import api as dbapi
+
 
 flags.DEFINE_integer('reddwarf_guest_initialize_time_out', 10 * 60,
                      'Time in seconds for a guest to initialize before it is '
@@ -97,7 +95,7 @@ class ReddwarfInstanceInitializer(object):
         self.volume_mount_point = volume_mount_point
         self.databases = databases
         self.compute_manager = compute_manager
-
+        self.volume_api = volume_api.API()
 
     def _abort_guest_install(self):
         """Sets the guest state to FAIL continuously until an instance is known
@@ -126,6 +124,14 @@ class ReddwarfInstanceInitializer(object):
                          confirm_state_is_suspended,
                          sleep_time=1,
                          time_out=FLAGS.reddwarf_instance_suspend_time_out)
+        self._abort_volume()
+
+    def _abort_volume(self):
+        """Detach the volume that was created for an instance that is going to
+        be aborted, due to errors. The volume will be detached and available.
+        It will get reaped eventually."""
+        self.compute_manager._detach_volume(self.context, self.instance_id,
+                                            self.volume_id, False)
 
     def _ensure_volume_is_ready(self, volume_api, volume_client, host):
         self.wait_until_volume_is_ready(FLAGS.reddwarf_volume_time_out)
@@ -152,7 +158,6 @@ class ReddwarfInstanceInitializer(object):
             LOG.info("Guest is now running on instance %s" % self.instance_id)
             return True
         except utils.PollTimeOut as pto:
-            self._set_instance_status_to_fail()
             self._notify_of_failure(
                 exception=pto,
                 event_type='reddwarf.instance.abort.guest',
@@ -168,13 +173,11 @@ class ReddwarfInstanceInitializer(object):
                                               self.instance_id, **kwargs)
             return True
         except Exception as exception:
-            self._set_instance_status_to_fail()
             self._notify_of_failure(exception=exception,
                 event_type='reddwarf.instance.abort.compute',
                 audit_msg=_("Aborting instance %(instance_id)d because the "
                             "underlying compute instance failed to run."))
-            self.compute_manager.suspend_instance(self.context,
-                                                  self.instance_id)
+            self._abort_guest_install()
             return False
 
     def initialize_volume(self, volume_api, volume_client,

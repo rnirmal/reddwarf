@@ -281,13 +281,15 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         assert_true(self.abort_count < abort_count2)
 
     @test(depends_on=[destroy_guest_and_wait_for_failure])
+    def test_volume_detached(self):
+        utils.poll_until(self._check_volume_detached, sleep_time=1, time_out=3 * 60)
+
+    @test(depends_on=[test_volume_detached])
     @time_out(2 * 60)
     def delete_instance(self):
         self._delete_instance()
 
     @test(depends_on=[delete_instance])
-    def make_sure_resources_are_removed(self):
-        #TODO: Make sure the initial disk space is back to where it was,
-        # i.e. the associated volume was deleted.
-        #Make sure memory is where it was.
-        self._assert_volume_is_eventually_deleted(3*60)
+    def test_volume_still_detached_after_delete(self):
+        if not self._check_volume_detached():
+            fail(message="Volume should be in a detached state")
