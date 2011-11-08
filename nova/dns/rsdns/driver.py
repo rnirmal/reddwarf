@@ -44,6 +44,8 @@ flags.DEFINE_string('dns_passkey', '',
                      'System account user for domain modification thru DNSaas')
 flags.DEFINE_string('dns_management_base_url', None,
                     'The management URL for DNS.')
+flags.DEFINE_integer('dns_ttl', 300, 'TTL for the DNS entries')
+
 FLAGS = flags.FLAGS
 LOG = logging.getLogger('nova.dns.rsdns.driver')
 
@@ -111,6 +113,9 @@ class RsDnsDriver(object):
         self.default_dns_zone = find_default_zone(self.dns_client,
                                                   raise_if_zone_missing)
         self.converter = EntryToRecordConverter(self.default_dns_zone)
+        if FLAGS.dns_ttl < 300:
+            raise Exception("TTL value '--dns_ttl=%s' should be greater than" \
+                            " 300" % FLAGS.dns_ttl)
 
     def create_entry(self, entry):
         dns_zone = entry.dns_zone or self.default_dns_zone
@@ -185,7 +190,7 @@ class RsDnsInstanceEntryFactory(object):
         hostname = ("%s.%s" % (hashlib.sha1(id).hexdigest(),
                                self.default_dns_zone.name))
         return DnsEntry(name=hostname, content=None, type="A",
-                        priority=3600, dns_zone=self.default_dns_zone)
+                        ttl=FLAGS.dns_ttl, dns_zone=self.default_dns_zone)
 
 
 class RsDnsZone(object):

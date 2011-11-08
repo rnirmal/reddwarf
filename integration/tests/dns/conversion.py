@@ -85,8 +85,7 @@ class WhenCreatingAnEntryForAnInstance(unittest.TestCase):
         self.creator = RsDnsInstanceEntryFactory()
 
     def test_should_concatanate_strings(self):
-        instance = {'user_id':'Tyrannus',
-                    'id':'56',
+        instance = {'id':'56',
                     'uuid': '000136c0-effa-4711-a747-a5b9fbfcb3bd'}
         entry = self.creator.create_entry(instance)
         expected_name = "%s.%s" % (hashlib.sha1(instance['uuid']).hexdigest(),
@@ -95,7 +94,8 @@ class WhenCreatingAnEntryForAnInstance(unittest.TestCase):
                          msg="Entry name should match - %s" % entry.name)
         self.assertEqual(None, entry.content)
         self.assertEqual("A", entry.type)
-        self.assertEqual(3600, entry.priority)
+        self.assertEqual(FLAGS.dns_ttl, entry.ttl)
+        self.assertEqual(None, entry.priority)
         self.assertEqual(FLAGS.dns_domain_name, entry.dns_zone.name)
         if not entry.dns_zone.id:
             self.fail(msg="DNS Zone Id should not be empty")
