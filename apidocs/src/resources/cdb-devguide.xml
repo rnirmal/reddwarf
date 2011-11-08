@@ -37,7 +37,7 @@
     <?rax status.bar.text="BETA"?>
     <?rax title.font.size="35px" subtitle.font.size="20px"?>
     <title>Rackspace Cloud Database Developer Guide BETA</title>
-    <titleabbrev>Rackspace Cloud DB Dev Guide</titleabbrev>
+    <titleabbrev>Rackspace Cloud DB BETA Dev Guide</titleabbrev>
     <info>
         <author>
             <personname>
@@ -55,7 +55,7 @@
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
         <productname>Rackspace Cloud Database</productname>
-        <pubdate>2011-11-4</pubdate>
+        <pubdate>2011-11-18</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -94,7 +94,7 @@
             <para> Database propagation may take up to 15
                 minutes.</para>
         </note>
-        <para>The following figure shows an overview of Cloud DBaaS
+        <para security="writeronly">The following figure shows an overview of Cloud DBaaS
             Infrastructure: <informalfigure>
                 <mediaobject>
                     <imageobject role="fo">
@@ -111,8 +111,9 @@
             </informalfigure>
         </para>
         <remark>Writer: need to get architecture diagram for DBaaS.
-            Checked with Daniel 9/12 and he said he would look into
-            getting one made.</remark>
+            Daniel emailed 11/17 that he would work on this during the
+            Private Beta and have it done for the Public
+            Beta.</remark>
         <para>We welcome feedback, comments, and bug reports at <link
                 xlink:href="http://feedback.rackspacecloud.com"
                 >http://feedback.rackspacecloud.com</link>.</para>
@@ -158,6 +159,41 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr align="left">
+                        <td colspan="1">Nov. 18, 2011</td>
+                        <td colspan="4">
+                            <itemizedlist spacing="compact">
+                                <listitem>
+                                   <para>Updated <xref
+                                   linkend="Service_Access_Endpoints-d1e753"
+                                   />.</para>
+                                </listitem>
+                                <listitem>
+                                    <para>Updated <xref
+                                   linkend="Rate_Limits-d1e1222"
+                                   />.</para>
+                                </listitem>
+                                <listitem>
+                                   <para>Updated <xref
+                                   linkend="DB_faults"/>.</para>
+                                </listitem>
+                                <listitem>
+                                   <para>Updated parameter table for
+                                   Delete Database and Delete User API
+                                   calls.</para>
+                                </listitem>
+                                <listitem>
+                                   <para>Updated parameter information
+                                   for List Version Details API
+                                   call.</para>
+                                </listitem>
+                                <listitem>
+                                   <para>Updated all examples to match
+                                   the latest API version.</para>
+                                </listitem>
+                            </itemizedlist>
+                        </td>
+                    </tr>
                     <tr align="left">
                         <td colspan="1">Nov. 4, 2011</td>
                         <td colspan="4">
@@ -324,21 +360,22 @@
             </calloutlist>
             <example>
                 <title>Auth Response: XML</title>
+                <?dbfo keep-together="always"?>
                 <programlistingco>
                     <areaspec>
                         <area xml:id="auth.xml.token.expires" units="linecolumn" coords="6 18"/>
                         <area xml:id="auth.xml.sc.s.e.region" units="linecolumn" coords="10 18"/>
                         <area xml:id="auth.xml.sc.s.e.v1d" units="linecolumn" coords="11 21"/>
                         <area xml:id="auth.xml.sc.s.e.pu" units="linecolumn" coords="12 21"/>
-                        <area xml:id="auth.xml.sc.s.e.iu" units="linecolumn" coords="13 23"/>
-                        <area xml:id="auth.xml.sc.s.e.nr" units="linecolumn" coords="29 17"/>
+                        <area xml:id="auth.xml.sc.s.e.iu" units="linecolumn" coords="15 21"/>
+                        <area xml:id="auth.xml.sc.s.e.nr" units="linecolumn" coords="29 21"/>
                     </areaspec>
                     <programlisting language="xml">
 <xi:include href="../resources/samples/db-auth.xml" parse="text"/>
                     </programlisting>
                 </programlistingco>
             </example>
-            <example>
+            <example xml:id="auth-response-example-json">
                 <title>Auth Response: JSON</title>
                 <programlistingco>
                     <areaspec>
@@ -346,8 +383,8 @@
                         <area xml:id="auth.json.sc.s.e.region" units="linecolumn" coords="11 32"/>
                         <area xml:id="auth.json.sc.s.e.v1d" units="linecolumn" coords="12 35"/>
                         <area xml:id="auth.json.sc.s.e.pu" units="linecolumn" coords="13 35"/>
-                        <area xml:id="auth.json.sc.s.e.iu" units="linecolumn" coords="14 37"/>
-                        <area xml:id="auth.json.sc.s.e.nr" units="linecolumn" coords="33 32"/>
+                        <area xml:id="auth.json.sc.s.e.iu" units="linecolumn" coords="17 35"/>
+                        <area xml:id="auth.json.sc.s.e.nr" units="linecolumn" coords="34 35"/>
                     </areaspec>
                     <programlisting language="javascript">
 <xi:include href="../resources/samples/db-auth.json" parse="text"/>
@@ -398,7 +435,9 @@
                         incurs traffic charges. Internal URLs are only
                         accessible to services within the same region.
                         Access to an internal URL is free of charge.
-                    </para>
+                        Note that you can find your account number (in
+                        this example 1234) after the final '/' in the
+                        URL.</para>
                 </callout>
                 <callout arearefs="auth.xml.sc.s.e.nr">
                     <para> Some services are not region-specific.
@@ -415,40 +454,50 @@
                 replication, caching, and overall maintenance of DBaaS
                 data across regional boundaries to other DBaaS
                 servers.</para>
-            <para>To determine which region to operate against, select an endpoint from the table
+            <para>To determine which region
+                to operate against, select an endpoint from the table
                 below.</para>
+            <?rax-fo keep-with-next?>
             <para>
                 <table rules="all">
                     <caption>Regionalized Service Endpoints</caption>
                     <thead>
                         <tr align="center">
-                            <td colspan="1">Region</td>
-                            <td colspan="4">Endpoint</td>
+                            <td colspan="2">Region</td>
+                            <td colspan="5">Endpoint</td>
                         </tr>
                     </thead>
                     <tbody>
                         <tr align="left">
-                            <td colspan="1">US</td>
-                            <td colspan="4"
-                                   ><code>https://db.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
+                            <td colspan="2">Chicago (ORD)</td>
+                            <td colspan="5"
+                                ><code>https://ord.databases.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
                         </tr>
                         <tr align="left">
-                            <td colspan="1">UK</td>
-                            <td colspan="4">
-                                <code>https://lon.db.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
+                            <td colspan="2">Dallas/Ft. Worth (DFW)</td>
+                            <td colspan="5"
+                                ><code>https://dfw.databases.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
+                        </tr>
+                        <tr align="left">
+                            <td colspan="2">London (LON)</td>
+                            <td colspan="5">
+                                <code>https://lon.databases.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
                         </tr>
                     </tbody>
                 </table>
             </para>
-            <remark>Reviewer: please provide me with the correct
-                endpoints for DBaaS for the table above.</remark>
-            <para>Replace the sample account ID number, <parameter>1234</parameter>, with your
-                actual account number returned as part of the authentication service response. You
-                will find the actual account number after the final '/' in the
-                    <code>X-Server-Management-Url</code> header returned by the authentication
-                response. In example XXX, the account id is
-                1234, as you can see from the header <code>X-Server-Management-Url:
-                    https://servers.api.rackspacecloud.com/v1.0/1234</code>.</para>
+            
+            <para>Replace the sample account ID number,
+                    <parameter>1234</parameter>, with your actual
+                account number returned as part of the authentication
+                service response.</para>
+            <para>You will find the actual account number after the
+                final '/' in the <code>publicURL</code> field returned
+                by the authentication response. For example, in <xref
+                    linkend="auth-response-example-json"/> you can see
+                from the <code>publicURL</code> field
+                (https://dfw.databases.api.rackspacecloud.com/v1.0/1234)
+                that the account number is 1234.</para>
         </section>
         <section xml:id="DB_service_versions">
             <title>DBaaS Service Versions</title>
@@ -467,10 +516,8 @@
                         <title>Example Request URL (contract version
                             in <emphasis role="strong"
                             >bold</emphasis>)</title>
-                        <programlisting>Reviewer: please provide code example</programlisting>
+                        <programlisting>https://ord.databases.api.rackspacecloud.com/<emphasis role="strong">v1.0</emphasis>/1234</programlisting>
                 </example>
-                <remark>Writer: please update code example
-                    above.</remark>
                     <note>
                         <para>This document pertains to contract
                             version 1.0.</para>
@@ -542,6 +589,23 @@
             <remark>Reviewer:  the ATOM row in the table above will be
                 hidden for the Private Beta, since it does not appear
                 that Atom will be supported yet. Correct?</remark>
+            <para>In the request example below, notice that
+                    <parameter>Content-Type</parameter> is set to
+                    <parameter>application/json</parameter>, but
+                    <parameter>application/xml</parameter> is
+                requested via the <parameter>Accept</parameter>
+                header:</para>
+            <example>
+                <title>Request with Headers: JSON</title>
+                <?dbfo keep-together="always"?>
+                <programlisting language="xml"><xi:include href="../resources/samples/db-request-types.json" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
+            </example>
+            <para><?rax-fo keep-with-next?>Therefore an XML response format is returned:</para>
+            <example>
+                <title>Response with Headers: XML</title>
+                <?dbfo keep-together="always"?>
+                <programlisting language="xml"><xi:include href="../resources/samples/db-response-types.xml" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
+            </example>
         </section>
         <section xml:id="sync_asynch_responses" security="writeronly">
             <title>Synchronous and Asynchronous Responses</title>
@@ -692,7 +756,6 @@
         <?hard-pagebreak?>
         <section xml:id="Limits-d1e1208">
             <title>Limits</title>
-            <remark>Need to update this entire section.</remark>
             <para>
                 All accounts, by default, have a preconfigured set of
                 thresholds (or limits) to manage capacity and prevent
@@ -709,11 +772,10 @@
                     machine-processable regular expression. The
                     regular expression boundary matcher '^' takes
                     effect after the root URI path. For example, the
-                    regular expression
-                        ^/v1.0/<parameter>1234</parameter>/databases
-                    would match the bolded portion of the following
-                    URI: https://db.api.rackspacecloud.com<emphasis
-                        role="bold">/v1.0/1234/databases</emphasis>. </para>
+                    regular expression ^/v1.0/instances would match
+                    the bolded portion of the following URI:
+                        https://ord.databases.api.rackspacecloud.com/<emphasis
+                        role="bold">/v1.0/instances</emphasis>. </para>
                 <para>The following table specifies the default rate
                     limits for all API operations for all &GET;,
                     &POST;, &PUT;, and &DELETE; calls for databases
@@ -723,59 +785,49 @@
                     <thead>
                         <tr align="center">
                             <td colspan="1">Verb</td>
-                            <td colspan="2" security="writeronly">URI</td>
-                            <td colspan="2" security="writeronly">RegEx</td>
+                            <td colspan="2">URI</td>
+                            <td colspan="2">RegEx</td>
                             <td colspan="1">Default</td>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td colspan="1">&GET; changes-since</td>
-                            <td colspan="2" security="writeronly">*/status/*</td>
-                            <td colspan="2" security="writeronly"
-                                >^/v\d+\.\d+/\d+/status.*</td>
+                            <td colspan="2">*/instances/*</td>
+                            <td colspan="2">^/vd+.d+/instances.*</td>
                             <td colspan="1">3/minute</td>
                         </tr>
                         <tr>
                             <td colspan="1">&POST;</td>
-                            <td colspan="2" security="writeronly">*/domains*</td>
-                            <td colspan="2" security="writeronly"
-                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="2">*/instances/*</td>
+                            <td colspan="2">^/vd+.d+/instances.*</td>
                             <td colspan="1">10/minute</td>
                         </tr>
                         <tr>
-                            <td colspan="1">&POST; servers</td>
-                            <td colspan="2" security="writeronly">*/domains*</td>
-                            <td colspan="2" security="writeronly"
-                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="1">&POST; instances</td>
+                            <td colspan="2">*/instances/*</td>
+                            <td colspan="2">^/vd+.d+/instances.*</td>
                             <td colspan="1">50/day</td>
                         </tr>
                         <tr>
                             <td colspan="1">&PUT;</td>
-                            <td colspan="2" security="writeronly">*/domains*</td>
-                            <td colspan="2" security="writeronly"
-                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="2">*/instances/*</td>
+                            <td colspan="2">^/vd+.d+/instances.*</td>
                             <td colspan="1">10/minute</td>
                         </tr>
                         <tr>
                             <td colspan="1">&DELETE;</td>
-                            <td colspan="2" security="writeronly">*/domains*</td>
-                            <td colspan="2" security="writeronly"
-                                >^/v\d+\.\d+/\d+/domains.*</td>
+                            <td colspan="2">*/instances/*</td>
+                            <td colspan="2">^/vd+.d+/instances.*</td>
                             <td colspan="1">100/minute</td>
                         </tr>
                     </tbody>
                 </table>
-                <remark>Reviewer: please give me the correct info for
-                    the URI and RegEx columns above, which are hidden
-                    for now.</remark>
                <para> Rate limits are applied in order relative to the
                     verb, going from least to most specific. For
                     example, although the threshold for &POST; to
                     /v1.0/* is 10 per minute, one cannot &POST; to
                     /v1.0/* more than 50 times within a single day. </para>
-                <remark>Reviewer: please check previous sentence for
-                    accuracy.</remark>
                 <para> If you exceed the thresholds established for
                     your account, a <errorcode>413 (Rate
                         Control)</errorcode> HTTP response will be
@@ -800,11 +852,11 @@
                     <tbody>
                         <tr>
                             <td>quota_instances</td>
-                            <td>5</td>
+                            <td>3</td>
                         </tr>
                         <tr>
                             <td>reddwarf_max_accepted_volume_size</td>
-                            <td>10</td>
+                            <td>8</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1058,10 +1110,10 @@
             <remark>Reviewer: I have hidden this section, since it
                 does not appear that it will be supported for Private
                 Beta. Correct?</remark>
-            <para> The ReST API allows you to poll for the status of
+            <para> The REST API allows you to poll for the status of
                 certain operations by performing a &GET; on various
                 URIs. Rather than re-downloading and re-parsing the
-                full status at each polling interval, your ReST client
+                full status at each polling interval, your REST client
                 may use the <parameter>changes-since</parameter>
                 parameter to check for changes since a previous
                 request. The <parameter>changes-since</parameter> time
@@ -1103,38 +1155,31 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="2"><code>dbFault</code></td>
-                        <td colspan="1">500, as well as any of the following others:</td>
-                        <td colspan="3">Generic catch-all. Should not be seen as often as the
-                            specific faults below. See the <code>details</code> element for more
-                            specifics.</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2"><code>serviceUnavailable</code></td>
-                        <td colspan="1">503</td>
-                        <td colspan="3">The request could not be processed because back-end services
-                            were temporarily unavailable. This condition should be temporary;
-                            contact support if the error persists.</td>
+                        <td colspan="2"><code>badRequest</code></td>
+                        <td colspan="1">400</td>
+                        <td colspan="3">There was one or more errors in the user request.</td>
                     </tr>
                     <tr>
                         <td colspan="2"><code>unauthorized</code></td>
                         <td colspan="1">401</td>
-                        <td colspan="3">The user is not authorized to access the API functionality
-                            in question. The user may not have authenticated to the API. If the user
-                            should have access to the API functionality, contact support.</td>
+                        <td colspan="3">The supplied token is not authorized to access the resources, either it's expired or invalid.</td>
                     </tr>
                     <tr>
-                        <td colspan="2"><code>badRequest</code></td>
-                        <td colspan="1">400</td>
-                        <td colspan="3">The request is missing one or more elements, or the values
-                            of some elements are invalid. See the <code>details</code> element or
-                                <code>validationErrors</code> element for specifics.</td>
+                        <td colspan="2"><code>forbidden</code></td>
+                        <td colspan="1">403</td>
+                        <td colspan="3">Access to the request resource was denied.</td>
                     </tr>
                     <tr>
                         <td colspan="2"><code>itemNotFound</code></td>
                         <td colspan="1">404</td>
-                        <td colspan="3">The back-end services did not find anything matching the
+                        <td colspan="3">The back-end services did not
+                            find anything matching the
                             Request-URI.</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><code>badMethod</code></td>
+                        <td colspan="1">405</td>
+                        <td colspan="3">The request method is not allowed for this resource.</td>
                     </tr>
                     <tr>
                         <td colspan="2"><code>overLimit</code></td>
@@ -1145,54 +1190,54 @@
                             if you think you need higher request rate limits.</td>
                     </tr>
                     <tr>
-                        <td colspan="2"><code>itemAlreadyExists</code></td>
-                        <td colspan="1">409</td>
-                        <td colspan="3">The back-end services could not complete the request due to
-                            a conflict with the current state of the resource. Possibly, the user is
-                            trying to create an entity that already exists. See the
-                                <code>details</code> element for specifics.</td>
+                        <td colspan="2"><code>badMediaType</code></td>
+                        <td colspan="1">415</td>
+                        <td colspan="3">The requested content type is not supported by this service.</td>
                     </tr>
                     <tr>
-                        <td colspan="2"><code>deleteFault</code></td>
-                        <td colspan="1">500 and nested other fault codes</td>
-                        <td colspan="3">The back-end services could not successfully delete some of
-                            a number of entities requested to be deleted. See the
-                                <code>failedItems</code> element for specifics.</td>
+                        <td colspan="2"
+                                ><code>unprocessableEntity</code></td>
+                        <td colspan="1">422</td>
+                        <td colspan="3">The request resource could not be processed on at the moment.</td>
                     </tr>
                     <tr>
-                        <td colspan="2"><code>internalServerError</code></td>
+                        <td colspan="2"
+                            ><code>instanceFault</code></td>
                         <td colspan="1">500</td>
-                        <td colspan="3">The back-end services encountered an unexpected condition
-                            that prevented it from fulfilling the request. See the
-                                <code>details</code> element for specifics.</td>
+                        <td colspan="3">This is a generic server error and the message contains the reason for the error. This error could wrap several error messages and is a catch all.</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"
+                            ><code>notImplemented</code></td>
+                        <td colspan="1">501</td>
+                        <td colspan="3">The requested method or resource is not implemented.</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"
+                                ><code>serviceUnavailable</code></td>
+                        <td colspan="1">503</td>
+                        <td colspan="3">The Database Service is not
+                            available.</td>
                     </tr>
                 </tbody>
             </informaltable>
-            <para>The base of all fault types is <code>dbFault</code>.
-                From an XML schema perspective, all API faults are
-                extensions of the base fault type
-                <code>dbFault</code>. When working with a system such
-                as JAXB that binds XML to actual classes,
-                    <code>dbFault</code> can be used as a catch-all if
-                there is no interest in distinguishing between
-                individual fault types.</para>
-            <para><code>dbFault</code> has the structure and elements
-                shown below. All other fault types extend
-                    <code>dbFault</code>. Currently only fault types
-                    <code>badRequest</code> and
-                    <code>deleteFault</code> actually add additional
-                elements to their structure as compared to the parent
-                    <code>dbFault</code>. These two fault types are
-                described later. </para>
+            <para>The following two  <code>instanceFault</code>
+                examples show errors when the server has erred or
+                cannot perform the requested operation:</para>
+            
             <example>
-                <title>Example Fault Response: XML</title>
+                <title>Example instanceFault Response: XML</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
+                <programlisting language="xml">
+<xi:include href="../resources/samples/db-faults-instancefault.xml" parse="text"/>
+                    </programlisting>
             </example>
             <example>
                 <title>Example Fault Response: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
+                <programlisting language="xml">
+<xi:include href="../resources/samples/db-faults-instancefault.json" parse="text"/>
+                    </programlisting>
             </example>
             <para> The error code (<code>code</code>) is returned in the body of the response for
                 convenience. The <code>message</code> element returns a human-readable message that
@@ -1201,50 +1246,46 @@
                 as a stack trace. The <code>details</code> element may or may not be appropriate for
                 display to an end user, depending on the role and experience of the end user.</para>
             <para>The fault's root element (for example,
-                    <code>dbFault</code>) may change depending on the
-                type of error. <code>badRequest</code> fault adds a
-                    <code>validationErrors</code> element that
-                contains a list of error messages for invalid
-                requests. The first two <code>badRequest</code>
-                examples show errors when the request structure is
-                wrong:</para>
+                    <code>instanceFault</code>) may change depending
+                on the type of error. </para>
+            <para><?rax-fo keep-with-next?>The following two <code>badRequest</code> examples
+                show errors when the volume size is invalid:</para>
             <example>
-                <title>Example badRequest Fault on Request Structure Errors: XML</title>
+                <title>Example badRequest Fault on Volume Size Errors:
+                    XML</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
+                <programlisting language="xml">
+<xi:include href="../resources/samples/db-faults-badRequest.xml" parse="text"/>
+                    </programlisting>
             </example>
             <example>
-                <title>Example badRequest Fault on Request Structure Errors: JSON</title>
+                <title>Example badRequest Fault on Volume Size Errors:
+                    JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
+                <programlisting language="xml">
+<xi:include href="../resources/samples/db-faults-badRequest.json" parse="text"/>
+                    </programlisting>
             </example>
-            <para> The next two <code>badRequest</code> examples show validation errors:</para>
+            <para> The next two examples show
+                    <code>itemNotFound</code> errors:</para>
             <example>
-                <title>Example badRequest Fault on Validation Errors: XML</title>
+                <title>Example itemNotFound Fault: XML</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
-            </example>
-            <example>
-                <title>Example badRequest Fault on Validation Errors: JSON</title>
-                <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
-            </example>
-            <para><code>deleteFault</code> adds a <code>failedItems</code> element that contains
-                details on entities that could not be deleted:</para>
-            <example>
-                <title>Example deleteFault: XML</title>
-                <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
+                <programlisting language="xml">
+<xi:include href="../resources/samples/db-faults-itemNotFound.xml" parse="text"/>
+                    </programlisting>
             </example>
             <example>
-                <title>Example deleteFault: JSON</title>
+                <title>Example itemNotFound Fault: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example.</programlisting>
+                <programlisting language="xml">
+<xi:include href="../resources/samples/db-faults-itemNotFound.json" parse="text"/>
+                    </programlisting>
             </example>
         </section>
         <section xml:id="database_instance_status">
             <title>Database Instance Status</title>
-            <para>When making an API call to create, list, or delete
+            <para><?rax-fo keep-with-next?>When making an API call to create, list, or delete
                 database instance(s), the following database instance
                 status values are possible:</para>
             <itemizedlist spacing="compact">
