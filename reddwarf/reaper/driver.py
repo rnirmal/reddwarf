@@ -46,11 +46,14 @@ class ReddwarfReaperDriver(object):
         """Finds all volumes which are not associated to an instance."""
         expiration_time = self.orphan_time_out
         latest_valid_time = utils.utcnow() - timedelta(seconds=expiration_time)
+        LOG.debug("Preparing to delete orphaned volumes updated before %s" %
+                  latest_valid_time)
         volumes = reddwarf_db.volume_get_orphans(context, latest_valid_time)
         if volumes:
             for volume_ref in volumes:
                 self.volume_api.delete(context, volume_ref['id'])
-                LOG.error("Deleting an orphaned volume, %s" % volume_ref)
+                LOG.warn("Deleting an orphaned volume, %s with description %s" %
+                         (volume_ref['id'], volume_ref['display_description']))
 
     def periodic_tasks(self, context):
         self.clean_up_volumes(context)
