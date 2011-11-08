@@ -203,7 +203,7 @@ def execute(*cmd, **kwargs):
 
 def ssh_execute(ssh, cmd, process_input=None,
                 addl_env=None, check_exit_code=True):
-    LOG.debug(_('Running cmd (SSH): %s'), ' '.join(cmd))
+    LOG.debug(_('Running cmd (SSH): %s'), cmd)
     if addl_env:
         raise exception.Error(_('Environment not supported over SSH'))
 
