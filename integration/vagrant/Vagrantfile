@@ -16,6 +16,9 @@ Vagrant::Config.run do |global_config|
       config.vm.host_name = "host"
 
       config.vm.share_folder "nova", "/src", "../../"
+      if ENV['REDDWARF_AGENT']
+        config.vm.share_folder "agent", "/agent", ENV['REDDWARF_AGENT']
+      end
       if ENV['REDDWARF_EXTRA']
         reddwarf_extra_dir = ENV['REDDWARF_EXTRA']
         if File.directory?(reddwarf_extra_dir)

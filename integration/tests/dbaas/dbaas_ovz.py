@@ -22,6 +22,7 @@ from nose.tools import assert_false
 
 from proboscis import before_class
 from proboscis import test
+from proboscis.asserts import fail
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from tests.dbaas.instances import instance_info
@@ -254,15 +255,17 @@ class TestUsers(object):
         self._check_connection(self.username1, self.password1)
 
     def check_database_for_user(self, user, password, dbs):
-        dblist, err = process("sudo mysql    -h %s -u '%s' -p'%s' -e 'show databases;'"
-                                % (instance_info.user_ip, user, password))
+        cmd = "sudo mysql    -h %s -u '%s' -p'%s' -e 'show databases;'" \
+              % (instance_info.user_ip, user, password)
+        print("Running cmd: %s" % cmd)
+        dblist, err = process(cmd)
+        print("returned: %s" % dblist)
         if err:
             assert_false(True, err)
         for db in dbs:
             default_db = re.compile("[\w\n]*%s[\w\n]*" % db)
             if not default_db.match(dblist):
-                assert_false(True, dblist)
-        assert_true(True)
+                fail("No match for db %s in dblist. :(" % (db, dblist))
 
     def _check_connection(self, username, password):
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
