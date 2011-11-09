@@ -168,6 +168,12 @@ class InstanceTest(object):
         except Exception as ex:
             fail("A failure occured when trying to GET instance %s"
                  " for the %d time: %s" % (str(self.id), attempts, str(ex)))
+        self._check_vifs_cleaned()
+
+    def _check_vifs_cleaned(self):
+        vifs = self.db.virtual_interface_get_by_instance(context.get_admin_context(),
+                                                         self.id)
+        assert_equal(vifs, [])
 
     def _get_compute_instance_state(self):
         """Returns the instance state from the database."""
@@ -185,4 +191,11 @@ class InstanceTest(object):
                          lambda state : state in VALID_ABORT_STATES,
                          sleep_time=1,
                          time_out=FLAGS.reddwarf_instance_suspend_time_out)
-  
+
+    def _check_volume_detached(self):
+        result = self.db.volume_get(context.get_admin_context(), self.volume_id)
+        if result['attach_status'] == "detached" and \
+           result['status'] == "available":
+            return True
+        else:
+            return False

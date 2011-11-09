@@ -1029,7 +1029,6 @@ def virtual_interface_get_by_fixed_ip(context, fixed_ip_id):
 
 
 @require_context
-@require_instance_exists
 def virtual_interface_get_by_instance(context, instance_id):
     """Gets all virtual interfaces for instance.
 
