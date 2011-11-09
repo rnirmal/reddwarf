@@ -6,7 +6,7 @@
 # This script provides all the functionality to run all the steps from        #
 # setting up the enviornment, resetting the nova database to running the      #
 # test.                                                                       #
-#                                                                             # 
+#                                                                             #
 ###############################################################################
 
 # Global Configuration
@@ -430,13 +430,13 @@ dbaas_pkg_upload_nova() {
 
 dbaas_pkg_build_sneaky_pete() {
     exclaim "Building and packaging Sneaky Pete..."
-    # Remove old guest
-    sudo -E reprepro -Vb /var/www/debian remove squeeze nova-guest
     # Build new package
-    cd $AGENT_DIR
+    mkdir $BUILD_DIR/agent
+    cp -rf $AGENT_DIR/* $BUILD_DIR/agent
+    cd $BUILD_DIR/agent
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     # Install in repo
-    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze /nova-guest*_amd64.changes
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze $BUILD_DIR/nova-guest*_amd64.changes
 }
 
 build() {
@@ -450,7 +450,7 @@ build() {
     mkdir -p $BUILD_DIR
     cd $BUILD_DIR
     git clone https://github.com/hub-cap/oizys.git
-    
+
     dbaas_pkg_setup_keystone
     dbaas_pkg_install_novaclient
     dbaas_pkg_install_glance
@@ -468,7 +468,7 @@ build() {
 
 ###############################################################################
 # Initialize or re-initalize nova
-# 
+#
 # Clean the Nova environment removing all vms, volumes and database entries
 # Setup all the configuration and database entries
 ###############################################################################
