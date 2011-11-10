@@ -45,7 +45,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         local_id = dbapi.localid_from_uuid(id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, local_id, self.compute_api)
+        common.instance_exists(ctxt, id, self.compute_api)
 
         self.guest_api.upgrade(ctxt, local_id)
         return exc.HTTPAccepted()

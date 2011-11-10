@@ -177,7 +177,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         local_id = dbapi.localid_from_uuid(id)
-        common.instance_exists(ctxt, local_id, self.compute_api)
+        common.instance_exists(ctxt, id, self.compute_api)
         try:
             result = dbapi.get_root_enabled_history(ctxt, local_id)
             root_history = self.instance_view.build_root_history(local_id, result)

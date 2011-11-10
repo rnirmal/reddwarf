@@ -102,7 +102,7 @@ def wrap_exception(notifier=None, publisher_id=None, event_type=None,
                 exc_info = sys.exc_info()
 
                 if notifier:
-                    payload = {'args': args, 'exception': e}
+                    payload = dict(args=args, exception=e)
                     payload.update(kw)
 
                     # Use a temp vars so we don't shadow

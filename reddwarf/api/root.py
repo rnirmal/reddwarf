@@ -43,7 +43,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, body)
         ctxt = req.environ['nova.context']
         local_id = dbapi.localid_from_uuid(instance_id)
-        common.instance_exists(ctxt, local_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
         running = power_state.RUNNING
         status = dbapi.guest_status_get(local_id).state
         if status != running:
@@ -66,7 +66,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, local_id, self.compute_api)
+        common.instance_exists(ctxt, instance_id, self.compute_api)
         running = power_state.RUNNING
         status = dbapi.guest_status_get(local_id).state
         if status != running:
