@@ -38,6 +38,7 @@ from tests.util.users import Requirements
 from tests import util
 
 dbaas = None
+dbaas_admin = None
 success_statuses = ["build", "active"]
 
 
@@ -47,8 +48,9 @@ class Setup(unittest.TestCase):
 
     def test_create_dbaas_client(self):
         """Sets up the client."""
-        global dbaas
+        global dbaas, dbaas_admin
         dbaas = util.create_dbaas_client(instance_info.user)
+        dbaas_admin = util.create_dbaas_client(instance_info.admin_user)
 
 
 @test(depends_on_classes=[Setup], groups=[GROUP_TEST, "dbaas.guest.ovz"])
@@ -171,11 +173,11 @@ class TestDatabases(unittest.TestCase):
 
     @expect_exception(NotFound)
     def test_delete_database_on_missing_instance(self):
-        global dbaas
+        global dbaas, dbaas_admin
         dbaas.databases.delete(-1,  self.dbname_urlencoded)
 
     def test_delete_database(self):
-        global dbaas
+        global dbaas, dbaas_admin
         dbaas.databases.delete(instance_info.id, self.dbname_urlencoded)
         time.sleep(5)
 
@@ -213,7 +215,7 @@ class TestUsers(object):
         users.append({"name": self.username1, "password": self.password1,
                      "databases": [{"name": self.db1}, {"name": self.db2}]})
 
-        global dbaas
+        global dbaas, dbaas_admin
         dbaas.users.create(instance_info.id, users)
         time.sleep(5)
 
@@ -246,7 +248,7 @@ class TestUsers(object):
 
     @test(depends_on=[test_create_users_list])
     def test_delete_users(self):
-        global dbaas
+        global dbaas, dbaas_admin
         dbaas.users.delete(instance_info.id, self.username_urlencoded)
         dbaas.users.delete(instance_info.id, self.username1_urlendcoded)
         time.sleep(5)
@@ -277,16 +279,16 @@ class TestUsers(object):
             assert_false(True, err)
 
     def _verify_root_timestamp(self, id):
-        mgmt_instance = dbaas.management.show(id)
+        mgmt_instance = dbaas_admin.management.show(id)
         assert_true(mgmt_instance is not None)
         timestamp = mgmt_instance.root_enabled_at
         assert_equal(self.root_enabled_timestamp, timestamp)
-        timestamp = dbaas.management.root_enabled_history(id).root_enabled_at
+        timestamp = dbaas_admin.management.root_enabled_history(id).root_enabled_at
         print "REH is %s" % timestamp
         assert_equal(self.root_enabled_timestamp, timestamp)
 
     def _root(self):
-        global dbaas
+        global dbaas, dbaas_admin
         global root_password
         host = "%"
         user, password = dbaas.root.create(instance_info.id)
@@ -300,7 +302,7 @@ class TestUsers(object):
                 assert_equal(user, row['User'])
                 assert_equal(host, row['Host'])
         root_password = password
-        self.root_enabled_timestamp = dbaas.management.show(instance_info.id).root_enabled_at
+        self.root_enabled_timestamp = dbaas_admin.management.show(instance_info.id).root_enabled_at
         assert_not_equal(self.root_enabled_timestamp, 'Never')
 
     @test(depends_on=[test_delete_users])

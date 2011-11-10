@@ -85,6 +85,7 @@ class InstanceTestInfo(object):
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the instance.
+        self.admin_user = None  # The admin user who will use the management interfaces.
         self.volume = None # The volume the instance will have.
         self.storage = None # The storage device info for the volumes.
         self.databases = None # The databases created on the instance.
@@ -130,8 +131,10 @@ class Setup(object):
     def setUp(self):
         """Sets up the client."""
         global dbaas
-        instance_info.user = test_config.users.find_user(Requirements(is_admin=True))
+        instance_info.user = test_config.users.find_user(Requirements(is_admin=False))
+        instance_info.admin_user = test_config.users.find_user(Requirements(is_admin=True))
         dbaas = create_test_client(instance_info.user)
+        dbaas_admin = create_test_client(instance_info.admin_user)
 
     @test
     def auth_token(self):
@@ -314,7 +317,7 @@ class CreateInstance(unittest.TestCase):
                                databases)
 
     def test_mgmt_get_instance_on_create(self):
-        result = dbaas.management.show(instance_info.id)
+        result = dbaas_admin.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
                           'flavor', 'guest_status', 'host', 'hostname', 'id',
                           'name', 'server_state_description', 'status',
@@ -334,7 +337,7 @@ class CreateInstance(unittest.TestCase):
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
 class AccountMgmtData(unittest.TestCase):
     def test_account_details_available(self):
-        account_info = dbaas.accounts.show(instance_info.user.auth_user)
+        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
         self.assertNotEqual(0, len(account_info.hosts))
         # Now check the results.
         self.assertEqual(account_info.name, instance_info.user.auth_user)
@@ -561,7 +564,7 @@ class TestInstanceListing(unittest.TestCase):
         self.assertRaises(NotFound, daffy_client.instances.delete, instance_info.id)
 
     def test_mgmt_get_instance_after_started(self):
-        result = dbaas.management.show(instance_info.id)
+        result = dbaas_admin.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
                           'flavor', 'guest_status', 'host', 'hostname', 'id',
                           'name', 'root_enabled_at', 'root_enabled_by',
@@ -685,7 +688,7 @@ class InstanceHostCheck2(InstanceHostCheck):
     WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 def management_callback():
     global mgmt_details
-    mgmt_details = dbaas.management.show(instance_info.id)
+    mgmt_details = dbaas_admin.management.show(instance_info.id)
 
 
 @test(depends_on=[management_callback], groups=[GROUP])
@@ -703,7 +706,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
         # Make sure that a management call to a bogus API 500s.
         # The client reshapes the exception into just an OpenStackException.
         #self.assertRaises(nova.exception.InstanceNotFound, dbaas.management.show, -1)
-        self.assertRaises(NotFound, dbaas.management.show, -1)
+        self.assertRaises(NotFound, dbaas_admin.management.show, -1)
 
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
@@ -729,7 +732,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
                 'character_set': 'latin2',
                 'collate': 'latin2_general_ci',
                 }],
-            'users': [], # TODO(ed-) Surely I can't guarantee this.
+            'users': [],
             'volume': {
                 'id': volume.id,
                 'name': volume.display_name,
