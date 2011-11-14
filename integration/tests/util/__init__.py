@@ -183,6 +183,6 @@ def get_vz_ip_for_device(instance_id, device):
                       """ | awk '/inet addr/{gsub(/addr:/,"");print $2}'"""
                       % locals())
     if err:
-        self.assertFalse(True, err)
+        assert_false(True, err)
     else:
         return ip.strip()

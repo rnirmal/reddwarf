@@ -24,6 +24,7 @@ from nova.api.openstack import faults
 from nova.api.openstack import wsgi
 from reddwarf.api import common
 from reddwarf.api import deserializer
+from reddwarf.db import api as dbapi
 from nova.guest import api as guest_api
 from nova.guest.db import models
 
@@ -47,10 +48,11 @@ class Controller(object):
         """ Returns a list database users for the db instance """
         LOG.info("Call to Users index - %s", instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)
         try:
-            result = self.guest_api.list_users(ctxt, instance_id)
+            result = self.guest_api.list_users(ctxt, local_id)
         except Exception as err:
             LOG.error(err)
             raise exc.HTTPServerError(explanation="Unable to get the list of users")
@@ -68,12 +70,13 @@ class Controller(object):
         LOG.info("Call to Delete User - %s for instance %s",
                  id, instance_id)
         LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)
         user = models.MySQLUser()
         user.name = id
 
-        self.guest_api.delete_user(ctxt, instance_id, user.serialize())
+        self.guest_api.delete_user(ctxt, local_id, user.serialize())
         return exc.HTTPAccepted()
 
     def create(self, req, instance_id, body):
@@ -82,11 +85,12 @@ class Controller(object):
 
         LOG.info("Call to Create Users for instance %s", instance_id)
         LOG.debug("%s - %s", req.environ, body)
+        local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, instance_id, self.compute_api)
 
         users = common.populate_users(body.get('users', ''))
-        self.guest_api.create_user(ctxt, instance_id, users)
+        self.guest_api.create_user(ctxt, local_id, users)
         return exc.HTTPAccepted()
 
     def _validate(self, body):

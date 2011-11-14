@@ -111,7 +111,8 @@ class Controller(object):
         """ Returns instance details by instance id """
         LOG.info("Get Instance by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
-        server_response = self.server_controller.show(req, id)
+        instance_id = dbapi.localid_from_uuid(id)
+        server_response = self.server_controller.show(req, instance_id)
         if isinstance(server_response, Exception):
             return server_response  # Just return the exception to throw it
         context = req.environ['nova.context']
@@ -136,10 +137,11 @@ class Controller(object):
         LOG.info("Delete Instance by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
+        instance_id = dbapi.localid_from_uuid(id)
 
         # Checking the server state to see if it is building or not
         try:
-            instance = self.compute_api.get(context, id)
+            instance = self.compute_api.get(context, instance_id)
             #TODO(tim.simpson): Try to get this fixed for real in Nova.
             if instance['vm_state'] in [vm_states.SUSPENDED, vm_states.ERROR]:
                 # SUSPENDED and ERROR are not valid 'shut_down' states to the
@@ -151,7 +153,7 @@ class Controller(object):
                 # also a viable state for deletion.
                 db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
 
-            compute_response = self.compute_api.get(context, id)
+            compute_response = self.compute_api.get(context, instance_id)
         except exception.NotFound:
             raise exc.HTTPNotFound()
         LOG.debug("server_response - %s", compute_response)
@@ -163,11 +165,11 @@ class Controller(object):
             # If the state is building then we throw an exception back
             raise exc.HTTPUnprocessableEntity("Instance %s is not ready." % id)
 
-        self.server_controller.delete(req, id)
+        self.server_controller.delete(req, instance_id)
         #TODO(rnirmal): Use a deferred here to update status
-        dbapi.guest_status_delete(id)
+        dbapi.guest_status_delete(instance_id)
         try:
-            for volume_ref in db.volume_get_all_by_instance(context, id):
+            for volume_ref in db.volume_get_all_by_instance(context, instance_id):
                 self.volume_api.delete_volume_when_available(context,
                                                              volume_ref['id'],
                                                              time_out=60)
@@ -197,10 +199,11 @@ class Controller(object):
         # Add any extra data that's required by the servers api
         server_req_body = {'server':server}
         server_resp = self._try_create_server(req, server_req_body)
-        server_id = str(server_resp['server']['id'])
-        dbapi.guest_status_create(server_id)
+        instance_id = str(server_resp['server']['uuid'])
+        local_id = str(server_resp['server']['id'])
+        dbapi.guest_status_create(local_id)
 
-        guest_state = self.get_guest_state_mapping([server_id])
+        guest_state = self.get_guest_state_mapping([local_id])
         instance = self.view.build_single(server_resp['server'],
                                           req.application_url,
                                           guest_state,

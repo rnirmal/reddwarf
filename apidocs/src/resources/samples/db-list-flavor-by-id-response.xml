@@ -1,1 +1,32 @@
-<flavor xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">    <ram>        512    </ram>    <id>        1    </id>    <vcpus>        1    </vcpus>    <links>        <link>            <href>                http://localhost:8775/v1.0/flavors/1            </href>            <rel>                self            </rel>        </link>        <link>            <href>                http://localhost:8775/flavors/1            </href>            <rel>                bookmark            </rel>        </link>    </links>    <name>        m1.tiny    </name></flavor>
+<flavor xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
+    <ram>
+        512
+    </ram>
+    <id>
+        1
+    </id>
+    <vcpus>
+        1
+    </vcpus>
+    <links>
+        <link>
+            <href>
+                http://localhost:8775/v1.0/flavors/1
+            </href>
+            <rel>
+                self
+            </rel>
+        </link>
+        <link>
+            <href>
+                http://localhost:8775/flavors/1
+            </href>
+            <rel>
+                bookmark
+            </rel>
+        </link>
+    </links>
+    <name>
+        m1.tiny
+    </name>
+</flavor>

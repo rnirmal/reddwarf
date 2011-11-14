@@ -78,7 +78,6 @@ class InstanceTestInfo(object):
         self.dbaas_image = None  # The image used to create the instance.
         self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
-        self.uuid = None # The UUID value of the instance in the database
         self.initial_result = None # The initial result from the create call.
         self.user_ip = None  # The IP address of the instance, given to user.
         self.infra_ip = None # The infrastructure network IP address.
@@ -91,7 +90,7 @@ class InstanceTestInfo(object):
         self.databases = None # The databases created on the instance.
 
     def check_database(self, dbname):
-        return check_database(self.id, dbname)
+        return check_database(self.local_id, dbname)
 
     def expected_dns_entry(self):
         """Returns expected DNS entry for this instance.
@@ -99,7 +98,7 @@ class InstanceTestInfo(object):
         :rtype: Instance of :class:`DnsEntry`.
 
         """
-        return create_dns_entry(instance_info.id, instance_info.uuid)
+        return create_dns_entry(instance_info.local_id, instance_info.id)
 
 
 # The two variables are used below by tests which depend on an instance
@@ -297,9 +296,7 @@ class CreateInstance(unittest.TestCase):
 
         result = instance_info.initial_result
         instance_info.id = result.id
-        instance_ref = db.instance_get(context.get_admin_context(),
-                                       instance_info.id)
-        instance_info.uuid = instance_ref.uuid
+        instance_info.local_id = dbapi.localid_from_uuid(result.id)
 
         if create_new_instance:
             assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
@@ -383,7 +380,7 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
     @time_out(60 * 8)
     def test_instance_created(self):
         while True:
-            guest_status = dbapi.guest_status_get(instance_info.id)
+            guest_status = dbapi.guest_status_get(instance_info.local_id)
             if guest_status.state != power_state.RUNNING:
                 result = dbaas.instances.get(instance_info.id)
                 # I think there's a small race condition which can occur
@@ -400,7 +397,7 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
     def test_instance_wait_for_initialize_guest_to_exit_polling(self):
         def compute_manager_finished():
             return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
-                                        % str(instance_info.id))
+                                        % str(instance_info.local_id))
         utils.poll_until(compute_manager_finished, sleep_time=2, time_out=60)
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],
@@ -414,7 +411,7 @@ class VerifyGuestStarted(unittest.TestCase):
     def test_instance_created(self):
         def check_status_of_instance():
             status, err = process("sudo vzctl status %s | awk '{print $5}'"
-                                  % str(instance_info.id))
+                                  % str(instance_info.local_id))
             if string_in_list(status, ["running"]):
                 self.assertEqual("running", status.strip())
                 return True
@@ -425,7 +422,7 @@ class VerifyGuestStarted(unittest.TestCase):
     def test_get_init_pid(self):
         def get_the_pid():
             out, err = process("pgrep init | vzpid - | awk '/%s/{print $1}'"
-                                % str(instance_info.id))
+                                % str(instance_info.local_id))
             instance_info.pid = out.strip()
             return len(instance_info.pid) > 0
         utils.poll_until(get_the_pid, sleep_time=10, time_out=60*10)
@@ -472,7 +469,7 @@ class TestVolume(unittest.TestCase):
     def test_db_should_have_instance_to_volume_association(self):
         """The compute manager should associate a volume to the instance."""
         volumes = db.volume_get_all_by_instance(context.get_admin_context(),
-                                                instance_info.id)
+                                                instance_info.local_id)
         self.assertEqual(1, len(volumes))
         description = "Volume ID: %s assigned to Instance: %s" \
                         % (volumes[0]['id'], instance_info.id)
@@ -530,7 +527,7 @@ class TestInstanceListing(unittest.TestCase):
             table = string.maketrans("_ ", "--")
             deletions = ":."
             name = instance_info.name.translate(table, deletions).lower()
-            expected_hostname = "%s-instance-%s" % (name, instance_info.id)
+            expected_hostname = "%s-instance-%s" % (name, instance_info.local_id)
             assert_equal(expected_hostname, instance.hostname)
 
     def test_get_instance_status(self):
@@ -721,7 +718,8 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
         info = instance_info
         ir = info.initial_result
         cid = ir.id
-        volumes = db.volume_get_all_by_instance(context.get_admin_context(), cid)
+        instance_id = instance_info.local_id
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(), instance_id)
         self.assertEqual(len(volumes), 1)
         volume = volumes[0]
 

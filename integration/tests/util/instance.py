@@ -53,6 +53,7 @@ class InstanceTest(object):
         self.dbaas_flavor = None # The flavor object of the instance.
         self.dbaas_flavor_href = None  # The flavor of the instance.
         self.id = None  # The ID of the instance in the database.
+        self.local_id = None  # The local ID of the instance in the database.
         self.name = None  # Test name, generated each test run.
         self.volume = {'size': volume_size} # The volume the instance will have.
         self.initial_result = None # The initial result from the create call.
@@ -127,19 +128,20 @@ class InstanceTest(object):
                         "collate": "latin2_general_ci"}])
         result = self.initial_result
         self.id = result.id
+        self.local_id = dbapi.localid_from_uuid(result.id)
         assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
 
     def _get_instance_volume(self):
         """After _create_instance is called, this will return the volume ID."""
         metadata = ReddwarfInstanceMetaData(self.db,
-            context.get_admin_context(), self.id)
+            context.get_admin_context(), self.local_id)
         assert_is_not_none(metadata.volume)
         self.volume_id = metadata.volume_id
         return self.volume_id
 
     def _get_status_tuple(self):
         """Grabs the db guest status and the API instance status."""
-        return (dbapi.guest_status_get(self.id),
+        return (dbapi.guest_status_get(self.local_id),
                 self.dbaas.instances.get(self.id))
 
     def _delete_instance(self):
@@ -178,7 +180,7 @@ class InstanceTest(object):
     def _get_compute_instance_state(self):
         """Returns the instance state from the database."""
         return self.db.instance_get(context.get_admin_context(),
-                                    self.id).power_state
+                                    self.local_id).power_state
 
     def wait_for_rest_api_to_show_status_as_failed(self, time_out):
         """Confirms the REST API state becomes failure."""

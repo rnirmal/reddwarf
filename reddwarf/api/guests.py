@@ -43,10 +43,11 @@ class Controller(object):
         """Upgrade the guest for a specific instance"""
         LOG.info("Upgrade of nova-guest issued for instance : %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(id)
         ctxt = req.environ['nova.context']
         common.instance_exists(ctxt, id, self.compute_api)
 
-        self.guest_api.upgrade(ctxt, id)
+        self.guest_api.upgrade(ctxt, local_id)
         return exc.HTTPAccepted()
 
     @common.verify_admin_context
@@ -58,7 +59,9 @@ class Controller(object):
         #TODO(rnirmal): Convert to using fanout once Nova code is merged in
         instances = self.compute_api.get_all(ctxt)
         for instance in instances:
-            self.guest_api.upgrade(ctxt, (str(instance['id'])))
+            id = str(instance['id'])
+            local_id = dbapi.localid_from_uuid(id)
+            self.guest_api.upgrade(ctxt, local_id)
         return exc.HTTPAccepted()
 
 

@@ -1,5 +1,5 @@
 <instance created="2011-11-03T15:36:20Z" hostname="mytest-instance-1"
-    id="1" name="mytest" rootEnabled="False" status="ACTIVE"
+    id="00ff11ee-22dd-33cc-44bb-55aa66007799" name="mytest" rootEnabled="False" status="ACTIVE"
     updated="2011-11-03T15:37:33Z"
     xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
     <links>

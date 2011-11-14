@@ -127,7 +127,7 @@ class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
         # previous line and this one the request goes through and the instance
         # is deleted.
         metadata = ReddwarfInstanceMetaData(self.db,
-            context.get_admin_context(), self.id)
+            context.get_admin_context(), self.local_id)
         self.volume_id = metadata.volume_id
 
     @test(depends_on=[create_instance])
@@ -205,7 +205,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
                                                "reddwarf.instance.abort.guest")
         self._create_instance()
         metadata = ReddwarfInstanceMetaData(self.db,
-            context.get_admin_context(), self.id)
+            context.get_admin_context(), self.local_id)
         self.volume_id = metadata.volume_id
         assert_is_not_none(metadata.volume)
 
@@ -215,10 +215,10 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         """Wait for instance PID."""
         pid = None
         while pid is None:
-            guest_status = dbapi.guest_status_get(self.id)
+            guest_status = dbapi.guest_status_get(self.local_id)
             rest_api_result = self.dbaas.instances.get(self.id)
             out, err = process("pstree -ap | grep init | cut -d',' -f2 | vzpid - | grep %s | awk '{print $1}'"
-                                % str(self.id))
+                                % str(self.local_id))
             pid = out.strip()
             if not pid:
                 # Make sure the guest status is BUILDING during this time.
@@ -234,7 +234,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         """Wait for the compute instance to begin."""
         while True:
             status, err = process("sudo vzctl status %s | awk '{print $5}'"
-                                  % str(self.id))
+                                  % str(self.local_id))
 
             if not string_in_list(status, ["running"]):
                 time.sleep(5)
@@ -253,7 +253,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
         """Make sure the Reddwarf Compute Manager FAILS a timed-out guest."""
 
         # Utterly kill the guest install.
-        process("sudo rm -rf /vz/private/%s/bin" % str(self.id))
+        process("sudo rm -rf /vz/private/%s/bin" % str(self.local_id))
 
         # Make sure that before the timeout expires the guest state in the
         # internal API and the REST API instance status is set to FAIL.

@@ -114,22 +114,24 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         context = req.environ['nova.context']
 
+        instance_id = dbapi.localid_from_uuid(id)
+
         # Let's make sure the instance exists first.
         # If it doesn't, we'll get an exception.
         try:
-            status = dbapi.guest_status_get(id)
+            status = dbapi.guest_status_get(instance_id)
         except InstanceNotFound:
             #raise InstanceNotFound(instance_id=id)
             raise exc.HTTPNotFound("No instance with id %s." % id)
 
-        server = self.server_controller.show(req, id)['server']
+        server = self.server_controller.show(req, instance_id)['server']
         if isinstance(server, Exception):
             # The server controller has a habit of returning exceptions
             # instead of raising them.
             return server
 
         # Use the compute api response to add additional information
-        instance_ref = self.compute_api.get(context, id)
+        instance_ref = self.compute_api.get(context, instance_id)
         LOG.debug("Instance Info from Compute API : %r" % instance_ref)
 
         guest_state = {server['id']: status.state}
@@ -137,7 +139,7 @@ class Controller(object):
                                                         req.application_url,
                                                         guest_state)
         try:
-            instance = self._get_guest_info(context, id, status, instance)
+            instance = self._get_guest_info(context, instance_id, status, instance)
         except Exception as err:
             LOG.error(err)
             raise exc.HTTPServerError(explanation="Unable to retrieve information from the guest")
@@ -174,10 +176,11 @@ class Controller(object):
         LOG.info("Call to root_enabled_history for instance %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
+        local_id = dbapi.localid_from_uuid(id)
         common.instance_exists(ctxt, id, self.compute_api)
         try:
-            result = dbapi.get_root_enabled_history(ctxt, id)
-            root_history = self.instance_view.build_root_history(id, result)
+            result = dbapi.get_root_enabled_history(ctxt, local_id)
+            root_history = self.instance_view.build_root_history(local_id, result)
             return {'root_enabled_history': root_history}
         except Exception as err:
             LOG.error(err)
