@@ -49,7 +49,28 @@ flags.DEFINE_string('default_firewall_rule_name',
 flags.DEFINE_string('nova_api_version', '1.1',
                     'The default nova api version for reddwarf')
 
-class APIMapper(routes.Mapper):
+
+class ProjectMapper(routes.Mapper):
+
+    def resource(self, member_name, collection_name, **kwargs):
+        if 'path_prefix' in kwargs:
+            prefix = "{project_id}/%s" % kwargs['path_prefix']
+        else:
+            prefix = "{project_id}/"
+        if not ('parent_resource' in kwargs):
+            kwargs['path_prefix'] = prefix
+        else:
+            parent_resource = kwargs['parent_resource']
+            p_collection = parent_resource['collection_name']
+            p_member = parent_resource['member_name']
+            kwargs['path_prefix'] = '%s%s/:%s_id' % (prefix, p_collection,
+                                                     p_member)
+        routes.Mapper.resource(self, member_name,
+                                     collection_name,
+                                     **kwargs)
+
+
+class APIMapper(ProjectMapper):
     """
     Handles a Routes bug that drops an error for version requests that don't end in /
     If and when
@@ -61,6 +82,7 @@ class APIMapper(routes.Mapper):
             result = self._match("", environ)
             return result[0], result[1]
         return routes.Mapper.routematch(self, url, environ)
+
 
 class APIRouter(wsgi.Router):
     """
@@ -79,7 +101,7 @@ class APIRouter(wsgi.Router):
         instance_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
             LOG.debug(_("Including admin operations in API."))
-            with mapper.submapper(path_prefix="/mgmt/guests",
+            with mapper.submapper(path_prefix="/{project_id}/mgmt/guests",
                                   controller=guests.create_resource()) as m:
                 m.connect("/upgradeall", action="upgradeall",
                           conditions=dict(method=["POST"]))
@@ -90,26 +112,26 @@ class APIRouter(wsgi.Router):
                             controller=images.create_resource(FLAGS.nova_api_version),
                             collection={'detail': 'GET'})
 
-            with mapper.submapper(path_prefix="/mgmt/hosts",
+            with mapper.submapper(path_prefix="/{project_id}/mgmt/hosts",
                                   controller=hosts.create_resource()) as m:
                 m.connect("", action="index",
                           conditions=dict(method=["GET"]))
                 m.connect("/{id}", action="show",
                           conditions=dict(method=["GET"]))
 
-            mapper.connect("/mgmt/instances/{id}",
+            mapper.connect("/{project_id}/mgmt/instances/{id}",
                             controller=management.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
 
-            mapper.connect("/mgmt/instances/{id}/root",
+            mapper.connect("/{project_id}/mgmt/instances/{id}/root",
                             controller=management.create_resource(),
                             action="root_enabled_history", conditions=dict(method=["GET"]))
 
-            mapper.connect("/mgmt/storage",
+            mapper.connect("/{project_id}/mgmt/storage",
                             controller=storage.create_resource(),
                             action="index", conditions=dict(method=["GET"]))
 
-            mapper.connect("/mgmt/accounts/{id}",
+            mapper.connect("/{project_id}/mgmt/accounts/{id}",
                             controller=accounts.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
 
@@ -143,10 +165,10 @@ class APIRouter(wsgi.Router):
 
         # Using connect instead of resource due to the incompatibility
         # for delete without providing an id.
-        mapper.connect("/instances/{instance_id}/root",
+        mapper.connect("/{project_id}/instances/{instance_id}/root",
                        controller=root.create_resource(),
                        action="create", conditions=dict(method=["POST"]))
-        mapper.connect("/instances/{instance_id}/root",
+        mapper.connect("/{project_id}/instances/{instance_id}/root",
                        controller=root.create_resource(),
                        action="is_root_enabled", conditions=dict(method=["GET"]))
 

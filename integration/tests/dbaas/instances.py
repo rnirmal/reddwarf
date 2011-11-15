@@ -174,14 +174,6 @@ class Setup(object):
         else:
             instance_info.name = dbaas.instances.get(id).name
 
-    @test
-    def test_get_versions(self):
-        result = dbaas.versions.index()
-        print("Get version result :  %r" % result)
-        print("Get version.__dict__ result :  %r" % result.__dict__)
-        assert_equal("CURRENT", result.status)
-        assert_equal("v1.0", result.id)
-
 
 @test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'],
       groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'],
@@ -334,9 +326,9 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).guest_status()
 
     def test_security_groups_created(self):
-        if not db.security_group_exists(context.get_admin_context(), instance_info.user.auth_user, "tcp_3306"):
+        if not db.security_group_exists(context.get_admin_context(),
+                                        instance_info.user.tenant, "tcp_3306"):
             assert_false(True, "Security groups did not get created")
-
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
@@ -361,7 +353,7 @@ class AccountMgmtData(unittest.TestCase):
 #    @expect_exception(ClientException)
     def test_delete_instance_right_after_create(self):
         def raised_the_right_HTTP_code():
-            return util.check_logs_for_message("INFO nova.api.openstack.wsgi [-] http://localhost:8775/v1.0/instances/%s returned with HTTP 422"
+            return util.check_logs_for_message("INFO nova.api.openstack.wsgi [-] http://localhost:8775/v1.0/dbaas/instances/%s returned with HTTP 422"
                                         % str(instance_info.id))
         try:
             dbaas.instances.delete(instance_info.id)

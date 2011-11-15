@@ -112,6 +112,7 @@ if __name__ == '__main__':
     # run its functional tests only.
     if not os.environ.get("ADD_DOMAINS", "False") == 'True':
         from tests import initialize
+        from tests.api import versions
         from tests.dbaas import dbaas_ovz
         from tests.dbaas import dns
         from tests.dbaas import flavors

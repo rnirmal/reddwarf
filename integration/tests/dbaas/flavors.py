@@ -63,7 +63,7 @@ def assert_link_list_is_equal(flavor):
             assert_equal(href, expected_href,
                          '"href" must be %s' % expected_href)
         elif "bookmark" in link['rel']:
-            base_url = common.remove_version_from_href(test_config.dbaas.url)
+            base_url = test_config.version_url
             expected_href = os.path.join(base_url, "flavors", str(flavor.id))
             assert_equal(href, expected_href,
                          '"href" must be %s' % expected_href)

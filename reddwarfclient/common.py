@@ -97,8 +97,6 @@ class Auth(object):
               service_name="reddwarf", service_url=None):
         """Login to retrieve an auth token to use for other api calls"""
         try:
-            if tenant!=user:
-                tenant = user
             dbaas = Dbaas(user, apikey, tenant, auth_url=auth_url,
                           service_name=service_name, service_url=service_url)
             dbaas.authenticate()

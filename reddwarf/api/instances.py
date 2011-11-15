@@ -91,8 +91,7 @@ class Controller(object):
 
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        instances = [self.view.build_index(server, req.application_url,
-                                           guest_state_mapping)
+        instances = [self.view.build_index(server, req, guest_state_mapping)
                         for server in server_list]
         return {'instances': instances}
 
@@ -102,8 +101,7 @@ class Controller(object):
         server_list = self.server_controller.detail(req)['servers']
         id_list = [server['id'] for server in server_list]
         guest_state_mapping = self.get_guest_state_mapping(id_list)
-        instances = [self.view.build_detail(server, req.application_url,
-                                            guest_state_mapping)
+        instances = [self.view.build_detail(server, req, guest_state_mapping)
                         for server in server_list]
         return {'instances': instances}
 
@@ -122,13 +120,11 @@ class Controller(object):
         if guest_state:
             databases, enabled = self._get_guest_info(context, server['id'],
                                                       guest_state[server['id']])
-            instance = self.view.build_single(server, req.application_url,
-                                              guest_state,
+            instance = self.view.build_single(server, req, guest_state,
                                               databases=databases,
                                               root_enabled=enabled)
         else:
-            instance = self.view.build_single(server, req.application_url,
-                                              guest_state)
+            instance = self.view.build_single(server, req, guest_state)
         LOG.debug("instance - %s", instance)
         return {'instance': instance}
 
@@ -204,10 +200,8 @@ class Controller(object):
         dbapi.guest_status_create(local_id)
 
         guest_state = self.get_guest_state_mapping([local_id])
-        instance = self.view.build_single(server_resp['server'],
-                                          req.application_url,
-                                          guest_state,
-                                          create=True)
+        instance = self.view.build_single(server_resp['server'], req,
+                                          guest_state, create=True)
         # Update volume description
         self.update_volume_info(context, volume_ref, instance)
 

@@ -33,7 +33,9 @@ class ControllerV10(OriginalController):
 
     def _get_view_builder(self, req):
         LOG.debug("_get_view_builder for flavors")
-        return views.flavors.ViewBuilder(base_url=req.application_url)
+        project_id = getattr(req.environ['nova.context'], 'project_id', '')
+        return views.flavors.ViewBuilder(base_url=req.application_url,
+                                         project_id=project_id)
 
 
 def create_resource(version='1.0'):

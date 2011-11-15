@@ -574,8 +574,8 @@ keystone_initialize() {
     SERVICE_REGION="ci"
     REDDWARF_SERVICE_NAME="reddwarf"
     NOVA_SERVICE_NAME="nova"
-    REDDWARF_SERVICE_URL="http://localhost:8775/v1.0"
-    NOVA_SERVICE_URL="http://localhost:8774/v1.1"
+    REDDWARF_SERVICE_URL="http://localhost:8775/v1.0/%tenant_id%"
+    NOVA_SERVICE_URL="http://localhost:8774/v1.1/%tenant_id%"
     keystone_manage service add $REDDWARF_SERVICE_NAME
     keystone_manage service add $NOVA_SERVICE_NAME
     keystone_manage endpointTemplates add $SERVICE_REGION $REDDWARF_SERVICE_NAME $REDDWARF_SERVICE_URL $REDDWARF_SERVICE_URL $REDDWARF_SERVICE_URL 1 0

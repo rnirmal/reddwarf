@@ -20,8 +20,10 @@ from nova import compute
 from nova import flags
 from nova import log as logging
 from nova.api.openstack import wsgi
-from reddwarf.api import common
 from nova.guest import api
+
+from reddwarf.db import api as dbapi
+from reddwarf.api import common
 
 LOG = logging.getLogger('reddwarf.api.guests')
 LOG.setLevel(logging.DEBUG)
@@ -59,9 +61,7 @@ class Controller(object):
         #TODO(rnirmal): Convert to using fanout once Nova code is merged in
         instances = self.compute_api.get_all(ctxt)
         for instance in instances:
-            id = str(instance['id'])
-            local_id = dbapi.localid_from_uuid(id)
-            self.guest_api.upgrade(ctxt, local_id)
+            self.guest_api.upgrade(ctxt, str(instance['id']))
         return exc.HTTPAccepted()
 
 
