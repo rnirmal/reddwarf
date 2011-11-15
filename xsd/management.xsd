@@ -90,11 +90,45 @@
       </xsd:appinfo>
     </annotation>
   </element>
+  <element name="config" type="dbaas:Config">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Details of a configuration item</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/config.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/config.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
+  <element name="configs" type="dbaas:Configs">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>List of Configs.</p>
+      </xsd:documentation>
+      <xsd:appinfo>
+        <xsdxt:samples>
+          <xsdxt:sample>
+            <xsdxt:code type="application/xml" href="../samples/config.xml"/>
+          </xsdxt:sample>
+          <xsdxt:sample>
+            <xsdxt:code type="application/json" href="../samples/configs.json"/>
+          </xsdxt:sample>
+        </xsdxt:samples>
+      </xsd:appinfo>
+    </annotation>
+  </element>
 
   <!--Complex Types-->
   <complexType name="Hosts">
     <sequence>
-      <element name="hosts" type="dbaas:Host" minOccurs="0" maxOccurs="unbounded">
+      <element name="host" type="dbaas:Host" minOccurs="0" maxOccurs="unbounded">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>A list of Host names.</p>
@@ -241,6 +275,42 @@
         </annotation>
       </element>
     </sequence>
+  </complexType>
+
+  <complexType name="Configs">
+    <sequence>
+      <element name="config" type="dbaas:Config" minOccurs="0" maxOccurs="unbounded">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>A configuration entry</p>
+          </xsd:documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+
+  <complexType name="Config">
+    <attribute name="key" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The configuration entry key</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="value" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The value of the configuration entry</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="description" type="xsd:string" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The description of the configuration entry</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
   </complexType>
 
 </schema>

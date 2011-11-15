@@ -38,6 +38,16 @@
           <method href="#getaccountbyid"/>
         </resource>
       </resource>
+      <resource id="configs" path="configs">
+          <method href="#createconfigs"/>
+          <method href="#getconfigs"/>
+          <resource id="configid" path="{configid}">
+              <param name="configid" style="template" type="xsd:string"/>
+              <method href="#getconfigbyid"/>
+              <method href="#updateconfig"/>
+              <method href="#deleteconfig"/>
+          </resource>
+      </resource>
     </resource>
   </resources>
 
@@ -79,6 +89,51 @@
       <representation mediaType="application/xml" element="dbaas:Account"/>
       <representation mediaType="application/json" element="dbaas:Account"/>
     </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+  <method name="POST" id="createconfigs">
+    <request>
+      <representation mediaType="application/xml" element="dbaas:Configs"/>
+      <representation mediaType="application/json" element="dbaas:Configs"/>
+    </request>
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Configs"/>
+      <representation mediaType="application/json" element="dbaas:Configs"/>
+    </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+  <method name="GET" id="getconfigs">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Configs"/>
+      <representation mediaType="application/json" element="dbaas:Configs"/>
+    </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+  <method name="GET" id="getconfigbyid">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Config"/>
+      <representation mediaType="application/json" element="dbaas:Config"/>
+    </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+  <method name="PUT" id="updateconfig">
+    <request>
+      <representation mediaType="application/xml" element="dbaas:Config"/>
+      <representation mediaType="application/json" element="dbaas:Config"/>
+    </request>
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:Config"/>
+      <representation mediaType="application/json" element="dbaas:Config"/>
+    </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+  <method name="DELETE" id="deleteconfig">
+    <response status="200"/>
     &commonFaults;
     &getFaults;
   </method>
