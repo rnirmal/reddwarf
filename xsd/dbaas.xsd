@@ -495,16 +495,17 @@
 
 
     <!-- Fault Elements -->
-    <element name="serviceUnavailable" type="dbaas:ServiceUnavailableFault"/>
     <element name="badRequest" type="dbaas:BadRequestFault"/>
     <element name="unauthorized" type="dbaas:UnauthorizedFault"/>
-    <element name="overLimit" type="dbaas:OverLimitFault"/>
-    <element name="userDisabled" type="dbaas:UserDisabledFault"/>
     <element name="forbidden" type="dbaas:ForbiddenFault"/>
-    <element name="itemNotFound" type="dbaas:ItemNotFoundFault"/>
-    <element name="tenantConflict" type="dbaas:TenantConflictFault"/>
+    <element name="badMethod" type="dbaas:BadMethodFault"/>
+    <element name="overLimit" type="dbaas:OverLimitFault"/>
     <element name="unprocessableEntity" type="dbaas:UnprocessableEntityFault"/>
-    <element name="serverError" type="dbaas:ServerErrorFault" />
+    <element name="instanceFault" type="dbaas:InstanceFault" />
+    <element name="notImplemented" type="dbaas:NotImplementedFault" />
+    <element name="serviceUnavailable" type="dbaas:ServiceUnavailableFault"/>
+    <element name="itemNotFound" type="dbaas:ItemNotFoundFault"/>
+    <element name="badMediaType" type="dbaas:BadMediaTypeFault"/>
 
     <!-- Fault Types -->
     <complexType name="BaseFault">
@@ -551,13 +552,6 @@
         <anyAttribute namespace="##other" processContents="lax"/>
     </complexType>
 
-    <complexType name="ServiceUnavailableFault">
-        <complexContent>
-            <extension base="dbaas:BaseFault">
-            </extension>
-        </complexContent>
-    </complexType>
-
     <complexType name="BadRequestFault">
         <complexContent>
             <extension base="dbaas:BaseFault">
@@ -572,13 +566,6 @@
         </complexContent>
     </complexType>
 
-    <complexType name="UserDisabledFault">
-        <complexContent>
-            <extension base="dbaas:BaseFault">
-            </extension>
-        </complexContent>
-    </complexType>
-
     <complexType name="ForbiddenFault">
         <complexContent>
             <extension base="dbaas:BaseFault">
@@ -586,28 +573,7 @@
         </complexContent>
     </complexType>
 
-    <complexType name="ItemNotFoundFault">
-        <complexContent>
-            <extension base="dbaas:BaseFault">
-            </extension>
-        </complexContent>
-    </complexType>
-
-    <complexType name="TenantConflictFault">
-        <complexContent>
-            <extension base="dbaas:BaseFault">
-            </extension>
-        </complexContent>
-    </complexType>
-
-    <complexType name="UnprocessableEntityFault">
-        <complexContent>
-            <extension base="dbaas:BaseFault">
-            </extension>
-        </complexContent>
-    </complexType>
-
-    <complexType name="ServerErrorFault">
+    <complexType name="BadMethodFault">
         <complexContent>
             <extension base="dbaas:BaseFault">
             </extension>
@@ -633,5 +599,46 @@
         </complexContent>
     </complexType>
 
+    <complexType name="UnprocessableEntityFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="InstanceFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="NotImplementedFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ServiceUnavailableFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ItemNotFoundFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="BadMediaTypeFault">
+        <complexContent>
+            <extension base="dbaas:BaseFault">
+            </extension>
+        </complexContent>
+    </complexType>
 
 </schema>
