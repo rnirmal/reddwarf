@@ -351,7 +351,7 @@ class Controller(object):
             body['instance']['flavorRef']
             try:
                 volume_size = float(body['instance']['volume']['size'])
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 LOG.error("Create Instance Required field(s) - "
                           "['instance']['volume']['size']")
                 raise exception.ApiError("Required element/key - instance "

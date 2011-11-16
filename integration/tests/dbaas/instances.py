@@ -308,6 +308,17 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).volume()
 
     @expect_exception(ClientException)
+    def test_create_failure_with_empty_volume(self):
+        instance_name = "instance-failure-with-no-volume-size"
+        databases = []
+        volume = {}
+        result_fail = dbaas.instances.create(
+                               instance_name,
+                               instance_info.dbaas_flavor_href,
+                               volume,
+                               databases)
+
+    @expect_exception(ClientException)
     def test_create_failure_with_no_volume_size(self):
         instance_name = "instance-failure-with-no-volume-size"
         databases = []
