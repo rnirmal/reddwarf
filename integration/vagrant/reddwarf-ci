@@ -684,6 +684,21 @@ initialize() {
 # Run the CI Tests
 ###############################################################################
 
+run_agent_tests() {
+    cd $AGENT_DIR
+    echo "Agent tests : AMQP"
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug send_and_receive
+
+    echo "Agent tests : MySQL"
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug int_tests_mysql
+
+    echo "Agent tests : DB API"
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug api_tests
+
+    echo "Agent tests : APT"
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
+}
+
 run_tests() {
     cd $TEST_HOME
     echo "run_tests args: $@"
@@ -716,6 +731,7 @@ run_ci() {
     install_deps
     build
     initialize
+    run_agent_tests
     run_tests $@
 }
 
@@ -844,6 +860,7 @@ case "$1" in
     "run" ) shift; run_ci $@;;
     "install" ) install_deps;;
     "build" ) build;;
+    "test-agent" ) shift; run_agent_tests $@;;
     "initialize" ) initialize;;
     "test" ) shift; run_tests $@;;
     "start" ) start_reddwarf;;
