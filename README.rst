@@ -22,6 +22,8 @@ Getting Started
 The information below is set to be run on a VM. Inside 'integration/vagrant' folder
 is a file called 'VagrantFile'. This is a script that runs with Vagrant
 (http://www.vagrantup.com) and VirtualBox (http://www.virtualbox.org/).
+The versions we are currently using are Vagrant version 0.8.7 and
+Virtualbox 4.1.4 r74291.
 
 #. Create a new Folder::
 
