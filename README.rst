@@ -23,7 +23,8 @@ The information below is set to be run on a VM. Inside 'integration/vagrant' fol
 is a file called 'VagrantFile'. This is a script that runs with Vagrant
 (http://www.vagrantup.com) and VirtualBox (http://www.virtualbox.org/).
 The versions we are currently using are Vagrant version 0.8.7 and
-Virtualbox 4.1.4 r74291.
+Virtualbox 4.1.4 r74291. Please be aware that virtualization must be
+enabled in your systems BIOS to get virtualbox running with ANY 64b image.
 
 #. Create a new Folder::
 
