@@ -33,8 +33,16 @@
             <representation mediaType="application/xml" element="dbaas:overLimit"/>
             <representation mediaType="application/json"/>
         </response>
+        <response status="422" xmlns="http://wadl.dev.java.net/2009/02">
+            <representation mediaType="application/xml" element="dbaas:unprocessableEntity"/>
+            <representation mediaType="application/json"/>
+        </response>
         <response status="500" xmlns="http://wadl.dev.java.net/2009/02">
-            <representation mediaType="application/xml" element="dbaas:serverError"/>
+            <representation mediaType="application/xml" element="dbaas:instanceFault"/>
+            <representation mediaType="application/json"/>
+        </response>
+        <response status="501" xmlns="http://wadl.dev.java.net/2009/02">
+            <representation mediaType="application/xml" element="dbaas:notImplemented"/>
             <representation mediaType="application/json"/>
         </response>
         <response status="503" xmlns="http://wadl.dev.java.net/2009/02">
