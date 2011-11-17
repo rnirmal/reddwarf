@@ -89,7 +89,7 @@ def find_default_zone(dns_client, raise_if_zone_missing=True):
     """
     domain_name = FLAGS.dns_domain_name
     try:
-        domains = dns_client.domains.list()
+        domains = dns_client.domains.list(name=domain_name)
         for domain in domains:
             if domain.name == domain_name:
                 return RsDnsZone(id=domain.id, name=domain_name)
