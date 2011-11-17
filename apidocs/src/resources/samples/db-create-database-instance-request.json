@@ -1,8 +1,7 @@
 {
     "instance": {
         "name": "'my_instance_name'",
-        "flavorRef": "url_to_flavor_version",
-        "port": "3306",
+        "flavorRef": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1",
         "databases": [
             {
                 "name": "testdb",
@@ -10,7 +9,7 @@
                 "collate": "utf8_general_ci"
             },
             {
-                "name": "abfadklfgklq3u4q78tzdfjhvgajkdshfgjaef72346JKVFE4"
+                "name": "rackerdb"
             }
         ],
         "volume":

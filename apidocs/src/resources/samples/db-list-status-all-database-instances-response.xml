@@ -1,17 +1,15 @@
 <?xml version="1.0" ?>
-<instances xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
+<instances xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
     <instance id="00ff11ee-22dd-33cc-44bb-55aa66007799" name="testing" status="ACTIVE">
         <links>
-            <link href="http://localhost:8775/v1.0/servers/55" rel="self"/>
-            <link href="http://localhost:8775/v1.0/servers/55" rel="bookmark" type="application/json"/>
-            <link href="http://localhost:8775/v1.0/servers/55" rel="bookmark" type="application/xml"/>
+            <link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/00ff11ee-22dd-33cc-44bb-55aa66007799" rel="self"/>
+            <link href="https://ord.databases.api.rackspacecloud.com/instances/00ff11ee-22dd-33cc-44bb-55aa66007799" rel="bookmark"/>
         </links>
     </instance>
     <instance id="99770066-aa55-bb44-cc33-dd22ee11ff00" name="testing2" status="ACTIVE">
         <links>
-            <link href="http://localhost:8775/v1.0/servers/56" rel="self"/>
-            <link href="http://localhost:8775/v1.0/servers/56" rel="bookmark" type="application/json"/>
-            <link href="http://localhost:8775/v1.0/servers/56" rel="bookmark" type="application/xml"/>
+            <link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/99770066-aa55-bb44-cc33-dd22ee11ff00" rel="self"/>
+            <link href="https://ord.databases.api.rackspacecloud.com/instances/99770066-aa55-bb44-cc33-dd22ee11ff00" rel="bookmark"/>
         </links>
     </instance>
 </instances>

@@ -1,4 +1,4 @@
-<databases xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
-    <database name="abfadklfgklq3u4q78tzdfjhvgajkdshfgjaef72346JKVFE4"/>
+<databases xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
+    <database name="anotherdb"/>
     <database name="testdb"/>
 </databases>

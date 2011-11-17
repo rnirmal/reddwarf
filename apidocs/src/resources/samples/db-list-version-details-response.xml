@@ -1,8 +1,5 @@
-<version id="v1.0" status="CURRENT" xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">
-    <updated>
-        2012-01-01T00:00:00Z
-    </updated>
+<version id="v1.0" status="CURRENT" updated="2012-01-01T00:00:00Z" xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
     <links>
-        <link href="http://localhost:8775/" rel="self"/>
+        <link href="https://ord.databases.api.rackspacecloud.com/v1.0/" rel="self"/>
     </links>
 </version>
