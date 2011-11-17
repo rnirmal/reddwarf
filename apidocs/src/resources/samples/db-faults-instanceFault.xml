@@ -1,5 +1,5 @@
-<instanceFault code="500" xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
-	<message>
-		The server has either erred or is incapable of performing the requested operation.
-	</message>
+<instanceFault code="500" xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
+    <message>
+        The server has either erred or is incapable of performing the requested operation.
+    </message>
 </instanceFault>

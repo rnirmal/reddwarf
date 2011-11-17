@@ -4,17 +4,11 @@
             "name": "testing",
             "links": [
                 {
-                    "href": "http://localhost:8775/v1.0/servers/55",
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/00ff11ee-22dd-33cc-44bb-55aa66007799",
                     "rel": "self"
                 },
                 {
-                    "href": "http://localhost:8775/v1.0/servers/55",
-                    "type": "application/json",
-                    "rel": "bookmark"
-                },
-                {
-                    "href": "http://localhost:8775/v1.0/servers/55",
-                    "type": "application/xml",
+                    "href": "https://ord.databases.api.rackspacecloud.com/instances/00ff11ee-22dd-33cc-44bb-55aa66007799",
                     "rel": "bookmark"
                 }
             ],
@@ -25,17 +19,11 @@
             "name": "testing2",
             "links": [
                 {
-                    "href": "http://localhost:8775/v1.0/servers/56",
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/99770066-aa55-bb44-cc33-dd22ee11ff00",
                     "rel": "self"
                 },
                 {
-                    "href": "http://localhost:8775/v1.0/servers/56",
-                    "type": "application/json",
-                    "rel": "bookmark"
-                },
-                {
-                    "href": "http://localhost:8775/v1.0/servers/56",
-                    "type": "application/xml",
+                    "href": "https://ord.databases.api.rackspacecloud.com/instances/99770066-aa55-bb44-cc33-dd22ee11ff00",
                     "rel": "bookmark"
                 }
             ],

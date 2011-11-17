@@ -1,5 +1,5 @@
-<itemNotFound code="404" xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
-	<message>
-		The resource could not be found.
-	</message>
+<itemNotFound code="404" xmlns="http://docs.rackspacecloud.com/database/api/v1.0">
+    <message>
+        The resource could not be found.
+    </message>
 </itemNotFound>
