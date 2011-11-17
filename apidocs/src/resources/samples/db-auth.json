@@ -9,30 +9,28 @@
                 {
                     "region" : "DFW",
                     "v1Default" : true,
-                    "publicURL" : "https://dfw.dbaas.rackspacecloud.com/v1.0/",
-                    "internalURL" : "https://dfw.dbaas-snet.rackspacecloud.com/v1.0/"
+                    "publicURL" : "https://dfw.databases.api.rackspacecloud.com/v1.0/1234"
                 },
                 {
                     "region" : "ORD",
-                    "publicURL" : "https://ord.dbaas.rackspacecloud.com/v1.0/",
-                    "internalURL" : "https://ord.dbaas-snet.rackspacecloud.com/v1.0/"
+                    "publicURL" : "https://ord.databases.api.rackspacecloud.com/v1.0/1234"
                 }
             ],
             "cloudFilesCDN" : [
                 {
                     "region" : "DFW",
                     "v1Default" : true,
-                    "publicURL" : "https://cdn.clouddrive.com/v1/RackCloudFS_demo"
+                    "publicURL" : "https://cdn.clouddrive.com/v1/1234"
                 },
                 {
                     "region" : "ORD",
-                    "publicURL" : "https://othercdn.clouddrive.com/v1/RackCloudFS_demo"
+                    "publicURL" : "https://othercdn.clouddrive.com/v1/1234"
                 }
             ],
             "cloudServers" : [
                 {
                     "v1Default" : true,
-                    "publicURL" : "https://servers.api.rackspacecloud.com/v1.0/322781"
+                    "publicURL" : "https://servers.api.rackspacecloud.com/v1.0/1234"
                 }
             ]
         }
