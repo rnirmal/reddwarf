@@ -2020,7 +2020,8 @@ class OVZNetworkInterfaces(object):
         else:
             for net_dev in self.interface_info:
                 self._add_ip(net_dev['id'], net_dev['address'])
-                self._set_nameserver(net_dev['id'], net_dev['dns'])
+        
+        self._set_nameserver(net_dev['id'], net_dev['dns'])
 
     def _load_template(self):
         """
