@@ -33,7 +33,7 @@
     </profile> 
   </profiles>
   <properties>
-    <doctools.version>1.0.7-SNAPSHOT</doctools.version>
+    <doctools.version>1.0.8-SNAPSHOT</doctools.version>
   </properties>
 
     <dependencies>
@@ -138,7 +138,7 @@
                         </goals>
                         <phase>generate-sources</phase>
                         <configuration>
-                            <security>writeronly</security>
+                            <security>internal</security>
                             <xincludeSupported>true</xincludeSupported>
                             <sourceDirectory>src/resources</sourceDirectory>
                             <highlightSource>false</highlightSource>
