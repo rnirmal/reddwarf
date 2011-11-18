@@ -16,9 +16,11 @@
 """Functions to initiate and shut down services needed by the tests."""
 
 import os
+import re
 import subprocess
 import time
 
+from collections import namedtuple
 from httplib2 import Http
 from nose.plugins.skip import SkipTest
 
@@ -57,6 +59,9 @@ def start_proc(cmd, shell=False):
         env=env
     )
     return proc
+
+
+MemoryInfo = namedtuple("MemoryInfo", ['mapped', 'writeable', 'shared'])
 
 
 class Service(object):
@@ -105,6 +110,21 @@ class Service(object):
             pid = int(line)
             has_two_lines = True
         return pid
+
+    def get_memory_info(self):
+        """Returns how much memory the process is using according to pmap."""
+        pid = self.find_proc_id()
+        if not pid:
+            raise RuntimeError("Can't find PID, so can't get memory.")
+        proc = start_proc(["/usr/bin/pmap", "-d", str(pid)],
+                          shell=False)
+        for line in iter(proc.stdout.readline, ""):
+            m = re.search("""mapped\:\s([0-9]+)K\s+"""
+                          """writeable/private:\s([0-9]+)K\s+"""
+                          """shared:\s+([0-9]+)K""", line)
+            if m:
+                return MemoryInfo(m.group(1), m.group(2), m.group(3))
+        raise RuntimeError("Memory info not found.")
 
     def kill_proc(self):
         """Kills the process, wherever it may be."""
