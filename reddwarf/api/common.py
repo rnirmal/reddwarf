@@ -35,7 +35,13 @@ dbaas_mapping = {
     power_state.RUNNING: 'ACTIVE',
     power_state.SHUTDOWN: 'SHUTDOWN',
     power_state.BUILDING: 'BUILD',
-    power_state.FAILED: 'FAILED'
+    power_state.FAILED: 'FAILED',
+
+    power_state.BLOCKED: 'BLOCKED',
+    power_state.PAUSED: 'PAUSED',
+    power_state.SHUTOFF: 'SHUTOFF',
+    power_state.CRASHED: 'CRASHED',
+    power_state.SUSPENDED: 'SUSPENDED',
 }
 
 def populate_databases(dbs):

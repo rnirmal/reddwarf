@@ -143,7 +143,7 @@ class ViewBuilder(object):
             except (KeyError, InstanceNotFound):
                 # we set the state to shutdown if not found
                 state = power_state.SHUTDOWN
-            return common.dbaas_mapping[state]
+            return common.dbaas_mapping.get(state, None)
 
 
 class MgmtViewBuilder(ViewBuilder):
