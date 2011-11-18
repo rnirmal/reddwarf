@@ -10,13 +10,6 @@ Date: Tue, 29 Nov 2011 16:50:31 GMT
             "expires" : "2010-11-01T03:32:15-05:00"
         },
         "serviceCatalog" : {
-            "cloudDB" : [
-                {
-                    "region" : "ORD",
-                    "v1Default" : true,
-                    "publicURL" : "https://ord.databases.api.rackspacecloud.com/v1.0/1234"
-                }       
-            ],
             "cloudFilesCDN" : [
                 {
                     "region" : "DFW",
