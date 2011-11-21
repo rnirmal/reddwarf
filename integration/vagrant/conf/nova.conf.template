@@ -46,7 +46,7 @@
 --rabbit_host=10.0.4.15
 
 # AMQP Backend
---rpc_backend=nova.rpc.impl_carrot
+#--rpc_backend=nova.rpc.impl_carrot
 
 # Logging
 --logfile=/vagrant/nova.log
