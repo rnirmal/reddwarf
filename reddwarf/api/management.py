@@ -115,27 +115,32 @@ class Controller(object):
 
         instance_id = dbapi.localid_from_uuid(id)
 
-        # Let's make sure the instance exists first.
-        # If it doesn't, we'll get an exception.
-        try:
-            status = dbapi.guest_status_get(instance_id)
-        except nova_exception.InstanceNotFound:
-            #raise InstanceNotFound(instance_id=id)
-            raise exception.NotFound("No instance with id %s." % id)
+        server_response = self.server_controller.show(req, instance_id)
+        if isinstance(server_response, Exception):
+            return server_response  # Just return the exception to throw it
+        server = server_response['server']
 
-        server = self.server_controller.show(req, instance_id)['server']
-        if isinstance(server, Exception):
-            # The server controller has a habit of returning exceptions
-            # instead of raising them.
-            return server
+        guest_state = None
+        try:
+            guest_state = dbapi.guest_status_get(instance_id)
+            LOG.debug("Guest status for %s is %s" % (instance_id, guest_state))
+        except Exception:
+            # This just means we can'd find this instance_id in guest_status, nothing more.
+            LOG.error("Could not find guest status for instance %s." % instance_id)
 
         # Use the compute api response to add additional information
-        instance_ref = self.compute_api.get(context, instance_id)
+        try:
+            instance_ref = self.compute_api.get(context, instance_id)
+        except InstanceNotFound:
+            LOG.error("Could not find an instance with id %s" % id)
+            raise exc.HTTPNotFound("No instance with id %s" % id)
         LOG.debug("Instance Info from Compute API : %r" % instance_ref)
 
-        guest_state = {server['id']: status.state}
+        status = None if not guest_state else guest_state
+        status_dict = {server['id']: guest_state.state}
+
         instance = self.instance_view.build_mgmt_single(server, instance_ref,
-                                                        req, guest_state)
+                                                        req, status_dict)
         try:
             instance = self._get_guest_info(context, instance_id, status,
                                             instance)
