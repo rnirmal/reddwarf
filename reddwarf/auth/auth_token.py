@@ -106,6 +106,10 @@ class AuthProtocol(object):
                 proxy_headers[header[5:]] = proxy_headers[header]
                 del proxy_headers[header]
 
+        tenant = env.get('HTTP_X_AUTH_PROJECT_ID', '')
+        if not self._check_path(env, tenant):
+            return self._reject_request(env, start_response)
+
         # Look for authentication claims
         claims = self._get_claims(env)
         if not claims:
@@ -114,7 +118,7 @@ class AuthProtocol(object):
         else:
             # this request is presenting claims. Let's validate them
             # TODO(rnirmal): Preferably cache the token and expires info
-            data, status = self._validate_token(claims)
+            data, status = self._validate_token(claims, tenant=tenant)
             valid = self._validate_status(status)
             if not valid:
                 # Keystone rejected claim
@@ -128,6 +132,13 @@ class AuthProtocol(object):
                 env = self._expound_claims(data, env, proxy_headers)
 
         return self.app(env, start_response)
+
+    def _check_path(self, env, tenant):
+        # Check that the tenant/account id's in header and url match
+        path_info = env.get('PATH_INFO', '/')
+        if path_info not in ["", "/"]:
+            return path_info.split("/")[1] == tenant
+        return True
 
     def _get_claims(self, env):
         """Get claims from request"""
@@ -174,7 +185,7 @@ class AuthProtocol(object):
         """Client sent bad claims"""
         return HTTPUnauthorized()(env, start_response)
 
-    def _validate_token(self, claims):
+    def _validate_token(self, claims, tenant=None):
         """Make the call to Keystone and get the return code and data"""
         headers = {'Content-type': 'application/json',
                    'Accept': 'application/json',
@@ -183,7 +194,8 @@ class AuthProtocol(object):
 
         conn = get_connection(self.auth_protocol, self.auth_host,
                               self.auth_port)
-        conn.request("GET", "%s/%s" % (self.validate_token_path, claims),
+        conn.request("GET", "%s/%s?belongsTo=%s" %
+                     (self.validate_token_path, claims, tenant),
                      headers=headers)
         response = conn.getresponse()
         data = response.read()

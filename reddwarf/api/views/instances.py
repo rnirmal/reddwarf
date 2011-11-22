@@ -29,21 +29,29 @@ LOG = logging.getLogger('reddwarf.api.views.instance')
 LOG.setLevel(logging.DEBUG)
 
 
+def _project_id(req):
+    return getattr(req.environ['nova.context'], 'project_id', '')
+
+
+def _base_url(req):
+    return req.application_url
+
+
 class ViewBuilder(object):
     """Views for an instance"""
 
-    def _build_basic(self, server, base_url, guest_states=None):
+    def _build_basic(self, server, req, guest_states=None):
         """Build the very basic information for an instance"""
         instance = {}
         instance['id'] = server['uuid']
         instance['name'] = server['name']
         instance['status'] = self.get_instance_status(server, guest_states)
-        instance['links'] = self._build_links(base_url, instance)
+        instance['links'] = self._build_links(req, instance)
         return instance
 
-    def _build_detail(self, server, base_url, instance):
+    def _build_detail(self, server, req, instance):
         """Build out a more detailed view of the instance"""
-        flavor_view = flavors.ViewBuilder(base_url)
+        flavor_view = flavors.ViewBuilder(_base_url(req), _project_id(req))
         instance['flavor'] = server['flavor']
         instance['flavor']['links'] = flavor_view._build_links(instance['flavor'])
         instance['created'] = server['created']
@@ -59,9 +67,11 @@ class ViewBuilder(object):
         return instance
 
     @staticmethod
-    def _build_links(base_url, instance):
+    def _build_links(req, instance):
         """Build the links for the instance"""
-        href = os.path.join(base_url, "instances", str(instance['id']))
+        base_url = _base_url(req)
+        href = os.path.join(base_url, _project_id(req),
+                            "instances", str(instance['id']))
         bookmark = os.path.join(nova_common.remove_version_from_href(base_url),
                                 "instances", str(instance['id']))
         links = [
@@ -76,23 +86,23 @@ class ViewBuilder(object):
         ]
         return links
 
-    def build_index(self, server, base_url, guest_states):
+    def build_index(self, server, req, guest_states):
         """Build the response for an instance index call"""
-        return self._build_basic(server, base_url, guest_states)
+        return self._build_basic(server, req, guest_states)
 
-    def build_detail(self, server, base_url, guest_states):
+    def build_detail(self, server, req, guest_states):
         """Build the response for an instance detail call"""
-        instance = self._build_basic(server, base_url, guest_states)
-        instance = self._build_detail(server, base_url, instance)
+        instance = self._build_basic(server, req, guest_states)
+        instance = self._build_detail(server, req, instance)
         return instance
 
-    def build_single(self, server, base_url, guest_states, databases=None,
+    def build_single(self, server, req, guest_states, databases=None,
                      root_enabled=False, create=False):
         """
         Given a server (obtained from the servers API) returns an instance.
         """
-        instance = self._build_basic(server, base_url, guest_states)
-        instance = self._build_detail(server, base_url, instance)
+        instance = self._build_basic(server, req, guest_states)
+        instance = self._build_detail(server, req, instance)
         if not create:
             # Add Database and root_enabled
             instance['databases'] = databases
@@ -142,10 +152,10 @@ class MgmtViewBuilder(ViewBuilder):
     def __init__(self):
         super(MgmtViewBuilder, self).__init__()
 
-    def build_mgmt_single(self, server, instance_ref, base_url, guest_states):
+    def build_mgmt_single(self, server, instance_ref, req, guest_states):
         """Build out the management view for a single instance"""
-        instance = self._build_basic(server, base_url, guest_states)
-        instance = self._build_detail(server, base_url, instance)
+        instance = self._build_basic(server, req, guest_states)
+        instance = self._build_detail(server, req, instance)
         instance = self._build_server_details(server, instance)
         instance = self._build_compute_api_details(instance_ref, instance)
         return instance

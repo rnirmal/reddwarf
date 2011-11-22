@@ -40,7 +40,7 @@ class ViewBuilder(os_flavors.ViewBuilderV11):
 
     def _build_links(self, flavor_obj):
         """Generate a container of links that refer to the provided flavor."""
-        href = os.path.join(self.base_url, "flavors", str(flavor_obj['id']))
+        href = os.path.join(self.base_url, self.project_id, "flavors", str(flavor_obj['id']))
         bookmark = os.path.join(common.remove_version_from_href(self.base_url),
                                 "flavors", str(flavor_obj['id']))
 

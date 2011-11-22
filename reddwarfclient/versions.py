@@ -29,10 +29,11 @@ class Versions(base.ManagerWithFind):
 
     resource_class = Version
     
-    def index(self):
+    def index(self, url):
         """
         Get a list of all versions.
 
         :rtype: list of :class:`Versions`.
         """
-        return self._get("/", "version")
+        resp, body = self.api.client.request(url, "GET")
+        return [self.resource_class(self, res) for res in body['versions']]

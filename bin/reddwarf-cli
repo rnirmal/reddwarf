@@ -114,6 +114,15 @@ class ListCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def versions(self, url):
+        """List all the supported versions"""
+        dbaas = common.get_client()
+        try:
+            versions = dbaas.versions.index(url)
+            for version in versions:
+                _pretty_print(version._info)
+        except:
+            print sys.exc_info()[1]
 
 class CreateCommands(object):
     """Create Instances, Databases and Users"""

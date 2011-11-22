@@ -136,8 +136,7 @@ class Controller(object):
 
         guest_state = {server['id']: status.state}
         instance = self.instance_view.build_mgmt_single(server, instance_ref,
-                                                        req.application_url,
-                                                        guest_state)
+                                                        req, guest_state)
         try:
             instance = self._get_guest_info(context, instance_id, status, instance)
         except Exception as err:
