@@ -173,11 +173,11 @@ class TestDatabases(unittest.TestCase):
 
     @expect_exception(NotFound)
     def test_delete_database_on_missing_instance(self):
-        global dbaas, dbaas_admin
+        global dbaas
         dbaas.databases.delete(-1,  self.dbname_urlencoded)
 
     def test_delete_database(self):
-        global dbaas, dbaas_admin
+        global dbaas
         dbaas.databases.delete(instance_info.id, self.dbname_urlencoded)
         time.sleep(5)
 
@@ -215,7 +215,7 @@ class TestUsers(object):
         users.append({"name": self.username1, "password": self.password1,
                      "databases": [{"name": self.db1}, {"name": self.db2}]})
 
-        global dbaas, dbaas_admin
+        global dbaas
         dbaas.users.create(instance_info.id, users)
         time.sleep(5)
 
@@ -248,7 +248,7 @@ class TestUsers(object):
 
     @test(depends_on=[test_create_users_list])
     def test_delete_users(self):
-        global dbaas, dbaas_admin
+        global dbaas
         dbaas.users.delete(instance_info.id, self.username_urlencoded)
         dbaas.users.delete(instance_info.id, self.username1_urlendcoded)
         time.sleep(5)
@@ -288,7 +288,7 @@ class TestUsers(object):
         assert_equal(self.root_enabled_timestamp, timestamp)
 
     def _root(self):
-        global dbaas, dbaas_admin
+        global dbaas
         global root_password
         host = "%"
         user, password = dbaas.root.create(instance_info.id)

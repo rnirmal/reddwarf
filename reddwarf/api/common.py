@@ -37,11 +37,11 @@ dbaas_mapping = {
     power_state.BUILDING: 'BUILD',
     power_state.FAILED: 'FAILED',
 
-    power_state.BLOCKED: 'BLOCKED',
-    power_state.PAUSED: 'PAUSED',
-    power_state.SHUTOFF: 'SHUTOFF',
-    power_state.CRASHED: 'CRASHED',
-    power_state.SUSPENDED: 'SUSPENDED',
+    power_state.BLOCKED: 'SHUTDOWN',
+    power_state.PAUSED: 'SHUTDOWN',
+    power_state.SHUTOFF: 'SHUTDOWN',
+    power_state.CRASHED: 'SHUTDOWN',
+    power_state.SUSPENDED: 'FAILED',
 }
 
 def populate_databases(dbs):
