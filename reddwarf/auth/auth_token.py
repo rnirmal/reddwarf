@@ -116,7 +116,6 @@ class AuthProtocol(object):
 
     def __call__(self, env, start_response):
         """ Handle incoming request. Authenticate. And send downstream. """
-        LOG.debug("env : %s" %env)
         proxy_headers = self._prep_headers(env)
 
         # get validate tenant exists
