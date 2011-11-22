@@ -458,6 +458,14 @@ dbaas_pkg_build_sneaky_pete() {
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     # Install in repo
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze $BUILD_DIR/nova-guest*_amd64.changes
+
+    # If we don't do this, we won't have the permission to the bin directory
+    # to run functional tests later (this is only if we aren't using the
+    # /agent shared directory).
+    cd $BUILD_DIR/agent
+    sudo chown -R vagrant bin
+    sudo chown -R vagrant parrot
+    
 }
 
 build() {

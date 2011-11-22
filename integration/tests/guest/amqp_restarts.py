@@ -179,7 +179,7 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         self.reconnect_failures_count = 0
 
     @test(depends_on=[restart_rabbit_again])
-    @time_out(2)
+    @time_out(10)
     def send_message_again_1(self):
         """Sends a message.
 
@@ -198,13 +198,13 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
             assert_equal(1, self.reconnect_failures_count)
 
     @test(depends_on=[send_message_again_1])
-    @time_out(2)
+    @time_out(10)
     def send_message_again_2a(self):
         """The agent should be able to receive messages after reconnecting."""
         self.send_message()
 
     @test(depends_on=[send_message_again_1])
-    @time_out(2)
+    @time_out(10)
     def send_message_again_2b(self):
         """The agent should be able to receive messages after reconnecting."""
         self.send_message()
