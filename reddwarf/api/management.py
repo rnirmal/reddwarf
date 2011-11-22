@@ -111,51 +111,49 @@ class Controller(object):
         """ Returns instance details by instance id """
         LOG.info("Get Instance Detail by ID - %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
-        context = req.environ['nova.context']
-
         instance_id = dbapi.localid_from_uuid(id)
-
         server_response = self.server_controller.show(req, instance_id)
         if isinstance(server_response, Exception):
             return server_response  # Just return the exception to throw it
+        context = req.environ['nova.context']
         server = server_response['server']
-
-        guest_state = None
-        try:
-            guest_state = dbapi.guest_status_get(instance_id)
-            LOG.debug("Guest status for %s is %s" % (instance_id, guest_state))
-        except Exception:
-            # This just means we can'd find this instance_id in guest_status, nothing more.
-            LOG.error("Could not find guest status for instance %s." % instance_id)
 
         # Use the compute api response to add additional information
         try:
             instance_ref = self.compute_api.get(context, instance_id)
-        except InstanceNotFound:
+        except nova_exception.InstanceNotFound:
             LOG.error("Could not find an instance with id %s" % id)
-            raise exc.HTTPNotFound("No instance with id %s" % id)
-        LOG.debug("Instance Info from Compute API : %r" % instance_ref)
+            raise exception.NotFound("No instance with id %s" % id)
 
-        status = None if not guest_state else guest_state
-        status_dict = {server['id']: guest_state.state}
+        guest_state = None
+        try:
+            guest_state = dbapi.guest_status_get(instance_id)
+        except exception.NotFound:
+            LOG.error("Could not find the guest status for instance %s" % id)
+        status = None
+        status_dict = {}
+        if guest_state:
+            status = guest_state
+            status_dict = {instance_id: guest_state.state}
 
-        instance = self.instance_view.build_mgmt_single(server, instance_ref,
-                                                        req, status_dict)
+        instance = self.instance_view.build_mgmt_single(server,
+                                                        instance_ref,
+                                                        req,
+                                                        status_dict)
         try:
             instance = self._get_guest_info(context, instance_id, status,
                                             instance)
         except Exception as err:
             LOG.error(err)
-            raise exception.InstanceFault("Unable to retrieve information "
-                                          "from the guest")
+            raise exception.InstanceFault("Unable to retrieve information from the guest")
+
         return {'instance': instance}
 
     def _get_guest_info(self, context, id, status, instance):
         """Get all the guest details and add it to the response"""
-        if status.state != power_state.RUNNING:
-            dbs = None
-            users = None
-        else:
+        dbs = None
+        users = None
+        if status and status.state == power_state.RUNNING:
             db_list = self.guest_api.list_databases(context, id)
 
             LOG.debug("DBS: %r" % db_list)

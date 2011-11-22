@@ -204,13 +204,14 @@ class MgmtViewBuilder(ViewBuilder):
     def _build_guest_status(status):
         """Build out the guest status information"""
         guest_status = {}
-        guest_status['created_at'] = status.created_at
-        guest_status['deleted'] = status.deleted
-        guest_status['deleted_at'] = status.deleted_at
-        guest_status['instance_id'] = status.instance_id
-        guest_status['state'] = status.state
-        guest_status['state_description'] = status.state_description
-        guest_status['updated_at'] = status.updated_at
+        if status is not None:
+            guest_status['created_at'] = status.created_at
+            guest_status['deleted'] = status.deleted
+            guest_status['deleted_at'] = status.deleted_at
+            guest_status['instance_id'] = status.instance_id
+            guest_status['state'] = status.state
+            guest_status['state_description'] = status.state_description
+            guest_status['updated_at'] = status.updated_at
         return guest_status
 
     @staticmethod
