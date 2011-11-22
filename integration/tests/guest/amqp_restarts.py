@@ -85,16 +85,16 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
     @test
     def check_agent_path_is_correct(self):
         """Make sure the agent binary listed in the config is correct."""
-        agent_bin = str(test_config.values["agent_bin"])
+        self.agent_bin = str(test_config.values["agent_bin"])
         nova_conf = str(test_config.values["nova_conf"])
-        assert_true(path.exists(agent_bin),
-                    "Agent not found at path: %s" % agent_bin)
-        self.agent = Service(cmd=[agent_bin,  "--flagfile=%s" % nova_conf,
+        assert_true(path.exists(self.agent_bin),
+                    "Agent not found at path: %s" % self.agent_bin)
+        self.agent = Service(cmd=[self.agent_bin,  "--flagfile=%s" % nova_conf,
                                   "--rabbit_reconnect_wait_time=1"])
-        self.rabbit = Rabbit()
 
     @test
     def stop_rabbit(self):
+        self.rabbit = Rabbit()
         if self.rabbit.is_alive:
             self.rabbit.stop()
         assert_false(self.rabbit.is_alive)
@@ -127,13 +127,29 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         #    "/var/log/syslog", "Error establishing AMQP connection"
         #)
         # Memory should not go up as the connection fails.
-        time.sleep(5)
-        current_mapped = self.agent.get_memory_info().mapped
-        assert_true(current_mapped <= self.original_mapped)
-        print("mapped memory = %d" % current_mapped)
-        assert_true(current_mapped >  5 * 1024) # Sanity check
-        if current_mapped > 30 * 1024:
-            fail("Whoa, why is mapped memory = %d?" % current_mapped)
+        print("Original mapped memory        : %d" % self.original_mapped)
+
+        # I've noticed that the memory jumps up a bit between 5 and 10 seconds
+        # after it starts and then holds steady. So instead of taking the
+        # original count, let's wait a bit and use that.
+        time.sleep(10)
+        self.original_mapped = self.agent.get_memory_info().mapped
+        print("Mapped memory at 10 seconds   : %d" % self.original_mapped)
+
+        total_seconds = 0
+        mapped = []
+        for i in range(4):
+            time.sleep(5)
+            total_seconds += 5
+            mapped.append(self.agent.get_memory_info().mapped)
+            print("Mapped memory after %d seconds : %d"
+                  % (total_seconds, mapped[-1]))
+        if self.original_mapped < mapped[-1]:
+            fail("Oh no, after %d seconds memory rose from %d to %d!"
+                 % (total_seconds, self.original_mapped, mapped[-1]))
+        if mapped[-1] > 30 * 1024:
+            fail("Whoa, why is mapped memory = %d for procid=%d, proc= %s?"
+                 % (current_mapped, self.agent.find_proc_id(), self.agent_bin))
 
     @test(depends_on=[memory_should_not_increase_as_amqp_login_fails])
     def start_rabbit(self):
@@ -158,39 +174,40 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         self.rabbit.stop()
         assert_false(self.rabbit.is_alive)
         self.rabbit.reset()
-        time.sleep(10)
         self.rabbit.start()
         assert_true(self.rabbit.is_alive)
-        time.sleep(10)
+        self.reconnect_failures_count = 0
 
     @test(depends_on=[restart_rabbit_again])
     @time_out(2)
     def send_message_again_1(self):
-        """The agent should be able to receive messages after reconnecting."""
-        version = rpc.call(context.get_admin_context(), "guest.host",
-                 {"method": "version",
-                  "args": {"package_name": "hdjdgnmfd"}
-                 })
-        assert_true(version is None)
+        """Sends a message.
 
-    @test(depends_on=[restart_rabbit_again])
-    @time_out(2)
-    def send_message_again_2(self):
-        """The agent should be able to receive messages after reconnecting."""
-        version = rpc.call(context.get_admin_context(), "guest.host",
-                 {"method": "version",
-                  "args": {"package_name": "dpkg"}
-                 })
-        assert_true(version is not None)
+        In the Kombu driver there is a bug where after restarting rabbit the
+        first message to be sent fails with a broken pipe (Carrot has a worse
+        bug where the tests hang). So here we tolerate one such bug but no
+        more.
 
-    @test(depends_on=[restart_rabbit_again])
+        """
+        try:
+            self.send_message()
+            fail("Looks like the Kombu bug was fixed, please change this code "
+                 "to except no Exceptions.")
+        except Exception:
+            self.reconnect_failures_count += 1
+            assert_equal(1, self.reconnect_failures_count)
+
+    @test(depends_on=[send_message_again_1])
     @time_out(2)
-    def send_message_again_3(self):
+    def send_message_again_2a(self):
         """The agent should be able to receive messages after reconnecting."""
-        version = rpc.call(context.get_admin_context(), "guest.host",
-                 {"method": "version",
-                  "args": {"package_name": "cowsay"}
-                 })
+        self.send_message()
+
+    @test(depends_on=[send_message_again_1])
+    @time_out(2)
+    def send_message_again_2b(self):
+        """The agent should be able to receive messages after reconnecting."""
+        self.send_message()
 
 
 
