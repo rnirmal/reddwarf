@@ -182,7 +182,9 @@ class DeleteCommands(object):
         """Delete the specified instance"""
         dbaas = common.get_client()
         try:
-            dbaas.instances.delete(id)
+            result = dbaas.instances.delete(id)
+            if result:
+                print result
         except:
             print sys.exc_info()[1]
 

@@ -112,11 +112,14 @@ if __name__ == '__main__':
     # run its functional tests only.
     if not os.environ.get("ADD_DOMAINS", "False") == 'True':
         from tests import initialize
+        from tests.api import flavors
         from tests.api import versions
+        from tests.api.mgmt import accounts
+        from tests.api.mgmt import admin_required
+        from tests.api.mgmt import hosts
+        from tests.api.mgmt import storage
         from tests.dbaas import dbaas_ovz
         from tests.dbaas import dns
-        from tests.dbaas import flavors
-        from tests.dbaas.mgmt import admin_required
         from tests.guest import amqp_restarts
         from tests.guest import dbaas_tests
         from tests.guest import pkg_tests

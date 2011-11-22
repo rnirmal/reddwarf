@@ -16,10 +16,10 @@
 from abc import ABCMeta
 from xml.dom import minidom
 
-from nova import exception
 from nova import flags
 from nova.api.openstack import wsgi
 
+from reddwarf import exception
 
 FLAGS = flags.FLAGS
 
@@ -112,8 +112,8 @@ class InstanceXMLDeserializer(XMLDeserializer):
         instance = {}
         instance_node = self._find_first_child_named(node, "instance")
         if not instance_node:
-            raise exception.ApiError("Required element/key 'instance' " \
-                                     "was not specified")
+            raise exception.BadRequest("Required element/key 'instance' was "
+                                       "not specified")
         for attr in ["name", "port", "flavorRef"]:
             instance[attr] = instance_node.getAttribute(attr)
         #dbtype = self._extract_dbtype(instance_node)
@@ -128,7 +128,7 @@ class InstanceXMLDeserializer(XMLDeserializer):
         """Marshal the dbtype attributes of a parsed request"""
         dbtype_node = self._find_first_child_named(node, "dbtype")
         if dbtype_node is None:
-            raise exception.ApiError("Required element 'dbtype' not specified")
+            raise exception.BadRequest("Required element 'dbtype' not specified")
         dbtype = {}
         for attr in ["name", "version"]:
             dbtype[attr] = dbtype_node.getAttribute(attr)
@@ -138,7 +138,7 @@ class InstanceXMLDeserializer(XMLDeserializer):
         """Marshal the volume attributes of a parsed request"""
         volume_node = self._find_first_child_named(node, "volume")
         if volume_node is None:
-            raise exception.ApiError("Required element 'volume' not specified")
+            raise exception.BadRequest("Required element 'volume' not specified")
         return {"size": volume_node.getAttribute("size")}
 
 
@@ -174,7 +174,7 @@ class ConfigXMLDeserializer(XMLDeserializer):
         try:
             dom = minidom.parseString(string)
         except:
-            raise exception.ApiError("Unable to parse the request xml")
+            raise exception.BadRequest("Unable to parse the request xml")
         configs_node = self._find_first_child_named(dom, "configs")
         if configs_node is None:
             return None
@@ -191,7 +191,7 @@ class ConfigXMLDeserializer(XMLDeserializer):
         try:
             dom = minidom.parseString(string)
         except:
-            raise exception.ApiError("Unable to parse the request xml")
+            raise exception.BadRequest("Unable to parse the request xml")
         config_node = self._find_first_child_named(dom, "config")
         if config_node is None:
             return None

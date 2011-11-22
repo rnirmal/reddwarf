@@ -16,15 +16,16 @@ from proboscis import before_class
 from proboscis import test
 from proboscis.asserts import assert_equal
 
+import tests
 from tests.util import test_config
 from tests.util import create_dbaas_client
 from tests.util.users import Requirements
 
-SUPER_GROUP="dbaas.api"
 GROUP="dbaas.api.versions"
 
 
-@test(groups=[SUPER_GROUP, GROUP], depends_on_groups=["services.initialize"])
+@test(groups=[tests.DBAAS_API, GROUP, tests.PRE_INSTANCES],
+      depends_on_groups=["services.initialize"])
 class Versions(object):
     """Test listing all versions and verify the current version"""
 

@@ -13,15 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from webob import exc
-
-from nova import exception
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
-from nova.api.openstack import faults
 from nova.api.openstack import wsgi
-from reddwarf.api import common
 from nova.db.sqlalchemy.api import service_get_all_compute_sorted
+
+from reddwarf import exception
+from reddwarf.api import common
 from reddwarf.db import api as dbapi
 
 LOG = logging.getLogger('reddwarf.api.hosts')
@@ -72,8 +71,8 @@ class Controller(object):
                              'totalRAM': total_ram,
                              'usedRAM': int(used_ram),
                              'instances': instances}}
-        except exception.HostNotFound:
-            return faults.Fault(exc.HTTPNotFound())
+        except nova_exception.HostNotFound:
+            raise exception.NotFound()
 
 
 def create_resource(version='1.0'):

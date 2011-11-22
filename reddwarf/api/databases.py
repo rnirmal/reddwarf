@@ -18,15 +18,15 @@
 from webob import exc
 
 from nova import compute
-from nova import exception
 from nova import log as logging
-from nova.api.openstack import faults
 from nova.api.openstack import wsgi
+from nova.guest import api as guest_api
+from nova.guest.db import models
+
+from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.db import api as dbapi
-from nova.guest import api as guest_api
-from nova.guest.db import models
 
 
 LOG = logging.getLogger('reddwarf.api.databases')
@@ -42,7 +42,7 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def show(self, req, instance_id, id):
-        raise exc.HTTPNotImplemented()
+        raise exception.NotImplemented()
 
     def index(self, req, instance_id):
         """ Returns a list of Databases for the Instance """
@@ -55,7 +55,7 @@ class Controller(object):
             result = self.guest_api.list_databases(ctxt, local_id)
         except Exception as err:
             LOG.error(err)
-            raise exc.HTTPServerError(explanation="Unable to get the list of databases")
+            raise exception.InstanceFault("Unable to get the list of databases")
         LOG.debug("LIST DATABASES RESULT - %s", str(result))
         databases = {'databases':[]}
         for database in result:
@@ -96,15 +96,15 @@ class Controller(object):
     def _validate(self, body):
         """Validate that the request has all the required parameters"""
         if not body:
-            raise exc.HTTPUnprocessableEntity()
+            raise exception.BadRequest("The request contains an empty body")
 
         if not body.get('databases', ''):
-            raise exception.ApiError("Required element/key 'databases' " \
-                                      "was not specified")
+            raise exception.BadRequest("Required element/key 'databases' was "
+                                       "not specified")
         for database in body.get('databases'):
             if not database.get('name', ''):
-                raise exception.ApiError("Required attribute/key 'name' " \
-                                         "was not specified")
+                raise exception.BadRequest("Required attribute/key 'name' was "
+                                           "not specified")
 
 
 def create_resource(version='1.0'):

@@ -1,19 +1,14 @@
-import gettext
-import os
-import subprocess
 import sys
 import time
 import re
 import unittest
 
-from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import text
 
 from nova import context
 from nova import db
 from nova.guest.dbaas import LocalSqlClient
 from novaclient.exceptions import NotFound
-from reddwarfclient import Dbaas
 
 from nose.tools import assert_equal
 from nose.tools import assert_not_equal
@@ -28,13 +23,10 @@ from proboscis.decorators import time_out
 from tests.dbaas.instances import instance_info
 from tests.dbaas.instances import GROUP_START
 from tests.dbaas.instances import GROUP_TEST
-from tests.util import check_database
 from tests.util import get_vz_ip_for_device
 from tests.util import init_engine
 from tests.util import process
 from tests.util import string_in_list
-from tests.util import test_config
-from tests.util.users import Requirements
 from tests import util
 
 dbaas = None

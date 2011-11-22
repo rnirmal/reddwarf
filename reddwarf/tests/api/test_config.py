@@ -19,14 +19,12 @@ import json
 import webob
 from paste import urlmap
 from nose.tools import raises
-from webob import exc
 
 from nova import context
-from nova import exception
 from nova import flags
 from nova import test
-from nova.api.openstack import faults
 
+from reddwarf import exception
 from reddwarf.api import config
 from reddwarf.db import api as dbapi
 from reddwarf.tests import util
@@ -40,6 +38,8 @@ test_desc = "reddwarf image"
 new_value = "5"
 test_config = {'key': test_key, 'value': test_value, 'description': test_desc}
 update_config = {'key': test_key, 'value': new_value, 'description': test_desc}
+
+configs_url = "%s/configs" % util.v1_mgmt_prefix
 
 
 def request_obj(url, method, body):
@@ -64,7 +64,7 @@ class ConfigApiTest(test.TestCase):
 
     def test_config_create(self):
         body = {'configs': [test_config]}
-        req = request_obj('/v1.0/mgmt/configs', 'POST', body)
+        req = request_obj(configs_url, 'POST', body)
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 200)
         result = dbapi.config_get(test_key)
@@ -75,23 +75,23 @@ class ConfigApiTest(test.TestCase):
 
     def test_config_create_duplicate(self):
         body = {'configs': [test_config]}
-        req = request_obj('/v1.0/mgmt/configs', 'POST', body)
+        req = request_obj(configs_url, 'POST', body)
 
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 500)
         expected_msg = "Configuration %s already exists." % test_key
         res_body = json.loads(res.body)
-        self.assertEqual(res_body['cloudServersFault']['message'], expected_msg)
+        self.assertEqual(res_body['instanceFault']['message'], expected_msg)
 
     def test_config_create_invalid(self):
         body = {'configs': [test_config]}
-        req = request_obj('/v1.0/mgmt/configs', 'POST', body)
+        req = request_obj(configs_url, 'POST', body)
 
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 500)
         expected_msg = "Configuration %s already exists." % test_key
         res_body = json.loads(res.body)
-        self.assertEqual(res_body['cloudServersFault']['message'], expected_msg)
+        self.assertEqual(res_body['instanceFault']['message'], expected_msg)
 
     def test_config_list(self):
         body = {'configs':
@@ -99,11 +99,11 @@ class ConfigApiTest(test.TestCase):
                      {'key': 'test2', 'value': 'test2val'},
                      {'key': 'test3', 'value': 'test3val'}]
                }
-        req = request_obj('/v1.0/mgmt/configs', 'POST', body)
+        req = request_obj(configs_url, 'POST', body)
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 200)
 
-        req1 = webob.Request.blank('/v1.0/mgmt/configs')
+        req1 = webob.Request.blank(configs_url)
         res = req1.get_response(util.wsgi_app(fake_auth_context=self.context))
         for item in body['configs']:
             item['description'] = None
@@ -113,24 +113,24 @@ class ConfigApiTest(test.TestCase):
                                  sorted(json.loads(res.body)['configs']))
 
     def test_config_get(self):
-        req = webob.Request.blank('/v1.0/mgmt/configs/%s' % test_key)
+        req = webob.Request.blank('%s/%s' % (configs_url, test_key))
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertDictMatch(json.loads(res.body)['config'], test_config)
 
     def test_config_get_invalid(self):
         invalid_key = "transdffs"
         expected_msg = "Configuration %s not found." % invalid_key
-        req = webob.Request.blank('/v1.0/mgmt/configs/%s' % invalid_key)
+        req = webob.Request.blank('%s/%s' % (configs_url, invalid_key))
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
-        self.assertEqual(res.status_int, 500)
+        self.assertEqual(res.status_int, 404)
         res_body = json.loads(res.body)
-        self.assertEqual(res_body['cloudServersFault']['message'], expected_msg)
+        self.assertEqual(res_body['itemNotFound']['message'], expected_msg)
 
     def test_config_update(self):
         old_value = dbapi.config_get(test_key).value
         self.assertNotEqual(new_value, old_value)
         body = {'config': update_config}
-        req = request_obj('/v1.0/mgmt/configs/%s' % test_key, 'PUT', body)
+        req = request_obj('%s/%s' % (configs_url, test_key), 'PUT', body)
 
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 200)
@@ -138,45 +138,45 @@ class ConfigApiTest(test.TestCase):
         self.assertEqual(new_value, result.value)
 
     def test_config_zdelete(self):
-        req = webob.Request.blank('/v1.0/mgmt/configs/%s' % test_key)
+        req = webob.Request.blank('%s/%s' % (configs_url, test_key))
         req.method = 'DELETE'
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 200)
 
-        req1 = webob.Request.blank('/v1.0/mgmt/configs/%s' % test_key)
+        req1 = webob.Request.blank('%s/%s' % (configs_url, test_key))
         res = req1.get_response(util.wsgi_app(fake_auth_context=self.context))
 
     def test_config_zdelete_nonexistent(self):
         nonexistent = "nonexistent"
-        req = webob.Request.blank('/v1.0/mgmt/configs/%s' % nonexistent)
+        req = webob.Request.blank('%s/%s' % (configs_url, nonexistent))
         req.method = 'DELETE'
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 200)
 
     def test_config_validate_empty_body(self):
-        req = request_obj('/v1.0/mgmt/configs', 'POST', "")
+        req = request_obj(configs_url, 'POST', "")
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
-        self.assertEqual(res.status_int, 422)
+        self.assertEqual(res.status_int, 400)
         res_body = json.loads(res.body)
-        expected_msg = "Unable to process the contained instructions"
-        self.assertEqual(res_body['cloudServersFault']['message'], expected_msg)
+        expected_msg = "The request contains an empty body"
+        self.assertEqual(res_body['badRequest']['message'], expected_msg)
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_validate_create_no_configs(self):
         body = {'config': {'key': test_key}}
         self.controller._validate_create(body)
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_validate_create_no_key(self):
         body = {'configs': [{'keys': test_key}]}
         self.controller._validate_create(body)
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_validate_update_no_config(self):
         body = {'configs': {'key': test_key}}
         self.controller._validate_update(body)
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_validate_update_no_key(self):
         body = {'config': {'keys': test_key}}
         self.controller._validate_update(body)

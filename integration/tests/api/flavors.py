@@ -15,19 +15,20 @@
 
 import os
 
-from nova.api.openstack import common
-
 from nose.tools import assert_equal
 from nose.tools import assert_false
 from nose.tools import assert_true
 
+from proboscis import before_class
 from proboscis import test
+
+import tests
 from tests.util import create_test_client
 from tests.util import test_config
 from tests.util.users import Requirements
 
 
-GROUP="dbaas.flavors"
+GROUP="dbaas.api.flavors"
 
 
 servers_flavors=None
@@ -46,11 +47,13 @@ def assert_attributes_are_equal(name, os_flavor, dbaas_flavor):
     assert_equal(expected, actual,
                  'DBaas flavor differs from Open Stack on attribute ' + name)
 
+
 def assert_flavors_are_roughly_equivalent(os_flavor, dbaas_flavor):
     assert_attributes_are_equal('name', os_flavor, dbaas_flavor)
     assert_attributes_are_equal('ram', os_flavor, dbaas_flavor)
     assert_false(hasattr(dbaas_flavor, 'disk'),
                  "The attribute 'disk' s/b absent from the dbaas API.")
+
 
 def assert_link_list_is_equal(flavor):
     assert_true(hasattr(flavor, 'links'))
@@ -70,31 +73,38 @@ def assert_link_list_is_equal(flavor):
         else:
             assert_false(True, "Unexpected rel - %s" % link['rel'])
 
-@test(groups=[GROUP], depends_on_groups=["services.initialize"])
-def confirm_flavors_lists_are_nearly_identical():
-    """Confirms dbaas.flavors mirror server flavors aside from some caveats."""
-    user = test_config.users.find_user(Requirements(is_admin=True))
-    global client
-    client = create_test_client(user)
-    os_flavors = client.os.flavors.list()
-    dbaas_flavors = client.dbaas.flavors.list()
 
-    print("Open Stack Flavors:")
-    print(os_flavors)
-    print("DBaaS Flavors:")
-    print(dbaas_flavors)
-    assert_equal(len(os_flavors), len(dbaas_flavors),
-                 "Length of both flavors list should be identical.")
-    for os_flavor in os_flavors:
-        found_index = None
-        for index, dbaas_flavor in enumerate(dbaas_flavors):
-            if os_flavor.id == dbaas_flavor.id:
-                assert_true(found_index is None,
-                            "Flavor ID %d appears in elements #%s and #%d." %\
-                            (dbaas_flavor.id, str(found_index), index))
-                assert_flavors_are_roughly_equivalent(os_flavor, dbaas_flavor)
-                found_index = index
-        assert_false(found_index is None,
-                     "Some flavors from OS list were missing in DBAAS list.")
-    for flavor in dbaas_flavors:
-        assert_link_list_is_equal(flavor)
+@test(groups=[tests.DBAAS_API, GROUP, tests.PRE_INSTANCES],
+      depends_on_groups=["services.initialize"])
+class Flavors(object):
+
+    @before_class
+    def setUp(self):
+        user = test_config.users.find_user(Requirements(is_admin=False))
+        self.client = create_test_client(user)
+
+
+    @test
+    def confirm_flavors_lists_are_nearly_identical(self):
+        os_flavors = self.client.os.flavors.list()
+        dbaas_flavors = self.client.dbaas.flavors.list()
+
+        print("Open Stack Flavors:")
+        print(os_flavors)
+        print("DBaaS Flavors:")
+        print(dbaas_flavors)
+        assert_equal(len(os_flavors), len(dbaas_flavors),
+                     "Length of both flavors list should be identical.")
+        for os_flavor in os_flavors:
+            found_index = None
+            for index, dbaas_flavor in enumerate(dbaas_flavors):
+                if os_flavor.id == dbaas_flavor.id:
+                    assert_true(found_index is None,
+                                "Flavor ID %d appears in elements #%s and #%d." %\
+                                (dbaas_flavor.id, str(found_index), index))
+                    assert_flavors_are_roughly_equivalent(os_flavor, dbaas_flavor)
+                    found_index = index
+            assert_false(found_index is None,
+                         "Some flavors from OS list were missing in DBAAS list.")
+        for flavor in dbaas_flavors:
+            assert_link_list_is_equal(flavor)

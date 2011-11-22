@@ -8,8 +8,6 @@ echo "Running the firstboot script..."
 NOVA_CONFDIR="/etc/nova"
 
 # Install the required packages for the Nova Guest Agent
-apt-get install -y --allow-unauthenticated python-pexpect nova-common
-wait
 apt-get install -y --allow-unauthenticated nova-guest
 
 # Update the configuration file

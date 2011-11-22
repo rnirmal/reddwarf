@@ -29,6 +29,10 @@ from reddwarf import tests as testinit
 
 FLAGS = flags.FLAGS
 
+v1_prefix = "/v1.0/dbaas/"
+v1_mgmt_prefix = "%s/mgmt/" % v1_prefix
+v1_instances_prefix = "%s/instances" % v1_prefix
+
 
 def reset_database():
     """Reset the sqlite database for other test to use it"""

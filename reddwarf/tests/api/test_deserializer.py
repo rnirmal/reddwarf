@@ -17,7 +17,7 @@ import unittest
 
 from nose.tools import raises
 
-from nova import exception
+from reddwarf import exception
 from reddwarf.api import deserializer
 
 
@@ -51,11 +51,11 @@ class DeserializationTest(unittest.TestCase):
                     }}
         self.assertEqual(json.dumps(expected), json.dumps(output))
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_create_empty_body(self):
         self.deser.create("")
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_create_invalid_xml(self):
         self.deser.create("<configs><config></configs>")
 
@@ -73,10 +73,10 @@ class DeserializationTest(unittest.TestCase):
                     }}
         self.assertEqual(json.dumps(expected), json.dumps(output))
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_update_empty_body(self):
         self.deser.create("")
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_config_update_invalid_xml(self):
         self.deser.create("<configs><config></configs>")

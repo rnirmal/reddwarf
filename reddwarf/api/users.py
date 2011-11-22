@@ -18,15 +18,15 @@
 from webob import exc
 
 from nova import compute
-from nova import exception
 from nova import log as logging
-from nova.api.openstack import faults
 from nova.api.openstack import wsgi
+from nova.guest import api as guest_api
+from nova.guest.db import models
+
+from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.db import api as dbapi
-from nova.guest import api as guest_api
-from nova.guest.db import models
 
 
 LOG = logging.getLogger('reddwarf.api.users')
@@ -42,7 +42,7 @@ class Controller(object):
         super(Controller, self).__init__()
 
     def show(self, req, instance_id, id):
-        return faults.Fault(exc.HTTPNotImplemented())
+        raise exception.NotImplemented()
     
     def index(self, req, instance_id):
         """ Returns a list database users for the db instance """
@@ -55,7 +55,7 @@ class Controller(object):
             result = self.guest_api.list_users(ctxt, local_id)
         except Exception as err:
             LOG.error(err)
-            raise exc.HTTPServerError(explanation="Unable to get the list of users")
+            raise exception.InstanceFault("Unable to get the list of users")
         LOG.debug("LIST USERS RESULT - %s", str(result))
         users = {'users':[]}
         for user in result:
@@ -96,18 +96,18 @@ class Controller(object):
     def _validate(self, body):
         """Validate that the request has all the required parameters"""
         if not body:
-            return faults.Fault(exc.HTTPUnprocessableEntity())
+            raise exception.BadRequest("The request contains an empty body")
 
         if not body.get('users', ''):
-            raise exception.ApiError("Required element/key 'users' " \
-                                         "was not specified")
+            raise exception.BadRequest("Required element/key 'users' was not "
+                                       "specified")
         for user in body.get('users'):
             if not user.get('name'):
-                raise exception.ApiError("Required attribute/key 'name' " \
-                                         "was not specified")
+                raise exception.BadRequest("Required attribute/key 'name' was "
+                                           "not specified")
             if not user.get('password'):
-                raise exception.ApiError("Required attribute/key 'password' " \
-                                         "was not specified")
+                raise exception.BadRequest("Required attribute/key 'password' "
+                                           "was not specified")
 
 
 def create_resource(version='1.0'):
