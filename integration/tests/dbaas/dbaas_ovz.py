@@ -38,6 +38,7 @@ from tests.util.users import Requirements
 from tests import util
 
 dbaas = None
+dbaas_admin = None
 success_statuses = ["build", "active"]
 
 
@@ -47,8 +48,9 @@ class Setup(unittest.TestCase):
 
     def test_create_dbaas_client(self):
         """Sets up the client."""
-        global dbaas
+        global dbaas, dbaas_admin
         dbaas = util.create_dbaas_client(instance_info.user)
+        dbaas_admin = util.create_dbaas_client(instance_info.admin_user)
 
 
 @test(depends_on_classes=[Setup], groups=[GROUP_TEST, "dbaas.guest.ovz"])
@@ -277,11 +279,11 @@ class TestUsers(object):
             assert_false(True, err)
 
     def _verify_root_timestamp(self, id):
-        mgmt_instance = dbaas.management.show(id)
+        mgmt_instance = dbaas_admin.management.show(id)
         assert_true(mgmt_instance is not None)
         timestamp = mgmt_instance.root_enabled_at
         assert_equal(self.root_enabled_timestamp, timestamp)
-        timestamp = dbaas.management.root_enabled_history(id).root_enabled_at
+        timestamp = dbaas_admin.management.root_enabled_history(id).root_enabled_at
         print "REH is %s" % timestamp
         assert_equal(self.root_enabled_timestamp, timestamp)
 
@@ -300,7 +302,7 @@ class TestUsers(object):
                 assert_equal(user, row['User'])
                 assert_equal(host, row['Host'])
         root_password = password
-        self.root_enabled_timestamp = dbaas.management.show(instance_info.id).root_enabled_at
+        self.root_enabled_timestamp = dbaas_admin.management.show(instance_info.id).root_enabled_at
         assert_not_equal(self.root_enabled_timestamp, 'Never')
 
     @test(depends_on=[test_delete_users])

@@ -2408,7 +2408,7 @@ def volume_get_all_by_host(context, host):
                    all()
 
 
-@require_admin_context
+@require_context
 def volume_get_all_by_instance(context, instance_id):
     session = get_session()
     result = session.query(models.Volume).\

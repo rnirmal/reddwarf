@@ -324,7 +324,7 @@ class Controller(object):
     def _get_guest_info(self, context, id, state):
         """Get the list of databases on a instance"""
         running = common.dbaas_mapping[power_state.RUNNING]
-        if common.dbaas_mapping[state] == running:
+        if common.dbaas_mapping.get(state, None) == running:
             try:
                 result = self.guest_api.list_databases(context, id)
                 LOG.debug("LIST DATABASES RESULT - %s", str(result))
@@ -351,7 +351,7 @@ class Controller(object):
             body['instance']['flavorRef']
             try:
                 volume_size = float(body['instance']['volume']['size'])
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 LOG.error("Create Instance Required field(s) - "
                           "['instance']['volume']['size']")
                 raise exception.ApiError("Required element/key - instance "

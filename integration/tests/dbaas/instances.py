@@ -85,6 +85,7 @@ class InstanceTestInfo(object):
         self.name = None  # Test name, generated each test run.
         self.pid = None # The process ID of the instance.
         self.user = None  # The user instance who owns the instance.
+        self.admin_user = None  # The admin user who will use the management interfaces.
         self.volume = None # The volume the instance will have.
         self.storage = None # The storage device info for the volumes.
         self.databases = None # The databases created on the instance.
@@ -105,6 +106,7 @@ class InstanceTestInfo(object):
 # existing.
 instance_info = InstanceTestInfo()
 dbaas = None  # Rich client used throughout this test.
+dbaas_admin = None # Same as above, with admin privs.
 
 
 # This is like a cheat code which allows the tests to skip creating a new
@@ -130,14 +132,17 @@ class Setup(object):
     def setUp(self):
         """Sets up the client."""
         global dbaas
-        instance_info.user = test_config.users.find_user(Requirements(is_admin=True))
+        global dbaas_admin
+        instance_info.user = test_config.users.find_user(Requirements(is_admin=False))
+        instance_info.admin_user = test_config.users.find_user(Requirements(is_admin=True))
         dbaas = create_test_client(instance_info.user)
+        dbaas_admin = create_test_client(instance_info.admin_user)
 
     @test
     def auth_token(self):
         """Make sure Auth token is correct and config is set properly."""
         print("Auth Token: %s" % dbaas.client.auth_token)
-        print("Service URL: %s" % dbaas.client.management_url)
+        print("Service URL: %s" % dbaas_admin.client.management_url)
         assert_not_equal(dbaas.client.auth_token, None)
         assert_equal(dbaas.client.management_url, test_config.dbaas_url)
 
@@ -158,12 +163,12 @@ class Setup(object):
         description = "Default Image for Reddwarf"
         config = {'key': key, 'value': value, 'description': description}
         try:
-            dbaas.configs.create([config])
+            dbaas_admin.configs.create([config])
         except ClientException as e:
             # configs.create will throw an exception if the config already exists
             # we will check the value after to make sure it is correct and set
             pass
-        result = dbaas.configs.get(key)
+        result = dbaas_admin.configs.get(key)
         assert_equal(result.value, str(value))
 
     @test
@@ -182,7 +187,7 @@ class InstanceHostCheck(unittest.TestCase):
     """Class to run tests after Setup"""
 
     def test_empty_index_host_list(self):
-        host_index_result = dbaas.hosts.index()
+        host_index_result = dbaas_admin.hosts.index()
         self.assertNotEqual(host_index_result, None,
                             "list hosts call should not be empty")
         print("result : %r" % str(host_index_result))
@@ -202,7 +207,7 @@ class InstanceHostCheck(unittest.TestCase):
 
     def test_empty_index_host_list_single(self):
         print("instance_info.host : %r" % instance_info.host)
-        host_index_result = dbaas.hosts.get(instance_info.host)
+        host_index_result = dbaas_admin.hosts.get(instance_info.host)
         self.assertNotEqual(host_index_result, None,
                             "list hosts should not be empty")
         print("test_index_host_list_single result: %r" %
@@ -222,14 +227,14 @@ class InstanceHostCheck(unittest.TestCase):
 
     @expect_exception(NotFound)
     def test_host_not_found(self):
-        instance_info.myresult = dbaas.hosts.get('host@$%3dne')
+        instance_info.myresult = dbaas_admin.hosts.get('host@$%3dne')
 
     @expect_exception(NotFound)
     def test_delete_instance_not_found(self):
         result = dbaas.instances.delete(1)
 
     def test_storage_on_host(self):
-        storage = dbaas.storage.index()
+        storage = dbaas_admin.storage.index()
         print("storage : %r" % storage)
         for device in storage:
             self.assertTrue(hasattr(device, 'name'))
@@ -242,10 +247,10 @@ class InstanceHostCheck(unittest.TestCase):
 
     @expect_exception(NotFound)
     def test_no_details_bogus_account(self):
-        dbaas.accounts.show('asd#4#@fasdf')
+        dbaas_admin.accounts.show('asd#4#@fasdf')
 
     def test_no_details_empty_account(self):
-        account_info = dbaas.accounts.show(instance_info.user.auth_user)
+        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
         self.assertEqual(0, len(account_info.hosts))
 
 
@@ -303,6 +308,17 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).volume()
 
     @expect_exception(ClientException)
+    def test_create_failure_with_empty_volume(self):
+        instance_name = "instance-failure-with-no-volume-size"
+        databases = []
+        volume = {}
+        result_fail = dbaas.instances.create(
+                               instance_name,
+                               instance_info.dbaas_flavor_href,
+                               volume,
+                               databases)
+
+    @expect_exception(ClientException)
     def test_create_failure_with_no_volume_size(self):
         instance_name = "instance-failure-with-no-volume-size"
         databases = []
@@ -314,7 +330,7 @@ class CreateInstance(unittest.TestCase):
                                databases)
 
     def test_mgmt_get_instance_on_create(self):
-        result = dbaas.management.show(instance_info.id)
+        result = dbaas_admin.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
                           'flavor', 'guest_status', 'host', 'hostname', 'id',
                           'name', 'server_state_description', 'status',
@@ -334,7 +350,7 @@ class CreateInstance(unittest.TestCase):
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
 class AccountMgmtData(unittest.TestCase):
     def test_account_details_available(self):
-        account_info = dbaas.accounts.show(instance_info.user.auth_user)
+        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
         self.assertNotEqual(0, len(account_info.hosts))
         # Now check the results.
         self.assertEqual(account_info.name, instance_info.user.auth_user)
@@ -561,7 +577,7 @@ class TestInstanceListing(unittest.TestCase):
         self.assertRaises(NotFound, daffy_client.instances.delete, instance_info.id)
 
     def test_mgmt_get_instance_after_started(self):
-        result = dbaas.management.show(instance_info.id)
+        result = dbaas_admin.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
                           'flavor', 'guest_status', 'host', 'hostname', 'id',
                           'name', 'root_enabled_at', 'root_enabled_by',
@@ -578,7 +594,7 @@ class TestInstanceListing(unittest.TestCase):
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])
 class MgmtHostCheck(unittest.TestCase):
     def test_index_host_list(self):
-        myresult = dbaas.hosts.index()
+        myresult = dbaas_admin.hosts.index()
         self.assertNotEqual(myresult, None,
                             "list hosts should not be empty")
         self.assertTrue(len(myresult) > 0,
@@ -595,7 +611,7 @@ class MgmtHostCheck(unittest.TestCase):
             instance_info.host = host
 
     def test_index_host_list_single(self):
-        myresult = dbaas.hosts.get(instance_info.host)
+        myresult = dbaas_admin.hosts.get(instance_info.host)
         self.assertNotEqual(myresult, None,
                             "list hosts should not be empty")
         print("test_index_host_list_single result: %s" %
@@ -620,7 +636,7 @@ class MgmtHostCheck(unittest.TestCase):
             self.assertEquals(['id', 'name', 'status'], sorted(instance.keys()))
 
     def test_storage_on_host(self):
-        storage = dbaas.storage.index()
+        storage = dbaas_admin.storage.index()
         print("storage : %r" % storage)
         print("instance_info.storage : %r" % instance_info.storage)
         expected_attrs = ['name', 'availablesize', 'totalsize', 'type']
@@ -634,7 +650,7 @@ class MgmtHostCheck(unittest.TestCase):
             self.assertEquals(device.availablesize, avail)
 
     def test_account_details_available(self):
-        account_info = dbaas.accounts.show(instance_info.user.auth_user)
+        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
         self.assertNotEqual(0, len(account_info.hosts))
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
@@ -672,10 +688,10 @@ class InstanceHostCheck2(InstanceHostCheck):
 
     @expect_exception(NotFound)
     def test_host_not_found(self):
-        dbaas.hosts.get('host-dne')
+        dbaas_admin.hosts.get('host-dne')
 
     def test_no_details_empty_account(self):
-        account_info = dbaas.accounts.show(instance_info.user.auth_user)
+        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
         # Instances were created and then deleted or crashed.
         # In the process, one host was created.
         self.assertEqual(0, len(account_info.hosts))
@@ -685,7 +701,7 @@ class InstanceHostCheck2(InstanceHostCheck):
     WaitForGuestInstallationToFinish], groups=[GROUP, GROUP_START])
 def management_callback():
     global mgmt_details
-    mgmt_details = dbaas.management.show(instance_info.id)
+    mgmt_details = dbaas_admin.management.show(instance_info.id)
 
 
 @test(depends_on=[management_callback], groups=[GROUP])
@@ -703,7 +719,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
         # Make sure that a management call to a bogus API 500s.
         # The client reshapes the exception into just an OpenStackException.
         #self.assertRaises(nova.exception.InstanceNotFound, dbaas.management.show, -1)
-        self.assertRaises(NotFound, dbaas.management.show, -1)
+        self.assertRaises(NotFound, dbaas_admin.management.show, -1)
 
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
@@ -729,7 +745,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
                 'character_set': 'latin2',
                 'collate': 'latin2_general_ci',
                 }],
-            'users': [], # TODO(ed-) Surely I can't guarantee this.
+            'users': [],
             'volume': {
                 'id': volume.id,
                 'name': volume.display_name,
