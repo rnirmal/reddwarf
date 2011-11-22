@@ -61,7 +61,7 @@ class Rabbit(object):
             m = re.search("""guest.host\s+([0-9]+)""", line)
             if m:
                 return int(m.group(1))
-        return None
+        return 0
 
     @property
     def is_alive(self):
@@ -153,6 +153,14 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
                                   "--rabbit_reconnect_wait_time=1"])
 
     @test(depends_on=[check_agent_path_is_correct])
+    @time_out(30)
+    def send_agent_a_message(self):
+        self.agent.start()
+        result = self._send()
+        assert_equal(result['status'], "good")
+
+    @test(depends_on=[send_agent_a_message])
+    @time_out(30)
     def make_sure_we_can_identify_an_agent_failure(self):
         # This is so confusing, but it has to be, so listen up:
         # Nova code has issues sending messages so we either don't test this
@@ -160,6 +168,7 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         # we start the agent and makes sure if Nova successfully sends a
         # message and the agent never answers it this test can identify that
         # and fail.
+        self.agent.stop()
         result = self._send()
         assert_equal(result['status'], 'bad')
         assert_equal(result['blame'], 'agent')
@@ -172,7 +181,7 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         self.rabbit.reset()
 
     @test(depends_on=[check_agent_path_is_correct, stop_rabbit])
-    def start_agent(self):
+    def start_agent_while_rabbit_is_off(self):
         """Starts the agent as rabbit is stopped.
 
         Checks to make sure the agent doesn't just give up if it can't connect
@@ -184,7 +193,7 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         mem = self.agent.get_memory_info()
         self.original_mapped = mem.mapped
 
-    @test(depends_on=[start_agent])
+    @test(depends_on=[start_agent_while_rabbit_is_off])
     def memory_should_not_increase_as_amqp_login_fails(self):
         """The agent should not spend memory on failed connections."""
         #TODO(tim.simpson): This operates on the assumption that the the agent
