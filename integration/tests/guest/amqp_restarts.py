@@ -31,13 +31,14 @@ import time
 from os import path
 
 from proboscis import after_class
+from proboscis import before_class
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_false
 from proboscis.asserts import assert_true
 from proboscis.asserts import fail
 from proboscis.decorators import time_out
+from proboscis.decorators import TimeoutError
 from proboscis import test
-
 
 from nova import context
 from nova import rpc
@@ -46,10 +47,21 @@ from nova.exception import ProcessExecutionError
 from tests import util as test_utils
 from tests.util import test_config
 from tests.util.services import Service
+from tests.util.services import start_proc
 
 
 class Rabbit(object):
 
+    def get_queue_items(self):
+        """Returns a count of the queued messages the host has sent."""
+        proc = start_proc(["/usr/bin/sudo", "rabbitmqctl", "list_queues"],
+                          shell=False)
+        for line in iter(proc.stdout.readline, ""):
+            print("LIST QUEUES:" + line)
+            m = re.search("""guest.host\s+([0-9]+)""", line)
+            if m:
+                return int(m.group(1))
+        return None
 
     @property
     def is_alive(self):
@@ -64,7 +76,7 @@ class Rabbit(object):
         self.run(0, "rabbitmqctl", "reset")
 
     def run(self, check_exit_code, *cmd):
-        utils.execute(*cmd, run_as_root=True)
+        return utils.execute(*cmd, run_as_root=True)
 
     def start(self):
         self.run(0, "rabbitmqctl", "start_app")
@@ -78,9 +90,57 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
     """Tests the agent is ok when Rabbit 
     """
 
+    def __init__(self):
+        self.rabbit = Rabbit()
+        self.send_after_reconnect_errors = 0
+        self.tolerated_send_errors = 0
+
     @after_class
     def stop_agent(self):
-        self.agent.stop
+        self.agent.stop()
+
+    def _send(self):
+        original_queue_count = self.rabbit.get_queue_items()
+        @time_out(5)
+        def send_msg_with_timeout():
+            version = rpc.call(context.get_admin_context(), "guest.host",
+                      {"method": "version",
+                       "args": {"package_name": "dpkg"}
+                      })
+            return { "status":"good", "version": version }
+        try:
+            return send_msg_with_timeout()
+        except Exception as e:
+            # If the Python side works, we should at least see an item waiting
+            # in the queue.
+            # Whether we see this determines if the failure to send is Nova's
+            # fault or Sneaky Petes.
+            print("Error making RPC call: %s" % e)
+            print("Original queue count = %d, "
+                  "current count = %d" % (original_queue_count,
+                                          self.rabbit.get_queue_items()))
+
+            # In the Kombu driver there is a bug where after restarting rabbit
+            # the first message to be sent fails with a broken pipe. So here we
+            # tolerate one such bug but no more.
+            if not isinstance(e, TimeoutError):
+                self.send_after_reconnect_errors += 1
+                if self.send_after_reconnect_errors > self.tolerated_send_errors:
+                    fail("Exception while making RPC call: %s" % e)
+            if self.rabbit.get_queue_items() > original_queue_count:
+                return { "status":"bad", "blame":"agent"}
+            else:
+                return { "status":"bad", "blame":"host"}
+
+    def _send_allow_for_host_bug(self):
+        while True:
+            result = self._send()
+            if result['status'] == "good":
+                return result["version"]
+            else:
+                if result['blame'] == "agent":
+                    fail("Nova Host put a message on the queue but the agent "
+                         "never responded.")
 
     @test
     def check_agent_path_is_correct(self):
@@ -92,9 +152,20 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         self.agent = Service(cmd=[self.agent_bin,  "--flagfile=%s" % nova_conf,
                                   "--rabbit_reconnect_wait_time=1"])
 
-    @test
+    @test(depends_on=[check_agent_path_is_correct])
+    def make_sure_we_can_identify_an_agent_failure(self):
+        # This is so confusing, but it has to be, so listen up:
+        # Nova code has issues sending messages so we either don't test this
+        # or make allowances for Kombu's bad behavior. This test runs before
+        # we start the agent and makes sure if Nova successfully sends a
+        # message and the agent never answers it this test can identify that
+        # and fail.
+        result = self._send()
+        assert_equal(result['status'], 'bad')
+        assert_equal(result['blame'], 'agent')
+
+    @test(depends_on=[make_sure_we_can_identify_an_agent_failure])
     def stop_rabbit(self):
-        self.rabbit = Rabbit()
         if self.rabbit.is_alive:
             self.rabbit.stop()
         assert_false(self.rabbit.is_alive)
@@ -158,12 +229,10 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         assert_true(self.rabbit.is_alive)
 
     @test(depends_on=[start_rabbit])
+    @time_out(30)
     def send_message(self):
         """Tests that the agent auto-connects to rabbit and gets a message."""
-        version = rpc.call(context.get_admin_context(), "guest.host",
-                 {"method": "version",
-                  "args": {"package_name": "dpkg"}
-                 })
+        version = self._send_allow_for_host_bug()
         assert_true(version is not None)
         matches = re.search("(\\w+)\\.(\\w+)\\.(\\w+)\\.(\\w+)", version)
         assert_true(matches is not None)
@@ -176,35 +245,22 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         self.rabbit.reset()
         self.rabbit.start()
         assert_true(self.rabbit.is_alive)
-        self.reconnect_failures_count = 0
 
     @test(depends_on=[restart_rabbit_again])
-    @time_out(10)
+    @time_out(30)
     def send_message_again_1(self):
-        """Sends a message.
-
-        In the Kombu driver there is a bug where after restarting rabbit the
-        first message to be sent fails with a broken pipe (Carrot has a worse
-        bug where the tests hang). So here we tolerate one such bug but no
-        more.
-
-        """
-        try:
-            self.send_message()
-            fail("Looks like the Kombu bug was fixed, please change this code "
-                 "to except no Exceptions.")
-        except Exception:
-            self.reconnect_failures_count += 1
-            assert_equal(1, self.reconnect_failures_count)
+        """Sends a message."""
+        self.tolerated_send_errors = 1
+        self.send_message()
 
     @test(depends_on=[send_message_again_1])
-    @time_out(10)
+    @time_out(30)
     def send_message_again_2a(self):
         """The agent should be able to receive messages after reconnecting."""
         self.send_message()
 
     @test(depends_on=[send_message_again_1])
-    @time_out(10)
+    @time_out(30)
     def send_message_again_2b(self):
         """The agent should be able to receive messages after reconnecting."""
         self.send_message()
