@@ -36,9 +36,14 @@ PACKAGES_DIR="/var/www/debian/"
 BUILD_DIR="/tmp/build/"
 
 TEST_HOME="/src/integration/"
-NEMESIS_CONF="/vagrant/conf/host.nemesis.conf"
+TESTS_CONF="/home/vagrant/tests.conf"
 
 GUEST_IMAGE="debian-squeeze-x86_64-openvz.tar.gz"
+
+AGENT_WORK_DIR=$AGENT_DIR
+if [ ! -d $AGENT_WORK_DIR ]; then
+    AGENT_WORK_DIR=$BUILD_DIR/agent
+fi
 
 ###############################################################################
 # Usage and list of available commands                                        #
@@ -123,6 +128,19 @@ check_network() {
         fi
     done
 }
+
+refresh_up_agent_work_directory() {
+    if [ ! -d $AGENT_DIR ]; then
+        exclaim "Source not found, cloning from GIT."
+        if [ -d $AGENT_WORK_DIR ]; then
+            rm -rf $AGENT_WORK_DIR
+        fi
+        sudo mkdir -p $AGENT_WORK_DIR
+        sudo chown vagrant $AGENT_WORK_DIR
+        git clone git://github.com/hub-cap/sneaky-pete.git $AGENT_WORK_DIR
+    fi
+}
+
 
 ###############################################################################
 
@@ -252,14 +270,9 @@ update_config() {
 
 install_sneaky_pete_deps() {
     exclaim "Installing Sneaky Pete dependencies."
-    if [ ! -d $AGENT_DIR ]; then
-        exclaim "Source not found, cloning from GIT."
-        sudo mkdir -p $AGENT_DIR
-        sudo chown vagrant $AGENT_DIR
-        git clone git://github.com/hub-cap/sneaky-pete.git $AGENT_DIR
-    fi
+    refresh_up_agent_work_directory
     # Install all the stuff needed to build Sneaky Pete.
-    $AGENT_DIR/vagrant/initialize.sh
+    $AGENT_WORK_DIR/vagrant/initialize.sh
 }
 
 install_deps() {
@@ -430,13 +443,29 @@ dbaas_pkg_upload_nova() {
 
 dbaas_pkg_build_sneaky_pete() {
     exclaim "Building and packaging Sneaky Pete..."
+    refresh_up_agent_work_directory
     # Build new package
-    mkdir $BUILD_DIR/agent
-    cp -rf $AGENT_DIR/* $BUILD_DIR/agent
+
+    # If we're using a shared folder with a copy of Sneaky-Pete, copy it over.
+    if [ ! -d $BUILD_DIR/agent ]; then
+        mkdir $BUILD_DIR/agent
+        cp -rf $AGENT_WORK_DIR/* $BUILD_DIR/agent
+    fi
+    # Otherwise $BUILD_DIR/agent will already exist and have a fresh copy of
+    # the GIT source.
+
     cd $BUILD_DIR/agent
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     # Install in repo
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze $BUILD_DIR/nova-guest*_amd64.changes
+
+    # If we don't do this, we won't have the permission to the bin directory
+    # to run functional tests later (this is only if we aren't using the
+    # /agent shared directory).
+    cd $BUILD_DIR/agent
+    sudo chown -R vagrant bin
+    sudo chown -R vagrant parrot
+    
 }
 
 build() {
@@ -543,6 +572,12 @@ setup_nova_conf() {
     cp /src/etc/nova/reddwarf-api-paste.ini /home/vagrant
 }
 
+setup_tests_conf() {
+    cat /vagrant/conf/host.tests.conf_begin > $TESTS_CONF
+    echo "\"agent_bin\" : \"$AGENT_WORK_DIR/bin/gcc-4.4.5/release/link-static/nova-guest\", " >> $TESTS_CONF
+    cat /vagrant/conf/host.tests.conf_end >> $TESTS_CONF
+}
+
 glance_initialize() {
     glance_manage version_control
     glance_manage db_sync
@@ -603,7 +638,7 @@ setup_dns() {
     cd $TEST_HOME
     if [ ! -z "$SETUP_DNS" ]; then
         # Make sure the domain name exists (must happen before the image is added)
-        sudo -E ADD_DOMAINS=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=rsdns.domains
+        sudo -E ADD_DOMAINS=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$TESTS_CONF --group=rsdns.domains
     fi
 }
 
@@ -612,7 +647,7 @@ upload_glance_image() {
     if [ ! -f /var/lib/glance/images/1 ]; then
         echo "Installing Glance Image."
         cd $TEST_HOME
-        sudo INSTALL_GLANCE_IMAGE=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=services.initialize.glance
+        sudo INSTALL_GLANCE_IMAGE=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$TESTS_CONF --group=services.initialize.glance
         if [ ! -f /var/lib/glance/images/1 ]; then
             echo "ERROR: The glance image didn't not get uploaded correctly. Rerun initialize"
             exit 1
@@ -668,6 +703,7 @@ initialize() {
     glance_cleanup
 
     setup_nova_conf
+    setup_tests_conf
 
     glance_initialize
     nova_initialize
@@ -685,33 +721,36 @@ initialize() {
 ###############################################################################
 
 run_agent_tests() {
-    cd $AGENT_DIR
+    cd $AGENT_WORK_DIR
     echo "Agent tests : AMQP"
-    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug send_and_receive
+    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug send_and_receive
 
     echo "Agent tests : MySQL"
-    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug int_tests_mysql
+    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug int_tests_mysql
 
     echo "Agent tests : DB API"
-    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug api_tests
+    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug api_tests
 
     echo "Agent tests : APT"
-    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
+    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
+
+    echo "Agent tests : Rabbit Reconnects"
+    run_tests --group=agent
 }
 
 run_tests() {
     cd $TEST_HOME
     echo "run_tests args: $@"
     if [ $# -lt 1 ]; then
-        sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=host.ovz
+        sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$TESTS_CONF --group=host.ovz
     else
-        sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF $@
+        sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$TESTS_CONF $@
     fi
 }
 
 run_host_tests() {
     cd $TEST_HOME
-    sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$NEMESIS_CONF --group=dbaas.guests
+    sudo -E NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$TESTS_CONF --group=dbaas.guests
 }
 
 ###############################################################################

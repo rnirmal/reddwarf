@@ -117,6 +117,7 @@ if __name__ == '__main__':
         from tests.dbaas import dns
         from tests.dbaas import flavors
         from tests.dbaas.mgmt import admin_required
+        from tests.guest import amqp_restarts
         from tests.guest import dbaas_tests
         from tests.guest import pkg_tests
         from tests.reaper import volume_reaping
@@ -125,7 +126,6 @@ if __name__ == '__main__':
         from tests.volumes import driver
         from tests.volumes import VOLUMES_DRIVER
         from tests.dbaas import guest_initialize_failure
-
         from tests import util
 
         host_ovz_groups = [
