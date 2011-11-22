@@ -123,11 +123,15 @@ class RsDnsDriver(object):
             raise TypeError("The entry's dns_zone must have an ID specified.")
         name = entry.name  # + "." + dns_zone.name
         LOG.debug("Going to create RSDNS entry %s." % name)
-        future = self.dns_client.records.create(domain=dns_zone.id,
-                                                record_name=name,
-                                                record_data=entry.content,
-                                                record_type=entry.type,
-                                                record_ttl=entry.ttl)
+        try:
+            future = self.dns_client.records.create(domain=dns_zone.id,
+                                                    record_name=name,
+                                                    record_data=entry.content,
+                                                    record_type=entry.type,
+                                                    record_ttl=entry.ttl)
+        except Exception as ex:
+            LOG.error("Error when creating a DNS record!")
+            LOG.error(ex)
         try:
             utils.poll_until(lambda : future.ready, sleep_time=2, time_out=60)
             LOG.debug("Added RS DNS entry.")
