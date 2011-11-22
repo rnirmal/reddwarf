@@ -33,6 +33,7 @@ from proboscis.decorators import time_out
 
 import rsdns
 from nova.dns.driver import DnsEntry
+from nova.dns.rsdns.driver import RsDnsInstanceEntryFactory
 from nova.dns.rsdns.driver import RsDnsDriver
 from nova.dns.rsdns.driver import RsDnsZone
 from tests.util import should_run_rsdns_tests
@@ -110,8 +111,9 @@ class RsDnsDriverTests(object):
         """Deletes all entries under the default domain."""
         list = self.driver.get_entries()
         for entry in list:
-            self.driver.delete_entry(name=entry.name, type=entry.type,
-                                     dns_zone=entry.dns_zone)
+            if entry.type == "A":
+                self.driver.delete_entry(name=entry.name, type=entry.type,
+                                         dns_zone=entry.dns_zone)
         # It takes awhile for them to be deleted.
         utils.poll_until(lambda : self.driver.get_entries_by_name(TEST_NAME),
                          lambda list : len(list) == 0,
@@ -132,6 +134,19 @@ class RsDnsDriverTests(object):
         assert_equal(1, len(list))
         list2 = self.driver.get_entries_by_content(content=TEST_CONTENT)
         assert_equal(1, len(list2))
+
+    @test(depends_on=[delete_all_entries])
+    def create_test_rsdns_entry(self):
+        instance = {'uuid': '000136c0-effa-4711-a747-a5b9fbfcb3bd', 'id': '10'}
+        ip = "10.100.2.7"
+        factory = RsDnsInstanceEntryFactory()
+        entry = factory.create_entry(instance)
+        entry.content = ip
+        self.driver.create_entry(entry)
+        entries = self.driver.get_entries_by_name(name=entry.name)
+        assert_equal(1, len(entries))
+        assert_equal(ip, entries[0].content)
+        assert_equal(FLAGS.dns_ttl, entries[0].ttl)
 
     @test(depends_on=[create_test_entry])
     def delete_test_entry(self):
