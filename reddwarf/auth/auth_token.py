@@ -68,6 +68,7 @@ class AuthProtocol(object):
         self.auth_host = conf.get('auth_host')
         self.auth_port = int(conf.get('auth_port', 443))
         self.auth_protocol = conf.get('auth_protocol', 'https')
+        self.auth_type = conf.get('auth_type', '')
         self.auth_version = conf.get('auth_version', 'v1.1')
         self.service_host = conf.get('service_host')
         self.service_port = conf.get('service_port')
@@ -194,8 +195,8 @@ class AuthProtocol(object):
 
         conn = get_connection(self.auth_protocol, self.auth_host,
                               self.auth_port)
-        conn.request("GET", "%s/%s?belongsTo=%s" %
-                     (self.validate_token_path, claims, tenant),
+        conn.request("GET", "%s/%s?belongsTo=%s&type=%s" %
+                     (self.validate_token_path, claims, tenant, self.auth_type),
                      headers=headers)
         response = conn.getresponse()
         data = response.read()
