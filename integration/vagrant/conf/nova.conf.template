@@ -31,6 +31,7 @@
 --reddwarf_api_paste_config=/home/vagrant/reddwarf-api-paste.ini
 --enabled_apis=osapi
 --allow_admin_api=True
+--reddwarf_auth_cache_expire_time=300
 
 # Quota Limits
 --quota_instances=10

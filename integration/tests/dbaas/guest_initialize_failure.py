@@ -65,7 +65,7 @@ VOLUME_TIME_OUT = 30
 # When provisioning an instance:
 # A volume fails to provision:
 #     This can be because there is not sufficient space or the account limits
-#     are exceeded. There is anothet trickier third case where the volume
+#     are exceeded. There is another trickier third case where the volume
 #     might be provisioning but is timed out, and must be deleted.
 #   In these cases the status must be FAIL. No resources should be counted
 #     against the user's account, unless it was via a time-out (this is so the
@@ -82,7 +82,7 @@ VOLUME_TIME_OUT = 30
 #
 # The guest install times out. In this case the state must be set to FAIL and
 #     must stay there! When delete is called, the instance and volume should
-#     dissappear.
+#     disappear.
 #
 # In addition to GETs and LISTs returning FAIL as the state, attempts to
 # add databases should fail.

@@ -179,7 +179,7 @@ Description: Rackspace DBaaS APT Repository' | sudo tee $PACKAGES_DIR/conf/distr
 
 install_packages() {
     exclaim 'Installing Dependencies...'
-    pkg_install git-core python-all python-setuptools python-sphinx python-distutils-extra pep8 debhelper apache2 dupload bzr gawk iptables ebtables screen curl rabbitmq-server lvm2 socat unzip python-twisted python-mox python-ipy python-paste python-migrate python-gflags python-greenlet python-libxml2 python-routes python-netaddr python-pastedeploy python-eventlet python-novaclient python-glance python-cheetah python-carrot python-tempita python-sqlalchemy python-suds mysql-server python-mysqldb python-paramiko python-lockfile python-pip cdbs python-mock uuid python-webob python-m2crypto python-twisted-web python-boto python-amqplib python-unittest2 python-feedparser python-kombu python-pexpect
+    pkg_install git-core python-all python-setuptools python-sphinx python-distutils-extra pep8 debhelper apache2 dupload bzr gawk iptables ebtables screen curl rabbitmq-server lvm2 socat unzip python-twisted python-mox python-ipy python-paste python-migrate python-gflags python-greenlet python-libxml2 python-routes python-netaddr python-pastedeploy python-eventlet python-novaclient python-glance python-cheetah python-carrot python-tempita python-sqlalchemy python-suds mysql-server python-mysqldb python-paramiko python-lockfile python-pip cdbs python-mock uuid python-webob python-m2crypto python-twisted-web python-boto python-amqplib python-unittest2 python-feedparser python-kombu python-pexpect python-beaker 
 
     # The default version of pip Ubuntu installs is old.
     cd /tmp
@@ -776,6 +776,7 @@ EOF
     screen_it network "sudo $NOVA_HOME/bin/nova-network --flagfile=$NOVA_CONF"
     screen_it scheduler "sudo $NOVA_HOME/bin/nova-scheduler --flagfile=$NOVA_CONF"
     screen_it volume "sudo $NOVA_HOME/bin/nova-volume --flagfile=$NOVA_CONF"
+    screen_it reaper "sudo $NOVA_HOME/bin/nova-reaper --flagfile=$NOVA_CONF"
     screen -S nova -x
 }
 

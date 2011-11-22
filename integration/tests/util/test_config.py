@@ -35,7 +35,8 @@ __all__ = [
     "users",
     "use_venv",
     "values",
-    "volume_service"
+    "volume_service",
+    "keystone_service"
 ]
 
 
@@ -116,6 +117,7 @@ def _setup():
     global dbaas_url
     global version_url
     global volume_service
+    global keystone_service
     global glance_image
     values = load_configuration()
     use_venv = values.get("use_venv", True)
@@ -126,6 +128,7 @@ def _setup():
     nova_url = str(values.get("nova_url", "http://localhost:8774/v1.1"))
     nova_code_root = str(values["nova_code_root"])
     nova_conf = str(values["nova_conf"])
+    keystone_conf = str(values["keystone_conf"])
     glance_image = str(values["glance_image"])
     if not nova_conf:
         raise ValueError("Configuration value \"nova_conf\" not found.")
@@ -144,6 +147,9 @@ def _setup():
     compute_service = Service(cmd=python_cmd_list() +
                               ["%s/bin/nova-compute" % nova_code_root,
                                "--flagfile=%s" % nova_conf ])
+    keystone_service = Service(python_cmd_list() +
+                               [keystone_bin("keystone-auth"),
+                                "-c %s" % keystone_conf])
 
     users = Users(values["users"])
     dbaas_image = values.get("dbaas_image", None)

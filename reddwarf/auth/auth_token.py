@@ -45,14 +45,25 @@ HTTP_X_AUTHORIZATION: the client identity being passed in
 import base64
 import json
 
+from beaker.cache import CacheManager
+from datetime import datetime
 from eventlet import wsgi
 from eventlet.green import httplib
 from paste.deploy import loadapp
 from webob.exc import HTTPUnauthorized
+from webob.exc import HTTPServiceUnavailable
 
+
+from nova import log as logging
+from nova import flags
+
+FLAGS = flags.FLAGS
+flags.DEFINE_integer('reddwarf_auth_cache_expire_time', 60*5,
+                     'Time in seconds for the cache to expire user tokens')
+
+LOG = logging.getLogger(__name__)
 
 PROTOCOL_NAME = "Token Authentication"
-
 
 class AuthProtocol(object):
     """Auth Middleware that handles authenticating client calls"""
@@ -98,15 +109,16 @@ class AuthProtocol(object):
         self.basic_auth = base64.b64encode("%(service_user)s:%(service_pass)s"
                                            % locals())
 
+        # Create cache manager
+        self.cache_type = conf.get('cache_type', 'memory')
+        cm = CacheManager(type=self.cache_type)
+        self.cache = cm.get_cache('dbaas')
+
     def __call__(self, env, start_response):
         """ Handle incoming request. Authenticate. And send downstream. """
-        # Prep headers to forward request to local or remote downstream service
-        proxy_headers = env.copy()
-        for header in proxy_headers.keys():
-            if header[0:5] == 'HTTP_':
-                proxy_headers[header[5:]] = proxy_headers[header]
-                del proxy_headers[header]
+        proxy_headers = self._prep_headers(env)
 
+        # get validate tenant exists
         tenant = env.get('HTTP_X_AUTH_PROJECT_ID', '')
         if not self._check_path(env, tenant):
             return self._reject_request(env, start_response)
@@ -116,21 +128,46 @@ class AuthProtocol(object):
         if not claims:
             # No claim(s) provided
             return self._reject_request(env, start_response)
-        else:
-            # this request is presenting claims. Let's validate them
-            # TODO(rnirmal): Preferably cache the token and expires info
-            data, status = self._validate_token(claims, tenant=tenant)
+
+        #set the caching key to the concatenation of claim and tenant
+        cache_key = "%s/%s" % (claims,tenant)
+
+        # this request is presenting claims. Let's validate them
+        auth_user = proxy_headers['X_AUTH_PROJECT_ID']
+        #TODO(cp16net) what happens with 1000s of users being cached?
+        if self.cache.has_key(cache_key):
+            # get the cached values
+            data, status = self.cache.get_value(cache_key)
             valid = self._validate_status(status)
+
             if not valid:
                 # Keystone rejected claim
                 return self._reject_claims(env, start_response)
-            else:
-                self._decorate_request("X_IDENTITY_STATUS", "Confirmed", env,
-                                       proxy_headers)
+        else:
+            # need to get the values and then cache them if valid
+            try:
+                data, status = self._validate_token(claims, tenant)
+            except :
+                msg = "Authorization Service is not available at this time."
+                LOG.error(msg)
+                return HTTPServiceUnavailable(detail=msg)(env, start_response)
 
-            # Collect information about valid claims
-            if valid:
-                env = self._expound_claims(data, env, proxy_headers)
+            valid = self._validate_status(status)
+            if not valid:
+                # rejected claim because claims are not valid
+                return self._reject_claims(env, start_response)
+            else:
+                # claim is valid so cache the result from validation
+                cache_key = "%s/%s" % (claims,tenant)
+                self.cache.set_value(cache_key, (data, status),
+                                     expiretime=FLAGS.reddwarf_auth_cache_expire_time)
+
+        self._decorate_request("X_IDENTITY_STATUS", "Confirmed", env,
+                               proxy_headers)
+
+        # Collect information about valid claims
+        if valid:
+            env = self._expound_claims(data, env, proxy_headers)
 
         return self.app(env, start_response)
 
@@ -140,6 +177,15 @@ class AuthProtocol(object):
         if path_info not in ["", "/"]:
             return path_info.split("/")[1] == tenant
         return True
+
+    def _prep_headers(self, env):
+        # Prep headers to forward request to local or remote downstream service
+        proxy_headers = env.copy()
+        for header in proxy_headers.keys():
+            if header[0:5] == 'HTTP_':
+                proxy_headers[header[5:]] = proxy_headers[header]
+                del proxy_headers[header]
+        return proxy_headers
 
     def _get_claims(self, env):
         """Get claims from request"""
