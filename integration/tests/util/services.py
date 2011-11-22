@@ -123,7 +123,8 @@ class Service(object):
                           """writeable/private:\s([0-9]+)K\s+"""
                           """shared:\s+([0-9]+)K""", line)
             if m:
-                return MemoryInfo(m.group(1), m.group(2), m.group(3))
+                return MemoryInfo(int(m.group(1)), int(m.group(2)),
+                                  int(m.group(3)))
         raise RuntimeError("Memory info not found.")
 
     def kill_proc(self):

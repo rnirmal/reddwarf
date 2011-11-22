@@ -24,32 +24,28 @@ back up.
 
 """
 
+import re
+import string
+import time
+
+from os import path
+
+from proboscis import after_class
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_false
 from proboscis.asserts import assert_true
-from nova import context
-from os import path
-from nova.exception import ProcessExecutionError
-from nova import rpc
-from tests.util.services import Service
-import string
+from proboscis.asserts import fail
+from proboscis.decorators import time_out
 from proboscis import test
-from tests.util import test_config
-import time
+
+
+from nova import context
+from nova import rpc
 from nova import utils
+from nova.exception import ProcessExecutionError
 from tests import util as test_utils
-
-
-# Kill Rabbit
-# Start guest
-# Make sure Guest aint dead
-# Start rabbit
-# Send message, ensure we get a response
-# Kill rabbit
-# Clear all queues
-# Start rabbit
-# Send message, ensure we get a response
-# Kill guest and clean up
+from tests.util import test_config
+from tests.util.services import Service
 
 
 class Rabbit(object):
@@ -79,6 +75,12 @@ class Rabbit(object):
 
 @test(groups=["agent", "amqp.restarts"])
 class WhenAgentRunsAsRabbitGoesUpAndDown(object):
+    """Tests the agent is ok when Rabbit 
+    """
+
+    @after_class
+    def stop_agent(self):
+        self.agent.stop
 
     @test
     def check_agent_path_is_correct(self):
@@ -100,12 +102,20 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
 
     @test(depends_on=[check_agent_path_is_correct, stop_rabbit])
     def start_agent(self):
+        """Starts the agent as rabbit is stopped.
+
+        Checks to make sure the agent doesn't just give up if it can't connect
+        to Rabbit, and also that the memory doesn't grow as it increasingly
+        creates connections.
+
+        """
         self.agent.start()
         mem = self.agent.get_memory_info()
         self.original_mapped = mem.mapped
 
     @test(depends_on=[start_agent])
     def memory_should_not_increase_as_amqp_login_fails(self):
+        """The agent should not spend memory on failed connections."""
         #TODO(tim.simpson): This operates on the assumption that the the agent
         # will try to reconnect multiple times while we sleep.
         # Explanation: the syslog (where the agent logs now reside) is
@@ -120,23 +130,67 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         time.sleep(5)
         current_mapped = self.agent.get_memory_info().mapped
         assert_true(current_mapped <= self.original_mapped)
+        print("mapped memory = %d" % current_mapped)
+        assert_true(current_mapped >  5 * 1024) # Sanity check
+        if current_mapped > 30 * 1024:
+            fail("Whoa, why is mapped memory = %d?" % current_mapped)
 
     @test(depends_on=[memory_should_not_increase_as_amqp_login_fails])
     def start_rabbit(self):
+        """Start rabbit."""
         self.rabbit.start()
         assert_true(self.rabbit.is_alive)
 
     @test(depends_on=[start_rabbit])
     def send_message(self):
+        """Tests that the agent auto-connects to rabbit and gets a message."""
         version = rpc.call(context.get_admin_context(), "guest.host",
                  {"method": "version",
-                  "args": {"package": "cowsay"}
+                  "args": {"package_name": "dpkg"}
                  })
         assert_true(version is not None)
-        
+        matches = re.search("(\\w+)\\.(\\w+)\\.(\\w+)\\.(\\w+)", version)
+        assert_true(matches is not None)
 
-#TODO: Test when the login fails due to low memory, the agent memory does not
-# shoot up.
+    @test(depends_on=[send_message])
+    def restart_rabbit_again(self):
+        """Now stop and start rabbit, ensuring the agent reconnects."""
+        self.rabbit.stop()
+        assert_false(self.rabbit.is_alive)
+        self.rabbit.reset()
+        time.sleep(10)
+        self.rabbit.start()
+        assert_true(self.rabbit.is_alive)
+        time.sleep(10)
+
+    @test(depends_on=[restart_rabbit_again])
+    @time_out(2)
+    def send_message_again_1(self):
+        """The agent should be able to receive messages after reconnecting."""
+        version = rpc.call(context.get_admin_context(), "guest.host",
+                 {"method": "version",
+                  "args": {"package_name": "hdjdgnmfd"}
+                 })
+        assert_true(version is None)
+
+    @test(depends_on=[restart_rabbit_again])
+    @time_out(2)
+    def send_message_again_2(self):
+        """The agent should be able to receive messages after reconnecting."""
+        version = rpc.call(context.get_admin_context(), "guest.host",
+                 {"method": "version",
+                  "args": {"package_name": "dpkg"}
+                 })
+        assert_true(version is not None)
+
+    @test(depends_on=[restart_rabbit_again])
+    @time_out(2)
+    def send_message_again_3(self):
+        """The agent should be able to receive messages after reconnecting."""
+        version = rpc.call(context.get_admin_context(), "guest.host",
+                 {"method": "version",
+                  "args": {"package_name": "cowsay"}
+                 })
 
 
 
