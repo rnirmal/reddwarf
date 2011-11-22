@@ -58,7 +58,7 @@ from nova import log as logging
 from nova import flags
 
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('reddwarf_cache_expire_time', 60*5,
+flags.DEFINE_integer('reddwarf_auth_cache_expire_time', 60*5,
                      'Time in seconds for the cache to expire user tokens')
 
 LOG = logging.getLogger(__name__)
@@ -134,14 +134,11 @@ class AuthProtocol(object):
         cache_key = "%s/%s" % (claims,tenant)
 
         # this request is presenting claims. Let's validate them
-        LOG.debug("cache_key : %s" % cache_key)
         auth_user = proxy_headers['X_AUTH_PROJECT_ID']
         #TODO(cp16net) what happens with 1000s of users being cached?
         if self.cache.has_key(cache_key):
             # get the cached values
             data, status = self.cache.get_value(cache_key)
-            LOG.debug("auth_user(%s) found in cache: %s, %s" %
-                      (auth_user, data, status))
             valid = self._validate_status(status)
 
             if not valid:
@@ -164,7 +161,7 @@ class AuthProtocol(object):
                 # claim is valid so cache the result from validation
                 cache_key = "%s/%s" % (claims,tenant)
                 self.cache.set_value(cache_key, (data, status),
-                                     expiretime=FLAGS.reddwarf_cache_expire_time)
+                                     expiretime=FLAGS.reddwarf_auth_cache_expire_time)
 
         self._decorate_request("X_IDENTITY_STATUS", "Confirmed", env,
                                proxy_headers)

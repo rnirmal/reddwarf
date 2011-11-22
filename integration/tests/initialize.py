@@ -50,7 +50,7 @@ def glance_reg_conf():
     return str(test_config.values.get("glance_reg_conf"))
 
 def keystone_conf():
-    return "/etc/keystone/keystone.conf"
+    return str(test_config.values.get("keystone_conf"))
 
 def nova_conf():
     return str(test_config.values.get("nova_conf"))
