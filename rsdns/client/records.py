@@ -66,7 +66,8 @@ class RecordsManager(base.ManagerWithFind):
                                           base.getid(domain), body=data)
         if resp.status == 202:
             return FutureRecord(self, **body)
-        raise RuntimeError("Did not expect response " + str(resp.status))
+        raise RuntimeError("Did not expect response when creating a DNS record "
+                            "%s" % str(resp.status))
 
     def create_from_list(self, list):
         return [self.resource_class(self, res) for res in list]
