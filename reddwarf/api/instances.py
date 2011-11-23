@@ -171,6 +171,7 @@ class Controller(object):
                                                              time_out=60)
         except exception.VolumeNotFoundForInstance:
             LOG.info("Skipping as no volumes are associated with the instance")
+        return exc.HTTPAccepted()
 
     def create(self, req, body):
         """ Creates a new Instance for a given user """
