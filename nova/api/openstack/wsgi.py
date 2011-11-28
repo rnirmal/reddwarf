@@ -28,7 +28,7 @@ from nova import utils
 from nova import wsgi
 
 
-XMLNS_V10 = 'http://docs.rackspacecloud.com/servers/api/v1.0'
+XMLNS_V10 = 'http://docs.openstack.org/database/api/v1.0'
 XMLNS_V11 = 'http://docs.openstack.org/compute/api/v1.1'
 
 XMLNS_ATOM = 'http://www.w3.org/2005/Atom'
