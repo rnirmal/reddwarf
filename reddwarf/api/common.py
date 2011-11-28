@@ -16,17 +16,16 @@
 Common shared code across DBaaS API
 """
 
-from webob import exc
-
-
-from nova import exception
+from nova import exception as nova_exception
 from nova import log as logging
 from nova.compute import power_state
 from nova.db.sqlalchemy.api import is_admin_context
 from nova.guest.db import models
 
+from reddwarf import exception as exception
 
-XML_NS_V10 = 'http://docs.rackspacecloud.com/dbaas/api/v1.0'
+
+XML_NS_V10 = 'http://docs.openstack.org/database/api/v1.0'
 LOG = logging.getLogger('reddwarf.api.common')
 
 dbaas_mapping = {
@@ -43,6 +42,7 @@ dbaas_mapping = {
     power_state.CRASHED: 'SHUTDOWN',
     power_state.SUSPENDED: 'FAILED',
 }
+
 
 def populate_databases(dbs):
     """
@@ -81,8 +81,9 @@ def instance_exists(ctxt, id, compute_api):
     """Verify the instance exists before issuing any other call"""
     try:
         return compute_api.get(ctxt, id)
-    except exception.NotFound:
-        raise exc.HTTPNotFound()
+    except nova_exception.NotFound:
+        raise exception.NotFound()
+
 
 def verify_admin_context(f):
     """
@@ -92,14 +93,14 @@ def verify_admin_context(f):
     """
     def wrapper(*args, **kwargs):
         if not 'req' in kwargs:
-          raise exception.Error("Need a reddwarf request to extract the context.")
+          raise nova_exception.Error("Need a reddwarf request to extract the context.")
         req = kwargs['req']
         if not hasattr(req, 'environ'):
-          raise exception.Error("Request needs an environment to extract the context.")
+          raise nova_exception.Error("Request needs an environment to extract the context.")
         context = req.environ.get('nova.context', None)
         if context is None:
-          raise exception.Error("Request context is None; cannot verify admin access.")
+          raise nova_exception.Error("Request context is None; cannot verify admin access.")
         if not is_admin_context(context):
-            raise exception.AdminRequired()
+            raise nova_exception.AdminRequired()
         return f(*args, **kwargs)
     return wrapper

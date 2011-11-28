@@ -13,13 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-from webob import exc
-
 from nova import flags
 from nova import rpc
 from nova import log as logging
 from nova.api.openstack import wsgi
+
 from reddwarf.api import common
 
 LOG = logging.getLogger('reddwarf.api.storage')

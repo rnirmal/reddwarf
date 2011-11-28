@@ -13,9 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from webob import exc
-
 from nova import compute
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
 from nova import utils
@@ -23,10 +22,10 @@ from nova import volume
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
-from nova.db.sqlalchemy.api import is_admin_context
-from nova.exception import InstanceNotFound
+
 from nova.guest import api as guest
 
+from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi
@@ -120,9 +119,9 @@ class Controller(object):
         # If it doesn't, we'll get an exception.
         try:
             status = dbapi.guest_status_get(instance_id)
-        except InstanceNotFound:
+        except nova_exception.InstanceNotFound:
             #raise InstanceNotFound(instance_id=id)
-            raise exc.HTTPNotFound("No instance with id %s." % id)
+            raise exception.NotFound("No instance with id %s." % id)
 
         server = self.server_controller.show(req, instance_id)['server']
         if isinstance(server, Exception):
@@ -138,10 +137,12 @@ class Controller(object):
         instance = self.instance_view.build_mgmt_single(server, instance_ref,
                                                         req, guest_state)
         try:
-            instance = self._get_guest_info(context, instance_id, status, instance)
+            instance = self._get_guest_info(context, instance_id, status,
+                                            instance)
         except Exception as err:
             LOG.error(err)
-            raise exc.HTTPServerError(explanation="Unable to retrieve information from the guest")
+            raise exception.InstanceFault("Unable to retrieve information "
+                                          "from the guest")
         return {'instance': instance}
 
     def _get_guest_info(self, context, id, status, instance):
@@ -183,4 +184,4 @@ class Controller(object):
             return {'root_enabled_history': root_history}
         except Exception as err:
             LOG.error(err)
-            return exc.HTTPError("Error determining root access history")
+            raise exception.InstanceFault("Error determining root access history")

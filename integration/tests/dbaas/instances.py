@@ -13,9 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import gettext
 import os
-import json
 import re
 import string
 import sys
@@ -32,8 +30,7 @@ GROUP_STOP="dbaas.guest.shutdown"
 from datetime import datetime
 from nose.plugins.skip import SkipTest
 from nose.tools import assert_true
-from novaclient.exceptions import ClientException
-from novaclient.exceptions import NotFound
+from novaclient import exceptions as nova_exceptions
 from nova import context
 from nova import db
 from nova import utils
@@ -42,17 +39,19 @@ from reddwarf.api.instances import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
 
-from proboscis.decorators import expect_exception
+from reddwarfclient import exceptions
+
 from proboscis.decorators import time_out
 from proboscis import before_class
 from proboscis import test
 from proboscis.asserts import assert_equal
 from proboscis.asserts import assert_false
 from proboscis.asserts import assert_not_equal
+from proboscis.asserts import assert_raises
 from proboscis.asserts import assert_true
 from proboscis.asserts import fail
 
-
+import tests
 from tests.util import test_config
 from tests.util import check_database
 from tests.util import create_dns_entry
@@ -89,6 +88,7 @@ class InstanceTestInfo(object):
         self.volume = None # The volume the instance will have.
         self.storage = None # The storage device info for the volumes.
         self.databases = None # The databases created on the instance.
+        self.host_info = None # Host Info before creating instances
 
     def check_database(self, dbname):
         return check_database(self.local_id, dbname)
@@ -133,7 +133,7 @@ class Setup(object):
         """Sets up the client."""
         global dbaas
         global dbaas_admin
-        instance_info.user = test_config.users.find_user(Requirements(is_admin=False))
+        instance_info.user = test_config.users.find_user_by_name("chunk")
         instance_info.admin_user = test_config.users.find_user(Requirements(is_admin=True))
         dbaas = create_test_client(instance_info.user)
         dbaas_admin = create_test_client(instance_info.admin_user)
@@ -144,7 +144,7 @@ class Setup(object):
         print("Auth Token: %s" % dbaas.client.auth_token)
         print("Service URL: %s" % dbaas_admin.client.management_url)
         assert_not_equal(dbaas.client.auth_token, None)
-        assert_equal(dbaas.client.management_url, test_config.dbaas_url)
+        assert_equal(dbaas_admin.client.management_url, test_config.dbaas_url)
 
     @test
     def find_image(self):
@@ -164,7 +164,7 @@ class Setup(object):
         config = {'key': key, 'value': value, 'description': description}
         try:
             dbaas_admin.configs.create([config])
-        except ClientException as e:
+        except nova_exceptions.ClientException as e:
             # configs.create will throw an exception if the config already exists
             # we will check the value after to make sure it is correct and set
             pass
@@ -181,80 +181,18 @@ class Setup(object):
 
 
 @test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'],
-      groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts'],
+      groups=[tests.DBAAS_API],
       enabled=create_new_instance)
-class InstanceHostCheck(unittest.TestCase):
-    """Class to run tests after Setup"""
+class PreInstanceTest(object):
+    """Instance tests before creating an instance"""
 
-    def test_empty_index_host_list(self):
-        host_index_result = dbaas_admin.hosts.index()
-        self.assertNotEqual(host_index_result, None,
-                            "list hosts call should not be empty")
-        print("result : %r" % str(host_index_result))
-        self.assertTrue(len(host_index_result) > 0,
-                        "list hosts length should not be empty")
-        print("test_index_host_list result: %r" % host_index_result[0])
-        print("instance count for host : %r" % host_index_result[0].instanceCount)
-        self.assertEquals(int(host_index_result[0].instanceCount), 0,
-                          "instance count of 'host' should have 0 running instances")
-        print("test_index_host_list result instance_count: %r" %
-              host_index_result[0].instanceCount)
-        self.assertEquals(len(host_index_result), 1,
-                          "The host result list is expected to be of length 1")
-        for host in list(enumerate(host_index_result, start=1)):
-            print("%r host: %r" % (host[0], host[1]))
-            instance_info.host = host[1]
-
-    def test_empty_index_host_list_single(self):
-        print("instance_info.host : %r" % instance_info.host)
-        host_index_result = dbaas_admin.hosts.get(instance_info.host)
-        self.assertNotEqual(host_index_result, None,
-                            "list hosts should not be empty")
-        print("test_index_host_list_single result: %r" %
-              host_index_result.__dict__)
-        self.assertTrue(host_index_result.percentUsed == 0,
-                        "percentUsed should be 0 : %r" % host_index_result.percentUsed)
-        self.assertTrue(host_index_result.totalRAM,
-                        "totalRAM should exist > 0 : %r" % host_index_result.totalRAM)
-        self.assertTrue(host_index_result.usedRAM == 0,
-                        "usedRAM should be 0 : %r" % host_index_result.usedRAM)
-        self.assertTrue(instance_info.name
-                        not in [dbc.name for dbc
-                                in host_index_result.instances])
-        instance_info.host_info = host_index_result
-        for index, instance in enumerate(host_index_result.instances, start=1):
-            print("%r instance: %r" % (index, instance))
-
-    @expect_exception(NotFound)
-    def test_host_not_found(self):
-        instance_info.myresult = dbaas_admin.hosts.get('host@$%3dne')
-
-    @expect_exception(NotFound)
+    @test
     def test_delete_instance_not_found(self):
-        result = dbaas.instances.delete(1)
-
-    def test_storage_on_host(self):
-        storage = dbaas_admin.storage.index()
-        print("storage : %r" % storage)
-        for device in storage:
-            self.assertTrue(hasattr(device, 'name'))
-            self.assertTrue(hasattr(device, 'availablesize'))
-            self.assertTrue(hasattr(device, 'totalsize'))
-            print("device.name : %r" % device.name)
-            print("device.availablesize : %r" % device.availablesize)
-            print("device.totalsize : %r" % device.totalsize)
-        instance_info.storage = storage
-
-    @expect_exception(NotFound)
-    def test_no_details_bogus_account(self):
-        dbaas_admin.accounts.show('asd#4#@fasdf')
-
-    def test_no_details_empty_account(self):
-        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
-        self.assertEqual(0, len(account_info.hosts))
+        assert_raises(nova_exceptions.NotFound, dbaas.instances.delete, 1)
 
 
-@test(depends_on_classes=[InstanceHostCheck], groups=[GROUP, GROUP_START])
+@test(depends_on_classes=[PreInstanceTest], groups=[GROUP, GROUP_START, tests.INSTANCES],
+      depends_on_groups=[tests.PRE_INSTANCES])
 class CreateInstance(unittest.TestCase):
     """Test to create a Database Instance
 
@@ -266,12 +204,11 @@ class CreateInstance(unittest.TestCase):
         # give the services some time to start up
         time.sleep(2)
 
-    @expect_exception(ClientException)
     def test_instance_size_too_big(self):
         too_big = dbaas_FLAGS.reddwarf_max_accepted_volume_size
-        dbaas.instances.create('way_too_large',
-                                  instance_info.dbaas_flavor_href,
-                                  {'size': too_big + 1}, [])
+        assert_raises(nova_exceptions.BadRequest, dbaas.instances.create,
+                      "way_too_large", instance_info.dbaas_flavor_href,
+                      {'size': too_big + 1}, [])
 
     def test_create(self):
         databases = []
@@ -307,27 +244,21 @@ class CreateInstance(unittest.TestCase):
         CheckInstance(result._info).links(result._info['links'])
         CheckInstance(result._info).volume()
 
-    @expect_exception(ClientException)
     def test_create_failure_with_empty_volume(self):
         instance_name = "instance-failure-with-no-volume-size"
         databases = []
         volume = {}
-        result_fail = dbaas.instances.create(
-                               instance_name,
-                               instance_info.dbaas_flavor_href,
-                               volume,
-                               databases)
+        assert_raises(nova_exceptions.BadRequest, dbaas.instances.create,
+                      instance_name, instance_info.dbaas_flavor_href, volume,
+                      databases)
 
-    @expect_exception(ClientException)
     def test_create_failure_with_no_volume_size(self):
         instance_name = "instance-failure-with-no-volume-size"
         databases = []
         volume = {'size': None}
-        result_fail = dbaas.instances.create(
-                               instance_name,
-                               instance_info.dbaas_flavor_href,
-                               volume,
-                               databases)
+        assert_raises(nova_exceptions.BadRequest, dbaas.instances.create,
+                      instance_name, instance_info.dbaas_flavor_href, volume,
+                      databases)
 
     def test_mgmt_get_instance_on_create(self):
         result = dbaas_admin.management.show(instance_info.id)
@@ -348,34 +279,11 @@ class CreateInstance(unittest.TestCase):
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
-class AccountMgmtData(unittest.TestCase):
-    def test_account_details_available(self):
-        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
-        self.assertNotEqual(0, len(account_info.hosts))
-        # Now check the results.
-        self.assertEqual(account_info.name, instance_info.user.auth_user)
-        # Instances: Here we know we've only created one host.
-        self.assertEqual(1, len(account_info.hosts))
-        self.assertEqual(1, len(account_info.hosts[0]['instances']))
-        # We know that the host should contain only one instance.
-        instance = account_info.hosts[0]['instances'][0]
-        print("instances in account: %s" % instance)
-        self.assertEqual(instance['id'], instance_info.id)
-        self.assertEqual(instance['name'], instance_info.name)
+class AfterInstanceCreation(unittest.TestCase):
 
-    #TODO(cp16net) nova-client is not throwing back an exception here
-    # it is logging the body as 422 and the correct msg but
-    # not throwing it back as an exception as expected.
-#    @expect_exception(ClientException)
     def test_delete_instance_right_after_create(self):
-        def raised_the_right_HTTP_code():
-            return util.check_logs_for_message("INFO nova.api.openstack.wsgi [-] http://localhost:8775/v1.0/dbaas/instances/%s returned with HTTP 422"
-                                        % str(instance_info.id))
-        try:
-            dbaas.instances.delete(instance_info.id)
-            utils.poll_until(raised_the_right_HTTP_code, sleep_time=2, time_out=60)
-        except Exception as ex:
-            assert_equal(type(string), type(ex))
+        assert_raises(exceptions.UnprocessableEntity, dbaas.instances.delete,
+                      instance_info.id)
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
@@ -407,6 +315,7 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
             return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
                                         % str(instance_info.local_id))
         utils.poll_until(compute_manager_finished, sleep_time=2, time_out=60)
+
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],
       groups=[GROUP, GROUP_START], enabled=create_new_instance)
@@ -486,9 +395,15 @@ class TestVolume(unittest.TestCase):
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],
       groups=[GROUP, GROUP_START, "dbaas.listing"])
-class TestInstanceListing(unittest.TestCase):
+class TestInstanceListing(object):
     """ Test the listing of the instance information """
 
+    @before_class
+    def setUp(self):
+        self.daffy_user = test_config.users.find_user_by_name("daffy")
+        self.daffy_client = create_test_client(self.daffy_user)
+
+    @test
     def test_detail_list(self):
         expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
                           'name', 'status', 'updated', 'volume']
@@ -502,6 +417,7 @@ class TestInstanceListing(unittest.TestCase):
             CheckInstance(instance_dict).links(instance_dict['links'])
             CheckInstance(instance_dict).volume()
 
+    @test
     def test_index_list(self):
         expected_attrs = ['id', 'links', 'name', 'status']
         instances = dbaas.instances.index()
@@ -512,6 +428,7 @@ class TestInstanceListing(unittest.TestCase):
                                                      msg="Instance Index")
             CheckInstance(instance_dict).links(instance_dict['links'])
 
+    @test
     def test_get_instance(self):
         expected_attrs = ['created', 'databases', 'flavor', 'hostname', 'id',
                           'links', 'name', 'rootEnabled', 'status', 'updated',
@@ -526,6 +443,7 @@ class TestInstanceListing(unittest.TestCase):
         CheckInstance(instance_dict).volume()
         CheckInstance(instance_dict).databases()
 
+    @test
     def test_instance_hostname(self):
         instance = dbaas.instances.get(instance_info.id)
         dns_entry = instance_info.expected_dns_entry()
@@ -538,21 +456,26 @@ class TestInstanceListing(unittest.TestCase):
             expected_hostname = "%s-instance-%s" % (name, instance_info.local_id)
             assert_equal(expected_hostname, instance.hostname)
 
+    @test
     def test_get_instance_status(self):
         result = dbaas.instances.get(instance_info.id)
         assert_equal(dbaas_mapping[power_state.RUNNING], result.status)
 
+    @test
     def test_get_legacy_status(self):
         result = dbaas.instances.get(instance_info.id)
         assert_true(result is not None)
 
+    @test
     def test_get_legacy_status_notfound(self):
-        self.assertRaises(NotFound, dbaas.instances.get, -2)
+        assert_raises(nova_exceptions.NotFound, dbaas.instances.get, -2)
 
+    @test
     def test_volume_found(self):
         instance = dbaas.instances.get(instance_info.id)
         assert_equal(instance_info.volume['size'], instance.volume['size'])
 
+    @test
     def test_index_detail_match_for_regular_user(self):
         user = test_config.users.find_user(Requirements(is_admin=False))
         dbaas = create_dbaas_client(user)
@@ -560,22 +483,23 @@ class TestInstanceListing(unittest.TestCase):
         index = [instance.id for instance in dbaas.instances.index()]
         assert_equal(sorted(details), sorted(index))
 
+    @test
     def test_instance_not_shown_to_other_user(self):
-        daffy_user = test_config.users.find_user_by_name("daffy")
-        daffy_client = create_test_client(daffy_user)
-        daffy_ids = [instance.id for instance in daffy_client.instances.list()]
+        daffy_ids = [instance.id for instance in self.daffy_client.instances.list()]
         admin_ids = [instance.id for instance in dbaas.instances.list()]
-        self.assertRaises(NotFound, daffy_client.instances.get, instance_info.id)
         assert_equal(len(daffy_ids), 0)
         assert_not_equal(sorted(admin_ids), sorted(daffy_ids))
+        assert_raises(nova_exceptions.NotFound, self.daffy_client.instances.get,
+                      instance_info.id)
         for id in admin_ids:
             assert_equal(daffy_ids.count(id), 0)
 
+    @test
     def test_instance_not_deleted_by_other_user(self):
-        daffy_user = test_config.users.find_user_by_name("daffy")
-        daffy_client = create_test_client(daffy_user)
-        self.assertRaises(NotFound, daffy_client.instances.delete, instance_info.id)
+        assert_raises(nova_exceptions.NotFound,
+                      self.daffy_client.instances.delete, instance_info.id)
 
+    @test
     def test_mgmt_get_instance_after_started(self):
         result = dbaas_admin.management.show(instance_info.id)
         expected_attrs = ['account_id', 'addresses', 'created', 'databases',
@@ -590,68 +514,6 @@ class TestInstanceListing(unittest.TestCase):
         CheckInstance(result._info).addresses()
         CheckInstance(result._info).volume_mgmt()
 
-
-@test(depends_on_classes=[CreateInstance], groups=[GROUP, "dbaas.mgmt.listing"])
-class MgmtHostCheck(unittest.TestCase):
-    def test_index_host_list(self):
-        myresult = dbaas_admin.hosts.index()
-        self.assertNotEqual(myresult, None,
-                            "list hosts should not be empty")
-        self.assertTrue(len(myresult) > 0,
-                        "list hosts should not be empty")
-        print("test_index_host_list result: %s" % str(myresult))
-        print("test_index_host_list result instance_count: %d" %
-              myresult[0].instanceCount)
-        self.assertEquals(myresult[0].instanceCount, 1,
-                          "instance count of 'host' should have 1 running instances")
-        self.assertEquals(len(myresult), 1,
-                          "The result list is expected to be of length 1")
-        for index, host in enumerate(myresult, start=1):
-            print("%d host: %s" % (index, host))
-            instance_info.host = host
-
-    def test_index_host_list_single(self):
-        myresult = dbaas_admin.hosts.get(instance_info.host)
-        self.assertNotEqual(myresult, None,
-                            "list hosts should not be empty")
-        print("test_index_host_list_single result: %s" %
-              str(myresult))
-        self.assertTrue(len(myresult.instances) > 0,
-                        "instance list on the host should not be empty")
-        self.assertTrue(myresult.totalRAM == instance_info.host_info.totalRAM,
-                        "totalRAM should be the same as before : %r == %r" %
-                        (myresult.totalRAM, instance_info.host_info.totalRAM))
-        diff = instance_info.host_info.usedRAM + instance_info.dbaas_flavor.ram
-        self.assertTrue(myresult.usedRAM == diff,
-                        "usedRAM should be : %r == %r" %
-                        (myresult.usedRAM, diff))
-        calc = round(1.0 * myresult.usedRAM / myresult.totalRAM * 100)
-        self.assertTrue(myresult.percentUsed == calc,
-                        "percentUsed should be : %r == %r" %
-                        (myresult.percentUsed, calc))
-        print("test_index_host_list_single result instances: %s" %
-              str(myresult.instances))
-        for index, instance in enumerate(myresult.instances, start=1):
-            print("%d instance: %s" % (index, instance))
-            self.assertEquals(['id', 'name', 'status'], sorted(instance.keys()))
-
-    def test_storage_on_host(self):
-        storage = dbaas_admin.storage.index()
-        print("storage : %r" % storage)
-        print("instance_info.storage : %r" % instance_info.storage)
-        expected_attrs = ['name', 'availablesize', 'totalsize', 'type']
-        for index, device in enumerate(storage):
-            CheckInstance(None).attrs_exist(device._info, expected_attrs,
-                                            msg="Storage")
-            self.assertEquals(device.name, instance_info.storage[index].name)
-            self.assertEquals(device.totalsize, instance_info.storage[index].totalsize)
-            self.assertEquals(device.type, instance_info.storage[index].type)
-            avail = instance_info.storage[index].availablesize - instance_info.volume['size']
-            self.assertEquals(device.availablesize, avail)
-
-    def test_account_details_available(self):
-        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
-        self.assertNotEqual(0, len(account_info.hosts))
 
 @test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
 class DeleteInstance(unittest.TestCase):
@@ -672,7 +534,7 @@ class DeleteInstance(unittest.TestCase):
                 attempts += 1
                 result = dbaas.instances.get(instance_info.id)
                 self.assertEqual(dbaas_mapping[power_state.SHUTDOWN], result.status)
-        except NotFound:
+        except nova_exceptions.NotFound:
             pass
         except Exception as ex:
             self.fail("A failure occured when trying to GET instance %s"
@@ -681,20 +543,6 @@ class DeleteInstance(unittest.TestCase):
 
     #TODO: make sure that the actual instance, volume, guest status, and DNS
     #      entries are deleted.
-
-@test(depends_on_classes=[DeleteInstance], groups=[GROUP, GROUP_STOP])
-class InstanceHostCheck2(InstanceHostCheck):
-    """Class to run tests after delete"""
-
-    @expect_exception(NotFound)
-    def test_host_not_found(self):
-        dbaas_admin.hosts.get('host-dne')
-
-    def test_no_details_empty_account(self):
-        account_info = dbaas_admin.accounts.show(instance_info.user.auth_user)
-        # Instances were created and then deleted or crashed.
-        # In the process, one host was created.
-        self.assertEqual(0, len(account_info.hosts))
 
 
 @test(depends_on_classes=[CreateInstance, VerifyGuestStarted,
@@ -718,8 +566,7 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
     def test_bogus_instance_mgmt_data(self):
         # Make sure that a management call to a bogus API 500s.
         # The client reshapes the exception into just an OpenStackException.
-        #self.assertRaises(nova.exception.InstanceNotFound, dbaas.management.show, -1)
-        self.assertRaises(NotFound, dbaas_admin.management.show, -1)
+        assert_raises(nova_exceptions.NotFound, dbaas_admin.management.show, -1)
 
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.

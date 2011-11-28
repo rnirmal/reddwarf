@@ -17,10 +17,11 @@
 
 from webob import exc
 
-from nova import exception
+from nova import exception as nova_exception
 from nova import log as logging
 from nova.api.openstack import wsgi
 
+from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.db import api as dbapi
@@ -40,7 +41,10 @@ class Controller(object):
     def show(self, req, id):
         LOG.info("List config entry %s" % id)
         LOG.debug("%s - %s", req.environ, req.body)
-        config = dbapi.config_get(id)
+        try:
+            config = dbapi.config_get(id)
+        except nova_exception.ConfigNotFound as cnf:
+            raise exception.NotFound(cnf._error_string)
         return {'config': {'key': config.key, 'value': config.value,
                             'description': config.description}}
 
@@ -49,7 +53,10 @@ class Controller(object):
         """ Returns a list of all config values"""
         LOG.info("List all config entries")
         LOG.debug("%s - %s", req.environ, req.body)
-        configs_data = dbapi.config_get_all()
+        try:
+            configs_data = dbapi.config_get_all()
+        except nova_exception.ConfigNotFound as cnf:
+            raise exception.NotFound(cnf._error_string)
         configs = []
         for config in configs_data:
             entry = {'key': config.key, 'value': config.value,
@@ -71,9 +78,13 @@ class Controller(object):
         LOG.info("Create a new config entry")
         LOG.debug("%s - %s", req.environ, req.body)
         self._validate_create(body)
-        for config in body['configs']:
-            dbapi.config_create(config.get('key'), config.get('value', None),
-                                config.get('description', None))
+        try:
+            for config in body['configs']:
+                dbapi.config_create(config.get('key'),
+                                    config.get('value', None),
+                                    config.get('description', None))
+        except nova_exception.DuplicateConfigEntry as dce:
+            raise exception.InstanceFault(dce._error_string)
         return exc.HTTPOk()
 
     @common.verify_admin_context
@@ -90,27 +101,27 @@ class Controller(object):
     def _validate(self, body):
         """Validate that the request has all the required parameters"""
         if not body:
-            raise exc.HTTPUnprocessableEntity()
+            raise exception.BadRequest("The request contains an empty body")
 
     def _validate_create(self, body):
         self._validate(body)
         if not body.get('configs', ''):
-            raise exception.ApiError("Required element/key 'configs' " \
-                                         "was not specified")
+            raise exception.BadRequest("Required element/key 'configs' was "
+                                       "not specified")
         for config in body.get('configs'):
             if not config.get('key'):
-                raise exception.ApiError("Required attribute/key 'key' " \
-                                         "was not specified")
+                raise exception.BadRequest("Required attribute/key 'key' was "
+                                           "not specified")
 
     def _validate_update(self, body):
         self._validate(body)
         config = body.get('config', '')
         if not config:
-            raise exception.ApiError("Required element/key 'config' " \
-                                         "was not specified")
+            raise exception.BadRequest("Required element/key 'config' was not "
+                                       "specified")
         if not config.get('key'):
-                raise exception.ApiError("Required attribute/key 'key' " \
-                                         "was not specified")
+                raise exception.BadRequest("Required attribute/key 'key' was "
+                                           "not specified")
 
 
 def create_resource(version='1.0'):

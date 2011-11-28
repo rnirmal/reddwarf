@@ -13,20 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from webob import exc
-
-from nova import compute
 from nova import db
-from nova import exception
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
-from nova import volume
-from nova.api.openstack import faults
-from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from reddwarf.api import common
-from nova.exception import NotFound
-from nova.guest import api as guest
+
+from reddwarf import exception
 from reddwarf.db import api as dbapi
 
 LOG = logging.getLogger('reddwarf.api.accounts')
@@ -80,7 +74,7 @@ class Controller(object):
             LOG.debug("projects - %s", projects)
             if not projects:
                 LOG.debug("Could not find any projects for account '%s'." % id)
-                raise NotFound(message=("No Account found %s" % id))
+                raise exception.NotFound("No Account found %s" % id)
 
             # Get all the instances that belong to this account.
             instances = dbapi.show_instances_by_account(context, id)
@@ -117,7 +111,5 @@ class Controller(object):
                 }
             LOG.debug("resp - %s", resp)
             return resp
-        except exception.NotFound as ex:
-            return faults.Fault(exc.HTTPNotFound())
-        except exception.UserNotFound as ex:
-            return faults.Fault(exc.HTTPNotFound())
+        except (nova_exception.NotFound, nova_exception.UserNotFound) as ex:
+            raise exception.NotFound()

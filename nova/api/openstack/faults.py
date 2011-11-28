@@ -35,6 +35,8 @@ class Fault(webob.exc.HTTPException):
             409: "inProgress",
             413: "overLimit",
             415: "badMediaType",
+            422: "unprocessableEntity",
+            500: "instanceFault",
             501: "notImplemented",
             503: "serviceUnavailable"}
 
@@ -48,7 +50,7 @@ class Fault(webob.exc.HTTPException):
         """Generate a WSGI response based on the exception passed to ctor."""
         # Replace the body with fault details.
         code = self.wrapped_exc.status_int
-        fault_name = self._fault_names.get(code, "cloudServersFault")
+        fault_name = self._fault_names.get(code, "instanceFault")
         fault_data = {
             fault_name: {
                 'code': code,

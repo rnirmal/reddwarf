@@ -537,7 +537,7 @@ class Resource(wsgi.Application):
         try:
             action_result = self.dispatch(request, action, args)
         except webob.exc.HTTPException as ex:
-            LOG.info(_("HTTP exception thrown: %s"), unicode(ex))
+            LOG.exception(_("HTTP exception thrown: %s"), unicode(ex))
             action_result = faults.Fault(ex)
 
         if type(action_result) is dict or action_result is None:

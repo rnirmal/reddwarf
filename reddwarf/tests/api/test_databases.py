@@ -20,16 +20,17 @@ import stubout
 import webob
 from paste import urlmap
 from nose.tools import raises
-from webob import exc
 
 import nova
 from nova import context
 from nova import test
-from nova import exception
 
 import reddwarf
+from reddwarf import exception
 from reddwarf.api import databases
 from reddwarf.tests import util
+
+databases_url = "%s/1/databases" % util.v1_instances_prefix
 
 def list_databases_exception(self, req, instance_id):
     raise Exception()
@@ -54,26 +55,26 @@ class DatabaseApiTest(test.TestCase):
     def test_list_databases(self):
         self.stubs.Set(nova.guest.api.API, "list_databases",
                        list_databases_exception)
-        req = webob.Request.blank('/v1.0/instances/1/databases')
+        req = webob.Request.blank(databases_url)
         res = req.get_response(util.wsgi_app())
         self.assertEqual(res.status_int, 500)
 
     def test_show_database(self):
-        req = webob.Request.blank('/v1.0/instances/1/databases/testdb')
+        req = webob.Request.blank('%s/testdb' % databases_url)
         res = req.get_response(util.wsgi_app())
         self.assertEqual(res.status_int, 501)
 
-    @raises(exc.HTTPUnprocessableEntity)
+    @raises(exception.BadRequest)
     def test_validate_empty_body(self):
         controller = databases.Controller()
         controller._validate("")
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_validate_no_databases_element(self):
         body = {'database': ''}
         self.controller._validate(body)
 
-    @raises(exception.ApiError)
+    @raises(exception.BadRequest)
     def test_validate_no_database_name(self):
         body = {'databases': [{'name1': 'testdb'}]}
         self.controller._validate(body)

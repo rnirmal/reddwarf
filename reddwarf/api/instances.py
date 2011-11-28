@@ -21,7 +21,7 @@ from webob import exc
 
 from nova import compute
 from nova import db
-from nova import exception
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
 from nova import utils
@@ -32,10 +32,10 @@ from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
 from nova.compute import vm_states
-from nova.exception import InstanceNotFound
 from nova.guest import api as guest_api
 from nova.notifier import api as notifier
 
+from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.api.views import instances
@@ -150,8 +150,8 @@ class Controller(object):
                 db.instance_update(context, id, {'vm_state': vm_states.ACTIVE,})
 
             compute_response = self.compute_api.get(context, instance_id)
-        except exception.NotFound:
-            raise exc.HTTPNotFound()
+        except nova_exception.NotFound:
+            raise exception.NotFound()
         LOG.debug("server_response - %s", compute_response)
         build_states = [
              nova_common.vm_states.REBUILDING,
@@ -159,7 +159,8 @@ class Controller(object):
         ]
         if compute_response['vm_state'] in build_states:
             # If the state is building then we throw an exception back
-            raise exc.HTTPUnprocessableEntity("Instance %s is not ready." % id)
+            raise exception.UnprocessableEntity("Instance %s is not ready."
+                                                % id)
 
         self.server_controller.delete(req, instance_id)
         #TODO(rnirmal): Use a deferred here to update status
@@ -169,7 +170,7 @@ class Controller(object):
                 self.volume_api.delete_volume_when_available(context,
                                                              volume_ref['id'],
                                                              time_out=60)
-        except exception.VolumeNotFoundForInstance:
+        except nova_exception.VolumeNotFoundForInstance:
             LOG.info("Skipping as no volumes are associated with the instance")
         return exc.HTTPAccepted()
 
@@ -250,13 +251,12 @@ class Controller(object):
                               server.wrapped_exc.detail)
                 if isinstance(server, exc.HTTPClientError):
                     LOG.error("a 400 error occurred %s" % server)
-                raise exception.Error("Could not complete the request. " \
-                                      "Please try again later or contact " \
-                                      "Customer Support")
+                raise exception.InstanceFault("Could not complete the request."
+                          " Please try again later or contact Customer Support")
             return server
         except (TypeError, AttributeError, KeyError) as e:
             LOG.error(e)
-            raise exception.Error(exc.HTTPUnprocessableEntity())
+            raise exception.UnprocessableEntity()
 
     @staticmethod
     def _create_server_dict(instance, volume_id, mount_point):
@@ -266,7 +266,7 @@ class Controller(object):
         # Add image_ref
         try:
             server['imageRef'] = dbapi.config_get("reddwarf_imageref").value
-        except exception.ConfigNotFound:
+        except nova_exception.ConfigNotFound:
             msg = "Cannot find the reddwarf_imageref config value, " \
                   "using default of 1"
             LOG.warn(msg)
@@ -345,7 +345,7 @@ class Controller(object):
     def _validate(body):
         """Validate that the request has all the required parameters"""
         if not body:
-            raise exc.HTTPUnprocessableEntity()
+            raise exception.BadRequest("The request contains an empty body")
 
         try:
             body['instance']
@@ -355,21 +355,21 @@ class Controller(object):
             except (ValueError, TypeError) as e:
                 LOG.error("Create Instance Required field(s) - "
                           "['instance']['volume']['size']")
-                raise exception.ApiError("Required element/key - instance "
-                                    "volume size was not specified as a number")
+                raise exception.BadRequest("Required element/key - instance "
+                                "volume 'size' was not specified as a number")
             if int(volume_size) != volume_size or int(volume_size) < 1:
-                msg = "Volume 'size' needs to be a positive integer value, %s"\
-                      " cannot be accepted." % volume_size
-                raise exception.ApiError(msg)
+                raise exception.BadRequest("Volume 'size' needs to be a "
+                                "positive integer value, %s cannot be accepted."
+                                % volume_size)
             max_size = FLAGS.reddwarf_max_accepted_volume_size
             if int(volume_size) > max_size:
-                msg = "Volume 'size' cannot exceed maximum of %d Gb, %s"\
-                      " cannot be accepted." % (max_size, volume_size)
-                raise exception.ApiError(msg)
+                raise exception.BadRequest("Volume 'size' cannot exceed maximum"
+                                           "of %d Gb, %s cannot be accepted."
+                                           % (max_size, volume_size))
         except KeyError as e:
             LOG.error("Create Instance Required field(s) - %s" % e)
-            raise exception.ApiError("Required element/key - %s " \
-                                      "was not specified" % e)
+            raise exception.BadRequest("Required element/key - %s was not "
+                                       "specified" % e)
 
 
 def create_resource(version='1.0'):

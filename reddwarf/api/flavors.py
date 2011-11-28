@@ -15,13 +15,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob
-
-from nova import db
-from nova import exception
 from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.openstack.flavors import Controller as OriginalController
+from reddwarf.api import common
 from reddwarf.api import views
 
 
@@ -51,7 +48,7 @@ def create_resource(version='1.0'):
     }
 
     xmlns = {
-        '1.0': wsgi.XMLNS_V10,
+        '1.0': common.XML_NS_V10
     }[version]
 
     body_serializers = {

@@ -25,3 +25,7 @@
 .. moduleauthor:: Nirmal Ranganathan <nirmal.ranganathan@rackspace.com>
 .. moduleauthor:: Tim Simpson <tim.simpson@rackspace.com>
 """
+DBAAS_API = "dbaas.api"
+PRE_INSTANCES = "dbaas.api.pre_instances"
+INSTANCES = "dbaas.api.instances"
+POST_INSTANCES = "dbaas.api.post_instances"
