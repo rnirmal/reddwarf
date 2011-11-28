@@ -1,1 +1,9 @@
-<rootEnabled xmlns="http://docs.rackspacecloud.com/dbaas/api/v1.0">False</rootEnabled>
+HTTP/1.1 200 OK
+Content-Type: application/xml
+Content-Length: 86
+Date: Mon, 28 Nov 2011 17:34:59 GMT
+
+<?xml version="1.0" ?>
+<rootEnabled xmlns="http://docs.openstack.org/database/api/v1.0">
+	False
+</rootEnabled>

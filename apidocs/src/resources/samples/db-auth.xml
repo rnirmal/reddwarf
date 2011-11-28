@@ -1,16 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
+HTTP/1.1 200 OK
+Content-Type: application/xml; charset=UTF-8
+Content-Length: 477
+Date: Wed, 23 Nov 2011 18:14:30 GMT
 
+<?xml version="1.0" encoding="UTF-8"?>
 <auth  xmlns="http://docs.rackspacecloud.com/auth/api/v1.1">
   <token id="asdasdasd-adsasdads-asdasdasd-adsadsasd"
          expires="2010-11-01T03:32:15-05:00" />
   <serviceCatalog>
     <service name="cloudDB">
       <endpoint
-          region="DFW"
-          v1Default="true"
-          publicURL="https://dfw.databases.api.rackspacecloud.com/v1.0/1234" />
-      <endpoint
           region="ORD"
+          v1Default="true"
           publicURL="https://ord.databases.api.rackspacecloud.com/v1.0/1234" />
     </service>
     <service name="cloudFilesCDN">
