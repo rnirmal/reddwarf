@@ -26,17 +26,6 @@ from novaclient.client import HTTPClient
 from novaclient.v1_1.client import Client
 
 
-from reddwarfclient.accounts import Accounts
-from reddwarfclient.config import  Configs
-from reddwarfclient.databases import Databases
-from reddwarfclient.instances import Instances
-from reddwarfclient.hosts import Hosts
-from reddwarfclient.management import Management
-from reddwarfclient.root import Root
-from reddwarfclient.storage import StorageInfo
-from reddwarfclient.users import Users
-from reddwarfclient.versions import Versions
-
 # To write this test from an end user perspective, we have to create a client
 # similar to the CloudServers one.
 # For now we will work on it here.
@@ -127,3 +116,15 @@ class Dbaas(Client):
         self.management = Management(self)
         self.accounts = Accounts(self)
         self.configs = Configs(self)
+
+
+from reddwarfclient.accounts import Accounts
+from reddwarfclient.config import  Configs
+from reddwarfclient.databases import Databases
+from reddwarfclient.instances import Instances
+from reddwarfclient.hosts import Hosts
+from reddwarfclient.management import Management
+from reddwarfclient.root import Root
+from reddwarfclient.storage import StorageInfo
+from reddwarfclient.users import Users
+from reddwarfclient.versions import Versions

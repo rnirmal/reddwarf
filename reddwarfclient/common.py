@@ -18,6 +18,7 @@ import sys
 
 
 from reddwarfclient import Dbaas
+import exceptions
 
 
 APITOKEN = os.path.expanduser("~/.apitoken")
@@ -50,6 +51,11 @@ def methods_of(obj):
         if callable(getattr(obj, i)) and not i.startswith('_'):
             result[i] = getattr(obj, i)
     return result
+
+
+def check_for_exceptions(resp, body):
+    if resp.status in (422, 500):
+            raise exceptions.from_response(resp, body)
 
 
 def print_actions(cmd, actions):

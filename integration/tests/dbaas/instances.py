@@ -281,9 +281,48 @@ class CreateInstance(unittest.TestCase):
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
 class AfterInstanceCreation(unittest.TestCase):
 
-    def test_delete_instance_right_after_create(self):
+    # instance calls
+    def test_instance_delete_right_after_create(self):
         assert_raises(exceptions.UnprocessableEntity, dbaas.instances.delete,
                       instance_info.id)
+
+    # root calls
+    def test_root_create_root_user_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.root.create,
+                      instance_info.id)
+
+    def test_root_is_root_enabled_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.root.is_root_enabled,
+                      instance_info.id)
+
+    # database calls
+    def test_database_index_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.list,
+                      instance_info.id)
+
+    def test_database_delete_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.delete,
+                      instance_info.id, "testdb")
+
+    def test_database_create_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.create,
+                      instance_info.id, instance_info.databases)
+
+    # user calls
+    def test_users_index_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.users.list,
+                      instance_info.id)
+
+    def test_users_delete_after_create(self):
+        assert_raises(exceptions.UnprocessableEntity, dbaas.users.delete,
+                      instance_info.id, "testuser")
+        
+    def test_users_create_after_create(self):
+        users = list()
+        users.append({"name": "testuser", "password": "password",
+                      "database": "testdb"})
+        assert_raises(exceptions.UnprocessableEntity, dbaas.users.create,
+                      instance_info.id, users)
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],

@@ -1,4 +1,6 @@
 from novaclient import base
+from reddwarfclient.common import check_for_exceptions
+import exceptions
 
 
 class Database(base.Resource):
@@ -23,14 +25,17 @@ class Databases(base.ManagerWithFind):
         body = {"databases": databases}
         url = "/instances/%s/databases" % instance_id
         resp, body = self.api.client.post(url, body=body)
+        check_for_exceptions(resp, body)
 
     def delete(self, instance_id, dbname):
         """Delete an existing database in the specified instance"""
         url = "/instances/%s/databases/%s" % (instance_id, dbname)
-        self._delete(url)
+        resp, body = self.api.client.delete(url)
+        check_for_exceptions(resp, body)
 
     def _list(self, url, response_key):
         resp, body = self.api.client.get(url)
+        check_for_exceptions(resp, body)
         if not body:
             raise Exception("Call to " + url +
                             " did not return a body.")

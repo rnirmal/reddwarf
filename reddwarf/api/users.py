@@ -50,7 +50,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_available(ctxt, instance_id, local_id, self.compute_api)
         try:
             result = self.guest_api.list_users(ctxt, local_id)
         except Exception as err:
@@ -72,7 +72,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_available(ctxt, instance_id, local_id, self.compute_api)
         user = models.MySQLUser()
         user.name = id
 
@@ -87,7 +87,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_available(ctxt, instance_id, local_id, self.compute_api)
 
         users = common.populate_users(body.get('users', ''))
         self.guest_api.create_user(ctxt, local_id, users)
