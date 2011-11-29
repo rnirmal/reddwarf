@@ -22,7 +22,7 @@ from nova.compute import power_state
 from nova.db.sqlalchemy.api import is_admin_context
 from nova.guest.db import models
 
-from reddwarf import exception as exception
+from reddwarf import exception
 
 
 XML_NS_V10 = 'http://docs.openstack.org/database/api/v1.0'
@@ -49,32 +49,38 @@ def populate_databases(dbs):
     Create a serializable request with user provided data
     for creating new databases.
     """
-    databases = []
-    for database in dbs:
-        mydb = models.MySQLDatabase()
-        mydb.name = database.get('name', '')
-        mydb.character_set = database.get('character_set', '')
-        mydb.collate = database.get('collate', '')
-        databases.append(mydb.serialize())
-    return databases
+    try:
+        databases = []
+        for database in dbs:
+            mydb = models.MySQLDatabase()
+            mydb.name = database.get('name', '')
+            mydb.character_set = database.get('character_set', '')
+            mydb.collate = database.get('collate', '')
+            databases.append(mydb.serialize())
+        return databases
+    except ValueError as ve:
+        raise exception.BadRequest(ve.message)
 
 
 def populate_users(users):
     """Create a serializable request containing users"""
-    users_data = []
-    for user in users:
-        u = models.MySQLUser()
-        u.name = user.get('name', '')
-        u.password = user.get('password', '')
-        dbname = user.get('database', '')
-        if dbname:
-            u.databases = dbname
-        dbs = user.get('databases', '')
-        if dbs:
-            for db in dbs:
-                u.databases = db.get('name', '')
-        users_data.append(u.serialize())
-    return users_data
+    try:
+        users_data = []
+        for user in users:
+            u = models.MySQLUser()
+            u.name = user.get('name', '')
+            u.password = user.get('password', '')
+            dbname = user.get('database', '')
+            if dbname:
+                u.databases = dbname
+            dbs = user.get('databases', '')
+            if dbs:
+                for db in dbs:
+                    u.databases = db.get('name', '')
+            users_data.append(u.serialize())
+        return users_data
+    except ValueError as ve:
+        raise exception.BadRequest(ve.message)
 
 
 def instance_exists(ctxt, id, compute_api):
