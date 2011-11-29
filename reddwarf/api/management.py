@@ -144,8 +144,10 @@ class Controller(object):
             instance = self._get_guest_info(context, instance_id, status,
                                             instance)
         except Exception as err:
+            msg = "Unable to retrieve information from the guest"
             LOG.error(err)
-            raise exception.InstanceFault("Unable to retrieve information from the guest")
+            LOG.error(msg)
+            raise exception.InstanceFault(msg)
 
         return {'instance': instance}
 
