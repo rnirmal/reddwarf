@@ -50,8 +50,12 @@ def add_support_for_localization():
     gettext.install('nova', unicode=1)
 
 
+MAIN_RUNNER = None
+
 def _clean_up():
-    """Shuts down any services this program has started."""
+    """Shuts down any services this program has started and shows results."""
+    if MAIN_RUNNER is not None:
+        MAIN_RUNNER.on_exit()
     from tests.util.services import get_running_services
     for service in get_running_services():
         sys.stderr.write("Stopping service " + str(service.cmd) + "...\n\r")
@@ -209,13 +213,36 @@ if __name__ == '__main__':
 
 
     class IntegrationTestRunner(NovaTestRunner):
-        
+
+        def init(self):
+            self.__result = None
+            self.__finished = False
+            self.__start_time = None
+
         def _makeResult(self):
-            return IntegrationTestResult(self.stream,
-                                         self.descriptions,
-                                         self.verbosity,
-                                         self.config,
-                                         show_elapsed=self.show_elapsed)
+            self.__result = IntegrationTestResult(
+                self.stream, self.descriptions, self.verbosity, self.config,
+                show_elapsed=self.show_elapsed)
+            self.__start_time = time.time()
+            return self.__result
+
+        def on_exit(self):
+            if self.__result is None:
+                print("Exiting before tests even started.")
+            else:
+                if not self.__finished:
+                    print("Tests aborted, trying to print available results...")
+                    stop_time = time.time()
+                    self.__result.printErrors()
+                    self.__result.printSummary(self.__start_time, stop_time)
+                    self.config.plugins.finalize(self.__result)
+                    if self.show_elapsed:
+                        self._writeSlowTests(self.__result)
+
+        def run(self, test):
+            result = super(IntegrationTestRunner, self).run(test)
+            self.__finished = True
+            return result
 
     testdir = os.path.abspath(os.path.join("nova", "integration", "tests"))
     c = config.Config(stream=sys.stdout,
@@ -227,6 +254,8 @@ if __name__ == '__main__':
                                    verbosity=c.verbosity,
                                    config=c,
                                    show_elapsed=show_elapsed)
+    runner.init()
+    MAIN_RUNNER = runner
 
     proboscis.TestProgram(argv=nose_args, groups=groups,
                           testRunner=runner).run_and_exit()
