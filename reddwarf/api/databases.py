@@ -50,7 +50,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_available(ctxt, instance_id, local_id, self.compute_api)
         try:
             result = self.guest_api.list_databases(ctxt, local_id)
         except Exception as err:
@@ -72,7 +72,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_available(ctxt, instance_id, local_id, self.compute_api)
         mydb = models.MySQLDatabase()
         mydb.name = id
 
@@ -87,7 +87,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, body)
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
-        common.instance_exists(ctxt, instance_id, self.compute_api)
+        common.instance_available(ctxt, instance_id, local_id, self.compute_api)
 
         databases = common.populate_databases(body.get('databases', ''))
         self.guest_api.create_database(ctxt, local_id, databases)

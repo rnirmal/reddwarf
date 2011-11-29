@@ -14,6 +14,8 @@
 #    under the License.
 
 from novaclient import base
+from reddwarfclient.common import check_for_exceptions
+import exceptions
 
 
 class User(base.Resource):
@@ -37,14 +39,17 @@ class Users(base.ManagerWithFind):
         body = {"users": users}
         url = "/instances/%s/users" % instance_id
         resp, body = self.api.client.post(url, body=body)
+        check_for_exceptions(resp, body)
 
     def delete(self, instance_id, user):
         """Delete an existing user in the specified instance"""
         url = "/instances/%s/users/%s"% (instance_id, user)
-        self._delete(url)
+        resp, body = self.api.client.delete(url)
+        check_for_exceptions(resp, body)
 
     def _list(self, url, response_key):
         resp, body = self.api.client.get(url)
+        check_for_exceptions(resp, body)
         if not body:
             raise Exception("Call to " + url +
                             " did not return a body.")

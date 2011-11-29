@@ -21,6 +21,7 @@ from nova import log as logging
 from nova.compute import power_state
 from nova.db.sqlalchemy.api import is_admin_context
 from nova.guest.db import models
+from reddwarf.db import api as dbapi
 
 from reddwarf import exception as exception
 
@@ -84,6 +85,15 @@ def instance_exists(ctxt, id, compute_api):
     except nova_exception.NotFound:
         raise exception.NotFound()
 
+def instance_available(ctxt, instance_id, local_id, compute_api):
+    """ Verify the instance is available"""
+    instance_exists(ctxt, instance_id, compute_api)
+    running = power_state.RUNNING
+    status = dbapi.guest_status_get(local_id).state
+    if status != running:
+        msg = "Instance %s is not currently available." % instance_id
+        LOG.debug(msg)
+        raise exception.UnprocessableEntity(msg)
 
 def verify_admin_context(f):
     """
