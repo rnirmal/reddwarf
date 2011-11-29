@@ -15,7 +15,7 @@
 from webob import exc
 
 
-class BadRequest(exc.WSGIHTTPException, Exception):
+class BadRequest(exc.HTTPBadRequest, Exception):
     def __init__(self, message="The server could not comply with the request "
                        "since it is either malformed or otherwise incorrect."):
         self.explanation = message
@@ -24,7 +24,7 @@ class BadRequest(exc.WSGIHTTPException, Exception):
         super(BadRequest, self).__init__(errstr)
 
 
-class Unauthorized(exc.WSGIHTTPException, Exception):
+class Unauthorized(exc.HTTPUnauthorized, Exception):
     def __init__(self, message="The server could not verify that you are "
                                "authorized to access the requested resource"):
         self.explanation = message
@@ -66,7 +66,7 @@ class NotImplemented(exc.WSGIHTTPException, Exception):
         super(NotImplemented, self).__init__(errstr)
 
 
-class ServiceUnavailable(exc.WSGIHTTPException, Exception):
+class ServiceUnavailable(exc.HTTPServiceUnavailable, Exception):
     def __init__(self, message="The service is not available at this time"):
         self.explanation = message
         self.code = 503
