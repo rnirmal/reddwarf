@@ -117,15 +117,17 @@ class Controller(object):
         server = server_response['server']
 
         guest_state = self.get_guest_state_mapping([server['id']])
+        databases = None
+        root_enabled = None
         if guest_state:
-            databases, enabled = self._get_guest_info(context, server['id'],
+            databases, root_enabled = self._get_guest_info(context, server['id'],
                                                       guest_state[server['id']])
-            instance = self.view.build_single(server, req, guest_state,
-                                              databases=databases,
-                                              root_enabled=enabled)
-        else:
-            instance = self.view.build_single(server, req, guest_state)
-        LOG.debug("instance - %s", instance)
+        instance = self.view.build_single(server,
+                                          req,
+                                          guest_state,
+                                          databases=databases,
+                                          root_enabled=root_enabled)
+        LOG.debug("instance - %s" % instance)
         return {'instance': instance}
 
     def delete(self, req, id):

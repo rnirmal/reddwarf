@@ -114,7 +114,7 @@ class VerifyManagerAbortsInstanceWhenVolumeFails(InstanceTest):
         test_config.volume_service.start()
         restart_compute_service()
         if self.instance_exists:
-            self.db.instance_destroy(context.get_admin_context(), self.id)
+            self.db.instance_destroy(context.get_admin_context(), self.local_id)
 
 
     @test
