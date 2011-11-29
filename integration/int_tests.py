@@ -51,9 +51,12 @@ def add_support_for_localization():
 
 
 MAIN_RUNNER = None
+REPORTER = None
 
 def _clean_up():
     """Shuts down any services this program has started and shows results."""
+    if REPORTER is not None:
+        REPORTER.update()
     if MAIN_RUNNER is not None:
         MAIN_RUNNER.on_exit()
     from tests.util.services import get_running_services
@@ -104,6 +107,9 @@ if __name__ == '__main__':
     from nova import flags
     FLAGS = flags.FLAGS
     FLAGS(sys.argv)
+
+    from tests.util.report import Reporter
+    REPORTER = Reporter(test_config.values["report_directory"])
 
     # Now that the FlagFiles and other args have been parsed, time to import
     # everything.

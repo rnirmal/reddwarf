@@ -34,3 +34,4 @@ integration/.noseids
 .*swp
 .gitignore
 host.Dummy*
+integration/vagrant/report/*
