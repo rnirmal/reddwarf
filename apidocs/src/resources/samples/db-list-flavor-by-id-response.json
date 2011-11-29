@@ -1,3 +1,8 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 1078
+Date: Mon, 28 Nov 2011 21:00:03 GMT
+
 {
     "flavor": {
         "id": 1, 
