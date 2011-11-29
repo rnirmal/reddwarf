@@ -529,6 +529,8 @@ class Resource(wsgi.Application):
         except exception.MalformedRequestBody:
             msg = _("Malformed request body")
             return faults.Fault(webob.exc.HTTPBadRequest(explanation=msg))
+        except Exception as e:
+            return faults.Fault(e)
 
         project_id = args.pop("project_id", None)
         if 'nova.context' in request.environ and project_id:
