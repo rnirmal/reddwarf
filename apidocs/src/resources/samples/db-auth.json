@@ -1,3 +1,8 @@
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=UTF-8
+Content-Length: 477
+Date: Tue, 29 Nov 2011 16:50:31 GMT
+
 {
     "auth" : {
         "token" : {
@@ -7,14 +12,10 @@
         "serviceCatalog" : {
             "cloudDB" : [
                 {
-                    "region" : "DFW",
-                    "v1Default" : true,
-                    "publicURL" : "https://dfw.databases.api.rackspacecloud.com/v1.0/1234"
-                },
-                {
                     "region" : "ORD",
+                    "v1Default" : true,
                     "publicURL" : "https://ord.databases.api.rackspacecloud.com/v1.0/1234"
-                }
+                }       
             ],
             "cloudFilesCDN" : [
                 {

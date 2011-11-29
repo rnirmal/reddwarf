@@ -1,3 +1,8 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 153
+Date: Tue, 29 Nov 2011 00:38:02 GMT
+
 {
     "version": {
         "id": "v1.0",
