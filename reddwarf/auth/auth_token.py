@@ -50,12 +50,12 @@ from datetime import datetime
 from eventlet import wsgi
 from eventlet.green import httplib
 from paste.deploy import loadapp
-from webob.exc import HTTPUnauthorized
-from webob.exc import HTTPServiceUnavailable
-
 
 from nova import log as logging
 from nova import flags
+from nova.api.openstack import faults
+
+from reddwarf import exception
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer('reddwarf_auth_cache_expire_time', 60*5,
@@ -150,7 +150,8 @@ class AuthProtocol(object):
             except :
                 msg = "Authorization Service is not available at this time."
                 LOG.error(msg)
-                return HTTPServiceUnavailable(detail=msg)(env, start_response)
+                return faults.Fault(exception.ServiceUnavailable(msg)) \
+                                    (env, start_response)
 
             valid = self._validate_status(status)
             if not valid:
@@ -213,24 +214,21 @@ class AuthProtocol(object):
                 if response.status == 302:
                     # Can be ignored because the service relies on basic auth
                     return ""
-                raise HTTPUnauthorized("Error authenticating service")
+                raise exception.Unauthorized("Error authenticating service")
             else:
                 body = json.loads(data)
                 admin_token = body['auth']['token']['id']
                 return admin_token
         except:
-            raise HTTPUnauthorized("Error authenticating service")
+            raise exception.Unauthorized("Error authenticating service")
 
     def _reject_request(self, env, start_response):
         """Redirect client to auth server"""
-        return HTTPUnauthorized("Authentication required",
-                    [("WWW-Authenticate",
-                      "Keystone uri='%s'" % self.auth_location)])(env,
-                                                        start_response)
+        return faults.Fault(exception.Unauthorized())(env, start_response)
 
     def _reject_claims(self, env, start_response):
         """Client sent bad claims"""
-        return HTTPUnauthorized()(env, start_response)
+        return faults.Fault(exception.Unauthorized())(env, start_response)
 
     def _validate_token(self, claims, tenant=None):
         """Make the call to Keystone and get the return code and data"""

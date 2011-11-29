@@ -21,15 +21,16 @@ This WSGI component allows keystone act as an identity service for nova by
 lazy provisioning nova projects/users as authenticated by auth_token.
 
 """
+import webob.dec
 
 from nova import auth
 from nova import context
 from nova import flags
 from nova import utils
 from nova import wsgi
-import webob.dec
-import webob.exc
+from nova.api.openstack import faults
 
+from reddwarf import exception
 
 FLAGS = flags.FLAGS
 
@@ -50,7 +51,7 @@ class KeystoneAuthShim(wsgi.Middleware):
         try:
             user_id = req.headers['X_USER']
         except:
-            return webob.exc.HTTPUnauthorized()
+            return faults.Fault(exception.Unauthorized())
         try:
             user_ref = self.auth.get_user(user_id)
         except:
