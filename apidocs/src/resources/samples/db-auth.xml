@@ -8,12 +8,6 @@ Date: Wed, 23 Nov 2011 18:14:30 GMT
   <token id="asdasdasd-adsasdads-asdasdasd-adsadsasd"
          expires="2010-11-01T03:32:15-05:00" />
   <serviceCatalog>
-    <service name="cloudDB">
-      <endpoint
-          region="ORD"
-          v1Default="true"
-          publicURL="https://ord.databases.api.rackspacecloud.com/v1.0/1234" />
-    </service>
     <service name="cloudFilesCDN">
       <endpoint
           region="DFW"
