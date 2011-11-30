@@ -25,6 +25,8 @@ import os
 import re
 import paramiko
 import pexpect
+import random
+from eventlet import greenthread
 from xml.etree import ElementTree
 
 from nova import exception
@@ -88,36 +90,45 @@ class SanISCSIDriver(ISCSIDriver):
     # undiscover_volume is still OK
 
     def _connect_to_ssh(self):
-        ssh = paramiko.SSHClient()
-        #TODO(justinsb): We need a better SSH key policy
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if FLAGS.san_password:
-            ssh.connect(FLAGS.san_ip,
-                        port=FLAGS.san_ssh_port,
-                        username=FLAGS.san_login,
-                        password=FLAGS.san_password)
-        elif FLAGS.san_privatekey:
-            privatekeyfile = os.path.expanduser(FLAGS.san_privatekey)
-            # It sucks that paramiko doesn't support DSA keys
-            privatekey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-            ssh.connect(FLAGS.san_ip,
-                        port=FLAGS.san_ssh_port,
-                        username=FLAGS.san_login,
-                        pkey=privatekey)
-        else:
-            raise exception.Error(_("Specify san_password or san_privatekey"))
-        return ssh
+        attempts = FLAGS.num_shell_tries
+        max_sleep = FLAGS.max_sleep_between_shell_tries * 100
+        while attempts > 0:
+            attempts -= 1
+            try:
+                ssh = paramiko.SSHClient()
+                #TODO(justinsb): We need a better SSH key policy
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                if FLAGS.san_password:
+                    ssh.connect(FLAGS.san_ip,
+                                port=FLAGS.san_ssh_port,
+                                username=FLAGS.san_login,
+                                password=FLAGS.san_password)
+                elif FLAGS.san_privatekey:
+                    privatekeyfile = os.path.expanduser(FLAGS.san_privatekey)
+                    privatekey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+                    ssh.connect(FLAGS.san_ip,
+                                port=FLAGS.san_ssh_port,
+                                username=FLAGS.san_login,
+                                pkey=privatekey)
+                else:
+                    raise exception.Error(_("Specify san_password or san_privatekey"))
+                return ssh
+            except Exception as e:
+                LOG.error(_("Error connecting via ssh: %s" % e))
+                greenthread.sleep(random.randint(20, max_sleep) / 100.0)
+        raise Exception("Error in ssh connect after '%r' attempts"
+                        % FLAGS.num_shell_tries)
 
     def _run_ssh(self, command, check_exit_code=True):
         #TODO(justinsb): SSH connection caching (?)
-        ssh = self._connect_to_ssh()
-
-        #TODO(justinsb): Reintroduce the retry hack
-        ret = ssh_execute(ssh, command, check_exit_code=check_exit_code)
-
-        ssh.close()
-
-        return ret
+        try:
+            ssh = self._connect_to_ssh()
+            ret = ssh_execute(ssh, command, check_exit_code=check_exit_code)
+            ssh.close()
+            return ret
+        except Exception as e:
+            LOG.error(_("Error running ssh command: %s" % command))
+            raise e
 
     def ensure_export(self, context, volume):
         """Synchronously recreates an export for a logical volume."""

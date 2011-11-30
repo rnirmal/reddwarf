@@ -41,6 +41,8 @@ flags.DEFINE_string('aoe_eth_dev', 'eth0',
                     'Which device to export the volumes on')
 flags.DEFINE_integer('num_shell_tries', 3,
                     'number of times to attempt to run flakey shell commands')
+flags.DEFINE_integer('max_sleep_between_shell_tries', 5,
+                     'Max. seconds to sleep between shell retries')
 flags.DEFINE_integer('num_shelves',
                     100,
                     'Number of vblade shelves')
