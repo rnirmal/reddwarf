@@ -39,17 +39,21 @@ instances_url = util.v1_instances_prefix
 def localid_from_uuid(id):
     return id
 
-def compute_get(ctxt, id):
+def compute_delete(self, ctxt, id):
+    return
+
+def compute_get(self, ctxt, id):
     return {'vm_state': vm_states.ACTIVE,
             'id': 1,}
 
-def compute_get_exception(ctxt, id):
+def compute_get_exception(self, ctxt, id):
     raise nova_exception.NotFound()
 
-def compute_get_building(ctxt, id):
+def compute_get_building(self, ctxt, id):
     return {'vm_state': vm_states.BUILDING,
             'id': 1,
             }
+
 def guest_status_get_running(id, session=None):
     status = models.GuestStatus()
     status.state = power_state.RUNNING
@@ -60,10 +64,11 @@ def guest_status_get_failed(id, session=None):
     status.state = power_state.FAILED
     return status
 
-def request_obj(url, method, body):
+def request_obj(url, method, body={}):
     req = webob.Request.blank(url)
     req.method = method
-    req.body = json.dumps(body)
+    if method in ['POST', 'PUT']:
+        req.body = json.dumps(body)
     req.headers["content-type"] = "application/json"
     return req
 
@@ -81,25 +86,23 @@ class InstanceApiTest(test.TestCase):
         self.stubs.UnsetAll()
         super(InstanceApiTest, self).tearDown()
 
-    def test_instances_delete(self):
+    def test_instances_delete_not_found(self):
         self.stubs.Set(nova.compute.API, "get", compute_get_exception)
-        body = {}
-        req = request_obj('%s/1' % instances_url, 'DELETE', body)
+        req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 404)
 
-    def test_instances_delete(self):
+    def test_instances_delete_unprocessable(self):
         self.stubs.Set(nova.compute.API, "get", compute_get_building)
         self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_running)
-        body = {}
-        req = request_obj('%s/1' % instances_url, 'DELETE', body)
+        req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 422)
 
     def test_instances_delete_failed(self):
+        self.stubs.Set(nova.compute.API, "delete", compute_delete)
         self.stubs.Set(nova.compute.API, "get", compute_get_building)
         self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_failed)
-        body = {}
-        req = request_obj('%s/1' % instances_url, 'DELETE', body)
+        req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 202)

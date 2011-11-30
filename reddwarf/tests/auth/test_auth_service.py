@@ -16,114 +16,99 @@
 Tests the Authorization Service
 """
 
+import json
 import mox
-import unittest
+import stubout
+import webob
 
-from beaker.cache import CacheManager
 from nova import test
 from nova import flags
-import reddwarf.auth.auth_token as auth
-import reddwarf.auth.nova_auth_token
-from webob.exc import HTTPUnauthorized
+from nova import context
+
+from reddwarf.api import flavors
+from reddwarf.auth import auth_token
+from reddwarf.auth import nova_auth_token
+from reddwarf.tests import util
+
+flavors_url = "%s/flavors" % util.v1_prefix
 
 FLAGS = flags.FLAGS
-CONF = {
-    "__file__": "/home/vagrant/reddwarf-api-paste.ini",
-    "auth_host": "127.0.0.1",
-    "auth_port": "5001",
-    "auth_protocol": "http",
-    "auth_version": "v1.1",
-    "cache-type": "memory",
-    "here": "/home/vagrant",
-    "service_host": "127.0.0.1",
-    "service_pass": "serviceadmin",
-    "service_port": "5000",
-    "service_protocol": "http",
-    "service_user": "service-admin",
-    "verbose": "1"
-}
-ENV = {
-    "CONTENT_TYPE": "text/plain",
-    "GATEWAY_INTERFACE": "CGI/1.1",
-    "HTTP_ACCEPT_ENCODING": "gzip, deflate",
-    "HTTP_HOST": "localhost:8775",
-    "HTTP_USER_AGENT": "python-novaclient",
-    "HTTP_X_AUTH_PROJECT_ID": "admin",
-    "HTTP_X_AUTH_TOKEN": "6df9c830-d3b0-41e7-bb56-3c568ae71f48",
-    "PATH_INFO": "/dbaas/flavors/detail",
-    "QUERY_STRING": "fresh=1321634468.05",
-    "REMOTE_ADDR": "127.0.0.1",
-    "REQUEST_METHOD": "GET",
-    "SCRIPT_NAME": "/v1.0",
-    "SERVER_NAME": "127.0.0.1",
-    "SERVER_PORT": "8775",
-    "SERVER_PROTOCOL": "HTTP/1.0",
-    "wsgi.url_scheme": "http"
-}
+
+data = json.dumps({'token': {'userId': 'admin'}})
+TOKEN = "6df9c830-d3b0-41e7-bb56-3c568ae71f48"
+unauth_response = {"unauthorized":
+                    {"message": "The server could not verify that you are authorized to access the requested resource",
+                     "code": 401}
+                  }
+
+
+def get_admin_auth_token(self, username, password):
+    return "aat"
+
+
+def validate_token(self, claims, tenant=None):
+    if claims == TOKEN:
+        return data, 200
+    else:
+        return data, 401
+
 
 class AuthApiTest(test.TestCase):
     """Test various configuration update scenarios"""
 
     def setUp(self):
         super(AuthApiTest, self).setUp()
-#        self.mox = mox.Mox()
-        app = reddwarf.auth.nova_auth_token.KeystoneAuthShim(None)
+        self.context = context.get_admin_context()
+        self.controller = flavors.ControllerV10()
+        self.stubs.Set(auth_token.AuthProtocol, "get_admin_auth_token",
+                       get_admin_auth_token)
+        self.stubs.Set(auth_token.AuthProtocol, "_validate_token",
+                       validate_token)
+        app = nova_auth_token.KeystoneAuthShim(None)
+        self.auth = auth_token.AuthProtocol(app, {})
 
-        self.auth = auth.AuthProtocol(app, CONF)
+    def tearDown(self):
+        self.stubs.UnsetAll()
+        super(AuthApiTest, self).tearDown()
 
-        # Create cache manager
-        self.cache_type = CONF.get('cache_type', 'memory')
-        cm = CacheManager(type=self.cache_type)
-        self.cache = cm.get_cache('dbaas')
-        
-    def test_1_make_auth_call(self):
-        start_response = {}
+    def _assert_401(self, res):
+        self.assertDictMatch(json.loads(res.body), unauth_response)
+        self.assertEqual(res.status_int, 401)
 
-        self.mox.StubOutWithMock(self.auth, '__call__')
-        self.auth.__call__(ENV, start_response).AndReturn(None)
-        self.mox.ReplayAll()
+    def test_valid_token(self):
+        req = webob.Request.blank(flavors_url)
+        req.headers = [("X_AUTH_PROJECT_ID", "dbaas"),
+                       ("X-AUTH-TOKEN", TOKEN)]
+        res = req.get_response(util.wsgi_app(fake_auth=False))
+        self.assertEqual(res.status_int, 200)
 
-        self.assertEqual(self.auth.__call__(ENV, start_response), None)
+    def test_invalid_token(self):
+        req = webob.Request.blank(flavors_url)
+        req.headers = [("X_AUTH_PROJECT_ID", "dbaas"),
+                       ("X-AUTH-TOKEN", "aat-asd")]
+        res = req.get_response(util.wsgi_app(fake_auth=False))
+        self._assert_401(res)
 
-    def test_2_get_claims(self):
-        claim = self.auth._get_claims(ENV)
-        self.assertEqual(claim, ENV.get('HTTP_X_AUTH_TOKEN'))
+    def test_no_claims_provided(self):
+        req = webob.Request.blank(flavors_url)
+        req.headers = [("X_AUTH_PROJECT_ID", "dbaas")]
+        res = req.get_response(util.wsgi_app(fake_auth=False))
+        self._assert_401(res)
 
-    def test_3_get_admin_auth_token_valid(self):
-        service_user = ENV.get('service_user')
-        service_pass = ENV.get('service_pass')
-        admin_token = 'admintoken'
+    def test_no_auth_project_id(self):
+        req = webob.Request.blank(flavors_url)
+        req.headers = [("X-AUTH-TOKEN", TOKEN)]
+        res = req.get_response(util.wsgi_app(fake_auth=False))
+        self._assert_401(res)
 
-        self.mox.StubOutWithMock(self.auth, 'get_admin_auth_token')
-        self.auth.get_admin_auth_token(service_user, service_pass).AndReturn(admin_token)
-        self.mox.ReplayAll()
+    def test_auth_project_id_path_no_match(self):
+        req = webob.Request.blank(flavors_url)
+        req.headers = [("X_AUTH_PROJECT_ID", "other"),
+                       ("X-AUTH-TOKEN", TOKEN)]
+        res = req.get_response(util.wsgi_app(fake_auth=False))
+        self._assert_401(res)
 
-        token = self.auth.get_admin_auth_token(service_user, service_pass)
-        self.assertEqual(admin_token, token)
-
-    def test_4_get_admin_auth_token_fail(self):
-        service_user = 'service_user'
-        service_pass = 'service_pass'
-        self.assertRaises(HTTPUnauthorized, self.auth.get_admin_auth_token, service_user, service_pass)
-
-    def test_5_reject_request(self):
-        self.mox.StubOutWithMock(self.auth, '_reject_request')
-        self.auth._reject_request(ENV, {}).AndReturn(HTTPUnauthorized)
-        self.mox.ReplayAll()
-        self.assertEqual(HTTPUnauthorized, self.auth._reject_request(ENV, {}))
-
-    def test_6_reject_claims(self):
-        self.mox.StubOutWithMock(self.auth, '_reject_claims')
-        self.auth._reject_claims(ENV, {}).AndReturn(HTTPUnauthorized)
-        self.mox.ReplayAll()
-        result = self.auth._reject_claims(ENV, {})
-        self.assertEqual(HTTPUnauthorized, result)
-
-    def test_7_validate_token(self):
-        claim = self.auth._get_claims(ENV)
-        data, status = self.auth._validate_token(claim)
-
-    def test_8_validate_status(self):
+    def test_validate_status(self):
         status = 200
         self.assertTrue(self.auth._validate_status(status))
         status = 202
@@ -135,3 +120,11 @@ class AuthApiTest(test.TestCase):
         status = 503
         self.assertFalse(self.auth._validate_status(status))
 
+    def test_cache_hit(self):
+        cache_key = "aat/dbaas"
+        self.auth.cache.set_value(cache_key, (data, 200))
+        req = webob.Request.blank(flavors_url)
+        req.headers = [("X_AUTH_PROJECT_ID", "dbaas"),
+                       ("X-AUTH-TOKEN", "aat")]
+        res = req.get_response(util.wsgi_app(fake_auth=False))
+        self.assertEqual(res.status_int, 200)
