@@ -8,7 +8,7 @@ from sqlalchemy.sql.expression import text
 from nova import context
 from nova import db
 from nova.guest.dbaas import LocalSqlClient
-from novaclient.exceptions import NotFound
+from novaclient import exceptions as nova_exceptions
 
 from nose.tools import assert_equal
 from nose.tools import assert_not_equal
@@ -18,7 +18,7 @@ from nose.tools import assert_false
 from proboscis import before_class
 from proboscis import test
 from proboscis.asserts import fail
-from proboscis.decorators import expect_exception
+from proboscis.asserts import assert_raises
 from proboscis.decorators import time_out
 from tests.dbaas.instances import instance_info
 from tests.dbaas.instances import GROUP_START
@@ -156,17 +156,16 @@ class TestDatabases(unittest.TestCase):
             found = any(result.name == db for result in databases)
             self.assertFalse(found, "Database '%s' SHOULD NOT be found in result" %db)
             found = False
-            
-    @expect_exception(NotFound)
+
     def test_create_database_on_missing_instance(self):
         databases = [{"name": "invalid_db", "charset": "latin2",
                       "collate": "latin2_general_ci"}]
-        dbaas.databases.create(-1, databases)
+        assert_raises(nova_exceptions.NotFound, dbaas.databases.create,
+                      -1, databases)
 
-    @expect_exception(NotFound)
     def test_delete_database_on_missing_instance(self):
-        global dbaas
-        dbaas.databases.delete(-1,  self.dbname_urlencoded)
+        assert_raises(nova_exceptions.NotFound, dbaas.databases.delete,
+                      -1, self.dbname_urlencoded)
 
     def test_delete_database(self):
         global dbaas
@@ -177,6 +176,18 @@ class TestDatabases(unittest.TestCase):
             self.assertTrue(True)
         else:
             self.assertFalse(True)
+
+    def test_database_name_too_long(self):
+        databases = []
+        databases.append({"name": "aasdlkhaglkjhakjdkjgfakjgadgfkajsg34523dfkljgasldkjfglkjadsgflkjagsdd"})
+        assert_raises(nova_exceptions.BadRequest, dbaas.databases.create,
+                      instance_info.id, databases)
+
+    def test_invalid_database_name(self):
+        databases = []
+        databases.append({"name": "sdfsd,"})
+        assert_raises(nova_exceptions.BadRequest, dbaas.databases.create,
+                      instance_info.id, databases)
 
 
 @test(depends_on_classes=[TestDatabases], groups=[GROUP_TEST, 'rootenabled',
@@ -260,6 +271,27 @@ class TestUsers(object):
             default_db = re.compile("[\w\n]*%s[\w\n]*" % db)
             if not default_db.match(dblist):
                 fail("No match for db %s in dblist. :(" % (db, dblist))
+
+    def test_username_too_long(self):
+        users = []
+        users.append({"name": "1233asdwer345tyg56", "password": self.password,
+                      "database": self.db1})
+        assert_raises(nova_exceptions.BadRequest, dbaas.users.create,
+                      instance_info.id, users)
+
+    def test_invalid_username(self):
+        users = []
+        users.append({"name": "user,", "password": self.password,
+                      "database": self.db1})
+        assert_raises(nova_exceptions.BadRequest, dbaas.users.create,
+                      instance_info.id, users)
+
+    def test_invalid_password(self):
+        users = []
+        users.append({"name": "anouser", "password": "sdf,;",
+                      "database": self.db1})
+        assert_raises(nova_exceptions.BadRequest, dbaas.users.create,
+                      instance_info.id, users)
 
     def _check_connection(self, username, password):
         pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
