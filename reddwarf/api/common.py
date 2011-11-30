@@ -117,6 +117,6 @@ def verify_admin_context(f):
         if context is None:
           raise nova_exception.Error("Request context is None; cannot verify admin access.")
         if not is_admin_context(context):
-            raise nova_exception.AdminRequired()
+            raise exception.Unauthorized()
         return f(*args, **kwargs)
     return wrapper
