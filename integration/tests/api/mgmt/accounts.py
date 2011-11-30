@@ -24,7 +24,7 @@ from proboscis.asserts import assert_true
 from proboscis.asserts import fail
 
 import tests
-from tests.dbaas.instances import instance_info
+from tests.api.instances import instance_info
 from tests.util import test_config
 from tests.util import create_dbaas_client
 from tests.util.users import Requirements
@@ -62,9 +62,9 @@ class AccountsAfterInstanceCreation(object):
 
     @test
     def test_account_details_available(self):
-        account_info = self.client.accounts.accounts.show(self.user.auth_user)
+        account_info = self.client.accounts.show(instance_info.user.auth_user)
         # Now check the results.
-        assert_equal(account_info.name, self.user.auth_user)
+        assert_equal(account_info.name, instance_info.user.auth_user)
         # Instances: Here we know we've only created one host.
         assert_equal(1, len(account_info.hosts))
         assert_equal(1, len(account_info.hosts[0]['instances']))
@@ -85,5 +85,5 @@ class AccountsAfterInstanceDeletion(object):
 
     @test
     def test_no_details_empty_account(self):
-        account_info = self.client.accounts.show(self.user.auth_user)
+        account_info = self.client.accounts.show(instance_info.user.auth_user)
         assert_equal(0, len(account_info.hosts))
