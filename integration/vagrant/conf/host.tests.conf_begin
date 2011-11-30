@@ -10,6 +10,7 @@
 	"nova_url":"http://localhost:8774/v1.1",
 	"nova_auth_url":"http://localhost:5000/v2.0",
 	"reddwarf_auth_url":"http://localhost:5000/v1.1",
+	"report_directory":"/vagrant/report",
 	"nova_code_root":"/src",
 	"nova_conf":"/home/vagrant/nova.conf",
 	"keystone_conf":"/etc/keystone/keystone.conf",
