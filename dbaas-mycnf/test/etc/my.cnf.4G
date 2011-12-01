@@ -94,6 +94,7 @@ innodb_buffer_pool_size = 1200M
 innodb_file_per_table = 1
 innodb_log_files_in_group = 2
 innodb_log_file_size=50M
+innodb_log_buffer_size=25M
 
 # Timeouts
 connect_timeout = 15
@@ -116,10 +117,9 @@ sort_buffer_size = 1M
 # note: if you are setting up a replication slave, see README.Debian about
 # other settings you may need to change.
 #server-id = 1
-log_bin = /var/lib/mysql/mysql-bin.log
-#### expire_logs_days = 10
-expire_logs_days = 2
-max_binlog_size = 100M
+#log_bin = /var/lib/mysql/mysql-bin.log
+#expire_logs_days = 10
+#max_binlog_size = 100M
 
 
 # Temp table
