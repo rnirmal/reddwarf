@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from novaclient.exceptions import ClientException
+from novaclient.exceptions import Unauthorized
 
 from proboscis import before_class
 from proboscis import test
@@ -43,22 +43,22 @@ class TestAdminRequired(object):
     @test
     def test_accounts_show(self):
         """ A regular user may not view the details of any account. """
-        assert_raises(ClientException, self.dbaas.accounts.show, 0)
+        assert_raises(Unauthorized, self.dbaas.accounts.show, 0)
 
     @test
     def test_hosts_index(self):
         """ A regular user may not view the list of hosts. """
-        assert_raises(ClientException, self.dbaas.hosts.index)
+        assert_raises(Unauthorized, self.dbaas.hosts.index)
 
     @test
     def test_hosts_get(self):
         """ A regular user may not view the details of any host. """
-        assert_raises(ClientException, self.dbaas.hosts.get, 0)
+        assert_raises(Unauthorized, self.dbaas.hosts.get, 0)
 
     @test
     def test_mgmt_show(self):
         """ A regular user may not view the management details of any instance. """
-        assert_raises(ClientException, self.dbaas.management.show, 0)
+        assert_raises(Unauthorized, self.dbaas.management.show, 0)
 
     @test
     def test_mgmt_root_history(self):
@@ -66,10 +66,10 @@ class TestAdminRequired(object):
         A regular user may not view the root access history of
         any instance.
         """
-        assert_raises(ClientException,
+        assert_raises(Unauthorized,
                       self.dbaas.management.root_enabled_history, 0)
 
     @test
     def test_storage_index(self):
         """ A regular user may not view the list of storage available. """
-        assert_raises(ClientException, self.dbaas.storage.index)
+        assert_raises(Unauthorized, self.dbaas.storage.index)
