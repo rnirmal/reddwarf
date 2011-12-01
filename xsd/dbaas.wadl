@@ -118,7 +118,7 @@
             </para>
             <para>This operation lists information about all versions of the API.</para>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml" >
                  <doc>
                      <para xmlns="http://docbook.org/ns/docbook">The following examples show the List Versions responses:</para>
@@ -148,7 +148,7 @@
                 <para>You can create a database instance with one or more databases, but not with users.</para>
             </listitem>
             <listitem>
-                <para>Refer to <xref linkend="POST_createUser__version__instances__instanceId__users_user_management"/> for information about creating users for the database instance.</para>
+                <para>Refer to <xref linkend="POST_createUser__version___accountID__instances__instanceId__users_user_management"/> for information about creating users for the database instance.</para>
             </listitem>
             <listitem>
                 <para>The default binding for the MySQL instance is port 3306.</para>
@@ -167,7 +167,8 @@
             <tbody>
                 <tr>
                     <td colspan="1">flavorRef</td>
-                    <td colspan="3">Reference (href) to a flavor as specified in the response from the List Flavors API call. This is the actual URI as specified by the href field in the link. For example, in the following List Flavors response, the link to flavor id 3 is specified as "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/3". Refer to <xref linkend="GET_getFlavors__version__flavors_flavors"/> for details.</td>
+                    <td colspan="3">Reference (href) to a flavor as specified in the response from the List Flavors API call. This is the actual URI as specified by the href field in the link. For example, in the following List Flavors response, the link to flavor id 1 is specified as "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1". 
+                        Refer to <xref linkend="GET_getFlavors__version___accountID__flavors_flavors"/> for details.</td>
                     <td colspan="1">Yes</td>
                 </tr>
                 <tr>
@@ -182,7 +183,7 @@
                 </tr>
                 <tr>
                     <td colspan="1">databases</td>
-                    <td colspan="3">Specifies database names for creating databases on instance creation. Refer to <xref linkend="POST_createDatabase__version__instances__instanceId__databases_databases"/> for the required xml/json format.</td>
+                    <td colspan="3">Specifies database names for creating databases on instance creation. Refer to <xref linkend="POST_createDatabase__version___accountID__instances__instanceId__databases_databases"/> for the required xml/json format.</td>
                     <td colspan="1">No</td>
                 </tr>
                 <tr>
@@ -204,7 +205,6 @@
             <representation mediaType="application/xml"
                 element="dbaas:DatabaseInstance">
                 <doc>
-                    <?hard-pagebreak?>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the Create Database Instance requests and responses:</para>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-create-database-instance-request.xml"/>
                 </doc>
@@ -215,7 +215,7 @@
                 </doc>
             </representation>
         </request>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml" element="dbaas:DatabaseInstance" >
                 <doc>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-create-database-instance-response.xml"/>
@@ -260,7 +260,7 @@
             <para>This operation lists the status and summary information for all database instances.</para>
             <para>Refer to <xref linkend="database_instance_status"/> for a list of possible database instance statuses that may be returned.</para>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml" >
                 <doc>
                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the List All Database Instances responses:</para>
@@ -284,7 +284,7 @@
             <para>Refer to <xref linkend="database_instance_status"/> for a list of possible database instance statuses that may be returned.</para>
             <para>The list operations return a DNS-resolvable hostname associated with the database instance instead of an IP address. Since the hostname always resolves to the correct IP address of the database instance, this relieves the user from the task of maintaining the mapping. Note that although the IP address may likely change on resizing, migrating, and so forth, the hostname always resolves to the correct database instance.</para>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml" element="dbaas:DatabaseInstances" >
                 <doc>
                     <?hard-pagebreak?>
@@ -310,7 +310,7 @@
             <para>The list operations return a DNS-resolvable hostname associated with the database instance instead of an IP address. Since the hostname always resolves to the correct IP address of the database instance, this relieves the user from the task of maintaining the mapping. Note that although the IP address may likely change on resizing, migrating, and so forth, the hostname always resolves to the correct database instance.</para>
         </wadl:doc>
         <request></request>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:DatabaseInstance" >
                 <doc>
@@ -396,6 +396,7 @@
             </table>
 
             <table rules="all" width="40%">
+                <?dbfo keep-together="always"?>
                 <caption>Characters That <emphasis>Cannot</emphasis> Be Used in a Database Name</caption>
                 <col width="100%"/>
                 <thead>
@@ -471,7 +472,7 @@
             <para>This operation lists the databases for the specified instance.</para>
             <note>This operation returns only the user-defined databases, not the system databases. The system databases (mysql, information_schema, lost+found) can only be viewed by a database administrator.</note>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:Databases" >
                 <doc>
@@ -635,7 +636,6 @@
             </representation>
             <representation mediaType="application/json" >
                 <doc>
-                    <?hard-pagebreak?>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-create-user-request.json"/>
                 </doc>
             </representation>
@@ -667,7 +667,7 @@
                 </listitem>
             </itemizedlist>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:Users" >
                 <doc>
@@ -704,7 +704,7 @@
             <para>This operation enables login from any host for the root user and provides the user with a generated root password.</para>
             <note>Changes you make as a root user may cause detrimental effects to the database instance and unpredictable behavior for API operations. When you enable the root user, you accept the possibility that we will not be able to support your database instance. While enabling root does not prevent us from a “best effort” approach to helping you if something goes wrong with your instance, we cannot ensure that we will be able to assist you if you change core MySQL settings. These changes can be (but are not limited to) turning off binlogs, removing users that we use to access your instance, and so forth.</note>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:User">
                 <doc>
@@ -729,7 +729,7 @@
             <para role="shortdesc">Returns true if root user is enabled for the specified database instance or false otherwise.</para>
             <para>This operation checks an active specified database instance to see if root access is enabled. It returns True if root user is enabled for the specified database instance or False otherwise.</para>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:RootEnabled" >
                 <doc>
@@ -756,7 +756,7 @@
             <para>This resource is identical to the flavors found in the OpenStack Nova API, but without the disk property.</para>
             <remark>Reviewer: please check that the xml example below is now correct. Previously it was reported to be incorrect.</remark>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:Flavors" >
                 <doc>
@@ -767,6 +767,7 @@
             <representation mediaType="application/json"
                 element="dbaas:Flavors" >
                 <doc>
+                    <?hard-pagebreak?>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-list-flavors-response.json"/>
                 </doc>
             </representation>
@@ -781,7 +782,7 @@
             <para>This operation lists all available flavors with details of the RAM.</para>
             <para>This resource is identical to the flavors found in the OpenStack Nova API, but without the disk property.</para>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:Flavors" >
                 <doc>
@@ -792,6 +793,7 @@
             <representation mediaType="application/json"
                 element="dbaas:Flavors" >
                 <doc>
+                    <?hard-pagebreak?>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-list-flavors-details-response.json"/>
                 </doc>
             </representation>
@@ -806,7 +808,7 @@
             <para>This operation lists all information for the specified flavor ID with details of the RAM.</para>
             <para>This resource is identical to the flavors found in the OpenStack Nova API, but without the disk property.</para>
         </wadl:doc>
-        <response status="202">
+        <response status="200">
             <representation mediaType="application/xml"
                 element="dbaas:Flavor" >
                 <doc>

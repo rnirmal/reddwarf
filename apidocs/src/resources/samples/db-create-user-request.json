@@ -3,7 +3,7 @@ User-Agent: curl/7.21.0 (x86_64-pc-linux-gnu) libcurl/7.21.0 OpenSSL/0.9.8o zlib
 Host: ord.databases.api.rackspacecloud.com
 Accept: application/json
 X-Auth-Token: 73e23bdd-0faf-4beb-9028-22f8541c7da7
-X_AUTH_PROJECT_ID: 1234
+X-Auth-Project-ID: 1234
 Content-Type: application/json
 Content-Length: 81
 
