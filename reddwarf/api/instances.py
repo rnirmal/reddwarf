@@ -160,9 +160,17 @@ class Controller(object):
              nova_common.vm_states.BUILDING,
         ]
         if compute_response['vm_state'] in build_states:
-            # If the state is building then we throw an exception back
-            raise exception.UnprocessableEntity("Instance %s is not ready."
-                                                % id)
+            # what if guest_state is failed and vm_state is still building
+            # need to be able to delete instance still
+            deletable_states = [
+                power_state.FAILED,
+            ]
+            status = dbapi.guest_status_get(instance_id).state
+            if not status in deletable_states:
+                LOG.debug("guest status(%s) will not allow delete" % status)
+                # If the state is building then we throw an exception back
+                raise exception.UnprocessableEntity("Instance %s is not ready."
+                                                    % id)
 
         self.server_controller.delete(req, instance_id)
         #TODO(rnirmal): Use a deferred here to update status
