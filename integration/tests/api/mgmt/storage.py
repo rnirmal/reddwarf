@@ -23,8 +23,8 @@ from proboscis.asserts import assert_true
 from proboscis.asserts import fail
 
 import tests
-from tests.dbaas.instances import  CheckInstance
-from tests.dbaas.instances import instance_info
+from tests.api.instances import CheckInstance
+from tests.api.instances import instance_info
 from tests.util import test_config
 from tests.util import create_dbaas_client
 from tests.util.users import Requirements
@@ -56,7 +56,7 @@ class StorageBeforeInstanceCreation(object):
 
 
 @test(groups=[tests.INSTANCES, GROUP], depends_on_groups=["dbaas.listing"])
-class AccountsAfterInstanceCreation(object):
+class StorageAfterInstanceCreation(object):
 
     @before_class
     def setUp(self):

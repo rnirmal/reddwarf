@@ -124,12 +124,15 @@ if __name__ == '__main__':
         from tests import initialize
         from tests.api import flavors
         from tests.api import versions
+        from tests.api import instances
+        from tests.api import databases
+        from tests.api import users
         from tests.api.mgmt import accounts
         from tests.api.mgmt import admin_required
         from tests.api.mgmt import hosts
         from tests.api.mgmt import storage
-        from tests.dbaas import dbaas_ovz
-        from tests.dbaas import dns
+        from tests.openvz import dbaas_ovz
+        from tests.dns import dns
         from tests.guest import amqp_restarts
         from tests.guest import dbaas_tests
         from tests.guest import pkg_tests
@@ -138,7 +141,7 @@ if __name__ == '__main__':
         from tests.scheduler import SCHEDULER_DRIVER_GROUP
         from tests.volumes import driver
         from tests.volumes import VOLUMES_DRIVER
-        from tests.dbaas import guest_initialize_failure
+        from tests.compute import guest_initialize_failure
         from tests import util
 
         host_ovz_groups = [

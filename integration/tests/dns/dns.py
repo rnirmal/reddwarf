@@ -8,10 +8,10 @@ from reddwarfclient import Dbaas
 from nova import flags
 from nova import utils
 import rsdns
-from tests.dbaas.instances import instance_info
-from tests.dbaas.instances import GROUP_START as INSTANCE_START
-from tests.dbaas.instances import GROUP_TEST
-from tests.dbaas.instances import GROUP_STOP as INSTANCE_STOP
+from tests.api.instances import instance_info
+from tests.api.instances import GROUP_START as INSTANCE_START
+from tests.api.instances import GROUP_TEST
+from tests.api.instances import GROUP_STOP as INSTANCE_STOP
 
 dns_driver = None
 

@@ -554,7 +554,7 @@ class TestInstanceListing(object):
         CheckInstance(result._info).volume_mgmt()
 
 
-@test(depends_on_groups=[GROUP_TEST], groups=[GROUP, GROUP_STOP])
+@test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])
 class DeleteInstance(unittest.TestCase):
     """ Delete the created instance """
 
