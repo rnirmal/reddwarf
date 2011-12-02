@@ -734,6 +734,9 @@ run_agent_tests() {
     echo "Agent tests : APT"
     TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
 
+    echo "Agent tests : MySqlNovaUpdater"
+    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug mysql_nova_updater_tests
+
     echo "Agent tests : Rabbit Reconnects"
     run_tests --group=agent
 }
