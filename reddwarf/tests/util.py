@@ -21,9 +21,9 @@ from nova import flags
 from nova.api import openstack
 from nova.api import auth as api_auth
 from nova.api.openstack import limits
-from nova.api.openstack import auth
 
 import reddwarf
+from reddwarf.auth import auth_token
 from reddwarf.db import migration
 from reddwarf import tests as testinit
 
@@ -47,17 +47,17 @@ def db_sync():
 
 def wsgi_app(fake_auth=True, fake_auth_context=None):
     app = reddwarf.api.APIRouter()
-
-    if fake_auth:
-        if fake_auth_context is not None:
-            ctxt = fake_auth_context
-        else:
-            ctxt = context.RequestContext('fake', 'fake', auth_token=True)
-        api10 = openstack.FaultWrapper(api_auth.InjectContext(ctxt,
-              limits.RateLimitingMiddleware(app)))
+    if fake_auth_context is not None:
+        ctxt = fake_auth_context
     else:
-        api10 = openstack.FaultWrapper(auth.AuthMiddleware(
-              limits.RateLimitingMiddleware(app)))
+        ctxt = context.RequestContext('fake', 'fake', auth_token=True)
+    inject_ctxt = api_auth.InjectContext(ctxt,
+                                         limits.RateLimitingMiddleware(app))
+    if fake_auth:
+        api10 = openstack.FaultWrapper(inject_ctxt)
+    else:
+        auth = auth_token.AuthProtocol(inject_ctxt, {})
+        api10 = openstack.FaultWrapper(auth)
 
     mapper = urlmap.URLMap()
     mapper['/v1.0'] = api10
