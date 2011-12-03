@@ -336,7 +336,7 @@
                                 units="linecolumn" coords="12 18"/>
                         </areaspec>
                         <programlisting language="xml">
-<xi:include href="../resources/samples/db-credentials.xml" parse="text"/>
+<xi:include href="samples/db-credentials.xml" parse="text"/>
                     </programlisting>
                     </programlistingco>
                 </example>
@@ -350,7 +350,7 @@
                                 units="linecolumn" coords="12 18"/>
                         </areaspec>
                         <programlisting language="javascript">
-<xi:include href="../resources/samples/db-credentials.json" parse="text"/>
+<xi:include href="samples/db-credentials.json" parse="text"/>
                     </programlisting>
                     </programlistingco>
                 </example>
@@ -386,7 +386,7 @@
                                 units="linecolumn" coords="24 21"/>
                         </areaspec>
                         <programlisting language="xml">
-<xi:include href="../resources/samples/db-auth.xml" parse="text"/>
+<xi:include href="samples/db-auth.xml" parse="text"/>
                     </programlisting>
                     </programlistingco>
                 </example>
@@ -409,7 +409,7 @@
                                 units="linecolumn" coords="28 35"/>
                         </areaspec>
                         <programlisting language="javascript">
-<xi:include href="../resources/samples/db-auth.json" parse="text"/>
+<xi:include href="samples/db-auth.json" parse="text"/>
                     </programlisting>
                     </programlistingco>
                 </example>
@@ -636,13 +636,13 @@
             <example xml:id="request_with_headers_json">
                 <title>Request with Headers: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml"><xi:include href="../resources/samples/db-request-types.json" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
+                <programlisting language="xml"><xi:include href="samples/db-request-types.json" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
             </example>
             <para><?rax-fo keep-with-next?>Therefore an XML response format is returned:</para>
             <example>
                 <title>Response with Headers: XML</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml"><xi:include href="../resources/samples/db-response-types.xml" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
+                <programlisting language="xml"><xi:include href="samples/db-response-types.xml" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
             </example>
         </section>
         <section xml:id="sync_asynch_responses" security="writeronly">
@@ -1270,14 +1270,14 @@
                 <title>Example instanceFault Response: XML</title>
                 <?dbfo keep-together="always"?>
                 <programlisting language="xml">
-<xi:include href="../resources/samples/db-faults-instancefault.xml" parse="text"/>
+<xi:include href="samples/db-faults-instanceFault.xml" parse="text"/>
                     </programlisting>
             </example>
             <example>
                 <title>Example Fault Response: JSON</title>
                 <?dbfo keep-together="always"?>
                 <programlisting language="xml">
-<xi:include href="../resources/samples/db-faults-instancefault.json" parse="text"/>
+<xi:include href="samples/db-faults-instanceFault.json" parse="text"/>
                     </programlisting>
             </example>
             <para> The error code (<code>code</code>) is returned in the body of the response for
@@ -1296,7 +1296,7 @@
                     XML</title>
                 <?dbfo keep-together="always"?>
                 <programlisting language="xml">
-<xi:include href="../resources/samples/db-faults-badRequest.xml" parse="text"/>
+<xi:include href="samples/db-faults-badRequest.xml" parse="text"/>
                     </programlisting>
             </example>
             <example>
@@ -1304,7 +1304,7 @@
                     JSON</title>
                 <?dbfo keep-together="always"?>
                 <programlisting language="xml">
-<xi:include href="../resources/samples/db-faults-badRequest.json" parse="text"/>
+<xi:include href="samples/db-faults-badRequest.json" parse="text"/>
                     </programlisting>
             </example>
             <para> The next two examples show
@@ -1313,14 +1313,14 @@
                 <title>Example itemNotFound Fault: XML</title>
                 <?dbfo keep-together="always"?>
                 <programlisting language="xml">
-<xi:include href="../resources/samples/db-faults-itemNotFound.xml" parse="text"/>
+<xi:include href="samples/db-faults-itemNotFound.xml" parse="text"/>
                     </programlisting>
             </example>
             <example>
                 <title>Example itemNotFound Fault: JSON</title>
                 <?dbfo keep-together="always"?>
                 <programlisting language="xml">
-<xi:include href="../resources/samples/db-faults-itemNotFound.json" parse="text"/>
+<xi:include href="samples/db-faults-itemNotFound.json" parse="text"/>
                     </programlisting>
             </example>
         </section>
