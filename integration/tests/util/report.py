@@ -30,6 +30,12 @@ class Reporter(object):
         with open("%s/report.log" % self.root_path, 'a') as file:
             file.write(msg)
 
+    def save_syslog(self):
+        try:
+            shutil.copyfile("/var/log/syslog", "host-syslog.log")
+        except (shutil.Error, IOError) as err:
+            self.log("ERROR logging syslog : %s" % (err))
+
     def update_instance(self, id):
         root = "%s/%s" % (self.root_path, id)
         try:
@@ -51,6 +57,7 @@ class Reporter(object):
 
     def update(self):
         self.update_instances()
+        self.save_syslog()
 
 
 if __name__=="__main__":

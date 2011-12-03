@@ -154,7 +154,8 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         assert_true(path.exists(self.agent_bin),
                     "Agent not found at path: %s" % self.agent_bin)
         self.agent = Service(cmd=[self.agent_bin,  "--flagfile=%s" % nova_conf,
-                                  "--rabbit_reconnect_wait_time=1"])
+                                  "--rabbit_reconnect_wait_time=1",
+                                  "--preset_instance_id=-99"])
 
     @test(depends_on=[check_agent_path_is_correct])
     @time_out(60)
