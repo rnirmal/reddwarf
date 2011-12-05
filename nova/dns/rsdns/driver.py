@@ -23,11 +23,13 @@ import hashlib
 
 from novaclient.exceptions import NotFound
 from rsdns.client import DNSaas
+from rsdns.client.future import RsDnsError
 
 from nova import flags
 from nova.dns.driver import DnsEntry
 from nova import log as logging
 from nova import utils
+
 
 
 flags.DEFINE_string('dns_hostname', 'dbaas-test-domain.com',
@@ -129,18 +131,19 @@ class RsDnsDriver(object):
                                                     record_data=entry.content,
                                                     record_type=entry.type,
                                                     record_ttl=entry.ttl)
+            try:
+                utils.poll_until(lambda : future.ready, sleep_time=2,
+                                 time_out=60)
+                LOG.debug("Added RS DNS entry.")
+            except utils.PollTimeOut as pto:
+                LOG.error("Failed to create DNS entry before time_out!")
+                LOG.error(pto)
+            except RsDnsError as rde:
+                LOG.error("An error occurred creating DNS entry!")
+                LOG.error(rde)
         except Exception as ex:
             LOG.error("Error when creating a DNS record!")
             LOG.error(ex)
-        try:
-            utils.poll_until(lambda : future.ready, sleep_time=2, time_out=60)
-            LOG.debug("Added RS DNS entry.")
-        except utils.PollTimeOut as pto:
-            LOG.error("Failed to create DNS entry before time_out!")
-            LOG.error(pto)
-        except RsDnsError as rde:
-            LOG.error("An error occurred creating DNS entry!")
-            LOG.error(rde)
 
     def delete_entry(self, name, type, dns_zone=None):
         dns_zone = dns_zone or self.default_dns_zone

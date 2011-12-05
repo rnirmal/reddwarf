@@ -60,23 +60,31 @@ class DNSaasClient(HTTPClient):
         return url  # Don't munge this.
 
     def request(self, *args, **kwargs):
-       kwargs.setdefault('headers', {})
-       kwargs['headers']['User-Agent'] = self.USER_AGENT
-       if 'body' in kwargs:
-           kwargs['headers']['Content-Type'] = 'application/json'
-           kwargs['body'] = json.dumps(kwargs['body'])
+        auth_attempts = 0
+        while(True):
+            kwargs.setdefault('headers', {})
+            kwargs['headers']['User-Agent'] = self.USER_AGENT
+            if 'body' in kwargs:
+                kwargs['headers']['Content-Type'] = 'application/json'
+                kwargs['body'] = json.dumps(kwargs['body'])
+            LOG.debug("ARGS:" + str(args))
+            LOG.debug("HEADERS:" + str(kwargs['headers']))
+            resp, body = httplib2.Http.request(self, *args, **kwargs)
+            body = json.loads(body)
+            LOG.debug("RESPONSE:" + str(resp))
+            LOG.debug("BODY:" + str(body))
 
-       LOG.debug("ARGS:" + str(args))
-       LOG.debug("HEADERS:" + str(kwargs['headers']))
-       resp, body = httplib2.Http.request(self, *args, **kwargs)
-       body = json.loads(body)
-       LOG.debug("RESPONSE:" + str(resp))
-       LOG.debug("BODY:" + str(body))
-
-       if resp.status in (400, 401, 403, 404, 413, 500, 501):
-           raise exception_from_response(resp, body)
-
-       return resp, body
+            if resp.status == 401 \
+                and auth_attempts < 3:
+                    LOG.debug("Auth token expired, re-authing....")
+                    auth_attempts += 1
+                    if auth_attempts == 3:
+                        LOG.debug("This is the last attempt to re-auth...")
+                    self.authenticate()
+            else:
+                if resp.status in (400, 401, 403, 404, 413, 500, 501):
+                    raise exception_from_response(resp, body)
+                return resp, body
 
 
 
