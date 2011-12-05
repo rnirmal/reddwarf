@@ -449,6 +449,10 @@ dbaas_pkg_build_sneaky_pete() {
     # If we're using a shared folder with a copy of Sneaky-Pete, copy it over.
     if [ ! -d $BUILD_DIR/agent ]; then
         mkdir $BUILD_DIR/agent
+        # Clean this to prevent any shenanigans.
+        rm -rf $AGENT_WORK_DIR/bin
+        cd $AGENT_WORK_DIR
+        bjam -d+2 link=static release nova-guest
         cp -rf $AGENT_WORK_DIR/* $BUILD_DIR/agent
     fi
     # Otherwise $BUILD_DIR/agent will already exist and have a fresh copy of
@@ -733,6 +737,9 @@ run_agent_tests() {
 
     echo "Agent tests : APT"
     TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
+
+    echo "Agent tests : MySqlNovaUpdater"
+    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug mysql_nova_updater_tests
 
     echo "Agent tests : Rabbit Reconnects"
     run_tests --group=agent

@@ -61,7 +61,10 @@ def _clean_up():
         MAIN_RUNNER.on_exit()
     from tests.util.services import get_running_services
     for service in get_running_services():
-        sys.stderr.write("Stopping service " + str(service.cmd) + "...\n\r")
+        sys.stderr.write("Stopping service ")
+        for c in service.cmd:
+            sys.stderr.write(c + " ")
+        sys.stderr.write("...\n\r")
         service.stop()
 
 

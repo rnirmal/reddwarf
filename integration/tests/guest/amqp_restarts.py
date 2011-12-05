@@ -79,10 +79,14 @@ class Rabbit(object):
         return utils.execute(*cmd, run_as_root=True)
 
     def start(self):
-        self.run(0, "rabbitmqctl", "start_app")
+        print("Calling rabbitmqctl start_app")
+        out = self.run(0, "rabbitmqctl", "start_app")
+        print(out)
 
     def stop(self):
-        self.run(0, "rabbitmqctl", "stop_app")
+        print("Calling rabbitmqctl stop_app")
+        out = self.run(0, "rabbitmqctl", "stop_app")
+        print(out)
 
 
 @test(groups=["agent", "amqp.restarts"])
@@ -150,12 +154,14 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         assert_true(path.exists(self.agent_bin),
                     "Agent not found at path: %s" % self.agent_bin)
         self.agent = Service(cmd=[self.agent_bin,  "--flagfile=%s" % nova_conf,
-                                  "--rabbit_reconnect_wait_time=1"])
+                                  "--rabbit_reconnect_wait_time=1",
+                                  "--preset_instance_id=-99"])
 
     @test(depends_on=[check_agent_path_is_correct])
-    @time_out(30)
+    @time_out(60)
     def send_agent_a_message(self):
-        self.agent.start()
+        self.rabbit.start()
+        self.agent.start(time_out=30)
         result = self._send()
         assert_equal(result['status'], "good")
 
@@ -229,7 +235,7 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
                  % (total_seconds, self.original_mapped, mapped[-1]))
         if mapped[-1] > 30 * 1024:
             fail("Whoa, why is mapped memory = %d for procid=%d, proc= %s?"
-                 % (current_mapped, self.agent.find_proc_id(), self.agent_bin))
+                 % (mapped[-1], self.agent.find_proc_id(), self.agent_bin))
 
     @test(depends_on=[memory_should_not_increase_as_amqp_login_fails])
     def start_rabbit(self):
