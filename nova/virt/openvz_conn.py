@@ -97,6 +97,9 @@ flags.DEFINE_bool('ovz_use_veth_devs',
 flags.DEFINE_bool('ovz_use_dhcp',
                   False,
                   'Use dhcp for network configuration')
+flags.DEFINE_string('ovz_mount_options',
+                    'defaults',
+                    'Mount options for external filesystems')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -1746,9 +1749,11 @@ class OVZMountFile(OVZMounts):
         """
         #TODO(imsplitbit): Add LABEL= to allow for disk labels as well
         if self.device:
-            mount_line = 'mount %s %s' % (self.device, self.host_mount)
+            mount_line = 'mount -o %s %s %s' % \
+                         (FLAGS.ovz_mount_options, self.device, self.host_mount)
         elif self.uuid:
-            mount_line = 'mount UUID=%s %s' % (self.uuid, self.host_mount)
+            mount_line = 'mount -o %s UUID=%s %s' % \
+                         (FLAGS.ovz_mount_options, self.uuid, self.host_mount)
         else:
             LOG.error(_('No device or uuid given'))
             raise exception.Error(_('No device or uuid given'))
