@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 1228
-Date: Mon, 28 Nov 2011 20:53:04 GMT
+Content-Length: 753
+Date: Tue, 06 Dec 2011 16:06:28 GMT
 
 {
     "flavors": [
@@ -18,25 +18,25 @@ Date: Mon, 28 Nov 2011 20:53:04 GMT
                 }
             ],
             "name": "m1.medium",
-            "vcpus": 1,
-            "ram": 2048
+            "ram": 2048,
+            "vcpus": 1
         },
         ....
         {
-            "id": 5,
+            "id": 1,
             "links": [
                 {
-                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/5",
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1",
                     "rel": "self"
                 },
                 {
-                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/5",
+                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/1",
                     "rel": "bookmark"
                 }
             ],
-            "name": "m1.xlarge",
-            "vcpus": 2,
-            "ram": 8192
+            "name": "m1.tiny",
+            "ram": 512,
+            "vcpus": 1
         }
     ]
 }
