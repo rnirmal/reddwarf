@@ -24,10 +24,11 @@ import routes
 from nova import flags
 from nova import log as logging
 from nova import wsgi
-from nova.api.openstack import images
+#from nova.api.openstack import images
 from reddwarf.api import accounts
 from reddwarf.api import config
 from reddwarf.api import databases
+from reddwarf.api import images
 from reddwarf.api import instances
 from reddwarf.api import guests
 from reddwarf.api import hosts
