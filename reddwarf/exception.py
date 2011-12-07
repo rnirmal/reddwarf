@@ -33,7 +33,7 @@ class Unauthorized(exc.HTTPUnauthorized, Exception):
         super(Unauthorized, self).__init__(errstr)
 
 
-class NotFound(exc.WSGIHTTPException, Exception):
+class NotFound(exc.HTTPNotFound, Exception):
     def __init__(self, message="The resource could not be found"):
         self.explanation = message
         self.code = 404
@@ -41,7 +41,7 @@ class NotFound(exc.WSGIHTTPException, Exception):
         super(NotFound, self).__init__(errstr)
 
 
-class UnprocessableEntity(exc.WSGIHTTPException, Exception):
+class UnprocessableEntity(exc.HTTPUnprocessableEntity, Exception):
     def __init__(self, message="Unable to process the contained request"):
         self.explanation = message
         self.code = 422
@@ -49,7 +49,7 @@ class UnprocessableEntity(exc.WSGIHTTPException, Exception):
         super(UnprocessableEntity, self).__init__(errstr)
 
 
-class InstanceFault(exc.WSGIHTTPException, Exception):
+class InstanceFault(exc.HTTPServerError, Exception):
     def __init__(self, message="The server has either erred or is incapable "
                                "of performing the requested operation."):
         self.explanation = message
@@ -58,7 +58,7 @@ class InstanceFault(exc.WSGIHTTPException, Exception):
         super(InstanceFault, self).__init__(errstr)
 
 
-class NotImplemented(exc.WSGIHTTPException, Exception):
+class NotImplemented(exc.HTTPNotImplemented, Exception):
     def __init__(self, message="The requested method is not implemented"):
         self.explanation = message
         self.code = 501
