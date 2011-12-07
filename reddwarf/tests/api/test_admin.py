@@ -34,6 +34,7 @@ from reddwarf.api import instances
 from reddwarf.db import models
 from reddwarf.tests import util
 
+base_url = util.v1_prefix
 mgmt_url = util.v1_mgmt_prefix
 
 class MgmtApiTest(test.TestCase):
@@ -61,6 +62,14 @@ class MgmtApiTest(test.TestCase):
 
     def test_hosts_restricted(self):
         self._test_path_restricted('hosts')
+
+    def test_images_restricted(self):
+        req = webob.Request.blank(base_url + '/images/1')
+        res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
+        self.assertEqual(res.status_int, 401)
+        res_body = json.loads(res.body)
+        expected = "User does not have admin privileges."
+        self.assertEqual(res_body['unauthorized']['message'], expected)
 
     def test_instance_restricted(self):
         self._test_path_restricted('instances/1')
