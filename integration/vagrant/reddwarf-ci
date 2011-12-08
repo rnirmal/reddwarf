@@ -232,7 +232,7 @@ add_ppas() {
 
 add_rabbit_repo() {
     echo "deb http://www.rabbitmq.com/debian/ testing main" | sudo tee -a /etc/apt/sources.list
-    wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
+    sudo wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
     sudo apt-key add rabbitmq-signing-key-public.asc
 }
 
@@ -702,6 +702,10 @@ reset_services() {
     # Delete all of the volumes on the Volumes VM since the DB will now
     # be out of sync.
     ssh vagrant@33.33.33.11 "sudo /vagrant/volumeserver delete"
+    
+    # Manually remove the nodes & send_targets
+    sudo rm -fr /etc/iscsi/nodes/*
+    sudo rm -fr /etc/iscsi/send_targets/*
 
     # Restart Rabbit MQ so all the old queues are cleared
     sudo /etc/init.d/rabbitmq-server restart
