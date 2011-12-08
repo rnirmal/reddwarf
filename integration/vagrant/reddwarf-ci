@@ -230,6 +230,12 @@ add_ppas() {
     sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys $@
 }
 
+add_rabbit_repo() {
+    echo "deb http://www.rabbitmq.com/debian/ testing main" | sudo tee -a /etc/apt/sources.list
+    wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
+    sudo apt-key add rabbitmq-signing-key-public.asc
+}
+
 add_apt_repos() {
     exclaim "Adding additional Apt repositories..."
 
@@ -238,6 +244,7 @@ add_apt_repos() {
     add_ppas drizzle-developers/ppa 06899068
     add_ppas bzr/ppa 73C60F57
     add_ppas openstack-release/2011.3 D702BF6B8C6C1EFD 7D21C2EC3D1B4472
+    add_rabbit_repo
     sudo apt-get update
 }
 
