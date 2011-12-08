@@ -230,6 +230,12 @@ add_ppas() {
     sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys $@
 }
 
+add_rabbit_repo() {
+    echo "deb http://www.rabbitmq.com/debian/ testing main" | sudo tee -a /etc/apt/sources.list
+    sudo wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
+    sudo apt-key add rabbitmq-signing-key-public.asc
+}
+
 add_apt_repos() {
     exclaim "Adding additional Apt repositories..."
 
@@ -238,6 +244,7 @@ add_apt_repos() {
     add_ppas drizzle-developers/ppa 06899068
     add_ppas bzr/ppa 73C60F57
     add_ppas openstack-release/2011.3 D702BF6B8C6C1EFD 7D21C2EC3D1B4472
+    add_rabbit_repo
     sudo apt-get update
 }
 
@@ -695,6 +702,10 @@ reset_services() {
     # Delete all of the volumes on the Volumes VM since the DB will now
     # be out of sync.
     ssh vagrant@33.33.33.11 "sudo /vagrant/volumeserver delete"
+    
+    # Manually remove the nodes & send_targets
+    sudo rm -fr /etc/iscsi/nodes/*
+    sudo rm -fr /etc/iscsi/send_targets/*
 
     # Restart Rabbit MQ so all the old queues are cleared
     sudo /etc/init.d/rabbitmq-server restart
