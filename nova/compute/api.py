@@ -51,7 +51,7 @@ flags.DEFINE_integer('find_host_timeout', 30,
                      'Timeout after NN seconds when looking for a host.')
 
 
-dns_entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
+dns_entry_factory = None
 
 
 def generate_default_hostname(instance):
@@ -81,6 +81,9 @@ def generate_default_hostname(instance):
 
 def generate_dns_hostname(instance):
     """Provide a DNS generated hostname given an instance reference"""
+    global dns_entry_factory
+    if not dns_entry_factory:
+        dns_entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
     entry = dns_entry_factory.create_entry(instance)
     if entry:
         return entry.name
