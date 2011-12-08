@@ -7,14 +7,14 @@ Date: Mon, 28 Nov 2011 21:35:41 GMT
     "instance": {
         "created": "2011-11-03T15:55:26Z", 
         "flavor": {
-            "id": "2", 
+            "id": "1", 
             "links": [
                 {
-                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/2",
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1",
                     "rel": "self"
                 }, 
                 {
-                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/2",
+                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/1",
                     "rel": "bookmark"
                 }
             ]
@@ -31,7 +31,7 @@ Date: Mon, 28 Nov 2011 21:35:41 GMT
                 "rel": "bookmark"
             }
         ], 
-        "name": "orion", 
+        "name": "myrackinstance", 
         "status": "BUILD", 
         "updated": "2011-11-03T15:55:27Z", 
         "volume": {

@@ -36,8 +36,8 @@
     version="5.0">
     <?rax status.bar.text="BETA"?>
     <?rax title.font.size="35px" subtitle.font.size="20px"?>
-    <title>Rackspace Cloud Database Developer Guide BETA</title>
-    <titleabbrev>Rackspace Cloud DB BETA Dev Guide</titleabbrev>
+    <title>Rackspace Cloud Database BETA Developer Guide</title>
+    <titleabbrev>Rackspace Cloud Database BETA Dev Guide</titleabbrev>
     <info>
         <author>
             <personname>
@@ -55,7 +55,7 @@
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
         <productname>Rackspace Cloud Database</productname>
-        <pubdate>2011-12-1</pubdate>
+        <pubdate>2011-12-8</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -64,12 +64,32 @@
         <abstract>
             <para>This document is intended for software developers
                 interested in developing applications using the
-                Rackspace Cloud Database as a Service
-                    (<abbrev>DBaaS</abbrev>) Application Programming
+                Rackspace Cloud Database Application Programming
                 Interface (<abbrev>API</abbrev>). </para>
         </abstract>
         
         <revhistory>
+            <revision>
+                <date>2011-12-8</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Updated with latest review comments.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Added beta email list for support
+                                issues.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Updated product name.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Updated spelling for headers in
+                                examples.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2011-12-1</date>
                 <revdescription>
@@ -91,19 +111,19 @@
     </info>
     <chapter xml:id="overview">
         <title>Overview</title>
-        <para>Rackspace Cloud Database as a
-            Service (DBaaS) is a database available to Rackspace Cloud
-            customers. Interactions with Rackspace Cloud DBaaS occur
-            programmatically via the Rackspace Cloud DBaaS API as
-            described in this Cloud Database Developer Guide.</para>
+        <para>Rackspace Cloud Database is a database available to
+            Rackspace Cloud customers. Interactions with Cloud
+            Database occur programmatically via the Cloud Database API
+            as described in this Cloud Database Developer
+            Guide.</para>
         <remark>Writer: need to synch up Overview section with
             marketing blurb for web. These should be
             consistent.</remark>
         <remark>Writer: need to check with Daniel for correct product
             name once we have settled on that name; then get product
             name modified throughout entire manual .</remark>
-        <para security="writeronly">The following figure shows an overview of Cloud DBaaS
-            Infrastructure: <informalfigure>
+        <para security="writeronly">The following figure shows an
+            overview of Cloud Database Infrastructure: <informalfigure>
                 <mediaobject>
                     <imageobject role="fo">
                         <imagedata
@@ -133,8 +153,9 @@
             <title>Intended Audience</title>
             <para> This Guide is intended to assist software
                 developers who want to develop applications using the
-                Cloud DBaaS API. It assumes the reader has a general
-                understanding of databases and is familiar with: </para>
+                Cloud Database API. It assumes the reader has a
+                general understanding of databases and is familiar
+                with: </para>
             <itemizedlist spacing="compact">
                 <listitem>
                     <para>ReSTful web services</para>
@@ -161,10 +182,29 @@
         </section>
         <section xml:id="Additional_Resources-d1e532">
             <title>Additional Resources</title>
+            <para>Descriptive information about Cloud Database is also
+                published in its Web Application Description Language
+                (WADL) and XML Schema Definition (XSD). You are
+                welcome to read this information here:</para>
+            <itemizedlist>
+                <listitem>
+                    <para>The WADL is <link
+                            xlink:href="http://docs.rackspace.com/cdb/api/v1.0/cdb.wadl"
+                        />.</para>
+                </listitem>
+                <listitem>
+                    <para>The XSD is <link
+                        xlink:href="http://docs.rackspace.com/cdb/api/v1.0/xsd/cdb.xsd"/>. </para>
+                </listitem>
+            </itemizedlist>
             <para>You can download the most current versions of other
                 API-related documents from <link
                     xlink:href="http://docs.rackspace.com/api/"
                     >http://docs.rackspace.com/api/</link>. </para>
+            <para>For information about getting started using Cloud
+                Database and Cloud Servers, refer to
+                    <citetitle>Getting Started with Rackspace Cloud
+                    Database and Servers</citetitle>.</para>
             <para>For information about Rackspace Cloud products,
                 refer to <link
                     xlink:href="http://www.rackspace.com/cloud/"
@@ -172,6 +212,9 @@
                 also offers links to Rackspace's official support
                 channels, including knowledge base articles, forums,
                 phone, chat, and email. </para>
+            <para>For issues using the Cloud Database API, please send
+                email to the beta support list:
+                    <email>clouddb_beta@rackspace.com</email>.</para>
             <para>You can also follow Rackspace updates and
                 announcements via twitter at <link
                     xlink:href="http://www.twitter.com/rackspace"
@@ -186,8 +229,8 @@
     <chapter xml:id="Concepts-d1e563">
         <title>Concepts</title>
         <?dbhtml stop-chunking?>
-        <para> To use the DBaaS API effectively, you should understand
-            several key concepts: </para>
+        <para> To use the Cloud Database API effectively, you should
+            understand several key concepts: </para>
         <remark>Reviewer: Daniel  Morris is asking Daniel Salinas to
             do an initial write-up of this chapter.</remark>
         <section xml:id="DatabaseInstance-d1e588">
@@ -232,11 +275,11 @@
     </chapter>
     <chapter xml:id="General_API_Information-d1e633">
         <title>General API Information</title>
-        <para> The Cloud DBaaS API is implemented using a ReSTful web
-            service interface. Like other products in the Rackspace
-            Cloud suite, the Database Service shares a common
-            token-based authentication system that allows seamless
-            access between products and services. </para>
+        <para> The Cloud Database API is implemented using a ReSTful
+            web service interface. Like other products in the
+            Rackspace Cloud suite, the Database Service shares a
+            common token-based authentication system that allows
+            seamless access between products and services. </para>
         <note>
             <para> All requests to authenticate against and operate the service are performed using
                 SSL over HTTP (HTTPS) on TCP port 443. </para>
@@ -477,8 +520,8 @@
             <para>The Database Service is a regionalized service. The
                 user of the service is therefore responsible for
                 appropriate replication, caching, and overall
-                maintenance of DBaaS data across regional boundaries
-                to other DBaaS servers.</para>
+                maintenance of Cloud Database data across regional
+                boundaries to other Cloud Database servers.</para>
             <para>Users can choose a region to operate against by
                 selecting an endpoint from the table below.</para>
             <?rax-fo keep-with-next?>
@@ -530,8 +573,8 @@
                 that the account number is 1234.</para>
         </section>
         <section xml:id="DB_service_versions">
-            <title>DBaaS Service Versions</title>
-            <para> The Cloud DBaaS version defines the contract and
+            <title>Cloud Database Service Versions</title>
+            <para> The Cloud Database version defines the contract and
                 build information for the API. </para>
             <section xml:id="Contract_Version-d1e825">
                 <title>Contract Version</title>
@@ -564,28 +607,28 @@
         </section>
         <section xml:id="Request_Response_Types-d1e903">
             <title>Request/Response Types</title>
-            <para> The DBaaS API supports both the JSON and XML data
-                serialization formats. The request format is specified
-                using the <code>Content-Type</code> header and is
-                    <emphasis>required</emphasis> for calls that have
-                a request body. The response format can be specified
-                in requests either by using the <code>Accept</code>
-                header or by adding an <code>.xml</code> or
-                    <code>.json</code> extension to the request URI.
-                Note that it is possible for a response to be
-                serialized using a format different from the request.
-                If no response format is specified, JSON is the
-                default. If conflicting formats are specified using
-                both an <code>Accept</code> header and a query
-                extension, the query extension takes
+            <para> The Cloud Database API supports both the JSON and
+                XML data serialization formats. The request format is
+                specified using the <code>Content-Type</code> header
+                and is <emphasis>required</emphasis> for calls that
+                have a request body. The response format can be
+                specified in requests either by using the
+                    <code>Accept</code> header or by adding an
+                    <code>.xml</code> or <code>.json</code> extension
+                to the request URI. Note that it is possible for a
+                response to be serialized using a format different
+                from the request. If no response format is specified,
+                JSON is the default. If conflicting formats are
+                specified using both an <code>Accept</code> header and
+                a query extension, the query extension takes
                 precedence.</para>
             <para>Also note in <xref
                     linkend="request_with_headers_json"/> that the
-                    <code>X_Auth_Project_Id</code> is a
+                    <code>X-Auth-Project-ID</code> is a
                     <emphasis>required</emphasis> header, and you must
                 specify your account number (as returned by the
                 Authentication Response) as its value, for example:
-                    <code>X_Auth_Project_Id: 1234</code>.</para>
+                    <code>X-Auth-Project-ID: 1234</code>.</para>
             <para security="writeronly">Some operations support an Atom representation that
                 can be used to efficiently determine when the state of
                 services has changed. </para>
@@ -1176,7 +1219,7 @@
         <section xml:id="DB_faults">
             <title>Faults</title>
             <remark>Reviewer: need to update this section as needed
-                for DBaaS.</remark>
+                for Cloud Database.</remark>
             <para> When an error occurs, the Database Service returns
                 a fault object containing an HTTP error response code
                 that denotes the type of error. In the body of the
@@ -1369,9 +1412,8 @@
         
         <section xml:id="API_Versions">
             <title>API Versions</title>
-            <para>This
-                section describes the versions that are supported for
-                the DBaaS API.</para>
+            <para>This section describes the versions that are
+                supported for the Cloud Database API.</para>
             <wadl:resources xmlns:wadl="http://wadl.dev.java.net/2009/02">
                 <wadl:resource href="dbaas.wadl#versions">
                     <wadl:method href="getVersions"/>
