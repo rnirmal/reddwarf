@@ -30,7 +30,7 @@ KEYSTONE_HOME="/keystone"
 KEYSTONE_CONF="/etc/keystone/keystone.conf"
 
 USERNET="br100"
-INFRANET="br200"
+INFRANET="br100"
 
 PACKAGES_DIR="/var/www/debian/"
 BUILD_DIR="/tmp/build/"
@@ -679,7 +679,7 @@ setup_networking() {
 
     # Can't figure out the CIDR rules, so I'm giving it 256 ips.
     nova_manage network create --label=usernet --fixed_range_v4=$ip_startbr100.0/24 --num_networks=1 --network_size=256 --bridge=br100 --bridge_interface=eth0 --dns1=$dns_ip
-    nova_manage network create --label=infranet --fixed_range_v4=$ip_startbr200.0/24 --num_networks=1 --network_size=256 --bridge=br200 --bridge_interface=eth1 --dns1=$dns_ip
+    #nova_manage network create --label=infranet --fixed_range_v4=$ip_startbr200.0/24 --num_networks=1 --network_size=256 --bridge=br200 --bridge_interface=eth1 --dns1=$dns_ip
     hostname=`hostname`
 
     # Assume there is only one network and `update all rows.
@@ -687,7 +687,7 @@ setup_networking() {
     mysql_query "UPDATE nova.networks SET host='$hostname';"
 
     delete_extra_ips br100 $ip_startbr100
-    delete_extra_ips br200 $ip_startbr200
+    #delete_extra_ips br200 $ip_startbr200
 }
 
 reset_services() {
