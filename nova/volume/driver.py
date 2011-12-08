@@ -323,6 +323,12 @@ class VolumeDriver(object):
         """Update any provided volume info like name or description"""
         pass
 
+    def get_volume_stats(self, refresh=False):
+        """Return the current state of the volume service. If 'refresh' is
+           True, run the update first."""
+        # Setting this to default of None
+        return None
+
 
 class LoggingVolumeDriver(VolumeDriver):
     """Logs and records calls, for unit tests."""
