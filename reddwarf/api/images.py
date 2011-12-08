@@ -25,54 +25,29 @@ from reddwarf.api import views
 LOG = logging.getLogger('reddwarf.api.imagess')
 LOG.setLevel(logging.DEBUG)
 
-class ControllerV10(nova_images.ControllerV10):
+class Controller(nova_images.ControllerV11):
     @common.verify_admin_context
     def create(self, req, body):
-        return super(ControllerV10, self).create(req, body)
+        return super(Controller, self).create(req, body)
 
     @common.verify_admin_context
     def delete(self, req, id):
-        return super(ControllerV10, self).delete(req, id)
+        return super(Controller, self).delete(req, id)
 
     @common.verify_admin_context
     def detail(self, req):
-        return super(ControllerV10, self).detail(req)
+        return super(Controller, self).detail(req)
 
     @common.verify_admin_context
     def index(self, req):
-        return super(ControllerV10, self).index(req)
+        return super(Controller, self).index(req)
 
     @common.verify_admin_context
     def show(self, req, id):
-        return super(ControllerV10, self).show(req, id)
+        return super(Controller, self).show(req, id)
 
-class ControllerV11(nova_images.ControllerV11):
-    @common.verify_admin_context
-    def create(self, *args, **kwargs):
-        return super(ControllerV11, self).create(*args, **kwargs)
-
-    @common.verify_admin_context
-    def delete(self, req, id):
-        return super(ControllerV11, self).delete(req, id)
-
-    @common.verify_admin_context
-    def detail(self, req):
-        return super(ControllerV11, self).detail(req)
-
-    @common.verify_admin_context
-    def index(self, req):
-        return super(ControllerV11, self).index(req)
-
-    @common.verify_admin_context
-    def show(self, req, id):
-        return super(ControllerV11, self).show(req, id)
-
-def create_resource(version='1.0'):
-    controller = {
-        '1.0': ControllerV10,
-        '1.1': ControllerV11,
-    }[version]()
-
+def create_resource():
+    controller = Controller()
     metadata = {
         "attributes": {
             "image": ["id", "name", "updated", "created", "status",
@@ -81,16 +56,8 @@ def create_resource(version='1.0'):
         },
     }
 
-    xml_serializer = {
-        '1.0': wsgi.XMLDictSerializer(metadata, wsgi.XMLNS_V10),
-        '1.1': nova_images.ImageXMLSerializer(),
-    }[version]
-
-    body_serializers = {
-        'application/xml': xml_serializer,
-    }
-
+    xml_serializer = wsgi.XMLDictSerializer(metadata, wsgi.XMLNS_V10)
+    body_serializers = { 'application/xml': xml_serializer }
     serializer = wsgi.ResponseSerializer(body_serializers)
-
     return wsgi.Resource(controller, serializer=serializer)
     

@@ -109,7 +109,7 @@ class APIRouter(wsgi.Router):
                           conditions=dict(method=["POST"]))
 
             mapper.resource("image", "images",
-                            controller=images.create_resource(FLAGS.nova_api_version),
+                            controller=images.create_resource(),
                             collection={'detail': 'GET'})
 
             with mapper.submapper(path_prefix="/{project_id}/mgmt/hosts",
