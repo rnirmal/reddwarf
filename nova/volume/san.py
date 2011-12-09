@@ -27,6 +27,7 @@ import paramiko
 import pexpect
 import random
 from eventlet import greenthread
+from eventlet import pools
 from xml.etree import ElementTree
 
 from nova import exception
@@ -57,6 +58,45 @@ flags.DEFINE_integer('san_network_raid_factor', 2,
                      'San network RAID factor')
 flags.DEFINE_integer('san_max_provision_percent', 70,
                      'Max percentage of the total SAN space to be provisioned')
+flags.DEFINE_integer('ssh_min_pool_conn', 2,
+                     'Minimum ssh pooled connections')
+flags.DEFINE_integer('ssh_max_pool_conn', 2,
+                     'Maximum ssh connections in the pool')
+flags.DEFINE_integer('ssh_conn_timeout', 30,
+                     'SSH connection timeout in seconds')
+
+
+class SSHPool(pools.Pool):
+    """A simple eventlet pool to hold ssh clients"""
+
+    def __init__(self, *args, **kwargs):
+        super(SSHPool, self).__init__(*args, **kwargs)
+
+    def create(self):
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            if FLAGS.san_password:
+                ssh.connect(FLAGS.san_ip,
+                            port=FLAGS.san_ssh_port,
+                            username=FLAGS.san_login,
+                            password=FLAGS.san_password,
+                            timeout=FLAGS.ssh_conn_timeout)
+            elif FLAGS.san_privatekey:
+                privatekeyfile = os.path.expanduser(FLAGS.san_privatekey)
+                privatekey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+                ssh.connect(FLAGS.san_ip,
+                            port=FLAGS.san_ssh_port,
+                            username=FLAGS.san_login,
+                            pkey=privatekey,
+                            timeout=FLAGS.ssh_conn_timeout)
+            else:
+                raise exception.Error(_("Specify san_password or san_privatekey"))
+            return ssh
+        except Exception as e:
+            msg = "Error connecting via ssh: %s" % e
+            LOG.error(_(msg))
+            raise paramiko.SSHException(msg)
 
 
 class DiscoveryInfo(object):
@@ -83,49 +123,34 @@ class SanISCSIDriver(ISCSIDriver):
     remote protocol.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(SanISCSIDriver, self).__init__(*args, **kwargs)
+        self.sshpool = SSHPool(min_size=FLAGS.ssh_min_pool_conn,
+                               max_size=FLAGS.ssh_max_pool_conn)
+
     def _build_iscsi_target_name(self, volume):
         return "%s%s" % (FLAGS.iscsi_target_prefix, volume['name'])
 
     # discover_volume is still OK
     # undiscover_volume is still OK
 
-    def _connect_to_ssh(self):
-        attempts = FLAGS.num_shell_tries
-        max_sleep = FLAGS.max_sleep_between_shell_tries * 100
-        while attempts > 0:
-            attempts -= 1
-            try:
-                ssh = paramiko.SSHClient()
-                #TODO(justinsb): We need a better SSH key policy
-                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                if FLAGS.san_password:
-                    ssh.connect(FLAGS.san_ip,
-                                port=FLAGS.san_ssh_port,
-                                username=FLAGS.san_login,
-                                password=FLAGS.san_password)
-                elif FLAGS.san_privatekey:
-                    privatekeyfile = os.path.expanduser(FLAGS.san_privatekey)
-                    privatekey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-                    ssh.connect(FLAGS.san_ip,
-                                port=FLAGS.san_ssh_port,
-                                username=FLAGS.san_login,
-                                pkey=privatekey)
-                else:
-                    raise exception.Error(_("Specify san_password or san_privatekey"))
-                return ssh
-            except Exception as e:
-                LOG.error(_("Error connecting via ssh: %s" % e))
-                greenthread.sleep(random.randint(20, max_sleep) / 100.0)
-        raise Exception("Error in ssh connect after '%r' attempts"
-                        % FLAGS.num_shell_tries)
-
-    def _run_ssh(self, command, check_exit_code=True):
-        #TODO(justinsb): SSH connection caching (?)
+    def _run_ssh(self, command, check_exit_code=True, attempts=1):
         try:
-            ssh = self._connect_to_ssh()
-            ret = ssh_execute(ssh, command, check_exit_code=check_exit_code)
-            ssh.close()
-            return ret
+            total_attempts = attempts
+            with self.sshpool.item() as ssh:
+                max_sleep = FLAGS.max_sleep_between_shell_tries * 100
+                while attempts > 0:
+                    attempts -= 1
+                    try:
+                        ret = ssh_execute(ssh, command,
+                                          check_exit_code=check_exit_code)
+                        return ret
+                    except Exception as e:
+                        LOG.error(e)
+                        greenthread.sleep(random.randint(20, max_sleep) / 100.0)
+                raise paramiko.SSHException("SSH Command failed after '%r' "
+                                            "attempts: '%s'"
+                                            % (total_attempts, command))
         except Exception as e:
             LOG.error(_("Error running ssh command: %s" % command))
             raise e
@@ -407,7 +432,7 @@ class HpSanISCSIDriver(SanISCSIDriver):
             cliq_arg_strings.append(" %s=%s" % (k, v))
         cmd = verb + ''.join(cliq_arg_strings)
 
-        return self._run_ssh(cmd)
+        return self._run_ssh(cmd, attempts=FLAGS.num_shell_tries)
 
     def _cliq_run_xml(self, verb, cliq_args, check_cliq_result=True):
         """Runs a CLIQ command over SSH, parsing and checking the output"""
