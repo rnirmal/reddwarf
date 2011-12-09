@@ -265,9 +265,7 @@ setup_ssh_keys() {
 update_config() {
     exclaim "Updating configurations to use infra net..."
     # Set Rabbitmq to listen on infranet only
-    echo "[
-    {rabbit, [{tcp_listeners, [{'$INFRANET_IP', 5672}]}]}
-]." | sudo tee /etc/rabbitmq/rabbitmq.config
+    echo "RABBITMQ_NODE_IP_ADDRESS=$INFRANET_IP" | sudo tee /etc/rabbitmq/rabbitmq-env.conf
     sudo /etc/init.d/rabbitmq-server restart
 
     # Set Mysql (Nova DB) to listen on infranet only
