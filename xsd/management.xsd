@@ -25,16 +25,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>Information about a Host.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="hosts" type="dbaas:Hosts">
@@ -42,16 +32,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>List of Hosts.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
 
@@ -60,16 +40,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>Information about storage devices.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
 
@@ -78,16 +48,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>Information about Account.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/account.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/account.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="config" type="dbaas:Config">
@@ -95,16 +55,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>Details of a configuration item</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/config.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/config.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="configs" type="dbaas:Configs">
@@ -112,16 +62,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>List of Configs.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/config.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/configs.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
 

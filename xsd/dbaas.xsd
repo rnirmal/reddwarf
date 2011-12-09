@@ -28,16 +28,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>A MySQL User.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="users" type="dbaas:Users">
@@ -45,16 +35,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>A MySQL User.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="instance" type="dbaas:instance">
@@ -62,16 +42,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>A Database Instance.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="instances" type="dbaas:instances">
@@ -79,16 +49,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>Database Instances.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="flavor" type="dbaas:Flavor">
@@ -96,16 +56,6 @@
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>Settings such as memory used to create a database instance.</p>
         </xsd:documentation>
-        <xsd:appinfo>
-          <xsdxt:samples>
-            <xsdxt:sample>
-              <xsdxt:code type="application/xml" href="../samples/flavor.xml"/>
-            </xsdxt:sample>
-            <xsdxt:sample>
-              <xsdxt:code type="application/json" href="../samples/flavor.json"/>
-            </xsdxt:sample>
-          </xsdxt:samples>
-        </xsd:appinfo>
       </annotation>
     </element>
   <element name="flavors" type="dbaas:Flavors">
@@ -113,16 +63,6 @@
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>A list of flavors.</p>
         </xsd:documentation>
-        <xsd:appinfo>
-          <xsdxt:samples>
-            <xsdxt:sample>
-              <xsdxt:code type="application/xml" href="../samples/flavors.xml"/>
-            </xsdxt:sample>
-            <xsdxt:sample>
-              <xsdxt:code type="application/json" href="../samples/flavors.json"/>
-            </xsdxt:sample>
-          </xsdxt:samples>
-        </xsd:appinfo>
       </annotation>
     </element>
   <element name="database" type="dbaas:Database">
@@ -130,16 +70,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>A Database.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   <element name="databases" type="dbaas:Databases">
@@ -147,16 +77,6 @@
       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
         <p>List of Databases.</p>
       </xsd:documentation>
-      <xsd:appinfo>
-        <xsdxt:samples>
-          <xsdxt:sample>
-            <xsdxt:code type="application/xml" href="../samples/user.xml"/>
-          </xsdxt:sample>
-          <xsdxt:sample>
-            <xsdxt:code type="application/json" href="../samples/user.json"/>
-          </xsdxt:sample>
-        </xsdxt:samples>
-      </xsd:appinfo>
     </annotation>
   </element>
   
