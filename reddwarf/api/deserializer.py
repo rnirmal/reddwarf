@@ -103,7 +103,10 @@ class InstanceXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted server create request"""
-        dom = minidom.parseString(string)
+        try:
+            dom = minidom.parseString(string)
+        except:
+            raise exception.BadRequest("Unable to parse the request xml")
         instance = self._extract_instance(dom)
         return {'body': {'instance': instance}}
 
@@ -149,7 +152,10 @@ class DatabaseXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted create databases request"""
-        dom = minidom.parseString(string)
+        try:
+            dom = minidom.parseString(string)
+        except:
+            raise exception.BadRequest("Unable to parse the request xml")
         return {'body': {'databases': self._extract_databases(dom)}}
 
 
@@ -160,7 +166,10 @@ class UserXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted create users request"""
-        dom = minidom.parseString(string)
+        try:
+            dom = minidom.parseString(string)
+        except:
+            raise exception.BadRequest("Unable to parse the request xml")
         return {'body': {'users': self._extract_users(dom)}}
 
 

@@ -80,3 +80,29 @@ class DeserializationTest(unittest.TestCase):
     @raises(exception.BadRequest)
     def test_config_update_invalid_xml(self):
         self.deser.create("<configs><config></configs>")
+
+    @raises(exception.BadRequest)
+    def test_create_database_fails_quote_in_name(self):
+        self.deser.create("""
+            <Databases xmlns="http://docs.openstack.org/database/api/v1.0">
+                <Database name="db"name" character_set="utf8" collate="utf8_general_ci"/>
+            </Databases>
+            """)
+
+
+    @raises(exception.BadRequest)
+    def test_create_user_fails_quote_in_name(self):
+        self.deser.create("""
+            <users xmlns="http://docs.openstack.org/database/api/v1.0">
+                <user name="user"name" password="badUsername" database="databaseA"/>
+            </users>
+            """)
+
+
+    @raises(exception.BadRequest)
+    def test_create_user_fails_quote_in_password(self):
+        self.deser.create("""
+            <users xmlns="http://docs.openstack.org/database/api/v1.0">
+                <user name="badPassword" password="pass"word" database="databaseA"/>
+            </users>
+            """)
