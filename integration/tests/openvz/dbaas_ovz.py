@@ -33,8 +33,6 @@ class TestMultiNic(object):
     def setUp(self):
         instance_info.user_ip = get_vz_ip_for_device(instance_info.local_id,
                                                       "eth0")
-        instance_info.infra_ip = get_vz_ip_for_device(instance_info.local_id,
-                                                       "eth1")
 
     @test
     def test_multi_nic(self):
