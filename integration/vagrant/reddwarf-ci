@@ -30,7 +30,7 @@ KEYSTONE_HOME="/keystone"
 KEYSTONE_CONF="/etc/keystone/keystone.conf"
 
 USERNET="br100"
-INFRANET="eth0:1"
+INFRANET="eth1:1"
 
 PACKAGES_DIR="/var/www/debian/"
 BUILD_DIR="/tmp/build/"

@@ -695,7 +695,7 @@ class CheckInstance(object):
     def addresses(self):
         expected_attrs = ['addr', 'version']
         print self.instance
-        networks = ['infranet', 'usernet']
+        networks = ['usernet']
         for network in networks:
             for address in self.instance['addresses'][network]:
                 self.attrs_exist(address, expected_attrs,
