@@ -288,7 +288,7 @@ class ServicesTestable(unittest.TestCase):
         while(True):
             networks = dbapi.network_get_all_by_host(context.get_admin_context(),
                                                      socket.gethostname())
-            if len(networks) == 2:
+            if len(networks) == 1:
                 return
             time.sleep(5)
 
