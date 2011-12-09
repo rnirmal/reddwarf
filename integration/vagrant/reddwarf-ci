@@ -672,7 +672,7 @@ setup_networking() {
     ip_startbr100=`ip_chunk br100 1`.`ip_chunk br100 2`.`ip_chunk br100 3`
     # ip_startbr200=`ip_chunk br200 1`.`ip_chunk br200 2`.`ip_chunk br200 3`
 
-    gateway_ip=`/sbin/route |tail -n 1|sed 's/ \+/ /g'|cut -d" " -f2`
+    gateway_ip=`ifconfig $USERNET|grep 'inet '|sed 's/:/ /g'|sed 's/ \+/ /g'| cut -d' ' -f4`
     dns_ip=`grep -m1 nameserver /etc/resolv.conf |cut -d' ' -f2`
 
     echo "--flat_network_dns=$dns_ip" >> $NOVA_CONF
