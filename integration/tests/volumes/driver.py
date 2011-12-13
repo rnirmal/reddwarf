@@ -21,6 +21,7 @@ from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from reddwarf.tests.volume.driver import ISCSITestDriver
 from tests import initialize
+from tests import util
 from tests.volumes import VOLUMES_DRIVER
 
 
@@ -330,6 +331,14 @@ class FormatVolume(VolumeTest):
         self.assertNotEqual(None, self.story.device_path)
         self.story.client._format(self.story.device_path)
 
+    def test_30_check_options(self):
+        cmd = "sudo dumpe2fs -h %s 2> /dev/null | " \
+              "awk -F ':' '{ if($1 == \"Reserved block count\") { rescnt=$2 } }" \
+              " { if($1 == \"Block count\") { blkcnt=$2 } } END " \
+              "{ print (rescnt/blkcnt)*100 }'" % self.story.device_path
+        out, err = util.process(cmd)
+        self.assertEqual(float(5), round(float(out)), msg=out)
+
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[FormatVolume])
 class MountVolume(VolumeTest):
@@ -340,6 +349,12 @@ class MountVolume(VolumeTest):
         with open(self.story.test_mount_file_path, 'w') as file:
             file.write("Yep, it's mounted alright.")
         self.assertTrue(os.path.exists(self.story.test_mount_file_path))
+
+    def test_mount_options(self):
+        cmd = "mount -l | awk '/noatime/ { print $1 }'"
+        out, err = util.process(cmd)
+        self.assertEqual(os.path.realpath(self.story.device_path), out.strip(),
+                         msg=out)
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[MountVolume])
