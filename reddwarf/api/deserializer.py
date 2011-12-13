@@ -95,6 +95,11 @@ class XMLDeserializer(wsgi.XMLDeserializer):
                 return child.nodeValue
         return ""
 
+    def _parse_dom_or_raise(self, string):
+        try:
+            return minidom.parseString(string)
+        except:
+            raise exception.BadRequest("Unable to parse the request xml.")
 
 class InstanceXMLDeserializer(XMLDeserializer):
     """
@@ -103,10 +108,7 @@ class InstanceXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted server create request"""
-        try:
-            dom = minidom.parseString(string)
-        except:
-            raise exception.BadRequest("Unable to parse the request xml")
+        dom = self._parse_dom_or_raise(string)
         instance = self._extract_instance(dom)
         return {'body': {'instance': instance}}
 
@@ -152,10 +154,7 @@ class DatabaseXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted create databases request"""
-        try:
-            dom = minidom.parseString(string)
-        except:
-            raise exception.BadRequest("Unable to parse the request xml")
+        dom = self._parse_dom_or_raise(string)
         return {'body': {'databases': self._extract_databases(dom)}}
 
 
@@ -166,10 +165,7 @@ class UserXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted create users request"""
-        try:
-            dom = minidom.parseString(string)
-        except:
-            raise exception.BadRequest("Unable to parse the request xml")
+        dom = self._parse_dom_or_raise(string)
         return {'body': {'users': self._extract_users(dom)}}
 
 
@@ -180,10 +176,7 @@ class ConfigXMLDeserializer(XMLDeserializer):
 
     def create(self, string):
         """Deserialize an xml formatted create config entry request"""
-        try:
-            dom = minidom.parseString(string)
-        except:
-            raise exception.BadRequest("Unable to parse the request xml")
+        dom = self._parse_dom_or_raise(string)
         configs_node = self._find_first_child_named(dom, "configs")
         if configs_node is None:
             return None
@@ -197,10 +190,7 @@ class ConfigXMLDeserializer(XMLDeserializer):
 
     def update(self, string):
         """Deserialize an xml formatted create config entry request"""
-        try:
-            dom = minidom.parseString(string)
-        except:
-            raise exception.BadRequest("Unable to parse the request xml")
+        dom = self._parse_dom_or_raise(string)
         config_node = self._find_first_child_named(dom, "config")
         if config_node is None:
             return None

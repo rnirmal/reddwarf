@@ -89,6 +89,15 @@ class DeserializationTest(unittest.TestCase):
             </Databases>
             """)
 
+    @raises(exception.BadRequest)
+    def test_create_instance_fails_quote_in_name(self):
+        self.deser.create("""
+            <instance xmlns="http://docs.openstack.org/database/api/v1.0"
+                name="bad"name" flavorRef="https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1">
+                <databases />
+                <volume size="2" />
+            </instance>
+            """)
 
     @raises(exception.BadRequest)
     def test_create_user_fails_quote_in_name(self):
@@ -97,7 +106,6 @@ class DeserializationTest(unittest.TestCase):
                 <user name="user"name" password="badUsername" database="databaseA"/>
             </users>
             """)
-
 
     @raises(exception.BadRequest)
     def test_create_user_fails_quote_in_password(self):
