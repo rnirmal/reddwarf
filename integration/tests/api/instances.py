@@ -148,12 +148,12 @@ class Setup(object):
 
     @test
     def find_image(self):
-        result = dbaas.find_image_and_self_href(test_config.dbaas_image)
+        result = dbaas_admin.find_image_and_self_href(test_config.dbaas_image)
         instance_info.dbaas_image, instance_info.dbaas_image_href = result
 
     @test
     def test_find_flavor(self):
-        result = dbaas.find_flavor_and_self_href(flavor_id=1)
+        result = dbaas_admin.find_flavor_and_self_href(flavor_id=1)
         instance_info.dbaas_flavor, instance_info.dbaas_flavor_href = result
 
     @test

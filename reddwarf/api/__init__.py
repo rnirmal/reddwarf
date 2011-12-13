@@ -24,10 +24,10 @@ import routes
 from nova import flags
 from nova import log as logging
 from nova import wsgi
-from nova.api.openstack import images
 from reddwarf.api import accounts
 from reddwarf.api import config
 from reddwarf.api import databases
+from reddwarf.api import images
 from reddwarf.api import instances
 from reddwarf.api import guests
 from reddwarf.api import hosts
@@ -109,7 +109,7 @@ class APIRouter(wsgi.Router):
                           conditions=dict(method=["POST"]))
 
             mapper.resource("image", "images",
-                            controller=images.create_resource(FLAGS.nova_api_version),
+                            controller=images.create_resource(),
                             collection={'detail': 'GET'})
 
             with mapper.submapper(path_prefix="/{project_id}/mgmt/hosts",
