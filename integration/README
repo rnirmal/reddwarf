@@ -19,4 +19,5 @@ To run these tests, do the following:
      /vagrant/reddwarf-ci install
      /vagrant/reddwarf-ci build
      /vagrant/reddwarf-ci initialize
+     /vagrant/reddwarf-ci test-agent
      /vagrant/reddwarf-ci test
