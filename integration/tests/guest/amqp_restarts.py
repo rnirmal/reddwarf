@@ -58,7 +58,8 @@ class Rabbit(object):
                           shell=False)
         for line in iter(proc.stdout.readline, ""):
             print("LIST QUEUES:" + line)
-            m = re.search("""guest.host\s+([0-9]+)""", line)
+            m = re.search("""guest.%s\s+([0-9]+)"""
+                          % test_config.values['host_name'], line)
             if m:
                 return int(m.group(1))
         return 0
@@ -107,7 +108,8 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         original_queue_count = self.rabbit.get_queue_items()
         @time_out(5)
         def send_msg_with_timeout():
-            version = rpc.call(context.get_admin_context(), "guest.host",
+            version = rpc.call(context.get_admin_context(),
+                               "guest.%s" % test_config.values['host_name'],
                       {"method": "version",
                        "args": {"package_name": "dpkg"}
                       })
@@ -163,6 +165,7 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         self.rabbit.start()
         self.agent.start(time_out=30)
         result = self._send()
+        print("RESULT:%s" % result)
         assert_equal(result['status'], "good")
 
     @test(depends_on=[send_agent_a_message])

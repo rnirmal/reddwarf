@@ -584,6 +584,7 @@ setup_nova_conf() {
 setup_tests_conf() {
     cat /vagrant/conf/host.tests.conf_begin > $TESTS_CONF
     echo "\"agent_bin\" : \"$AGENT_WORK_DIR/bin/gcc-4.4.5/release/link-static/nova-guest\", " >> $TESTS_CONF
+    echo "\"host_name\" : \"`hostname`\", " >> $TESTS_CONF
     cat /vagrant/conf/host.tests.conf_end >> $TESTS_CONF
 }
 
