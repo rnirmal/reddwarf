@@ -41,6 +41,7 @@ from tests.util import should_run_rsdns_tests
 FLAGS = flags.FLAGS
 TEST_CONTENT="126.1.1.1"
 TEST_NAME="hiwassup.%s" % FLAGS.dns_domain_name
+DNS_DOMAIN_ID=None
 
 
 @test(groups=["rsdns.domains", "rsdns.show_entries"])
@@ -75,7 +76,11 @@ class RsDnsDriverTests(object):
         while not future.ready:
             time.sleep(2)
         print("Got something: %s" % future.resource)
-        print("The domain should have been created.")
+        with open('/home/vagrant/dns_resource.txt', 'w') as f:
+            f.write('%r\n' % future.result[0].id)
+        global DNS_DOMAIN_ID
+        DNS_DOMAIN_ID = future.result[0].id
+        print("The domain should have been created with id=%s" % DNS_DOMAIN_ID)
 
     @test
     @time_out(2 * 60)
@@ -90,6 +95,8 @@ class RsDnsDriverTests(object):
                 print("zone %s" % zone)
                 if zone.name == self.driver.default_dns_zone.name:
                     self.driver.default_dns_zone.id = zone.id
+                    global DNS_DOMAIN_ID
+                    DNS_DOMAIN_ID = zone.id
                     return True
             return False
         if zone_found():
@@ -126,11 +133,12 @@ class RsDnsDriverTests(object):
                          ttl=3600)
         self.driver.create_entry(entry)
         list = None
-        for i in range(5):
+        for i in range(500):
             list = self.driver.get_entries_by_name(name=fullname)
             if len(list) > 1:
                 break
             time.sleep(1)
+        print("This is the list: %r" % list)
         assert_equal(1, len(list))
         list2 = self.driver.get_entries_by_content(content=TEST_CONTENT)
         assert_equal(1, len(list2))
@@ -139,7 +147,7 @@ class RsDnsDriverTests(object):
     def create_test_rsdns_entry(self):
         instance = {'uuid': '000136c0-effa-4711-a747-a5b9fbfcb3bd', 'id': '10'}
         ip = "10.100.2.7"
-        factory = RsDnsInstanceEntryFactory()
+        factory = RsDnsInstanceEntryFactory(dns_domain_id=DNS_DOMAIN_ID)
         entry = factory.create_entry(instance)
         entry.content = ip
         self.driver.create_entry(entry)

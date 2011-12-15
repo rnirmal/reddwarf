@@ -66,8 +66,6 @@ class Controller(object):
 
     def __init__(self):
         self.compute_api = compute.API()
-        self.dns_entry_factory = \
-            utils.import_object(FLAGS.dns_instance_entry_factory)
         self.guest_api = guest_api.API()
         self.server_controller = servers.ControllerV11()
         self.volume_api = volume.API()

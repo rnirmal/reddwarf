@@ -47,6 +47,7 @@ flags.DEFINE_string('dns_passkey', '',
 flags.DEFINE_string('dns_management_base_url', None,
                     'The management URL for DNS.')
 flags.DEFINE_integer('dns_ttl', 300, 'TTL for the DNS entries')
+flags.DEFINE_integer('dns_domain_id', None, 'DNS domain id from RSDNS')
 
 FLAGS = flags.FLAGS
 LOG = logging.getLogger('nova.dns.rsdns.driver')
@@ -112,8 +113,7 @@ class RsDnsDriver(object):
     def __init__(self, raise_if_zone_missing=True):
         self.dns_client = create_client_with_flag_values()
         self.dns_client.authenticate()
-        self.default_dns_zone = find_default_zone(self.dns_client,
-                                                  raise_if_zone_missing)
+        self.default_dns_zone = RsDnsZone(id=FLAGS.dns_domain_id, name=FLAGS.dns_domain_name)
         self.converter = EntryToRecordConverter(self.default_dns_zone)
         if FLAGS.dns_ttl < 300:
             raise Exception("TTL value '--dns_ttl=%s' should be greater than" \
@@ -133,7 +133,7 @@ class RsDnsDriver(object):
                                                     record_ttl=entry.ttl)
             try:
                 utils.poll_until(lambda : future.ready, sleep_time=2,
-                                 time_out=60)
+                                 time_out=60*2)
                 LOG.debug("Added RS DNS entry.")
             except utils.PollTimeOut as pto:
                 LOG.error("Failed to create DNS entry before time_out!")
@@ -185,10 +185,8 @@ class RsDnsDriver(object):
 class RsDnsInstanceEntryFactory(object):
     """Defines how instance DNS entries are created for instances."""
 
-    def __init__(self):
-        dns_client = create_client_with_flag_values()
-        dns_client.authenticate()
-        self.default_dns_zone = find_default_zone(dns_client)
+    def __init__(self, dns_domain_id=None):
+        self.default_dns_zone = RsDnsZone(id=(dns_domain_id or FLAGS.dns_domain_id), name=FLAGS.dns_domain_name)
 
     def create_entry(self, instance):
         id = instance.get("uuid", "")
