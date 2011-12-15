@@ -31,6 +31,7 @@ from nova.db.sqlalchemy.models import Service
 from nova.db.sqlalchemy.models import Volume
 from nova.db.sqlalchemy.session import get_session
 from nova.compute import power_state
+from nova.compute import vm_states
 from reddwarf.db import models
 
 FLAGS = flags.FLAGS
@@ -160,6 +161,22 @@ def instance_get_memory_sum_by_host(context, hostname):
     if not result:
         return 0
     return result
+
+
+def instance_get_hung_in_build(context, time):
+    session = get_session()
+    power_state_attr = getattr(Instance, 'power_state')
+    hung_states = [power_state.NOSTATE, power_state.BUILDING]
+
+    result = session.query(Instance).\
+                     filter_by(deleted=False).\
+                     filter(power_state_attr.in_(hung_states)).\
+                     filter_by(vm_state=vm_states.BUILDING).\
+                     filter(Instance.created_at < time).all()
+    if not result:
+        return []
+    return result
+
 
 @require_admin_context
 def show_instances_by_account(context, id):
