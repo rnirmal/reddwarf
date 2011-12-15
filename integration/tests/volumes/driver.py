@@ -439,8 +439,8 @@ class DeleteVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
-    @expect_exception(exception.Error)
     @time_out(60)
+    @expect_exception(exception.Error)
     def test_discover_should_fail(self):
         self.story.client.driver.discover_volume(self.story.context,
                                                  self.story.volume)
