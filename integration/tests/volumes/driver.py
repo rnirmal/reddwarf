@@ -442,7 +442,7 @@ class ConfirmMissing(VolumeTest):
 
     @time_out(60)
     def test_discover_should_fail(self):
-        assert_raises(exception.ISCSITargetNotDiscoverable, 
+        assert_raises(exception.Error, 
                       self.story.client.driver.discover_volume,
                       self.story.context,self.story.volume)
 
