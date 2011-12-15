@@ -236,6 +236,7 @@ class ReddwarfComputeManager(ComputeManager):
     def __init__(self, *args, **kwargs):
         super(ReddwarfComputeManager, self).__init__(*args, **kwargs)
         self.guest_api = guest.API()
+        self.compute_manager = super(ReddwarfComputeManager, self)
 
     def run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options.
@@ -246,9 +247,8 @@ class ReddwarfComputeManager(ComputeManager):
         occur when the REST API is called.
 
         """
-        compute_manager = super(ReddwarfComputeManager, self)
         metadata = ReddwarfInstanceMetaData(self.db, context, instance_id)
-        instance = ReddwarfInstanceInitializer(compute_manager, self.db,
+        instance = ReddwarfInstanceInitializer(self.compute_manager, self.db,
             context, instance_id, metadata.volume_id, metadata.volume,
             metadata.volume_mount_point, metadata.databases)
         # If any steps return False, cancel subsequent steps.
@@ -256,3 +256,18 @@ class ReddwarfComputeManager(ComputeManager):
                                     self.volume_client, self.host) and
          instance.initialize_compute_instance(**kwargs) and
          instance.initialize_guest(self.guest_api))
+
+    def terminate_instance(self, context, instance_id):
+        """Terminate the instance and also delete all the attached volumes"""
+        volumes = None
+        try:
+            volumes = self.db.volume_get_all_by_instance(context, instance_id)
+        except exception.VolumeNotFoundForInstance:
+            LOG.info("Skipping as no volumes are associated with the instance")
+
+        self.compute_manager.terminate_instance(context, instance_id)
+
+        for volume in volumes:
+            self.volume_api.delete_volume_when_available(context,
+                                                         volume['id'],
+                                                         time_out=60)

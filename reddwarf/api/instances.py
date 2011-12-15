@@ -173,13 +173,6 @@ class Controller(object):
         self.server_controller.delete(req, instance_id)
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(instance_id)
-        try:
-            for volume_ref in db.volume_get_all_by_instance(context, instance_id):
-                self.volume_api.delete_volume_when_available(context,
-                                                             volume_ref['id'],
-                                                             time_out=60)
-        except nova_exception.VolumeNotFoundForInstance:
-            LOG.info("Skipping as no volumes are associated with the instance")
         return exc.HTTPAccepted()
 
     def create(self, req, body):
