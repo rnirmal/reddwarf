@@ -94,32 +94,15 @@ class DbApiTestCase(test.TestCase):
         db.instance_destroy(self.context, inst1.id)
         result = db.instance_get_all_by_filters(self.context.elevated(), {})
         self.assertEqual(2, len(result))
-        self.assertIn(inst1.id, [result[0].id, result[1].id])
-        self.assertIn(inst2.id, [result[0].id, result[1].id])
-        if inst1.id == result[0].id:
-            self.assertTrue(result[0].deleted)
-        else:
-            self.assertTrue(result[1].deleted)
+        self.assertEqual(result[0].id, inst2.id)
+        self.assertEqual(result[1].id, inst1.id)
+        self.assertTrue(result[1].deleted)
 
-    def test_migration_get_all_unconfirmed(self):
+    def test_network_create_safe(self):
         ctxt = context.get_admin_context()
-
-        # Ensure no migrations are returned.
-        results = db.migration_get_all_unconfirmed(ctxt, 10)
-        self.assertEqual(0, len(results))
-
-        # Ensure one migration older than 10 seconds is returned.
-        updated_at = datetime.datetime(2000, 01, 01, 12, 00, 00)
-        values = {"status": "FINISHED", "updated_at": updated_at}
-        migration = db.migration_create(ctxt, values)
-        results = db.migration_get_all_unconfirmed(ctxt, 10)
-        self.assertEqual(1, len(results))
-        db.migration_update(ctxt, migration.id, {"status": "CONFIRMED"})
-
-        # Ensure the new migration is not returned.
-        updated_at = datetime.datetime.utcnow()
-        values = {"status": "FINISHED", "updated_at": updated_at}
-        migration = db.migration_create(ctxt, values)
-        results = db.migration_get_all_unconfirmed(ctxt, 10)
-        self.assertEqual(0, len(results))
-        db.migration_update(ctxt, migration.id, {"status": "CONFIRMED"})
+        values = {'host': 'localhost', 'project_id': 'project1'}
+        network = db.network_create_safe(ctxt, values)
+        self.assertNotEqual(None, network.uuid)
+        self.assertEqual(36, len(network.uuid))
+        db_network = db.network_get(ctxt, network.id)
+        self.assertEqual(network.uuid, db_network.uuid)

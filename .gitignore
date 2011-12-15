@@ -17,7 +17,6 @@ nova.egg-info
 nova-objectstore.pid
 *.log
 experiments.py
-.vagrant
 nova*.conf
 v.sh
 .bzr*
@@ -35,3 +34,4 @@ integration/.noseids
 .gitignore
 host.Dummy*
 integration/vagrant/report/*
+.venv
