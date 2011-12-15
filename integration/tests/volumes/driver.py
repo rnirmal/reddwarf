@@ -17,6 +17,7 @@ from nova import utils
 from nova.utils import poll_until
 
 from proboscis import test
+from proboscis.asserts import assert_raises
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 from reddwarf.tests.volume.driver import ISCSITestDriver
@@ -440,10 +441,10 @@ class DeleteVolume(VolumeTest):
 class ConfirmMissing(VolumeTest):
 
     @time_out(60)
-    @expect_exception(exception.Error)
     def test_discover_should_fail(self):
-        self.story.client.driver.discover_volume(self.story.context,
-                                                 self.story.volume)
+        assert_raises(exception.ISCSITargetNotDiscoverable, 
+                      self.story.client.driver.discover_volume,
+                      self.story.context,self.story.volume)
 
     @time_out(60)
     def test_get_missing_volume(self):
