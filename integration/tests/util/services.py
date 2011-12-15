@@ -150,8 +150,11 @@ class Service(object):
         # The cmd[1] signifies the executable python script. It gets invoked
         # as python /path/to/executable args, so the entry is /path/to/executable
         actual_command = self.cmd[1].split("/")[-1]
+        print actual_command
+        print ["/usr/bin/pgrep", "-f", actual_command]
         proc = start_proc(["/usr/bin/pgrep", "-f", actual_command], shell=False)
         line = proc.stdout.readline()
+        print line
         # pgrep only returns a pid. if there is no pid, it'll return nothing
         return len(line) != 0
 
