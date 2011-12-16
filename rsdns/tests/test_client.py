@@ -39,6 +39,7 @@ class WhenDNSaasClientConnectsSuccessfully(unittest.TestCase):
             return FakeResponse(200), '{"hi":"hello"}'
         httplib2.Http.request = fake_request
         mock_client = self.mox.CreateMock(DNSaasClient)
+        mock_client.auth_token = 'token'
         resp, body = DNSaasClient.request(mock_client, **kwargs)
         self.assertEqual(200, resp.status)
         self.assertEqual({"hi":"hello"}, body)
@@ -53,6 +54,7 @@ class WhenDNSaasClientConnectsSuccessfully(unittest.TestCase):
                    '{"message":"Invalid authentication token. Please renew."}'
         httplib2.Http.request = fake_request
         mock_client = self.mox.CreateMock(DNSaasClient)
+        mock_client.auth_token = 'token'
         mock_client.authenticate()
         mock_client.authenticate()
         mock_client.authenticate()
@@ -75,6 +77,7 @@ class WhenDNSaasClientConnectsSuccessfully(unittest.TestCase):
                    '{"message":"Invalid authentication token. Please renew."}'
         httplib2.Http.request = fake_request
         mock_client = self.mox.CreateMock(DNSaasClient)
+        mock_client.auth_token = 'token'
         mock_client.authenticate()
         self.mox.ReplayAll()
         resp, body = DNSaasClient.request(mock_client, **kwargs)
