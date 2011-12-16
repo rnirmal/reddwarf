@@ -315,6 +315,8 @@ def config_delete(key):
         session.query(models.Config).\
                 filter_by(key=key).\
                 delete()
+
+
 def localid_from_uuid(uuid):
     """
     Given an instance's uuid, retrieve the local instance_id for compatibility
@@ -329,3 +331,63 @@ def localid_from_uuid(uuid):
         LOG.debug("No such instance found.")
         return None
     return result['id']
+
+
+def rsdns_record_create(name, id):
+    """
+    Stores a record name / ID pair in the table rsdns_records.
+    """
+    LOG.debug("Storing RSDNS record information (id=%s, name=%s)."
+              % (id, name))
+    record = models.RsDnsRecord()
+    record.update({'name': name,
+                   'id': id})
+
+    session = get_session()
+    try:
+        with session.begin():
+            record.save(session=session)
+        return record
+    except Exception:
+        raise exception.DuplicateRecordEntry(name=name, id=id)
+
+
+def rsdns_record_get(name):
+    """
+    Stores a record name / ID pair in the table rsdns_records.
+    """
+    LOG.debug("Fetching RSDNS record with name=%s." % name)
+    session = get_session()
+    result = session.query(models.RsDnsRecord).\
+                         filter_by(name=name).\
+                         filter_by(deleted=False).\
+                         first()
+    if not result:
+        raise exception.RsDnsRecordNotFound(name=name)
+    return result
+
+
+def rsdns_record_delete(name):
+    """
+    Deletes a dns record.
+    """
+    session = get_session()
+    with session.begin():
+        session.query(models.RsDnsRecord).\
+                filter_by(name=name).\
+                delete()
+
+
+def rsdns_record_list():
+    """
+    Stores a record name / ID pair in the table rsdns_records.
+    """
+    LOG.debug("Fetching all RSDNS records.")
+    session = get_session()
+    if not session:
+        session = get_session()
+    result = session.query(models.RsDnsRecord)
+    if not result:
+        raise exception.RsDnsRecordNotFound(name=name)
+    return result
+

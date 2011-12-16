@@ -81,15 +81,33 @@ class RecordsManager(base.ManagerWithFind):
                (not address or record.data == address) and \
                (not type or record.type == type)
 
+    def get(self, domain_id, record_id):
+        """
+        Get a single record by id.
 
-    def list(self, domain_id, record_name=None, record_address=None,
+        :rtype: Single instance of :class:`Record`
+        """
+        url = "/domains/%s/records" % domain_id
+        if record_id:
+            url += ("/%s" % record_id)
+        resp, body = self.api.client.get(url)
+        try:
+            item = body
+        except IndexError:
+            raise RuntimeError('Body was missing record element.')
+        return self.resource_class(self, item)
+
+    def list(self, domain_id, record_id=None, record_name=None, record_address=None,
              record_type=None):
         """
         Get a list of all records under a domain.
 
         :rtype: list of :class:`Record`
         """
-        resp, body = self.api.client.get("/domains/%s/records" % domain_id)
+        url = "/domains/%s/records" % domain_id
+        if record_id:
+            url += ("/%s" % record_id)
+        resp, body = self.api.client.get(url)
         try:
             list = body['records']            
         except NameError:

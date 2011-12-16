@@ -69,16 +69,17 @@ class DNSaasClient(HTTPClient):
             kwargs.setdefault('headers', {})
             kwargs['headers']['User-Agent'] = self.USER_AGENT
             kwargs['headers']['X-Auth-Token'] = self.auth_token
+            LOG.debug("REQ ARGS:" + str(args))
+            LOG.debug("REQ HEADERS:" + str(kwargs['headers']))
             if 'body' in kwargs:
                 kwargs['headers']['Content-Type'] = 'application/json'
                 kwargs['body'] = json.dumps(kwargs['body'])
-            LOG.debug("ARGS:" + str(args))
-            LOG.debug("HEADERS:" + str(kwargs['headers']))
-            resp, body = httplib2.Http.request(self, *args, **kwargs)
-            body = json.loads(body)
-            LOG.debug("RESPONSE:" + str(resp))
-            LOG.debug("BODY:" + str(body))
+                LOG.debug("REQ BODY:" + str(kwargs['body']))
 
+            resp, body = httplib2.Http.request(self, *args, **kwargs)
+            LOG.debug("RES RESPONSE:" + str(resp))
+            LOG.debug("RES BODY:" + str(body))
+            body = json.loads(body)
             if resp.status == 401 \
                 and auth_attempts < 3:
                     LOG.debug("Auth token expired, re-authing....")

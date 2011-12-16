@@ -64,3 +64,14 @@ class Config(BASE, NovaBase):
     key = Column(String(255), primary_key=True)
     value = Column(String(255))
     description = Column(String(255))
+
+
+class RsDnsRecord(BASE, NovaBase):
+    """
+    A simple pairing between a DNS record ID and its name.
+    """
+    __tablename__ = 'rsdns_records'
+
+    name = Column(String(length=255), primary_key=True)
+    id = Column('id', String(length=64))
+    

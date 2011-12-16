@@ -135,7 +135,7 @@ class RsDnsDriverTests(object):
         list = None
         for i in range(500):
             list = self.driver.get_entries_by_name(name=fullname)
-            if len(list) > 1:
+            if len(list) > 0:
                 break
             time.sleep(1)
         print("This is the list: %r" % list)
@@ -145,6 +145,7 @@ class RsDnsDriverTests(object):
 
     @test(depends_on=[delete_all_entries])
     def create_test_rsdns_entry(self):
+        """Create an entry created using the RsDnsInstanceEntryFactory."""
         instance = {'uuid': '000136c0-effa-4711-a747-a5b9fbfcb3bd', 'id': '10'}
         ip = "10.100.2.7"
         factory = RsDnsInstanceEntryFactory(dns_domain_id=DNS_DOMAIN_ID)

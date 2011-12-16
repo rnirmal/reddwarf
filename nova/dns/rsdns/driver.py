@@ -25,10 +25,13 @@ from novaclient.exceptions import NotFound
 from rsdns.client import DNSaas
 from rsdns.client.future import RsDnsError
 
+from nova.exception import RsDnsRecordNotFound
 from nova import flags
 from nova.dns.driver import DnsEntry
 from nova import log as logging
 from nova import utils
+from reddwarf.db import api as dbapi
+
 
 
 
@@ -134,26 +137,38 @@ class RsDnsDriver(object):
             try:
                 utils.poll_until(lambda : future.ready, sleep_time=2,
                                  time_out=60*2)
+                if len(future.resource) < 1:
+                    raise RsDnsError("No DNS records were created.")
+                elif len(future.resource) > 1:
+                    LOG.error("More than one DNS record created. Ignoring.")
+                actual_record = future.resource[0]
+                dbapi.rsdns_record_create(name=name, id=actual_record.id)
                 LOG.debug("Added RS DNS entry.")
             except utils.PollTimeOut as pto:
                 LOG.error("Failed to create DNS entry before time_out!")
-                LOG.error(pto)
+                raise
             except RsDnsError as rde:
                 LOG.error("An error occurred creating DNS entry!")
-                LOG.error(rde)
+                raise
         except Exception as ex:
             LOG.error("Error when creating a DNS record!")
-            LOG.error(ex)
+            raise
 
     def delete_entry(self, name, type, dns_zone=None):
         dns_zone = dns_zone or self.default_dns_zone
         long_name = name
-        records = self.dns_client.records.list(domain_id=dns_zone.id,
-                                               record_name=long_name,
-                                               record_type=type)
-        for record in records:
-            self.dns_client.records.delete(domain_id=dns_zone.id,
-                                           record_id=record.id)
+        db_record = dbapi.rsdns_record_get(name)
+        record = self.dns_client.records.get(domain_id=dns_zone.id,
+                                             record_id=db_record.id)
+        if record.name != name or record.type != 'A':
+            LOG.error("Tried to delete DNS record with name=%s, id%s, but the "
+                      "database returned a DNS record with the name %s and "
+                      "type %s." % (name, db_record.id, record.name,
+                                    record.type))
+            raise RsDnsRecordNotFound(name)
+        self.dns_client.records.delete(domain_id=dns_zone.id,
+                                       record_id=record.id)
+        dbapi.rsdns_record_delete(name)
 
     def get_entries(self, name=None, content=None, dns_zone=None):
         dns_zone = dns_zone or self.default_dns_zone

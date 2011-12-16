@@ -657,11 +657,11 @@ nova_initialize() {
     reddwarf_manage db sync
 }
 
-setup_dns() {
-    cd $TEST_HOME
+setup_dns() {        
     if [ ! -z "$SETUP_DNS" ]; then
+        exclaim DNS TIME
         # Make sure the domain name exists (must happen before the image is added)
-        sudo -E ADD_DOMAINS=True NOVASRC=$NOVA_HOME $TEST_HOME/run_tests_nv.sh --conf=$TESTS_CONF --group=rsdns.domains
+        ADD_DOMAINS=True run_tests --group=rsdns.domains
 
         # add the dns domain id to the nova.conf
         cat /home/vagrant/dns_resource.txt | sed s/^/--dns_domain_id=/ >> $NOVA_CONF
