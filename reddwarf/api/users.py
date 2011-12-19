@@ -73,8 +73,12 @@ class Controller(object):
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
         common.instance_available(ctxt, instance_id, local_id, self.compute_api)
-        user = models.MySQLUser()
-        user.name = id
+        try:
+            user = models.MySQLUser()
+            user.name = id
+        except ValueError as ve:
+            LOG.error(ve)
+            raise exception.BadRequest(ve.message)
 
         self.guest_api.delete_user(ctxt, local_id, user.serialize())
         return exc.HTTPAccepted()

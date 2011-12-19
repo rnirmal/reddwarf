@@ -73,8 +73,12 @@ class Controller(object):
         local_id = dbapi.localid_from_uuid(instance_id)
         ctxt = req.environ['nova.context']
         common.instance_available(ctxt, instance_id, local_id, self.compute_api)
-        mydb = models.MySQLDatabase()
-        mydb.name = id
+        try:
+            mydb = models.MySQLDatabase()
+            mydb.name = id
+        except ValueError as ve:
+            LOG.error(ve)
+            raise exception.BadRequest(ve.message)
 
         self.guest_api.delete_database(ctxt, local_id, mydb.serialize())
         return exc.HTTPAccepted()
