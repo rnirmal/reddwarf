@@ -92,6 +92,16 @@ class SSHPool(pools.Pool):
                             timeout=FLAGS.ssh_conn_timeout)
             else:
                 raise exception.Error(_("Specify san_password or san_privatekey"))
+            # Paramiko by default sets the socket timeout to 0.1 seconds,
+            # ignoring what we set thru the sshclient. This doesn't help for
+            # keeping long lived connections. Hence we have to bypass it, by
+            # overriding it after the transport is initialized. We are setting
+            # the sockettimeout to None and setting a keepalive packet so that,
+            # the server will keep the connection open. All that does is send
+            # a keepalive packet every ssh_conn_timeout seconds.
+            transport = ssh.get_transport()
+            transport.sock.settimeout(None)
+            transport.set_keepalive(FLAGS.ssh_conn_timeout)
             return ssh
         except Exception as e:
             msg = "Error connecting via ssh: %s" % e
