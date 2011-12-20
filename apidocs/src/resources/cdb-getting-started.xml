@@ -38,8 +38,39 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
+        <pubdate>2011-12-20</pubdate>
+        <revhistory>
+            <revision>
+                <date>2011-12-20</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Fixed cURL XML and JSON examples for <xref
+                                   linkend="Create_DB_User"/>.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
+            <revision>
+                <date>2011-12-8</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Initial Private Beta Release.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>           
+        </revhistory>
     </info>
-    <section xml:id="DB_Solution">
+    <section xml:id="DB_Doc_Change_History">
+        <title>Document Change History</title>
+        <para>This version of the Developer Guide replaces and
+            obsoletes all previous versions. The most recent changes
+            are described in the table below:</para>
+        <?rax revhistory?>
+    </section>
+    <section xml:id="DB_Overview">
         <title>Overview</title>
         <para>Follow the steps described in this guide to use the
             Rackspace Cloud Database API and Cloud Servers section of
@@ -167,8 +198,7 @@
         "key": "your_api_key"}  \
     }' \
 <option>-H "Content-Type: application/json"</option> \
-<uri>https://auth.api.rackspacecloud.com/v1.1/auth</uri>
-                      </programlisting>
+<uri>https://auth.api.rackspacecloud.com/v1.1/auth</uri></programlisting>
             
         </example>
         <example>
@@ -257,9 +287,9 @@
         <para> A flavor is an available hardware configuration for a
             database instance. Each flavor has a unique combination of
             memory capacity and priority for CPU time.</para>
-        <para>You need to use the List Flavors Details API to find the
-            available configurations for your database instance, and
-            then decide which size you need.</para>
+        <para>You need to use the List Flavors Details API call to
+            find the available configurations for your database
+            instance, and then decide which size you need.</para>
         <para>This operation does not require a request body.</para>
         <para>The cURL requests for List Flavors Details are:</para>
         <example>
@@ -268,8 +298,7 @@
 <option>-H "X-Auth-Token: your_auth_token"</option> \
 <option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Accept: application/xml"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri>
-                      </programlisting>
+<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri></programlisting>
         </example>
         <example>
             <title>cURL List Flavors Details Request: JSON</title>
@@ -277,15 +306,16 @@
 <option>-H "X-Auth-Token: your_auth_token"</option> \
 <option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Accept: application/json"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri>
-                      </programlisting>
+<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri></programlisting>
         </example>
         <para>Remember to replace the names in the examples above with
             their actual respective values for all the cURL examples
             that follow:<itemizedlist>
                 <listitem>
                     <para>your_auth_token &mdash; as returned in your
-                        authentication response</para>
+                        authentication response (see the response
+                        examples in <xref
+                            linkend="Generating_Auth_Token"/>)</para>
                 </listitem>
                 <listitem>
                     <para>your_acct_id &mdash; as returned in your
@@ -305,16 +335,19 @@
         <para>In the previous examples, you can see from the flavor
                 <code>name</code> that there are multiple flavors
             available, including <code>medium</code> (with 1 virtual
-            cpu and 2 gigabytes of memory) and <code>tiny</code> (with
-            1 virtual cpu and 0.5 gigabytes of memory). </para>
+            CPU and 2 gigabytes of memory) and <code>tiny</code> (with
+            1 virtual CPU and 0.5 gigabytes of memory). </para>
         <para>In this example, assume that you decide to use the tiny
             flavor (id 1) for your database instance.</para>
     </section>
     
     <section xml:id="Create_DB_Instance">
             <title> Create a Database Instance with a Database </title>
-            <para>Create a database instance with a database using the
-            tiny flavor and volume size of 2 gigabytes (GB). </para>
+            <para>A database instance is an isolated MySQL instance in
+            a single tenant environment on a shared physical host
+            machine. In the example below, you create a database
+            instance with a database using the tiny flavor and volume
+            size of 2 gigabytes (GB). </para>
         <para>Refer to <link
                 xlink:href="http://docs-beta.rackspace.com/cdb/api/v1.0/cdb-devguide/content/POST_createDatabase__version__instances__instanceId__databases_databases.html"
                 >Create Database</link> in the <citetitle>Cloud
@@ -328,7 +361,7 @@
         <para>Notice that the request specifies the flavor reference
                 (<code>flavorRef</code>) to the tiny flavor (id 1)
             that was returned by the List Flavors Details call:
-                <code>"https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1".</code></para>
+                <code>"https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1"</code>.</para>
         <para>The following examples show the cURL requests for Create
             Instance:</para>
         <example>
@@ -349,8 +382,7 @@
 <option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Content-Type: application/xml"</option> \
 <option>-H "Accept: application/xml"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri>
-                      </programlisting>
+<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri></programlisting>
         </example>
         <example>
             <title>cURL Create Instance Request : JSON</title>
@@ -376,8 +408,7 @@
 <option>-H "X-Auth-Token: your_auth_token"</option> \
 <option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Content-Type: application/json"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri>
-                      </programlisting>
+<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri></programlisting>
         </example>
         <para>The following examples show the Create Instance
             responses:</para>
@@ -411,7 +442,6 @@
 &lt;users xmlns="http://docs.openstack.org/database/api/v1.0"> \
     &lt;user name="simplestUserWithOneDatabase" \
          password="password" database="sampledb"/> \
-    &lt;/user> \
 &lt;/users>' \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
 <option>-H "X-Auth-Project-ID: your_acct_id"</option> \
@@ -429,7 +459,7 @@
             "name": "simplestUserWithOneDatabase", \
             "password": "password", \
             "database": "sampledb" \
-        }, \
+        } \
     ] \
 }' \
 <option>-H "X-Auth-Token: your_auth_token"</option> \

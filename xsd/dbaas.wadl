@@ -807,6 +807,8 @@
             <para role="shortdesc">Lists all flavor information about the specified flavor ID.</para>
             <para>This operation lists all information for the specified flavor ID with details of the RAM.</para>
             <para>This resource is identical to the flavors found in the OpenStack Nova API, but without the disk property.</para>
+            <note>The flavorId parameter should be an integer. If a floating point value is used for the flavorId parameter, the decimal portion is truncated and the integer portion is used as the value of the flavorId.</note>
+            <remark>Writer: need to confirm that this behavior is not changed in subsequent releases, and if it is prevented, remove the Note above.</remark>
         </wadl:doc>
         <response status="200">
             <representation mediaType="application/xml"
