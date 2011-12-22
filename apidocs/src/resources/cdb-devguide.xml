@@ -55,7 +55,7 @@
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
         <productname>Rackspace Cloud Database</productname>
-        <pubdate>2011-12-20</pubdate>
+        <pubdate>2011-12-22</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -69,6 +69,20 @@
         </abstract>
         
         <revhistory>
+            <revision>
+                <date>2011-12-22</date>
+                <revdescription>
+                    <itemizedlist>
+                        <listitem>
+                            <para>Increased the maximum volume size
+                                per instance in gigabytes (GB) for
+                                your account to 10 (GB) in <xref
+                                   linkend="Absolute_Limits-d1e1397"
+                                />. </para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2011-12-20</date>
                 <revdescription>
@@ -962,7 +976,7 @@
                             <td colspan="3">Maximum volume size per
                                 instance in gigabytes (GB) for your
                                 account</td>
-                            <td colspan="1">8</td>
+                            <td colspan="1">10</td>
                         </tr>
                     </tbody>
                 </table>

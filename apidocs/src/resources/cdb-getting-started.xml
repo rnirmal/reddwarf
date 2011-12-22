@@ -38,8 +38,33 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
-        <pubdate>2011-12-20</pubdate>
+        <pubdate>2011-12-22</pubdate>
         <revhistory>
+            <revision>
+                <date>2011-12-22</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Updated name for <xref
+                                   linkend="Generating_Auth_Token"
+                                />.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Added additional supporting details
+                                to explain individual sections.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Divided the section "Configure Your
+                                Existing Cloud Server" into two
+                                sections: <xref
+                                   linkend="Configure_Cloud_Server_DB"
+                                /> and <xref
+                                   linkend="Configure_Cloud_Server_Routing"
+                                />.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2011-12-20</date>
                 <revdescription>
@@ -82,12 +107,29 @@
         <para>For issues with the Cloud Database API, please send
             email to the beta support list:
                 <email>clouddb_beta@rackspace.com</email>.</para>
+        <section xml:id="Prerequisites_Examples">
+            <title>Prerequisites for Running Examples</title>
+            <para>In order to run the examples in this guide, you must
+                have the following prerequisites: <itemizedlist
+                    spacing="compact">
+                    <listitem>
+                        <para>Rackspace Cloud Servers account</para>
+                    </listitem>
+                    <listitem>
+                        <para>Rackspace Cloud Database account</para>
+                    </listitem>
+                    <listitem>
+                        <para>Rackspace Cloud username and password,
+                            as specified during registration</para>
+                    </listitem>
+                </itemizedlist></para>
+        </section>
     </section>
     <section xml:id="DB_Sending_API_Requests">
         <title>Send Requests to the API</title>
         <para>You have several options for sending requests through an
             API: </para>
-        <itemizedlist>
+        <itemizedlist spacing="compact">
             <listitem>
                 <para>Developers and testers may prefer to use cURL,
                     the command-line tool from <link
@@ -123,8 +165,8 @@
             <para>cURL allows you to transmit and receive HTTP requests and responses from the
                 command-line or from within a shell script. This makes it possible to work with the ReST API
                 directly without using one of the client APIs. </para>
-            <para>The following cURL command-line options will be
-                used:</para>
+            <para>The following cURL command-line options will be used
+                in this guide to run the examples:</para>
             <variablelist>
                 <title>cURL Command-Line Options</title>
                 <varlistentry>
@@ -151,31 +193,40 @@
         </section>
     </section>
     <section xml:id="Generating_Auth_Token">
-        <title>Generate an Authorization Token</title>
+        <title>Generate an Authentication Token</title>
         <para>You need to generate a token whether you use cURL or a
             ReST client.</para>
         
         <para>In order to use the ReST API, you will first need to
-            obtain an authorization token, which will need to be
+            obtain an authentication token, which will need to be
             passed in for each request using the
-                <code>X-Auth-Token</code> header. The following
-            example demonstrates how to use cURL to obtain the
-            authorization token and the URL of the storage
-            system.</para>
-        <para>Remember to replace the names in the examples below with
-            their respective values:<itemizedlist>
+                <code>X-Auth-Token</code> header. </para>
+        <para>The following example demonstrates how to use cURL to
+            obtain the authentication token and the account number.
+            You will need to supply the authentication token and
+            account number when making subsequent Cloud Database API
+            calls.</para>
+        <para>Remember to replace the names in the Authenticate
+            Request examples below with their respective values:<itemizedlist spacing="compact">
                 <listitem>
-                    <para>your_username &mdash; The username supplied
-                        here is your common Rackspace Cloud
-                        username.</para>
+                    <para>your_username &mdash; The username is your
+                        common Rackspace Cloud username, as supplied
+                        during registration.</para>
                 </listitem>
                 <listitem>
                     <para>your_api_key &mdash; The key is your API
                         access key. The key can be obtained from the
-                        Rackspace Cloud Control Panel in the Your
-                        Account/API Access section.</para>
+                        Rackspace Cloud Control Panel in the <emphasis
+                            role="bold">Your Account</emphasis> /
+                            <emphasis role="bold">API
+                            Access</emphasis> section.</para>
                 </listitem>
             </itemizedlist></para>
+        <para>Notice that you authenticate using a special URL for
+            Cloud authentication services
+                (<code>https://auth.api.rackspacecloud.com/v1.1/auth</code>),
+            as shown in the following Authenticate Request
+            examples.</para>
         <example>
             <title>cURL Authenticate Request: XML</title>
             <?dbfo keep-together="always"?>
@@ -211,13 +262,52 @@
         </example>
         <para>The authentication token <code>id</code> is returned
             along with an <code>expires</code> attribute that
-            specifies when the token expires. The
-                <code>publicURL</code> endpoint (for example
-            https://servers.api.rackspacecloud.com/v1.0/1234) is also
-            returned in the response. </para>
+            specifies when the token expires. </para>
+        <note>
+            <title>Notes</title>
+            <itemizedlist spacing="compact">
+                <listitem>
+                    <para>The <code>id</code> attribute in the
+                        Authenticate Response specifies the
+                        authentication token. Tokens are valid for a
+                        finite duration.</para>
+                </listitem>
+                <listitem>
+                    <para> The <code>expires</code> attribute denotes
+                        the time after which the token will
+                        automatically become invalid. A token may be
+                        manually revoked before the time identified by
+                        the expires attribute; <code>expires</code>
+                        predicts a token's maximum possible lifespan
+                        but does not guarantee that it will reach that
+                        lifespan. Clients are encouraged to cache a
+                        token until it expires.</para>
+                </listitem>
+                <listitem>
+                    <para>Applications should be designed to
+                        re-authenticate after receiving a 401
+                        (Unauthorized) response from a service
+                        endpoint.</para>
+                </listitem>
+            </itemizedlist>
+        </note>
+        <para>The <code>publicURL</code> endpoint (for example
+                <code>https://servers.api.rackspacecloud.com/v1.0/1234</code>)
+            is also returned in the response. </para>
+        <note>
+            <para>The <code>serviceCatalog</code> that is returned in
+                the auth response, does not currently contain an entry
+                for <code>cloudDatabase</code>. Therefore you will
+                need to select your service access/endpoint as
+                described in <xref
+                    linkend="Service_Access_Endpoints-d1e753"
+                />.</para>
+        </note>
         <para>You will find the actual account number after the final
             '/' in the <code>publicURL</code> field. In this example,
-            you can see that the account number is 1234.</para>
+            you can see that the account number is 1234. You need to
+            specify your account number on most of the Cloud Database
+            API calls.</para>
         <para>After authentication, you can use cURL to perform &GET;,
             &DELETE;, and &POST; requests for the Cloud Database
             API.</para>
@@ -226,7 +316,8 @@
     <section xml:id="Service_Access_Endpoints-d1e753">
         <title>Service Access/Endpoints</title>
         <para>Specify a region to operate against by selecting an
-            endpoint from the table below.</para>
+            endpoint from the table below to use for your Cloud
+            Database API calls.</para>
         <?rax-fo keep-with-next?>
         <para>
             <table rules="all">
@@ -261,7 +352,7 @@
         </para>
         <note>
             <title>Notes</title>
-            <itemizedlist>
+            <itemizedlist spacing="compact">
                 <listitem>
                     <para>Additional service endpoints will be added
                         in the future.</para>
@@ -278,20 +369,26 @@
             are added to the table above.</remark>
         <para>Replace the sample account ID number,
                 <parameter>1234</parameter>, with your actual account
-            number returned as part of the authentication service
-            response. Refer to <xref linkend="Generating_Auth_Token"
-            />.</para>
+            number returned as part of the authentication response.
+            Refer to <xref linkend="Generating_Auth_Token"/>.</para>
+        <para>When making a Cloud Database API call, place the
+            endpoint at the beginning of the request URL
+                (<code>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/</code>),
+            as you can see in the cURL List Flavors Details Request
+            examples in <xref linkend="List_Flavors"/>.</para>
     </section>
     <section xml:id="List_Flavors">
         <title>List Flavors</title>
         <para> A flavor is an available hardware configuration for a
             database instance. Each flavor has a unique combination of
             memory capacity and priority for CPU time.</para>
-        <para>You need to use the List Flavors Details API call to
-            find the available configurations for your database
-            instance, and then decide which size you need.</para>
+        <para>You need to use the List Flavors Details API call
+                (<code>/flavors/detail</code>) to find the available
+            configurations for your database instance, and then decide
+            which size you need.</para>
         <para>This operation does not require a request body.</para>
-        <para>The cURL requests for List Flavors Details are:</para>
+        <para>The following examples show the cURL requests for List
+            Flavors Details:</para>
         <example>
             <title>cURL List Flavors Details Request: XML</title>
             <programlisting><command>curl</command> \
@@ -310,7 +407,7 @@
         </example>
         <para>Remember to replace the names in the examples above with
             their actual respective values for all the cURL examples
-            that follow:<itemizedlist>
+            that follow:<itemizedlist spacing="compact">
                 <listitem>
                     <para>your_auth_token &mdash; as returned in your
                         authentication response (see the response
@@ -319,7 +416,9 @@
                 </listitem>
                 <listitem>
                     <para>your_acct_id &mdash; as returned in your
-                        authentication response</para>
+                        authentication response (must be replaced in
+                        both the <code>X-Auth-Project-ID</code> header
+                        and the request URL)</para>
                 </listitem>
             </itemizedlist></para>
         <para>The following examples show the responses for List
@@ -338,7 +437,8 @@
             CPU and 2 gigabytes of memory) and <code>tiny</code> (with
             1 virtual CPU and 0.5 gigabytes of memory). </para>
         <para>In this example, assume that you decide to use the tiny
-            flavor (id 1) for your database instance.</para>
+            flavor (id 1) to provide the needed capacity for your
+            database instance.</para>
     </section>
     
     <section xml:id="Create_DB_Instance">
@@ -361,7 +461,9 @@
         <para>Notice that the request specifies the flavor reference
                 (<code>flavorRef</code>) to the tiny flavor (id 1)
             that was returned by the List Flavors Details call:
-                <code>"https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1"</code>.</para>
+                <code>"https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1"</code>.
+            Refer to the response examples in <xref
+                linkend="List_Flavors"/>.</para>
         <para>The following examples show the cURL requests for Create
             Instance:</para>
         <example>
@@ -422,17 +524,24 @@
                 <title>Create Instance Response: JSON</title>
                 <programlisting language="xml"><xi:include href="../../src/resources/samples/db-create-database-instance-response.json" parse="text"><xi:fallback>Missing code sample! <?rax fail?></xi:fallback></xi:include></programlisting>
             </example>
+        <para>You will need to specify the instance id returned (in the
+            example above:
+                <code>id="00ff11ee-22dd-33cc-44bb-55aa66007799"</code>)
+            on subsequent API calls that require it, for example
+            Create User.</para>
         </section>
     <section xml:id="Create_DB_User">
-        <title>Create User </title>
+        <title>Create User</title>
         <para>Create a new user within the database instance. The user
             name and password are required.</para>
-        <para>This operation asynchronously provisions a new user for
-            the specified database instance and database, based on the
-            configuration defined in the request. Once the request is
-            validated and progress has started on the provisioning
-            process, a 202 Accepted response object is
-            returned.</para>
+        <para>This operation asynchronously provisions a new user
+                (<code>simplestUserWithOneDatabase</code>) and
+            password (<code>password</code>) for the specified
+            database instance (instance_id) and database
+                (<code>sampledb</code>), as specified in the request. </para>
+        <para>Once the request is validated and progress has started
+            on the provisioning process, a 202 Accepted response
+            object is returned.</para>
         <para xmlns="http://docbook.org/ns/docbook">The following
             examples show the cURL requests for Create User:</para>
         <example>
@@ -468,39 +577,44 @@
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances/instance_id/users</uri></programlisting>
         </example>
         <para>Remember to replace the names in the examples above with
-            their actual respective values:<itemizedlist>
+            their actual respective values:<itemizedlist spacing="compact">
                 <listitem>
                     <para>your_auth_token &mdash; as returned in your
-                        authentication response</para>
+                        authentication response (see the examples in
+                            <xref linkend="Generating_Auth_Token"
+                        />)</para>
                 </listitem>
                 <listitem>
                     <para>your_acct_id &mdash; as returned in your
-                        authentication response</para>
+                        authentication response (see the examples in
+                            <xref linkend="Generating_Auth_Token"
+                        />)</para>
                 </listitem>
                 <listitem>
                     <para>instance_id &mdash; as returned in your
-                        create instance response (see the response
-                        examples in <xref linkend="Create_DB_Instance"
+                        create instance response (see the examples in
+                            <xref linkend="Create_DB_Instance"
                         />)</para>
                 </listitem>
             </itemizedlist></para>
         <para>This operation does not return a response body.</para>
     </section>
     <section xml:id="Create_Cloud_Server">
-        <title>Create a New Cloud Server </title>
+        <title>Create a New Cloud Server</title>
         <note>
             <para>If you are using an existing Cloud Server on your
-                account, skip this step.</para>
+                account, skip this step and go directly to <xref
+                    linkend="Configure_Cloud_Server_DB"/>.</para>
         </note>
-        <para>Create a Cloud Server. You can do this in the Cloud
-            Servers section of our Control Panel (login here: <link
+        <para>Create a Cloud Server using the Cloud Servers section of
+            the Control Panel (login here: <link
                 xlink:href="https://manage.rackspacecloud.com/pages/Login.jsp;jsessionid=9AA14CFBD45D76A627F75FD95A854642.cp-n01"
                 >Control Panel Login</link> ).</para>
         <procedure>
             <title>To create a Cloud Server using the Control
                 Panel:</title>
             <step>
-                <para> Choose an image from a list of different
+                <para> Select an image from a list of different
                     operating systems, including Linux Distributions
                     and Windows Images:</para>
                 <para><inlinemediaobject>
@@ -513,8 +627,8 @@
             </step>
             <step>
                 <para> Specify a name and select a size for your Cloud
-                    Server, then click <guibutton>Create
-                        Server</guibutton>. </para>
+                    Server, then click <emphasis role="bold">Create
+                        Server</emphasis>. </para>
                 <para><inlinemediaobject>
                         <imageobject>
                             <imagedata
@@ -532,32 +646,26 @@
                 details.</para>
         </note>
     </section>
-    <section xml:id="Configure_Cloud_Server">
-        <title>Configure Your Existing Cloud Server </title>
-        <para> To set up your existing Cloud Server with your database
-            instance, you need the hostname and username/password when
-            configuring your application. </para>
-        <note>
-            <title>Notes</title>
-            <itemizedlist>
-                <listitem>
-                    <para>Routes will only need to be modified on
-                        existing Cloud Server instances if you are
-                        unable to access your database instance. New
-                        instances should have the routes properly
-                        added.</para>
-                </listitem>
-                <listitem>
-                    <para>You should attempt to access your database
-                        instances first, and only perform the
-                        procedure for adding routing instructions if
-                        you do <emphasis>not</emphasis> have
-                        access.</para>
-                </listitem>
-            </itemizedlist>
-        </note>
-        <para>Refer to the appropriate procedure below, depending on
-            your environment, for creating routing
+    <section xml:id="Configure_Cloud_Server_DB">
+        <title>Configuring an Application to Use Your Cloud
+            Database</title>
+        <para>If you are configuring an application to use your
+            database on a Cloud Server with your database instance,
+            you need to configure the application with the hostname
+            and username / password for the database. </para>
+    </section>
+    <section xml:id="Configure_Cloud_Server_Routing">
+        <title>Configuring Routing for Your Existing Cloud
+            Server</title>
+        <para>Attempt to access your database instances. If you can
+            access your database instances, then skip the remainder of
+            this section and go directly to <xref
+                linkend="MySQL_GUI_Admin"/>, since the routing for
+            your Cloud Server does not need to be configured.</para>
+        <para>Otherwise, if you cannot access your database instances,
+            you need to modify routes on your existing Cloud Server
+            instances. Refer to the appropriate procedure below,
+            depending on your environment, to create the routing
             instructions.</para>
         <procedure>
             <title>To create routing instructions on a Debian-based
@@ -612,13 +720,15 @@
     </section>
     <section xml:id="MySQL_GUI_Admin">
         <title>MySQL GUI Administration</title>
-        <para> If you do not want to access your database using the
-            command line MySQL client, you can use a GUI tool such as
-            phpMyAdmin to interact with your database instance. Common
-            operations include managing databases, tables, fields,
-            relations, indexes, users, and permissions. Included below
-            is a procedure to set up phpMyAdmin on an Ubuntu 11.04
-            Cloud Server. </para>
+        <para> If you want to access your database using the command
+            line MySQL client, then you have now completed the
+                <citetitle>Getting Started</citetitle>.</para>
+        <para>Otherwise, you can use a GUI tool such as phpMyAdmin to
+            interact with your database instance. Common operations
+            include managing databases, tables, fields, relations,
+            indexes, users, and permissions. Included below is a
+            procedure to set up phpMyAdmin on an Ubuntu 11.04 Cloud
+            Server. </para>
         <para>For more detailed installation configuration
             instructions see the phpMyAdmin documentation at: <link
                 xlink:href="http://www.phpmyadmin.net/documentation/"
@@ -667,5 +777,8 @@
                     </inlinemediaobject></para>
             </step>
         </procedure>
+        <para>This concludes the <citetitle>Getting
+            Started</citetitle>. Thank you for using Rackspace Cloud
+            products.</para>
     </section>
 </article>
