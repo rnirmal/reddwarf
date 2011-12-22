@@ -375,7 +375,7 @@ DEFINE_string('scheduler_manager', 'nova.scheduler.manager.SchedulerManager',
               'Manager for scheduler')
 DEFINE_string('guest_manager', 'reddwarf.guest.manager.GuestManager',
               'Manager for guest agent')
-DEFINE_string('reaper_manager', 'nova.reaper.manager.ReaperManager',
+DEFINE_string('reaper_manager', 'reddwarf.reaper.manager.ReaperManager',
               'Manager for reaper')
 
 DEFINE_string('vsa_manager', 'nova.vsa.manager.VsaManager',

@@ -21,7 +21,7 @@ from nova import flags
 from nova import log as logging
 from nova import manager
 from nova import utils
-from nova.reaper import driver
+from reddwarf.reaper import driver
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('reaper_driver', 'nova.reaper.driver.ReaperDriver',
