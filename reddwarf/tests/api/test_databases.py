@@ -21,7 +21,6 @@ import webob
 from paste import urlmap
 from nose.tools import raises
 
-import nova
 from nova import context
 from nova import test
 
@@ -53,7 +52,7 @@ class DatabaseApiTest(test.TestCase):
         super(DatabaseApiTest, self).tearDown()
 
     def test_list_databases(self):
-        self.stubs.Set(nova.guest.api.API, "list_databases",
+        self.stubs.Set(reddwarf.guest.api.API, "list_databases",
                        list_databases_exception)
         req = webob.Request.blank(databases_url)
         res = req.get_response(util.wsgi_app())

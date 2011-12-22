@@ -17,13 +17,12 @@ from nova import compute
 from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.compute import power_state
-from nova.guest import api as guest_api
-from nova.guest.db import models
 
 from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.db import api as dbapi
-
+from reddwarf.guest import api as guest_api
+from reddwarf.guest.db import models
 
 LOG = logging.getLogger('reddwarf.api.root')
 LOG.setLevel(logging.DEBUG)

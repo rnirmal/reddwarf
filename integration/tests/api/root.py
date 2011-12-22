@@ -16,7 +16,7 @@ import time
 
 from sqlalchemy.sql.expression import text
 
-from nova.guest.dbaas import LocalSqlClient
+from reddwarf.guest.dbaas import LocalSqlClient
 
 from proboscis import before_class
 from proboscis import test

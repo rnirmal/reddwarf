@@ -20,10 +20,10 @@ from nova import exception as nova_exception
 from nova import log as logging
 from nova.compute import power_state
 from nova.db.sqlalchemy.api import is_admin_context
-from nova.guest.db import models
-from reddwarf.db import api as dbapi
 
 from reddwarf import exception
+from reddwarf.db import api as dbapi
+from reddwarf.guest.db import models
 
 
 XML_NS_V10 = 'http://docs.openstack.org/database/api/v1.0'

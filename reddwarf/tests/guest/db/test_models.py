@@ -15,9 +15,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova.guest.db.models import MySQLDatabase
-from nova.guest.db.models import MySQLUser
 from nova import test
+from reddwarf.guest.db.models import MySQLDatabase
+from reddwarf.guest.db.models import MySQLUser
 
 
 class MySQLDatabaseTest(test.TestCase):
