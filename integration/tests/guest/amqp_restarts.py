@@ -48,9 +48,18 @@ from tests import util as test_utils
 from tests.util import test_config
 from tests.util.services import Service
 from tests.util.services import start_proc
+from nova.rpc.impl_kombu import ConnectionContext
 
+
+def topic_name():
+    return "guest.%s" % test_config.values['host_name']
 
 class Rabbit(object):
+
+    def declare_queue(self, topic):
+        """Call this to declare a queue from Python."""
+        with ConnectionContext() as conn:
+            consumer = conn.declare_topic_consumer(topic=topic)
 
     def get_queue_items(self):
         """Returns a count of the queued messages the host has sent."""
@@ -92,7 +101,7 @@ class Rabbit(object):
 
 @test(groups=["agent", "amqp.restarts"])
 class WhenAgentRunsAsRabbitGoesUpAndDown(object):
-    """Tests the agent is ok when Rabbit 
+    """Tests the agent is ok when Rabbit
     """
 
     def __init__(self):
@@ -108,11 +117,12 @@ class WhenAgentRunsAsRabbitGoesUpAndDown(object):
         original_queue_count = self.rabbit.get_queue_items()
         @time_out(5)
         def send_msg_with_timeout():
+            self.rabbit.declare_queue(topic_name())
             version = rpc.call(context.get_admin_context(),
-                               "guest.%s" % test_config.values['host_name'],
-                      {"method": "version",
-                       "args": {"package_name": "dpkg"}
-                      })
+                               topic_name(),
+                    {"method": "version",
+                     "args": {"package_name": "dpkg"}
+                })
             return { "status":"good", "version": version }
         try:
             return send_msg_with_timeout()
