@@ -175,8 +175,27 @@ class APIRouter(wsgi.Router):
         mapper.connect("/", controller=versions.create_resource(),
                        action="dispatch")
 
-        # Instead of dropping out with a Routes fault, we gently redirect
-        # with a 302 to "/vX.Y/", our current version.
-        mapper.redirect("", "/")
+        mapper.connect("", controller=versions.create_resource(),
+                       action="dispatch")
 
         super(APIRouter, self).__init__(mapper)
+
+
+class VersionsAPIRouter(wsgi.Router):
+    """
+    Routes requests on the DBaaS API to the appropriate controller
+    and method, specifically for versions.
+    """
+
+    @classmethod
+    def factory(cls, global_config, **local_config):
+        """Simple paste factory, :class:`nova.wsgi.Router` doesn't have one"""
+        return cls()
+
+    def __init__(self):
+        mapper = routes.Mapper()
+
+        mapper.connect("/", controller=versions.create_resource(),
+                       action="dispatch", conditions={'method': 'GET'})
+
+        super(VersionsAPIRouter, self).__init__(mapper)
