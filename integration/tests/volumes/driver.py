@@ -130,22 +130,6 @@ class SetUp(VolumeTest):
                 'spaceAvail': device_info['raw_avail']}
         self._assert_avilable_space(info)
 
-    @time_out(60)
-    def test_check_available_space(self):
-        """Check for available space on SAN"""
-        if FLAGS.volume_driver == 'nova.volume.san.HpSanISCSIDriver':
-            driver = volume.san.HpSanISCSIDriver()
-            info = driver._cliq_get_cluster_info(FLAGS.san_clustername)
-        elif FLAGS.volume_driver == 'reddwarf.tests.volume.driver.ISCSITestDriver':
-            driver = ISCSITestDriver()
-            info = driver._get_device_info()
-        else:
-            info = {'name': 'hard coded test',
-                    'spaceTotal':20*1024*1024*1024,
-                    'spaceAvail':20*1024*1024*1024}
-        print("info : %r" % info)
-        self._assert_avilable_space(info)
-
     def _assert_avilable_space(self, device_info, fail=False):
         """Give the SAN device_info(fake or not) and get the asserts for free"""
         print("DEVICE_INFO on SAN : %r" % device_info)
