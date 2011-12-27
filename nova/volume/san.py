@@ -135,8 +135,7 @@ class SanISCSIDriver(ISCSIDriver):
 
     def __init__(self, *args, **kwargs):
         super(SanISCSIDriver, self).__init__(*args, **kwargs)
-        self.sshpool = SSHPool(min_size=FLAGS.ssh_min_pool_conn,
-                               max_size=FLAGS.ssh_max_pool_conn)
+        self.sshpool = None
 
     def _build_iscsi_target_name(self, volume):
         return "%s%s" % (FLAGS.iscsi_target_prefix, volume['name'])
@@ -145,6 +144,9 @@ class SanISCSIDriver(ISCSIDriver):
     # undiscover_volume is still OK
 
     def _run_ssh(self, command, check_exit_code=True, attempts=1):
+        if not self.sshpool:
+            self.sshpool = SSHPool(min_size=FLAGS.ssh_min_pool_conn,
+                                   max_size=FLAGS.ssh_max_pool_conn)
         try:
             total_attempts = attempts
             with self.sshpool.item() as ssh:
