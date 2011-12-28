@@ -49,7 +49,7 @@
 # Logging
 --logfile=/vagrant/nova.log
 --verbose
---notification_driver=nova.notifier.log_notifier
+--notification_driver=reddwarf.notifier.logfile_notifier
 --notifier_logfile=/vagrant/notification.log
 
 # Reaper config
