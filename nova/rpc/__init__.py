@@ -55,7 +55,3 @@ def fanout_cast(context, topic, msg):
 
 def multicall(context, topic, msg):
     return get_impl().multicall(context, topic, msg)
-
-
-def cast_with_consumer(context, topic, msg):
-    return get_impl().cast_with_consumer(context, topic, msg)
