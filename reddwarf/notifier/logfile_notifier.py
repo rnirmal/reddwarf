@@ -13,22 +13,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
-
 from nova import flags
 from nova import log as logging
-
+from nova.notifier import log_notifier
 
 FLAGS = flags.FLAGS
+flags.DEFINE_string('notifier_logfile', None,
+                    'Separate log file for notifications, off by default')
+
+
+if FLAGS.notifier_logfile:
+    logger = logging.getLogger("nova.notification")
+    handler = logging.WatchedFileHandler(FLAGS.notifier_logfile)
+    logger.addHandler(handler)
 
 
 def notify(message):
     """Notifies the recipient of the desired event given the model.
     Log notifications using nova's default logging system"""
-
-    priority = message.get('priority',
-                           FLAGS.default_notification_level)
-    priority = priority.lower()
-    logger = logging.getLogger(
-            'nova.notification.%s' % message['event_type'])
-    getattr(logger, priority)(json.dumps(message))
+    log_notifier.notify(message)

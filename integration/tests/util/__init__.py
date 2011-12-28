@@ -35,7 +35,7 @@ from sqlalchemy import create_engine
 
 from nova import flags
 from nova import utils
-from nova.notifier import log_notifier  # This is here so flags are loaded
+from reddwarf.notifier import logfile_notifier  # This is here so flags are loaded
 from nose.tools import assert_false
 from nova.utils import PollTimeOut
 from reddwarfclient import Dbaas
