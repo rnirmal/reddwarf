@@ -8,7 +8,7 @@
 --flat_network_bridge=br100
 
 # Nova Scheduler
---scheduler_driver=nova.scheduler.simple.UnforgivingMemoryScheduler
+--scheduler_driver=reddwarf.scheduler.simple.UnforgivingMemoryScheduler
 --max_instance_memory_mb=6144
 
 # Nova Volume
