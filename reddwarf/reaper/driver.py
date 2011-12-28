@@ -33,6 +33,12 @@ flags.DEFINE_integer('reddwarf_reaper_orphan_volume_expiration_time',
                      'Time until reaper will destroy orphaned volumes.')
 
 
+class ReaperDriver(object):
+
+    def periodic_tasks(self, context):
+        pass
+
+
 class ReddwarfReaperDriver(object):
     """
     Searches for failed resources.

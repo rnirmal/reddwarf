@@ -1,10 +1,11 @@
-from nova.guest.pkg import PkgAgent
-from nova.guest import pkg
 import random
 from nose.plugins.skip import SkipTest
 import time
 from proboscis import test
 import unittest
+
+from reddwarf.guest import pkg
+from reddwarf.guest.pkg import PkgAgent
 
 GROUP = "nova.guest.pkg"
 # To prevent a joker from making a package with this name...

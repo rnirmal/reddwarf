@@ -18,7 +18,6 @@
 import json
 
 from nova import flags
-from nova import guest
 from nova import log as logging
 from nova import exception
 from nova import utils
@@ -28,6 +27,7 @@ from nova.compute.manager import ComputeManager
 from nova.notifier import api as notifier
 from nova.volume import api as volume_api
 
+from reddwarf import guest
 from reddwarf.db import api as dbapi
 
 
