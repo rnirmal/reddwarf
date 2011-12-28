@@ -1,16 +1,15 @@
-from nova.guest.dbaas import ADMIN_USER_NAME
 import os
 import pexpect
 from sqlalchemy import create_engine
-from nova.guest.dbaas import DBaaSPreparer
-from nova.guest.dbaas import generate_random_password
-from nova.guest.dbaas import LocalSqlClient
-from nova.guest.pkg import PkgAgent
-from nova.guest import pkg
 from nose.plugins.skip import SkipTest
 from proboscis import test
-from sqlalchemy.sql.expression import text
 import unittest
+
+from reddwarf.guest.dbaas import ADMIN_USER_NAME
+from reddwarf.guest.dbaas import DBaaSPreparer
+from reddwarf.guest.dbaas import generate_random_password
+from reddwarf.guest.dbaas import LocalSqlClient
+from reddwarf.guest.pkg import PkgAgent
 
 # Change this to False to run the tests in an environment that can handle them.
 GROUP = "nova.guest.dbaas"

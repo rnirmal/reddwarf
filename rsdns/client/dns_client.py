@@ -50,8 +50,12 @@ class DNSaasClient(HTTPClient):
         resp_body = json.loads(resp_body)
         LOG.debug(json.dumps({'body':resp_body, 'resp':resp}, sort_keys=True,
                              indent=4))
-        self.auth_token = resp_body['auth']['token']['id']
-
+        try:
+            self.auth_token = resp_body['auth']['token']['id']
+        except KeyError:
+            # Not sure if this is the correct exception to raise here
+            # Copied what i saw us doing in the ReddwarfHTTPClient.authenticate
+            raise exceptions.HTTPNotImplemented("DNS Service: is not available")
         self.management_url = self.management_base_url + str(self.accountId)
 
         LOG.debug("AUTH_TOKEN=%s" % self.auth_token)
@@ -64,6 +68,7 @@ class DNSaasClient(HTTPClient):
         while(True):
             kwargs.setdefault('headers', {})
             kwargs['headers']['User-Agent'] = self.USER_AGENT
+            kwargs['headers']['X-Auth-Token'] = self.auth_token
             if 'body' in kwargs:
                 kwargs['headers']['Content-Type'] = 'application/json'
                 kwargs['body'] = json.dumps(kwargs['body'])

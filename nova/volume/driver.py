@@ -64,6 +64,10 @@ flags.DEFINE_string('volume_fstype', 'ext3',
                     'The file system type used to format and mount volumes.')
 flags.DEFINE_string('san_ip', '',
                     'IP address of SAN controller')
+flags.DEFINE_string('format_options', '-m 5',
+                    'String specifying various options passed to mkfs')
+flags.DEFINE_string('mount_options', 'noatime',
+                    'String specifying various options passed to mount')
 
 
 class VolumeDriver(object):
@@ -291,9 +295,9 @@ class VolumeDriver(object):
 
     def _format(self, device_path):
         """Calls mkfs to format the device at device_path."""
-        child = pexpect.spawn("sudo mkfs -t %s %s" % (FLAGS.volume_fstype,
-                              device_path),
-                              timeout=FLAGS.volume_format_timeout)
+        cmd = "sudo mkfs -t %s %s %s" % (FLAGS.volume_fstype,
+                                         FLAGS.format_options, device_path)
+        child = pexpect.spawn(cmd, timeout=FLAGS.volume_format_timeout)
         child.expect("(y,n)")
         child.sendline('y')
         child.expect(pexpect.EOF)
@@ -305,11 +309,11 @@ class VolumeDriver(object):
         self._check_format(device_path)
 
     def mount(self, device_path, mount_point):
-        #TODO(tim.simpson): Allow other filesystem types.
         if not os.path.exists(mount_point):
             os.makedirs(mount_point)
-        cmd = "sudo mount -t %s %s %s" % (FLAGS.volume_fstype, device_path,
-                                          mount_point)
+        cmd = "sudo mount -t %s -o %s %s %s" % (FLAGS.volume_fstype,
+                                                FLAGS.mount_options,
+                                                device_path, mount_point)
         child = pexpect.spawn(cmd)
         child.expect(pexpect.EOF)
 

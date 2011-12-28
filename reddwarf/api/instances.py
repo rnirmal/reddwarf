@@ -24,7 +24,6 @@ from nova import db
 from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
-from nova import utils
 from nova import volume
 from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
@@ -32,7 +31,6 @@ from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
 from nova.compute import vm_states
-from nova.guest import api as guest_api
 from nova.notifier import api as notifier
 
 from reddwarf import exception
@@ -40,6 +38,7 @@ from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi
+from reddwarf.guest import api as guest_api
 
 
 LOG = logging.getLogger('reddwarf.api.instances')
@@ -66,8 +65,6 @@ class Controller(object):
 
     def __init__(self):
         self.compute_api = compute.API()
-        self.dns_entry_factory = \
-            utils.import_object(FLAGS.dns_instance_entry_factory)
         self.guest_api = guest_api.API()
         self.server_controller = servers.ControllerV11()
         self.volume_api = volume.API()
@@ -175,13 +172,6 @@ class Controller(object):
         self.server_controller.delete(req, instance_id)
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(instance_id)
-        try:
-            for volume_ref in db.volume_get_all_by_instance(context, instance_id):
-                self.volume_api.delete_volume_when_available(context,
-                                                             volume_ref['id'],
-                                                             time_out=60)
-        except nova_exception.VolumeNotFoundForInstance:
-            LOG.info("Skipping as no volumes are associated with the instance")
         return exc.HTTPAccepted()
 
     def create(self, req, body):

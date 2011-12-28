@@ -199,6 +199,17 @@ class FlatNetworkTestCase(test.TestCase):
         self.mox.ReplayAll()
         self.network.validate_networks(self.context, requested_networks)
 
+    def test_validate_reserved(self):
+        context_admin = context.RequestContext('testuser', 'testproject',
+                                              is_admin=True)
+        nets = self.network.create_networks(context_admin, 'fake',
+                                       '192.168.0.0/24', False, 1,
+                                       256, None, None, None, None )
+        self.assertEqual(1, len(nets))
+        network = nets[0]
+        self.assertEqual(3, db.network_count_reserved_ips(context_admin,
+                        network['id']))
+
     def test_validate_networks_none_requested_networks(self):
         self.network.validate_networks(self.context, None)
 
@@ -707,117 +718,62 @@ class CommonNetworkTestCase(test.TestCase):
                 None]
         self.assertTrue(manager.create_networks(*args))
 
-    def test_get_instance_uuids_by_ip_regex(self):
-        manager = fake_network.FakeNetworkManager()
-        _vifs = manager.db.virtual_interface_get_all(None)
 
-        # Greedy get eveything
-        res = manager.get_instance_uuids_by_ip_filter(None, {'ip': '.*'})
-        self.assertEqual(len(res), len(_vifs))
+class TestRPCFixedManager(network_manager.RPCAllocateFixedIP,
+        network_manager.NetworkManager):
+    """Dummy manager that implements RPCAllocateFixedIP"""
 
-        # Doesn't exist
-        res = manager.get_instance_uuids_by_ip_filter(None, {'ip': '10.0.0.1'})
-        self.assertFalse(res)
 
-        # Get instance 1
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                    {'ip': '172.16.0.2'})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]['instance_id'], _vifs[1]['instance_id'])
+class RPCAllocateTestCase(test.TestCase):
+    """Tests nova.network.manager.RPCAllocateFixedIP"""
+    def setUp(self):
+        super(RPCAllocateTestCase, self).setUp()
+        self.rpc_fixed = TestRPCFixedManager()
+        self.context = context.RequestContext('fake', 'fake')
 
-        # Get instance 2
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                    {'ip': '173.16.0.2'})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]['instance_id'], _vifs[2]['instance_id'])
+    def test_rpc_allocate(self):
+        """Test to verify bug 855030 doesn't resurface.
 
-        # Get instance 0 and 1
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                    {'ip': '172.16.0.*'})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0]['instance_id'], _vifs[0]['instance_id'])
-        self.assertEqual(res[1]['instance_id'], _vifs[1]['instance_id'])
+        Mekes sure _rpc_allocate_fixed_ip returns a value so the call
+        returns properly and the greenpool completes."""
+        address = '10.10.10.10'
 
-        # Get instance 1 and 2
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                    {'ip': '17..16.0.2'})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0]['instance_id'], _vifs[1]['instance_id'])
-        self.assertEqual(res[1]['instance_id'], _vifs[2]['instance_id'])
+        def fake_allocate(*args, **kwargs):
+            return address
 
-    def test_get_instance_uuids_by_ipv6_regex(self):
-        manager = fake_network.FakeNetworkManager()
-        _vifs = manager.db.virtual_interface_get_all(None)
+        def fake_network_get(*args, **kwargs):
+            return {}
 
-        # Greedy get eveything
-        res = manager.get_instance_uuids_by_ip_filter(None, {'ip6': '.*'})
-        self.assertEqual(len(res), len(_vifs))
+        self.stubs.Set(self.rpc_fixed, 'allocate_fixed_ip', fake_allocate)
+        self.stubs.Set(self.rpc_fixed.db, 'network_get', fake_network_get)
+        rval = self.rpc_fixed._rpc_allocate_fixed_ip(self.context,
+                                                     'fake_instance',
+                                                     'fake_network')
+        self.assertEqual(rval, address)
 
-        # Doesn't exist
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                      {'ip6': '.*1034.*'})
-        self.assertFalse(res)
 
-        # Get instance 1
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                    {'ip6': '2001:.*:2'})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]['instance_id'], _vifs[1]['instance_id'])
+class TestFloatingIPManager(network_manager.FloatingIP,
+        network_manager.NetworkManager):
+    """Dummy manager that implements FloatingIP"""
 
-        # Get instance 2
-        ip6 = '2002:db8::dcad:beff:feef:2'
-        res = manager.get_instance_uuids_by_ip_filter(None, {'ip6': ip6})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]['instance_id'], _vifs[2]['instance_id'])
 
-        # Get instance 0 and 1
-        res = manager.get_instance_uuids_by_ip_filter(None, {'ip6': '2001:.*'})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0]['instance_id'], _vifs[0]['instance_id'])
-        self.assertEqual(res[1]['instance_id'], _vifs[1]['instance_id'])
+class FloatingIPTestCase(test.TestCase):
+    """Tests nova.network.manager.FloatingIP"""
+    def setUp(self):
+        super(FloatingIPTestCase, self).setUp()
+        self.network = TestFloatingIPManager()
+        self.network.db = db
+        self.project_id = 'testproject'
+        self.context = context.RequestContext('testuser', self.project_id,
+            is_admin=False)
 
-        # Get instance 1 and 2
-        ip6 = '200.:db8::dcad:beff:feef:2'
-        res = manager.get_instance_uuids_by_ip_filter(None, {'ip6': ip6})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0]['instance_id'], _vifs[1]['instance_id'])
-        self.assertEqual(res[1]['instance_id'], _vifs[2]['instance_id'])
-
-    def test_get_instance_uuids_by_ip(self):
-        manager = fake_network.FakeNetworkManager()
-        _vifs = manager.db.virtual_interface_get_all(None)
-
-        # No regex for you!
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                      {'fixed_ip': '.*'})
-        self.assertFalse(res)
-
-        # Doesn't exist
-        ip = '10.0.0.1'
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                      {'fixed_ip': ip})
-        self.assertFalse(res)
-
-        # Get instance 1
-        ip = '172.16.0.2'
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                      {'fixed_ip': ip})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]['instance_id'], _vifs[1]['instance_id'])
-
-        # Get instance 2
-        ip = '173.16.0.2'
-        res = manager.get_instance_uuids_by_ip_filter(None,
-                                                      {'fixed_ip': ip})
-        self.assertTrue(res)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0]['instance_id'], _vifs[2]['instance_id'])
+    def test_double_deallocation(self):
+        instance_ref = db.api.instance_create(self.context,
+                {"project_id": self.project_id})
+        # Run it twice to make it fault if it does not handle
+        # instances without fixed networks
+        # If this fails in either, it does not handle having no addresses
+        self.network.deallocate_for_instance(self.context,
+                instance_id=instance_ref['id'])
+        self.network.deallocate_for_instance(self.context,
+                instance_id=instance_ref['id'])

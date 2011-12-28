@@ -33,6 +33,7 @@ from nose.tools import assert_true
 from novaclient import exceptions as nova_exceptions
 from nova import context
 from nova import db
+from nova import exception as backend_exception
 from nova import utils
 from reddwarf.api.common import dbaas_mapping
 from reddwarf.api.instances import FLAGS as dbaas_FLAGS
@@ -86,9 +87,11 @@ class InstanceTestInfo(object):
         self.user = None  # The user instance who owns the instance.
         self.admin_user = None  # The admin user who will use the management interfaces.
         self.volume = None # The volume the instance will have.
+        self.volume_id = None # Id for the attached volume
         self.storage = None # The storage device info for the volumes.
         self.databases = None # The databases created on the instance.
         self.host_info = None # Host Info before creating instances
+        self.user_context = None # A regular user context
 
     def check_database(self, dbname):
         return check_database(self.local_id, dbname)
@@ -135,6 +138,8 @@ class Setup(object):
         global dbaas_admin
         instance_info.user = test_config.users.find_user_by_name("chunk")
         instance_info.admin_user = test_config.users.find_user(Requirements(is_admin=True))
+        instance_info.user_context = context.RequestContext(instance_info.user.auth_user,
+                                                            instance_info.user.tenant)
         dbaas = create_test_client(instance_info.user)
         dbaas_admin = create_test_client(instance_info.admin_user)
 
@@ -555,14 +560,18 @@ class TestInstanceListing(object):
 
 
 @test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])
-class DeleteInstance(unittest.TestCase):
+class DeleteInstance(object):
     """ Delete the created instance """
 
     @time_out(3 * 60)
+    @test
     def test_delete(self):
         global dbaas
         if not hasattr(instance_info, "initial_result"):
             raise SkipTest("Instance was never created, skipping test...")
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
+                                                instance_info.local_id)
+        instance_info.volume_id = volumes[0].id
         dbaas.instances.delete(instance_info.id)
 
         attempts = 0
@@ -572,13 +581,23 @@ class DeleteInstance(unittest.TestCase):
             while result is not None:
                 attempts += 1
                 result = dbaas.instances.get(instance_info.id)
-                self.assertEqual(dbaas_mapping[power_state.SHUTDOWN], result.status)
+                assert_equal(dbaas_mapping[power_state.SHUTDOWN], result.status)
         except nova_exceptions.NotFound:
             pass
         except Exception as ex:
-            self.fail("A failure occured when trying to GET instance %s"
-                      " for the %d time: %s" %
-                      (str(instance_info.id), attempts, str(ex)))
+            fail("A failure occured when trying to GET instance %s for the %d "
+                 "time: %s" % (str(instance_info.id), attempts, str(ex)))
+
+    @time_out(30)
+    @test
+    def test_volume_is_deleted(self):
+        try:
+            while True:
+                db.volume_get(instance_info.user_context,
+                              instance_info.volume_id)
+                time.sleep(1)
+        except backend_exception.VolumeNotFound:
+            pass
 
     #TODO: make sure that the actual instance, volume, guest status, and DNS
     #      entries are deleted.

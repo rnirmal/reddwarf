@@ -291,7 +291,7 @@ DEFINE_string('ajax_console_proxy_url',
               'http://127.0.0.1:8000',
               'location of ajax console proxy, \
                in the form "http://127.0.0.1:8000"')
-DEFINE_string('ajax_console_proxy_port',
+DEFINE_integer('ajax_console_proxy_port',
                8000, 'port that ajax_console_proxy binds')
 DEFINE_string('vsa_topic', 'vsa', 'the topic that nova-vsa service listens on')
 DEFINE_bool('verbose', False, 'show debug output')
@@ -373,9 +373,9 @@ DEFINE_string('volume_manager', 'nova.volume.manager.VolumeManager',
               'Manager for volume')
 DEFINE_string('scheduler_manager', 'nova.scheduler.manager.SchedulerManager',
               'Manager for scheduler')
-DEFINE_string('guest_manager', 'nova.guest.manager.GuestManager',
+DEFINE_string('guest_manager', 'reddwarf.guest.manager.GuestManager',
               'Manager for guest agent')
-DEFINE_string('reaper_manager', 'nova.reaper.manager.ReaperManager',
+DEFINE_string('reaper_manager', 'reddwarf.reaper.manager.ReaperManager',
               'Manager for reaper')
 
 DEFINE_string('vsa_manager', 'nova.vsa.manager.VsaManager',

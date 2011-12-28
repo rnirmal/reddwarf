@@ -986,49 +986,27 @@ class LibvirtConnTestCase(test.TestCase):
         _assert_volume_in_mapping('sdg', False)
         _assert_volume_in_mapping('sdh1', False)
 
-    def test_reboot_signature(self):
-        """Test that libvirt driver method sig matches interface"""
-        def fake_reboot_with_correct_sig(ignore, instance,
-                                         network_info, reboot_type):
-            pass
-
-        def fake_destroy(instance, network_info, cleanup=False):
-            pass
-
-        def fake_plug_vifs(instance, network_info):
-            pass
-
-        def fake_create_new_domain(xml):
+    def test_destroy_saved(self):
+        """Ensure destroy calls managedSaveRemove for saved instance"""
+        # Skip if non-libvirt environment
+        if not self.lazy_load_library_exists():
             return
 
-        def fake_none(self, instance):
-            return
+        mock = self.mox.CreateMock(libvirt.virDomain)
+        mock.destroy()
+        mock.hasManagedSaveImage(0).AndReturn(1)
+        mock.managedSaveRemove(0)
+        mock.undefine()
 
-        instance = db.instance_create(self.context, self.test_instance)
-        network_info = _fake_network_info(self.stubs, 1)
+        self.mox.ReplayAll()
 
-        self.mox.StubOutWithMock(connection.LibvirtConnection, '_conn')
-        connection.LibvirtConnection._conn.lookupByName = self.fake_lookup
+        def fake_lookup_by_name(instance_name):
+            return mock
 
         conn = connection.LibvirtConnection(False)
-        self.stubs.Set(conn, 'destroy', fake_destroy)
-        self.stubs.Set(conn, 'plug_vifs', fake_plug_vifs)
-        self.stubs.Set(conn.firewall_driver,
-                       'setup_basic_filtering',
-                       fake_none)
-        self.stubs.Set(conn.firewall_driver,
-                       'prepare_instance_filter',
-                       fake_none)
-        self.stubs.Set(conn, '_create_new_domain', fake_create_new_domain)
-        self.stubs.Set(conn.firewall_driver,
-                       'apply_instance_filter',
-                       fake_none)
-
-        args = [instance, network_info, 'SOFT']
-        conn.reboot(*args)
-
-        compute_driver = driver.ComputeDriver()
-        self.assertRaises(NotImplementedError, compute_driver.reboot, *args)
+        self.stubs.Set(conn, '_lookup_by_name', fake_lookup_by_name)
+        instance = {"name": "instancename", "id": "instanceid"}
+        conn.destroy(instance, [])
 
 
 class NWFilterFakes:

@@ -129,6 +129,7 @@ if __name__ == '__main__':
         from tests.api import versions
         from tests.api import instances
         from tests.api import databases
+        from tests.api import root
         from tests.api import users
         from tests.api.mgmt import accounts
         from tests.api.mgmt import admin_required

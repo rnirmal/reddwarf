@@ -35,17 +35,16 @@ from datetime import date
 from sqlalchemy import create_engine
 from sqlalchemy import exc
 from sqlalchemy import interfaces
-from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import text
 
 from nova import flags
 from nova import log as logging
-from nova import utils
 from nova.compute import power_state
 from nova.exception import ProcessExecutionError
-from nova.guest import utils as guest_utils
-from nova.guest.db import models
+
 from reddwarf.db import api as dbapi
+from reddwarf.guest import utils as guest_utils, utils
+from reddwarf.guest.db import models
 
 ADMIN_USER_NAME = "os_admin"
 LOG = logging.getLogger('nova.guest.dbaas')
@@ -261,7 +260,7 @@ class DBaaSAgent(object):
         """Makes ready DBAAS on a Guest container."""
         global PREPARING
         PREPARING = True
-        from nova.guest.pkg import PkgAgent
+        from reddwarf.guest.pkg import PkgAgent
         if not isinstance(self, PkgAgent):
             raise TypeError("This must also be an instance of Pkg agent.")
         preparer = DBaaSPreparer(self)

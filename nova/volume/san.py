@@ -92,6 +92,16 @@ class SSHPool(pools.Pool):
                             timeout=FLAGS.ssh_conn_timeout)
             else:
                 raise exception.Error(_("Specify san_password or san_privatekey"))
+            # Paramiko by default sets the socket timeout to 0.1 seconds,
+            # ignoring what we set thru the sshclient. This doesn't help for
+            # keeping long lived connections. Hence we have to bypass it, by
+            # overriding it after the transport is initialized. We are setting
+            # the sockettimeout to None and setting a keepalive packet so that,
+            # the server will keep the connection open. All that does is send
+            # a keepalive packet every ssh_conn_timeout seconds.
+            transport = ssh.get_transport()
+            transport.sock.settimeout(None)
+            transport.set_keepalive(FLAGS.ssh_conn_timeout)
             return ssh
         except Exception as e:
             msg = "Error connecting via ssh: %s" % e
@@ -125,8 +135,7 @@ class SanISCSIDriver(ISCSIDriver):
 
     def __init__(self, *args, **kwargs):
         super(SanISCSIDriver, self).__init__(*args, **kwargs)
-        self.sshpool = SSHPool(min_size=FLAGS.ssh_min_pool_conn,
-                               max_size=FLAGS.ssh_max_pool_conn)
+        self.sshpool = None
 
     def _build_iscsi_target_name(self, volume):
         return "%s%s" % (FLAGS.iscsi_target_prefix, volume['name'])
@@ -135,6 +144,9 @@ class SanISCSIDriver(ISCSIDriver):
     # undiscover_volume is still OK
 
     def _run_ssh(self, command, check_exit_code=True, attempts=1):
+        if not self.sshpool:
+            self.sshpool = SSHPool(min_size=FLAGS.ssh_min_pool_conn,
+                                   max_size=FLAGS.ssh_max_pool_conn)
         try:
             total_attempts = attempts
             with self.sshpool.item() as ssh:
