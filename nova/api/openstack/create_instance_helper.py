@@ -319,14 +319,14 @@ class CreateInstanceHelper(object):
 
     def _get_server_admin_password_old_style(self, server):
         """ Determine the admin password for a server on creation """
-        return utils.generate_password(FLAGS.password_length)
+        return utils.generate_password(16)
 
     def _get_server_admin_password_new_style(self, server):
         """ Determine the admin password for a server on creation """
         password = server.get('adminPass')
 
         if password is None:
-            return utils.generate_password(FLAGS.password_length)
+            return utils.generate_password(16)
         if not isinstance(password, basestring) or password == '':
             msg = _("Invalid adminPass")
             raise exc.HTTPBadRequest(explanation=msg)

@@ -19,7 +19,7 @@ from nova import log as logging
 from nova.api.openstack import wsgi
 from nova.api.openstack.flavors import Controller as OriginalController
 from reddwarf.api import common
-from reddwarf.api import views
+from reddwarf.api.views import flavors
 
 
 LOG = logging.getLogger('reddwarf.api.flavors')
@@ -31,7 +31,7 @@ class ControllerV10(OriginalController):
     def _get_view_builder(self, req):
         LOG.debug("_get_view_builder for flavors")
         project_id = getattr(req.environ['nova.context'], 'project_id', '')
-        return views.flavors.ViewBuilder(base_url=req.application_url,
+        return flavors.ViewBuilder(base_url=req.application_url,
                                          project_id=project_id)
 
 

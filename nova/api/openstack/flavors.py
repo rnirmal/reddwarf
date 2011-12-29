@@ -16,13 +16,12 @@
 #    under the License.
 
 import webob
-from lxml import etree
+import xml.dom.minidom as minidom
 
 from nova import db
 from nova import exception
 from nova.api.openstack import views
 from nova.api.openstack import wsgi
-from nova.api.openstack import xmlutil
 
 
 class Controller(object):
