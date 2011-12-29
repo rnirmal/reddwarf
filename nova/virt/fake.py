@@ -103,7 +103,7 @@ class FakeConnection(driver.ComputeDriver):
         if not instance['name'] in self.instances:
             raise exception.InstanceNotRunning()
 
-    def reboot(self, instance, network_info, reboot_type):
+    def reboot(self, instance, network_info):
         pass
 
     def get_host_ip_addr(self):
@@ -128,9 +128,6 @@ class FakeConnection(driver.ComputeDriver):
         pass
 
     def poll_rescued_instances(self, timeout):
-        pass
-
-    def poll_unconfirmed_resizes(self, resize_confirm_window):
         pass
 
     def migrate_disk_and_power_off(self, instance, dest):
