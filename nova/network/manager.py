@@ -48,13 +48,11 @@ import datetime
 import itertools
 import math
 import netaddr
-import re
 import socket
 from eventlet import greenpool
 
 from nova import context
 from nova import db
-from nova import dns
 from nova import exception
 from nova import flags
 from nova import ipv6
@@ -343,7 +341,6 @@ class NetworkManager(manager.SchedulerDependentManager):
         if not network_driver:
             network_driver = FLAGS.network_driver
         self.driver = utils.import_object(network_driver)
-        self.dns_api = dns.API()
         self.network_api = network_api.API()
         self.compute_api = compute_api.API()
         super(NetworkManager, self).__init__(service_name='network',
@@ -410,59 +407,6 @@ class NetworkManager(manager.SchedulerDependentManager):
         self.compute_api.trigger_security_group_members_refresh(admin_context,
                                                                     group_ids)
 
-    def get_vifs_by_instance(self, context, instance_id):
-        vifs = self.db.virtual_interface_get_by_instance(context,
-                                                         instance_id)
-        return vifs
-
-    def get_instance_uuids_by_ip_filter(self, context, filters):
-        fixed_ip_filter = filters.get('fixed_ip')
-        ip_filter = re.compile(str(filters.get('ip')))
-        ipv6_filter = re.compile(str(filters.get('ip6')))
-
-        # NOTE(jkoelker) Should probably figure out a better way to do
-        #                this. But for now it "works", this could suck on
-        #                large installs.
-
-        vifs = self.db.virtual_interface_get_all(context)
-        results = []
-
-        for vif in vifs:
-            if vif['instance_id'] is None:
-                continue
-
-            fixed_ipv6 = vif.get('fixed_ipv6')
-            if fixed_ipv6 and ipv6_filter.match(fixed_ipv6):
-                # NOTE(jkoelker) Will need to update for the UUID flip
-                results.append({'instance_id': vif['instance_id'],
-                                'ip': fixed_ipv6})
-
-            for fixed_ip in vif['fixed_ips']:
-                if not fixed_ip or not fixed_ip['address']:
-                    continue
-                if fixed_ip['address'] == fixed_ip_filter:
-                    results.append({'instance_id': vif['instance_id'],
-                                    'ip': fixed_ip['address']})
-                    continue
-                if ip_filter.match(fixed_ip['address']):
-                    results.append({'instance_id': vif['instance_id'],
-                                    'ip': fixed_ip['address']})
-                    continue
-                for floating_ip in fixed_ip.get('floating_ips', []):
-                    if not floating_ip or not floating_ip['address']:
-                        continue
-                    if ip_filter.match(floating_ip['address']):
-                        results.append({'instance_id': vif['instance_id'],
-                                        'ip': floating_ip['address']})
-                        continue
-
-        # NOTE(jkoelker) Until we switch over to instance_uuid ;)
-        ids = [res['instance_id'] for res in results]
-        uuid_map = self.db.instance_get_id_to_uuid_mapping(context, ids)
-        for res in results:
-            res['instance_uuid'] = uuid_map.get(res['instance_id'])
-        return results
-
     def _get_networks_for_instance(self, context, instance_id, project_id,
                                    requested_networks=None):
         """Determine & return which networks an instance should connect to."""
@@ -503,7 +447,6 @@ class NetworkManager(manager.SchedulerDependentManager):
         self._allocate_fixed_ips(admin_context, instance_id,
                                  host, networks, vpn=vpn,
                                  requested_networks=requested_networks)
-        self._allocate_dns_entry(admin_context, instance_id)
         return self.get_instance_nw_info(context, instance_id, type_id, host)
 
     def deallocate_for_instance(self, context, **kwargs):
@@ -520,29 +463,12 @@ class NetworkManager(manager.SchedulerDependentManager):
             fixed_ips = []
         LOG.debug(_("network deallocation for instance |%s|"), instance_id,
                                                                context=context)
-
-        self._deallocate_dns_entry(context, instance_id)
-
         # deallocate fixed ips
         for fixed_ip in fixed_ips:
             self.deallocate_fixed_ip(context, fixed_ip['address'], **kwargs)
 
         # deallocate vifs (mac addresses)
         self.db.virtual_interface_delete_by_instance(context, instance_id)
-
-    def _deallocate_dns_entry(self, context, instance_id):
-        """Removes the dns entry. Must be called while fixed_ips exist."""
-        address = self._find_address_used_for_dns(context, instance_id)
-        if address:
-            instance_ref = self.db.instance_get(context, instance_id)
-            self.dns_api.delete_instance_entry(context, instance_ref, address)
-
-    def _find_address_used_for_dns(self, context, instance_id):
-        fixed_ips = self.db.fixed_ip_get_by_instance_for_network(
-            context, instance_id, FLAGS.dns_bridge_name)
-        if fixed_ips and len(fixed_ips) > 0:
-            return fixed_ips[0].address
-        return None
 
     def get_instance_nw_info(self, context, instance_id,
                              instance_type_id, host):
@@ -924,17 +850,6 @@ class NetworkManager(manager.SchedulerDependentManager):
                         'address': address,
                         'reserved': reserved})
         self.db.fixed_ip_bulk_create(context, ips)
-
-    def _allocate_dns_entry(self, context, instance_id):
-        """Creates a DNS entry for the compute instance"""
-        instance_ref = self.db.instance_get(context, instance_id)
-        address = self._find_address_used_for_dns(context, instance_id)
-        if address:
-            LOG.debug(_("Creating DNS entry for instance_id %i, address %s") %
-                      (instance_id, address))
-            self.dns_api.create_instance_entry(context, instance_ref, address)
-        else:
-            LOG.debug(_("No address found for instance_id %i") % instance_id)
 
     def _allocate_fixed_ips(self, context, instance_id, host, networks,
                             **kwargs):
