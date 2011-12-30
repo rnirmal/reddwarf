@@ -490,7 +490,7 @@ class LibvirtConnection(driver.ComputeDriver):
             snapshot_ptr.delete(0)
 
     @exception.wrap_exception()
-    def reboot(self, instance, network_info, reboot_type=None, xml=None):
+    def reboot(self, instance, network_info, xml=None):
         """Reboot a virtual machine, given an instance reference.
 
         This method actually destroys and re-creates the domain to ensure the
@@ -606,10 +606,6 @@ class LibvirtConnection(driver.ComputeDriver):
 
     @exception.wrap_exception()
     def poll_rescued_instances(self, timeout):
-        pass
-
-    @exception.wrap_exception()
-    def poll_unconfirmed_resizes(self, resize_confirm_window):
         pass
 
     # NOTE(ilyaalekseyev): Implementation like in multinics

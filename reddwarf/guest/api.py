@@ -26,6 +26,8 @@ from nova import rpc
 from nova.db import api as dbapi
 from nova.db import base
 
+from reddwarf import rpc as reddwarf_rpc
+
 FLAGS = flags.FLAGS
 LOG = logging.getLogger('nova.guest.api')
 
@@ -114,7 +116,7 @@ class API(base.Base):
         """Make an asynchronous call to prepare the guest
            as a database container"""
         LOG.debug(_("Sending the call to prepare the Guest"))
-        rpc.cast_with_consumer(context, self._get_routing_key(context, id),
+        reddwarf_rpc.cast_with_consumer(context, self._get_routing_key(context, id),
                  {"method": "prepare",
                   "args": {"databases": databases}
                  })
@@ -123,4 +125,4 @@ class API(base.Base):
         """Make an asynchronous call to self upgrade the guest agent"""
         topic = self._get_routing_key(context, id)
         LOG.debug("Sending an upgrade call to nova-guest %s", topic)
-        rpc.cast_with_consumer(context, topic, {"method": "upgrade"})
+        reddwarf_rpc.cast_with_consumer(context, topic, {"method": "upgrade"})
