@@ -11,7 +11,7 @@ from nova import utils
 from nova import wsgi
 
 
-XMLNS_V10 = 'http://docs.openstack.org/database/api/v1.0'
+XMLNS_V10 = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 XMLNS_V11 = 'http://docs.openstack.org/compute/api/v1.1'
 
 XMLNS_ATOM = 'http://www.w3.org/2005/Atom'
@@ -229,15 +229,15 @@ class RequestDeserializer(object):
             content_type = request.get_content_type()
         except exception.InvalidContentType:
             LOG.debug(_("Unrecognized Content-Type provided in request"))
-            return self._return_empty_body(action)
+            return {}
 
         if content_type is None:
             LOG.debug(_("No Content-Type provided in request"))
-            return self._return_empty_body(action)
+            return {}
 
         if not len(request.body) > 0:
             LOG.debug(_("Empty body provided in request"))
-            return self._return_empty_body(action)
+            return {}
 
         try:
             deserializer = self.get_body_deserializer(content_type)
@@ -246,12 +246,6 @@ class RequestDeserializer(object):
             raise
 
         return deserializer.deserialize(request.body, action)
-
-    def _return_empty_body(self, action):
-        if action in ["create", "update", "action"]:
-            return {'body': None}
-        else:
-            return {}
 
     def get_body_deserializer(self, content_type):
         try:
@@ -491,8 +485,6 @@ class Resource(wsgi.Application):
         except exception.MalformedRequestBody:
             msg = _("Malformed request body")
             return faults.Fault(webob.exc.HTTPBadRequest(explanation=msg))
-        except Exception as e:
-            return faults.Fault(e)
 
         project_id = args.pop("project_id", None)
         if 'nova.context' in request.environ and project_id:
@@ -501,7 +493,7 @@ class Resource(wsgi.Application):
         try:
             action_result = self.dispatch(request, action, args)
         except webob.exc.HTTPException as ex:
-            LOG.exception(_("HTTP exception thrown: %s"), unicode(ex))
+            LOG.info(_("HTTP exception thrown: %s"), unicode(ex))
             action_result = faults.Fault(ex)
 
         if type(action_result) is dict or action_result is None:

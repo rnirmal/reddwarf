@@ -1011,7 +1011,6 @@ def create_resource(version='1.0'):
                        "status", "progress", "adminPass", "flavorRef",
                        "imageRef", "userId", "tenantId"],
             "link": ["rel", "type", "href"],
-            "volume": ["id", "name", "description", "size"],
         },
         "dict_collections": {
             "metadata": {"item_name": "meta", "item_key": "key"},
