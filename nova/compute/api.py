@@ -51,9 +51,6 @@ flags.DEFINE_integer('find_host_timeout', 30,
                      'Timeout after NN seconds when looking for a host.')
 
 
-dns_entry_factory = None
-
-
 def generate_default_hostname(instance):
     """Default function to generate a hostname given an instance reference."""
     display_name = instance['display_name']
@@ -74,21 +71,7 @@ def generate_default_hostname(instance):
             deletions += c
     if isinstance(display_name, unicode):
         display_name = display_name.encode('latin-1', 'ignore')
-    hostname = "%s-instance-%s" % (display_name.translate(table, deletions),
-                                   instance['id'])
-    return hostname
-
-
-def generate_dns_hostname(instance):
-    """Provide a DNS generated hostname given an instance reference"""
-    global dns_entry_factory
-    if not dns_entry_factory:
-        dns_entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
-    entry = dns_entry_factory.create_entry(instance)
-    if entry:
-        return entry.name
-    else:
-        return generate_default_hostname(instance)
+    return display_name.translate(table, deletions)
 
 
 def _is_able_to_shutdown(instance, instance_id):
@@ -113,7 +96,7 @@ class API(base.Base):
     """API for interacting with the compute manager."""
 
     def __init__(self, image_service=None, network_api=None,
-                 volume_api=None, hostname_factory=generate_dns_hostname,
+                 volume_api=None, hostname_factory=generate_default_hostname,
                  **kwargs):
         self.image_service = image_service or \
                 nova.image.get_default_image_service()
