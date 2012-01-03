@@ -273,9 +273,9 @@ class Controller(object):
             notifier.notify(publisher_id(), "reddwarf.image", notifier.WARN,
                             msg)
             server['imageRef'] = 1
-        # Add Firewall rules
-        firewall_rules = [FLAGS.default_firewall_rule_name]
-        server['firewallRules'] = firewall_rules
+        # Add security groups
+        security_groups = [{'name': FLAGS.default_firewall_rule_name}]
+        server['security_groups'] = security_groups
         # Add volume id
         if not 'metadata' in instance:
             server['metadata'] = {}

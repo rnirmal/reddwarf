@@ -114,8 +114,6 @@ class CreateInstanceHelper(object):
         security_groups = server_dict.get('security_groups')
         if security_groups is not None:
             sg_names = [sg['name'] for sg in security_groups if sg.get('name')]
-        # TODO (rnirmal): Use the new api once it moves from extensions
-        sg_names = server_dict.get('firewallRules')
         if not sg_names:
             sg_names.append('default')
 
