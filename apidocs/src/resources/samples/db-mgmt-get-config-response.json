@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 119
+Date: Mon, 09 Jan 2012 19:04:37 GMT
+
+{
+    "config": {
+        "description": "updated some config value used in the system", 
+        "key": "myconf", 
+        "value": "testval_update"
+    }
+}

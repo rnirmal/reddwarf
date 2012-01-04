@@ -1,9 +1,0 @@
-HTTP/1.1 200 OK
-Content-Type: application/xml
-Content-Length: 102
-Date: Mon, 28 Nov 2011 18:31:55 GMT
-
-<databases xmlns="http://docs.openstack.org/database/api/v1.0">
-    <database name="anotherdb"/>
-    <database name="testdb"/>
-</databases>

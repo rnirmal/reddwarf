@@ -1,0 +1,41 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 700
+Date: Mon, 09 Jan 2012 18:59:47 GMT
+
+{
+    "instance": {
+        "created": "2012-01-09T18:59:44Z", 
+        "flavor": {
+            "id": "1", 
+            "links": [
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1", 
+                    "rel": "self"
+                }, 
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/1", 
+                    "rel": "bookmark"
+                }
+            ]
+        }, 
+        "hostname": "297c03a803c08103739ffb6a5cecc7d43b3da534.35152ba4-3ae6-11e1-8400-080027a9d240-dbaas-tests.com", 
+        "id": "046dfd74-c209-4524-9532-cc5bff18d4ea", 
+        "links": [
+            {
+                "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/046dfd74-c209-4524-9532-cc5bff18d4ea", 
+                "rel": "self"
+            }, 
+            {
+                "href": "https://ord.databases.api.rackspacecloud.com/instances/046dfd74-c209-4524-9532-cc5bff18d4ea", 
+                "rel": "bookmark"
+            }
+        ], 
+        "name": "json_rack_instance", 
+        "status": "BUILD", 
+        "updated": "2012-01-09T18:59:46Z", 
+        "volume": {
+            "size": "2"
+        }
+    }
+}

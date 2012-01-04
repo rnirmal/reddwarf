@@ -1,0 +1,98 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 1498
+Date: Mon, 09 Jan 2012 19:04:33 GMT
+
+{
+    "instance": {
+        "account_id": "examples", 
+        "addresses": {
+            "infranet": [
+                {
+                    "addr": "10.0.4.17", 
+                    "version": 4
+                }
+            ], 
+            "usernet": [
+                {
+                    "addr": "10.0.2.17", 
+                    "version": 4
+                }
+            ]
+        }, 
+        "created": "2012-01-09T18:59:54Z", 
+        "databases": [
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "anotherexampledb"
+            }, 
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "nextround"
+            }, 
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "sampledb"
+            }, 
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "testingdb"
+            }
+        ], 
+        "flavor": {
+            "id": "1", 
+            "links": [
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1", 
+                    "rel": "self"
+                }, 
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/1", 
+                    "rel": "bookmark"
+                }
+            ]
+        }, 
+        "guest_status": {
+            "created_at": "2012-01-09 18:59:57", 
+            "deleted": false, 
+            "deleted_at": null, 
+            "instance_id": 4, 
+            "state": 1, 
+            "state_description": "running", 
+            "updated_at": "2012-01-09 19:04:06"
+        }, 
+        "host": "host", 
+        "hostname": "1fb3aea4ef42a3aa24371c2dbe6632fc746644d0.35152ba4-3ae6-11e1-8400-080027a9d240-dbaas-tests.com", 
+        "id": "982ba7a7-c610-429c-b049-5496a0899dff", 
+        "name": "xml_rack_instance", 
+        "root_enabled_at": "2012-01-09 19:04:22", 
+        "root_enabled_by": "examples", 
+        "server_state_description": "active", 
+        "status": "ACTIVE", 
+        "updated": "2012-01-09T19:01:53Z", 
+        "users": [
+            {
+                "name": "dbuser3"
+            }, 
+            {
+                "name": "dbuser4"
+            }, 
+            {
+                "name": "root"
+            }, 
+            {
+                "name": "userwith2dbs"
+            }
+        ], 
+        "volume": {
+            "description": "Volume ID: 4 assigned to Instance: 982ba7a7-c610-429c-b049-5496a0899dff", 
+            "id": 4, 
+            "name": "xml_rack_instance", 
+            "size": 2
+        }
+    }
+}

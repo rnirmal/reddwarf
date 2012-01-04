@@ -1,0 +1,47 @@
+HTTP/1.1 200 OK
+Content-Type: application/xml
+Content-Length: 828
+Date: Mon, 09 Jan 2012 19:04:26 GMT
+
+<?xml version="1.0" ?>
+<instances xmlns="http://docs.openstack.org/database/api/v1.0">
+	
+    
+	<instance id="982ba7a7-c610-429c-b049-5496a0899dff" name="xml_rack_instance" status="ACTIVE">
+		
+        
+		<links>
+			
+            
+			<link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/982ba7a7-c610-429c-b049-5496a0899dff" rel="self"/>
+			
+            
+			<link href="https://ord.databases.api.rackspacecloud.com/instances/982ba7a7-c610-429c-b049-5496a0899dff" rel="bookmark"/>
+			
+        
+		</links>
+		
+    
+	</instance>
+	
+    
+	<instance id="046dfd74-c209-4524-9532-cc5bff18d4ea" name="json_rack_instance" status="ACTIVE">
+		
+        
+		<links>
+			
+            
+			<link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/046dfd74-c209-4524-9532-cc5bff18d4ea" rel="self"/>
+			
+            
+			<link href="https://ord.databases.api.rackspacecloud.com/instances/046dfd74-c209-4524-9532-cc5bff18d4ea" rel="bookmark"/>
+			
+        
+		</links>
+		
+    
+	</instance>
+	
+
+</instances>
+
