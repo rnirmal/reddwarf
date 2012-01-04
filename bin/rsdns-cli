@@ -53,7 +53,7 @@ from novaclient.exceptions import NotFound
 from nova.dns.rsdns.driver import RsDnsDriver
 from nova.exception import RsDnsRecordNotFound
 from nova.dns.rsdns.driver import RsDnsZone
-
+from sqlalchemy.exc import OperationalError
 
 # Show all records from database.   database list
 # Update database with all DNS records.  database refresh
@@ -178,6 +178,10 @@ if __name__=="__main__":
                 print "\t\t", [fn.func_code.co_varnames[i] for i in
                                             range(fn.func_code.co_argcount)]
                 print "ERROR: %s" % err
+            except OperationalError as oe:
+                print(oe)
+                print("Did you specify the database connection? Remember that "
+                      " a --flagfile option can be used with this program.")
             except Exception:
                 print "Command failed, please check the log for more info."
                 raise

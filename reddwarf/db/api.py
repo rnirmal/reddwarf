@@ -25,6 +25,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 from sqlalchemy.orm.exc import NoResultFound
+from nova.exception import DBError
 from nova.db.sqlalchemy.api import require_admin_context
 from nova.db.sqlalchemy.models import Instance
 from nova.db.sqlalchemy.models import Service
@@ -348,7 +349,7 @@ def rsdns_record_create(name, id):
         with session.begin():
             record.save(session=session)
         return record
-    except Exception:
+    except DBError:
         raise exception.DuplicateRecordEntry(name=name, id=id)
 
 

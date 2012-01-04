@@ -161,8 +161,8 @@ class RsDnsDriver(object):
         record = self.dns_client.records.get(domain_id=dns_zone.id,
                                              record_id=db_record.id)
         if record.name != name or record.type != 'A':
-            LOG.error("Tried to delete DNS record with name=%s, id%s, but the "
-                      "database returned a DNS record with the name %s and "
+            LOG.error("Tried to delete DNS record with name=%s, id=%s, but the"
+                      " database returned a DNS record with the name %s and "
                       "type %s." % (name, db_record.id, record.name,
                                     record.type))
             raise RsDnsRecordNotFound(name)

@@ -659,7 +659,7 @@ nova_initialize() {
 
 setup_dns() {        
     if [ ! -z "$SETUP_DNS" ]; then
-        exclaim DNS TIME
+        exclaim "Setting up DNS..."
         # Make sure the domain name exists (must happen before the image is added)
         ADD_DOMAINS=True run_tests --group=rsdns.domains
 

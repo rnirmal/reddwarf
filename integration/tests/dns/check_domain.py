@@ -145,7 +145,7 @@ class RsDnsDriverTests(object):
 
     @test(depends_on=[delete_all_entries])
     def create_test_rsdns_entry(self):
-        """Create an entry created using the RsDnsInstanceEntryFactory."""
+        """Create an entry using the RsDnsInstanceEntryFactory."""
         instance = {'uuid': '000136c0-effa-4711-a747-a5b9fbfcb3bd', 'id': '10'}
         ip = "10.100.2.7"
         factory = RsDnsInstanceEntryFactory(dns_domain_id=DNS_DOMAIN_ID)
