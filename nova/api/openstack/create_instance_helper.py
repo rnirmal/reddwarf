@@ -114,8 +114,6 @@ class CreateInstanceHelper(object):
         security_groups = server_dict.get('security_groups')
         if security_groups is not None:
             sg_names = [sg['name'] for sg in security_groups if sg.get('name')]
-        # TODO (rnirmal): Use the new api once it moves from extensions
-        sg_names = server_dict.get('firewallRules')
         if not sg_names:
             sg_names.append('default')
 
@@ -319,14 +317,14 @@ class CreateInstanceHelper(object):
 
     def _get_server_admin_password_old_style(self, server):
         """ Determine the admin password for a server on creation """
-        return utils.generate_password(FLAGS.password_length)
+        return utils.generate_password(16)
 
     def _get_server_admin_password_new_style(self, server):
         """ Determine the admin password for a server on creation """
         password = server.get('adminPass')
 
         if password is None:
-            return utils.generate_password(FLAGS.password_length)
+            return utils.generate_password(16)
         if not isinstance(password, basestring) or password == '':
             msg = _("Invalid adminPass")
             raise exc.HTTPBadRequest(explanation=msg)

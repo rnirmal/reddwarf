@@ -1,22 +1,5 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
-# Copyright 2011 OpenStack LLC.
-# All Rights Reserved.
-#
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
-#    not use this file except in compliance with the License. You may obtain
-#    a copy of the License at
-#
-#         http://www.apache.org/licenses/LICENSE-2.0
-#
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-#    License for the specific language governing permissions and limitations
-#    under the License.
 
 import json
-from lxml import etree
 import webob
 from xml.dom import minidom
 from xml.parsers import expat
@@ -28,27 +11,12 @@ from nova import utils
 from nova import wsgi
 
 
-XMLNS_V10 = 'http://docs.openstack.org/database/api/v1.0'
+XMLNS_V10 = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 XMLNS_V11 = 'http://docs.openstack.org/compute/api/v1.1'
 
 XMLNS_ATOM = 'http://www.w3.org/2005/Atom'
 
 LOG = logging.getLogger('nova.api.openstack.wsgi')
-
-# The vendor content types should serialize identically to the non-vendor
-# content types. So to avoid littering the code with both options, we
-# map the vendor to the other when looking up the type
-_CONTENT_TYPE_MAP = {
-    'application/vnd.openstack.compute+json': 'application/json',
-    'application/vnd.openstack.compute+xml': 'application/xml',
-}
-
-_SUPPORTED_CONTENT_TYPES = (
-    'application/json',
-    'application/vnd.openstack.compute+json',
-    'application/xml',
-    'application/vnd.openstack.compute+xml',
-)
 
 
 class Request(webob.Request):
@@ -61,7 +29,7 @@ class Request(webob.Request):
 
         """
         supported_content_types = supported_content_types or \
-            _SUPPORTED_CONTENT_TYPES
+            ('application/json', 'application/xml')
 
         parts = self.path.rsplit('.', 1)
         if len(parts) > 1:
@@ -83,7 +51,7 @@ class Request(webob.Request):
         if not "Content-Type" in self.headers:
             return None
 
-        allowed_types = _SUPPORTED_CONTENT_TYPES
+        allowed_types = ("application/xml", "application/json")
         content_type = self.content_type
 
         if content_type not in allowed_types:
@@ -223,7 +191,7 @@ class RequestDeserializer(object):
                  supported_content_types=None):
 
         self.supported_content_types = supported_content_types or \
-                _SUPPORTED_CONTENT_TYPES
+                ('application/json', 'application/xml')
 
         self.body_deserializers = {
             'application/xml': XMLDeserializer(),
@@ -261,15 +229,15 @@ class RequestDeserializer(object):
             content_type = request.get_content_type()
         except exception.InvalidContentType:
             LOG.debug(_("Unrecognized Content-Type provided in request"))
-            return self._return_empty_body(action)
+            return {}
 
         if content_type is None:
             LOG.debug(_("No Content-Type provided in request"))
-            return self._return_empty_body(action)
+            return {}
 
         if not len(request.body) > 0:
             LOG.debug(_("Empty body provided in request"))
-            return self._return_empty_body(action)
+            return {}
 
         try:
             deserializer = self.get_body_deserializer(content_type)
@@ -279,16 +247,9 @@ class RequestDeserializer(object):
 
         return deserializer.deserialize(request.body, action)
 
-    def _return_empty_body(self, action):
-        if action in ["create", "update", "action"]:
-            return {'body': None}
-        else:
-            return {}
-
     def get_body_deserializer(self, content_type):
         try:
-            ctype = _CONTENT_TYPE_MAP.get(content_type, content_type)
-            return self.body_deserializers[ctype]
+            return self.body_deserializers[content_type]
         except (KeyError, TypeError):
             raise exception.InvalidContentType(content_type=content_type)
 
@@ -354,7 +315,7 @@ class XMLDictSerializer(DictSerializer):
 
     def to_xml_string(self, node, has_atom=False):
         self._add_xmlns(node, has_atom)
-        return node.toxml('UTF-8')
+        return node.toprettyxml(indent='    ', encoding='UTF-8')
 
     #NOTE (ameade): the has_atom should be removed after all of the
     # xml serializers and view builders have been updated to the current
@@ -431,10 +392,6 @@ class XMLDictSerializer(DictSerializer):
             link_nodes.append(link_node)
         return link_nodes
 
-    def _to_xml(self, root):
-        """Convert the xml object to an xml string."""
-        return etree.tostring(root, encoding='UTF-8', xml_declaration=True)
-
 
 class ResponseHeadersSerializer(ActionDispatcher):
     """Default response headers serialization"""
@@ -482,8 +439,7 @@ class ResponseSerializer(object):
 
     def get_body_serializer(self, content_type):
         try:
-            ctype = _CONTENT_TYPE_MAP.get(content_type, content_type)
-            return self.body_serializers[ctype]
+            return self.body_serializers[content_type]
         except (KeyError, TypeError):
             raise exception.InvalidContentType(content_type=content_type)
 
@@ -529,8 +485,6 @@ class Resource(wsgi.Application):
         except exception.MalformedRequestBody:
             msg = _("Malformed request body")
             return faults.Fault(webob.exc.HTTPBadRequest(explanation=msg))
-        except Exception as e:
-            return faults.Fault(e)
 
         project_id = args.pop("project_id", None)
         if 'nova.context' in request.environ and project_id:
@@ -539,7 +493,7 @@ class Resource(wsgi.Application):
         try:
             action_result = self.dispatch(request, action, args)
         except webob.exc.HTTPException as ex:
-            LOG.exception(_("HTTP exception thrown: %s"), unicode(ex))
+            LOG.info(_("HTTP exception thrown: %s"), unicode(ex))
             action_result = faults.Fault(ex)
 
         if type(action_result) is dict or action_result is None:

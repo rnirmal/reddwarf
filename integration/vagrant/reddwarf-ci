@@ -404,7 +404,7 @@ dbaas_pkg_build_nova() {
     cd $BUILD_DIR
     mkdir -p $BUILD_DIR/dbaas
     cd dbaas
-    cp -R /src/* .
+    cp -R $NOVA_HOME/* .
     cp -R $BUILD_DIR/oizys/generic_package_scripts/nova_diablo_scripts/debian .
     sed -i.bak "s/JENKINS_REVNO/$GIT_REVISION/g" debian/changelog
 
@@ -477,6 +477,18 @@ dbaas_pkg_build_sneaky_pete() {
     
 }
 
+patch_src_dir() {
+    cd $NOVA_HOME
+    patch -r - -Np1 < $BUILD_DIR/dbaas/debian/patches/compute.patch
+    patch -r - -Np1 < $BUILD_DIR/dbaas/debian/patches/nova_api.patch
+}
+
+revert_patch() {
+    cd $NOVA_HOME
+    patch -r - -Rp1 < $BUILD_DIR/dbaas/debian/patches/compute.patch
+    patch -r - -Rp1 < $BUILD_DIR/dbaas/debian/patches/nova_api.patch
+}
+
 build() {
     GIT_REVISION=`git --git-dir=${NOVA_HOME}/.git rev-parse HEAD`
 
@@ -499,6 +511,7 @@ build() {
     dbaas_pkg_build_firstboot
     dbaas_pkg_build_sneaky_pete
     sudo apt-get update
+    patch_src_dir
 }
 
 ###############################################################################
@@ -926,6 +939,7 @@ case "$1" in
     "start" ) start_reddwarf;;
     "stop" ) stop_reddwarf;;
     "show_dns_entries" ) show_dns_entries;;
+    "revert-patch" ) revert_patch;;
     * )
         echo "'$1' not a valid command"
         exit 1
