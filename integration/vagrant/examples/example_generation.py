@@ -27,7 +27,7 @@ class ExampleGenerator(object):
                 exception)
 
         self.directory = config.get("directory", None)
-        if self.directory[-1] != '/':
+        if not self.directory.endswith('/'):
             self.directory += '/'
         print "directory = %s" % self.directory
         self.api_url = config.get("api_url", None)
