@@ -21,6 +21,7 @@ is sketchy at best.
 """
 
 import os
+import fnmatch
 import socket
 from nova import db
 from nova import exception
@@ -1084,6 +1085,77 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         self._start(instance)
 
+    def _clean_orphaned_files(self, instance_id):
+        """
+        When openvz deletes a container it leaves behind orphaned config
+        files in /etc/vz/conf with the .destroyed extension.  We want these
+        gone when we destroy a container.
+
+        This runs a command that looks like this:
+
+        rm -f /etc/vz/conf/<CTID>.conf.destroyed
+
+        It this fails to execute no exception is raised but an log error
+        event is triggered.
+        """
+        # first assemble a list of files that need to be cleaned up, then
+        # do the deed.
+        for file in os.listdir(FLAGS.ovz_config_dir):
+            if fnmatch.fnmatch(file, '%s.*' % instance_id):
+                try:
+                    # minor protection for /
+                    if FLAGS.ovz_config_dir == '/':
+                        raise exception.Error(_('I refuse to operate on /'))
+
+                    file = '%s/%s' % (FLAGS.ovz_config_dir, file)
+                    LOG.debug(_('Deleting file: %s') % file)
+                    out, err = utils.execute('rm', '-f', file,
+                                             run_as_root=True)
+                    LOG.debug(_('Stdout output from rm: %s') % out)
+                    if err:
+                        LOG.error(_('Stderr output from rm: %s') % err)
+                except ProcessExecutionError as err:
+                    LOG.error(_('Stderr output from rm: %s') % err)
+
+    def _clean_orphaned_directories(self, instance_id):
+        """
+        When a container is destroyed we want to delete all mount directories
+        in the mount root on the host that are associated with the container.
+
+        This runs a command that looks like this:
+
+        rm -rf /mnt/<CTID>
+
+        If this fails to execute, no exception is raised but a log error event
+        is triggered
+        """
+        mount_root = '%s/%s' % (FLAGS.ovz_ve_host_mount_dir, instance_id)
+        mount_root = os.path.abspath(mount_root)
+
+        # Because we are using an rm -rf command lets do some simple validation
+        validation_failed = False
+        if isinstance(instance_id, str):
+            if not instance_id.isdigit():
+                validation_failed = True
+        elif not isinstance(instance_id, int):
+            validation_failed = True
+
+        if not FLAGS.ovz_ve_host_mount_dir:
+            validation_failed = True
+
+        if validation_failed:
+            msg = _('Potentially invalid path to be deleted')
+            LOG.error(msg)
+            raise exception.Error(msg)
+
+        try:
+            out, err = utils.execute('rm', '-rf', mount_root, run_as_root=True)
+            LOG.debug(_('Stdout from rm: %s') % out)
+            if err:
+                LOG.error(_('Stderr from rm: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr from rm: %s') % err)
+
     def destroy(self, instance, network_info, cleanup=True):
         """
         Destroy (shutdown and delete) the specified instance.
@@ -1096,26 +1168,46 @@ class OpenVzConnection(driver.ComputeDriver):
         because a failure to destroy would leave the database and container
         in a disparate state.
         """
-        # TODO(imsplitbit): make this async
+        timer = utils.LoopingCall()
+        def _wait_for_destroy():
+            try:
+                LOG.debug(_('Beginning _wait_for_destroy'))
+                state = self.get_info(instance['name'])['state']
+                LOG.debug(_('State is %s') % state)
 
-        # TODO(imsplitbit): This needs to check the state of the VE
-        # and if it isn't stopped it needs to stop it first.  This is
-        # an openvz limitation that needs to be worked around.
-        # For now we will assume it needs to be stopped prior to destroying it.
-        self._stop(instance)
+                if state is power_state.RUNNING:
+                    LOG.debug(_('Ve is running, stopping now.'))
+                    self._stop(instance)
+                    LOG.debug(_('Ve stopped'))
 
-        try:
-            out, err = utils.execute('vzctl', 'destroy', instance['id'],
+                LOG.debug(_('Attempting to destroy container'))
+                out, err = utils.execute('vzctl', 'destroy', instance['id'],
                                      run_as_root=True)
-            LOG.debug(_('Stdout output from vzctl: %s') % out)
-            if err:
+                LOG.debug(_('Stdout output from vzctl: %s') % out)
+                if err:
+                    LOG.error(_('Stderr output from vzctl: %s') % err)
+            except ProcessExecutionError as err:
                 LOG.error(_('Stderr output from vzctl: %s') % err)
-        except ProcessExecutionError as err:
-            LOG.error(_('Stderr output from vzctl: %s') % err)
-            raise exception.Error(_('Error destroying %d') % instance['id'])
+                raise exception.Error(_('Error destroying %d') % instance['id'])
+            except exception.NotFound:
+                LOG.debug(_('Container not found, destroyed?'))
+                timer.stop()
+                LOG.debug(_('Timer stopped for _wait_for_destroy'))
+
+        LOG.debug(_('Making timer'))
+        timer.f = _wait_for_destroy
+        LOG.debug(_('Starting timer'))
+        running_delete = timer.start(interval=0.5, now=True)
+        LOG.debug(_('Waiting for timer'))
+        running_delete.wait()
+        LOG.debug(_('Timer finished'))
 
         for (network, mapping) in network_info:
+            LOG.debug('Unplugging vifs')
             self.vif_driver.unplug(instance, network, mapping)
+
+        self._clean_orphaned_files(instance['id'])
+        self._clean_orphaned_directories(instance['id'])
 
     def _attach_volumes(self, instance):
         """
@@ -1710,12 +1802,16 @@ class OVZMounts(OVZFile):
         self.uuid = uuid
 
         # Generate the mountpoint paths
+        self.host_mount_container_root = '%s/%s' % \
+                                    (FLAGS.ovz_ve_host_mount_dir, instance_id)
+        self.host_mount_container_root = os.path.abspath(
+            self.host_mount_container_root)
         self.container_mount = '%s/%s/%s' % \
                        (FLAGS.ovz_ve_private_dir, instance_id, mount)
         self.container_root_mount = '%s/%s/%s' % \
                             (FLAGS.ovz_ve_root_dir, instance_id, mount)
-        self.host_mount = '%s/%s/%s' % \
-                        (FLAGS.ovz_ve_host_mount_dir, instance_id, mount)
+        self.host_mount = '%s/%s' % \
+                        (self.host_mount_container_root, mount)
         # Fix mounts to remove duplicate slashes
         self.container_mount = os.path.abspath(self.container_mount)
         self.container_root_mount = os.path.abspath(self.container_root_mount)
@@ -1731,6 +1827,60 @@ class OVZMounts(OVZFile):
                 self.prepend('#!/bin/sh')
         else:
             self.prepend('#!/bin/sh')
+
+    def delete_full_mount_path(self):
+        """
+        I felt like issuing an rm -rf was a little careless because it is
+        possible for 2 filesystems to be mounted within each other.  For
+        example, one filesystem could be mounted as /var/lib in the container
+        and another be mounted as /var/lib/mysql.  An rmdir will return an
+        error if we try to remove a directory not empty so it seems to me the
+        best way to recursively delete a mount path is to actually start at the
+        uppermost mount and work backwards.
+
+        We will still need to put some safe guards in place to protect users
+        from killing their machine but rmdir does a pretty good job of this
+        already.
+        """
+        mount_path = self.host_mount
+        while mount_path != self.host_mount_container_root:
+            # Just a safeguard for root
+            if mount_path == '/':
+                # while rmdir would fail in this case, lets just break out
+                # anyway to be safe.
+                break
+
+            if not self.delete_mount_path:
+                # there was an error returned from rmdir.  It is assumed that
+                # if this happened it is because the directory isn't empty
+                # so we want to stop where we are.
+                break
+
+            # set the path to the directory sub of the current directory we are
+            # working on.
+            mount_path = os.path.dirname(mount_path)
+
+    @staticmethod
+    def delete_mount_path(self, mount_path):
+        """
+        After a volume has been detached and the mount statements have been
+        removed from the mount configuration for a container we want to remove
+        the paths created on the host system so as not to leave orphaned files
+        and directories on the system.
+
+        This runs a command like:
+        sudo rmdir /mnt/100/var/lib/mysql
+        """
+        try:
+            out, err = utils.execute('rmdir', mount_path,
+                                     run_as_root=True)
+            LOG.debug(_('Stdout from rmdir: %s') % out)
+            if err:
+                LOG.debug(_('Stderr from rmdir: %s') % err)
+            return True
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr from rmdir: %s') % err)
+            return False
 
 
 class OVZMountFile(OVZMounts):
@@ -1957,6 +2107,9 @@ class OVZVolumes(object):
         # container mount and umount files, remove them.
         self.mountfh.delete_mounts()
         self.umountfh.delete_umounts()
+
+        # Remove the mount directory
+        self.umountfh.delete_full_mount_path()
 
     def write_and_close(self):
         # Reopen the files and write the contents to them
