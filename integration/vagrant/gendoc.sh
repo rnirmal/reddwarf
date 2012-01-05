@@ -1,10 +1,8 @@
 #!/bin/bash
 
-current_dir=$(pwd)
-
-cd ../../apidocs
+pushd ../../apidocs
 mvn clean
 mvn generate-sources
 
-cd $current_dir
+popd
 

@@ -646,6 +646,12 @@ keystone_initialize() {
     keystone_manage endpoint add daffy 1
     keystone_manage endpoint add daffy 2
     keystone_manage user add daffy daffy daffy
+
+    # Added this user for example generator
+    keystone_manage tenant add 1234
+    keystone_manage endpoint add 1234 1
+    keystone_manage endpoint add 1234 2
+    keystone_manage user add examples examples 1234
 }
 
 nova_initialize() {
