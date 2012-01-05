@@ -72,3 +72,7 @@ class Versions(object):
     @test
     def test_request_no_version(self):
         body = self._request('/dbaas/instances', response='404')
+
+    @test
+    def test_request_bogus_version(self):
+        body = self._request('/0.0/', response='404')
