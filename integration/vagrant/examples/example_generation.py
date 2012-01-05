@@ -196,32 +196,26 @@ class ExampleGenerator(object):
 
     def get_versions(self):
         #no auth required
-        #list versions
         url = "%s/" % self.api_url
         self.http_call("versions", url, 'GET')
 
     def get_version(self):
-        #list version
         url = "%s/v1.0/" % self.api_url
         self.http_call("version", url, 'GET')
 
     def get_flavors(self):
-        # flavors
         url = "%s/flavors" % self.dbaas_url
         self.http_call("flavors", url, 'GET')
 
     def get_flavor_details(self):
-        #flavors details
         url = "%s/flavors/detail" % self.dbaas_url
         self.http_call("flavors_detail", url, 'GET')
 
     def get_flavor_by_id(self):
-        #flavors by id
         url = "%s/flavors/1" % self.dbaas_url
         self.http_call("flavors_by_id", url, 'GET')
 
     def post_create_instance(self):
-        #create instance json
         url = "%s/instances" % self.dbaas_url
         JSON_DATA = {
             "instance": {
@@ -255,7 +249,6 @@ class ExampleGenerator(object):
         self.http_call("create_instance", url, 'POST', body=body)
 
     def post_create_databases(self, database_name, instance_id):
-        # create database on instance
         url = "%s/instances/%s/databases" % (self.dbaas_url, instance_id)
         JSON_DATA = {
             "databases": [
@@ -279,17 +272,14 @@ class ExampleGenerator(object):
         self.http_call("create_databases", url, 'POST', body=body)
 
     def get_list_databases(self, instance_id):
-        # list databases on instance
         url = "%s/instances/%s/databases" % (self.dbaas_url, instance_id)
         self.http_call("list_databases", url, 'GET')
 
     def delete_databases(self, database_name, instance_id):
-        # delete databases on instance
         url = "%s/instances/%s/databases/%s" % (self.dbaas_url, instance_id, database_name)
         self.http_call("delete_databases", url, 'DELETE')
 
     def post_create_users(self, instance_id, user_name):
-        # create user
         url = "%s/instances/%s/users" % (self.dbaas_url, instance_id)
         JSON_DATA = {
             "users": [
@@ -326,47 +316,38 @@ class ExampleGenerator(object):
         self.http_call("create_users", url, 'POST', body=body)
 
     def get_list_users(self, instance_id):
-        # list users on instance
         url = "%s/instances/%s/users" % (self.dbaas_url, instance_id)
         self.http_call("list_users", url, 'GET')
 
     def delete_users(self, instance_id, user_name):
-        # delete user on instance
         url = "%s/instances/%s/users/%s" % (self.dbaas_url, instance_id, user_name)
         self.http_call("delete_users", url, 'DELETE')
 
     def post_enable_root_access(self, instance_id):
-        # enable root access on instance
         url = "%s/instances/%s/root" % (self.dbaas_url, instance_id)
         self.http_call("enable_root_user", url, 'POST')
 
     def get_check_root_access(self, instance_id):
-        # check root user access on instance
         url = "%s/instances/%s/root" % (self.dbaas_url, instance_id)
         self.http_call("check_root_user", url, 'GET')
 
     def get_list_instance_index(self):
-        # list instances index call
         url = "%s/instances" % self.dbaas_url
         self.http_call("instances_index", url, 'GET')
 
     def get_list_instance_details(self):
-        # list instances details call
         url = "%s/instances/detail" % self.dbaas_url
         self.http_call("instances_detail", url, 'GET')
 
     def get_instance_details(self, instance_id):
-        # get instance details
         url = "%s/instances/%s" % (self.dbaas_url, instance_id)
         self.http_call("instance_status_detail", url, 'GET')
 
     def delete_instance(self, instance_id):
-        # delete instance
         url = "%s/instances/%s" % (self.dbaas_url, instance_id)
         self.http_call("delete_instance", url, 'DELETE')
 
     def delete_other_instance(self, example_instances):
-        # clean up other instance
         url = "%s/instances/%s" % (self.dbaas_url, example_instances[1])
         self.http_call("delete_instance", url, 'DELETE', output=False)
 
@@ -374,6 +355,8 @@ class ExampleGenerator(object):
 
         # Verify this is a clean environment to work on
         self.check_clean()
+
+        # no auth required
         self.get_versions()
 
         #requires auth
@@ -395,7 +378,6 @@ class ExampleGenerator(object):
             return 1
 
         instance_id = example_instances[0]
-    #    instance_id = "c4a69fae-0aa0-4041-b0fc-f61cc03c01f6"
         database_name = "exampledb"
         user_name = "testuser"
         print "\nusing instance id(%s) for these calls\n" % instance_id
