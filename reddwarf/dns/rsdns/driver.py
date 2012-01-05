@@ -27,7 +27,7 @@ from rsdns.client.future import RsDnsError
 
 from nova.exception import RsDnsRecordNotFound
 from nova import flags
-from nova.dns.driver import DnsEntry
+from reddwarf.dns.driver import DnsEntry
 from nova import log as logging
 from nova import utils
 from reddwarf.db import api as dbapi
@@ -53,7 +53,7 @@ flags.DEFINE_integer('dns_ttl', 300, 'TTL for the DNS entries')
 flags.DEFINE_integer('dns_domain_id', None, 'DNS domain id from RSDNS')
 
 FLAGS = flags.FLAGS
-LOG = logging.getLogger('nova.dns.rsdns.driver')
+LOG = logging.getLogger('reddwarf.dns.rsdns.driver')
 
 
 class EntryToRecordConverter(object):

@@ -30,7 +30,7 @@ from nova.db import base
 from nova.db.sqlalchemy.models import NovaBase
 
 FLAGS = flags.FLAGS
-LOG = logging.getLogger('nova.dns.api')
+LOG = logging.getLogger('reddwarf.dns.api')
 
 
 class API(base.Base):

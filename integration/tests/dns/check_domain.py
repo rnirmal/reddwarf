@@ -22,7 +22,7 @@ import os
 import time
 import unittest
 from nova import utils
-from nova.dns.rsdns.driver import create_client_with_flag_values
+from reddwarf.dns.rsdns.driver import create_client_with_flag_values
 from nova import flags
 from proboscis import test
 from proboscis import before_class
@@ -32,10 +32,10 @@ from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 
 import rsdns
-from nova.dns.driver import DnsEntry
-from nova.dns.rsdns.driver import RsDnsInstanceEntryFactory
-from nova.dns.rsdns.driver import RsDnsDriver
-from nova.dns.rsdns.driver import RsDnsZone
+from reddwarf.dns.driver import DnsEntry
+from reddwarf.dns.rsdns.driver import RsDnsInstanceEntryFactory
+from reddwarf.dns.rsdns.driver import RsDnsDriver
+from reddwarf.dns.rsdns.driver import RsDnsZone
 from tests.util import should_run_rsdns_tests
 
 FLAGS = flags.FLAGS

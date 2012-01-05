@@ -2,7 +2,7 @@ import sys
 
 from nova import flags
 from nova import utils
-from nova.dns.rsdns.driver import RsDnsDriver
+from reddwarf.dns.rsdns.driver import RsDnsDriver
 
 if __name__ == "__main__":
     print("Loading flags...")
