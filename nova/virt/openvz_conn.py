@@ -1131,9 +1131,22 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         mount_root = '%s/%s' % (FLAGS.ovz_ve_host_mount_dir, instance_id)
         mount_root = os.path.abspath(mount_root)
-        if mount_root == '/':
-            LOG.error(_('Somehow / is the path to be deleted'))
-            raise exception.Error(_('Somehow / is the path to be deleted'))
+
+        # Because we are using an rm -rf command lets do some simple validation
+        validation_failed = False
+        if isinstance(instance_id, str):
+            if not instance_id.isdigit():
+                validation_failed = True
+        elif not isinstance(instance_id, int):
+            validation_failed = True
+
+        if not FLAGS.ovz_ve_host_mount_dir:
+            validation_failed = True
+
+        if validation_failed:
+            msg = _('Potentially invalid path to be deleted')
+            LOG.error(msg)
+            raise exception.Error(msg)
 
         try:
             out, err = utils.execute('rm', '-rf', mount_root, run_as_root=True)
