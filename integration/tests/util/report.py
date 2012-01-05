@@ -22,7 +22,6 @@ class Reporter(object):
     def find_all_instance_ids(self):
         instances = []
         for dir in os.listdir("/vz/private"):
-            print("SUB DIR! %s" % dir)
             instances.append(dir)
         return instances
 

@@ -302,7 +302,7 @@ def main():
     if not args:
         common.print_commands(COMMANDS)
 
-    # Pop the command and check if it's in the know commands
+    # Pop the command and check if it's in the known commands
     cmd = args.pop(0)
     if cmd in COMMANDS:
         fn = COMMANDS.get(cmd)
@@ -323,13 +323,13 @@ def main():
                 fn(*args)
                 sys.exit(0)
             except TypeError as err:
-                print "Possible wrong number of arguments supplied"
+                print "Possible wrong number of arguments supplied."
                 print "%s %s: %s" % (cmd, action, fn.__doc__)
                 print "\t\t", [fn.func_code.co_varnames[i] for i in
                                             range(fn.func_code.co_argcount)]
                 print "ERROR: %s" % err
             except Exception:
-                print "Command failed, please check log for more info"
+                print "Command failed, please check the log for more info."
                 raise
         else:
             common.print_actions(cmd, actions)
