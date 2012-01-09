@@ -121,7 +121,8 @@ class RecordCommands(object):
             print("dns_domain_id not defined in the flag file.")
             return
         try:
-            records = dns_client.records.list(domain_id=domain_id)
+            records = dns_client.records.list(domain_id=domain_id,
+                                              record_type="A")
         except NotFound:
             print("Domain with id=%s was not found!" % domain_id)
             return

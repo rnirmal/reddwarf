@@ -19,6 +19,7 @@ Records interface.
 
 
 from novaclient import base
+import re
 from rsdns.client.future import FutureResource
 
 
@@ -51,6 +52,7 @@ class RecordsManager(base.ManagerWithFind):
     Manage :class:`Record` resources.
     """
     resource_class = Record
+    offset_regex = re.compile("""[\&|\?]offset=([0-9]+)""")
 
     def create(self, domain, record_name, record_data, record_type, record_ttl):
         """
@@ -97,8 +99,8 @@ class RecordsManager(base.ManagerWithFind):
             raise RuntimeError('Body was missing record element.')
         return self.resource_class(self, item)
 
-    def list(self, domain_id, record_id=None, record_name=None, record_address=None,
-             record_type=None):
+    def list(self, domain_id, record_id=None, record_name=None,
+             record_address=None, record_type=None):
         """
         Get a list of all records under a domain.
 
@@ -107,12 +109,34 @@ class RecordsManager(base.ManagerWithFind):
         url = "/domains/%s/records" % domain_id
         if record_id:
             url += ("/%s" % record_id)
-        resp, body = self.api.client.get(url)
-        try:
-            list = body['records']            
-        except NameError:
-            raise RuntimeError('Body was missing "records" or "record" key.')
+        offset = 0
+        list = []
+        while offset is not None:
+            next_url = "%s?offset=%d" % (url, offset)
+            partial_list, offset = self.page_list(next_url)
+            list += partial_list
         all_records = self.create_from_list(list)
         return [record for record in all_records
                 if self.match_record(record, record_name, record_address,
                                      record_type)]
+
+    def page_list(self, url):
+        """
+        Given a URL and an offset, returns a tuple containing a list and the
+        next URL.
+        """
+        resp, body = self.api.client.get(url)
+        try:
+            list = body['records']
+        except NameError:
+            raise RuntimeError('Body was missing "records" or "record" key.')
+        next_offset = None
+        links = body.get('links', [])
+        for link in links:
+            if link['rel'] == 'next':
+                next = link['href']
+                matches = self.offset_regex.search(next)
+                if matches.lastindex >= 1:
+                    next_offset = int(matches.group(1))
+        return (list, next_offset)
+
