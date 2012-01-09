@@ -126,11 +126,7 @@ class API(base.Base):
                            "time_out": time_out}})
 
     def update(self, context, volume_id, fields):
-        volume_ref = self.db.volume_update(context, volume_id, fields)
-        rpc.cast(context, FLAGS.scheduler_topic,
-                 {'method': 'update_info',
-                  'args': {'topic': FLAGS.volume_topic,
-                           'volume_ref': volume_ref}})
+        self.db.volume_update(context, volume_id, fields)
 
     def get(self, context, volume_id):
         rv = self.db.volume_get(context, volume_id)

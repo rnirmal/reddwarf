@@ -272,10 +272,6 @@ class VolumeManager(manager.SchedulerDependentManager):
         """
         self.driver.unassign_volume(volume_id, host)
 
-    def update_info(self, context, volume_ref):
-        """Update volume info like name and description"""
-        self.driver.update_info(volume_ref)
-    
     def periodic_tasks(self, context=None):
         """Tasks to be run at a periodic interval."""
 

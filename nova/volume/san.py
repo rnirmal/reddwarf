@@ -705,10 +705,3 @@ class HpSanISCSIDriver(SanISCSIDriver):
                                     time_out=5 * FLAGS.num_shell_tries)
         except utils.PollTimeOut:
             raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
-
-    def update_info(self, volume_ref):
-        """Update Volume description"""
-        cliq_args = {}
-        cliq_args['volumeName'] = volume_ref['id']
-        cliq_args['description'] = '"%s"' % volume_ref['display_description']
-        self._cliq_run_xml("modifyVolume", cliq_args)
