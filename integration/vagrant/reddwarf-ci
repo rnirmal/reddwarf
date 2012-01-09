@@ -953,6 +953,7 @@ case "$1" in
     "start" ) start_reddwarf;;
     "stop" ) stop_reddwarf;;
     "show_dns_entries" ) show_dns_entries;;
+    "patch" ) patch_src_dir;;
     "revert-patch" ) revert_patch;;
     * )
         echo "'$1' not a valid command"
