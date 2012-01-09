@@ -809,7 +809,7 @@ class OpenVzConnection(driver.ComputeDriver):
         kmem_limit = instance_memory * (
             float(FLAGS.ovz_kmemsize_percent_of_memory) / 100.0)
         kmem_barrier = kmem_limit * (
-            float(FLAGS.ovz_kememsize_barrier_differential) / 100.0)
+            float(FLAGS.ovz_kmemsize_barrier_differential) / 100.0)
         kmemsize = '%d:%d' % (kmem_barrier, kmem_limit)
 
         try:
