@@ -649,9 +649,11 @@ keystone_initialize() {
 
     # Added this user for example generator
     keystone_manage tenant add 1234
+    keystone_manage user add examples examples 1234
+    keystone_manage role grant $AUTH_ADMIN_ROLE examples
+    keystone_manage role grant $AUTH_ADMIN_ROLE examples 1234
     keystone_manage endpoint add 1234 1
     keystone_manage endpoint add 1234 2
-    keystone_manage user add examples examples 1234
 }
 
 nova_initialize() {
@@ -659,6 +661,10 @@ nova_initialize() {
     nova_manage user admin admin admin admin
     nova_manage user admin boss admin admin
     nova_manage project create dbaas admin
+
+    # Added this for example generator
+    nova_manage user admin examples examples examples
+    nova_manage project create 1234 examples
 
     reddwarf_manage db sync
 }

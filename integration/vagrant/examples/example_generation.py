@@ -8,13 +8,6 @@ import time
 
 
 class ExampleGenerator(object):
-    directory = None
-    api_url = None
-    headers = {}
-    tenant = None
-    base_url = None
-    dbaas_url = None
-    replace_host = None
 
     def __init__(self, config_file):
         if not os.path.exists(config_file):
@@ -44,12 +37,15 @@ class ExampleGenerator(object):
         print "tenant = %s" % self.tenant
         auth_id = self.get_auth_token_id(auth_url, username, password)
         print "id = %s" % auth_id
-        self.headers['X-Auth-Token'] = auth_id
-        self.headers['X-Auth-Project-ID'] = self.tenant
+        self.headers = {
+            'X-Auth-Token': auth_id,
+            'X-Auth-Project-ID': self.tenant
+        }
         self.dbaas_url = "%s/v1.0/%s" % (self.api_url, self.tenant)
 
     def http_call(self, name, url, method, body=None, output=True):
         body = {} if not body else body
+        name = name.replace('_', '-')
         print "http call for %s" % name
         http = httplib2.Http()
         req_headers = {'User-Agent': "python-example-client",
@@ -61,7 +57,7 @@ class ExampleGenerator(object):
         content_type = 'json'
         request_body = body.get(content_type, None)
         if output:
-            with open("%srequest_%s.%s" % (self.directory, name, content_type), "w") as file:
+            with open("%sdb-%s-request.%s" % (self.directory, name, content_type), "w") as file:
                 output = self.output_request(url, req_headers, request_body, content_type, method)
                 if self.replace_host:
                     output = output.replace(self.api_url, self.replace_host)
@@ -71,7 +67,7 @@ class ExampleGenerator(object):
                 file.write(output)
         json_resp = resp, resp_content = http.request(url, method, body=request_body, headers=req_headers)
         if output:
-            with open("%sresponse_%s.%s" % (self.directory, name, content_type), "w") as file:
+            with open("%sdb-%s-response.%s" % (self.directory, name, content_type), "w") as file:
                 output = self.output_response(resp, resp_content, content_type)
                 if self.replace_host:
                     output = output.replace(self.api_url, self.replace_host)
@@ -85,7 +81,7 @@ class ExampleGenerator(object):
         req_headers['Content-Type'] = 'application/xml'
         request_body = body.get(content_type, None)
         if output:
-            with open("%srequest_%s.%s" % (self.directory, name, content_type), "w") as file:
+            with open("%sdb-%s-request.%s" % (self.directory, name, content_type), "w") as file:
                 output = self.output_request(url, req_headers, request_body, content_type, method)
                 if self.replace_host:
                     output = output.replace(self.api_url, self.replace_host)
@@ -95,7 +91,7 @@ class ExampleGenerator(object):
                 file.write(output)
         xml_resp = resp, resp_content = http.request(url, method, body=request_body, headers=req_headers)
         if output:
-            with open("%sresponse_%s.%s" % (self.directory, name, content_type), "w") as file:
+            with open("%sdb-%s-response.%s" % (self.directory, name, content_type), "w") as file:
                 output = self.output_response(resp, resp_content, content_type)
                 if self.replace_host:
                     output = output.replace(self.api_url, self.replace_host)
@@ -351,6 +347,76 @@ class ExampleGenerator(object):
         url = "%s/instances/%s" % (self.dbaas_url, example_instances[1])
         self.http_call("delete_instance", url, 'DELETE', output=False)
 
+    def mgmt_delete_configs(self, config_id):
+        url = "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)
+        self.http_call("mgmt_delete_config", url, 'DELETE')
+        url = "%s/mgmt/configs/%s" % (self.dbaas_url, "xmlconfig")
+        self.http_call("mgmt_delete_config", url, 'DELETE', output=False)
+
+    def mgmt_get_config(self, config_id):
+        url = "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)
+        self.http_call("mgmt_get_config", url, 'GET')
+
+    def mgmt_list_configs(self):
+        url = "%s/mgmt/configs" % self.dbaas_url
+        self.http_call("mgmt_list_configs", url, 'GET')
+
+    def mgmt_update_config(self, config_id):
+        url = "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)
+        JSON_DATA = {
+            "config": {
+                "key": "%s" % config_id,
+                "value": "testval_update",
+                "description": "updated some config value used in the system"
+            }
+        }
+        XML_DATA = ('<?xml version="1.0" ?>'
+                    '<config key="xmlconfig" value="XML" description="updated config value set with xml"/>')
+        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
+        self.http_call("mgmt_update_config", url, 'PUT', body=body)
+
+    def mgmt_create_config(self, config_id):
+        url = "%s/mgmt/configs" % self.dbaas_url
+        JSON_DATA = {
+            "configs": [
+                    {
+                    "key": "%s" % config_id,
+                    "value": "testval",
+                    "description": "some config value used in the system"
+                }
+            ]
+        }
+        XML_DATA = ('<?xml version="1.0" ?>'
+                    '<configs>'
+                    '<config key="xmlconfig" value="xml" description="config value set with xml"/>'
+                    '</configs>')
+        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
+        self.http_call("mgmt_create_config", url, 'POST', body=body)
+
+    def mgmt_get_root_details(self, instance_id):
+        url = "%s/mgmt/instances/%s/root" % (self.dbaas_url, instance_id)
+        self.http_call("mgmt_get_root_details", url, 'GET')
+
+    def mgmt_get_instance_details(self, instance_id):
+        url = "%s/mgmt/instances/%s" % (self.dbaas_url, instance_id)
+        self.http_call("mgmt_get_instance_details", url, 'GET')
+
+    def mgmt_get_account_details(self):
+        url = "%s/mgmt/accounts/examples" % self.dbaas_url
+        self.http_call("mgmt_get_account_details", url, 'GET')
+
+    def mgmt_get_storage(self):
+        url = "%s/mgmt/storage" % self.dbaas_url
+        self.http_call("mgmt_get_storage", url, 'GET')
+
+    def mgmt_get_host_detail(self):
+        url = "%s/mgmt/hosts/host" % self.dbaas_url
+        self.http_call("mgmt_get_host_detail", url, 'GET')
+
+    def mgmt_list_hosts(self):
+        url = "%s/mgmt/hosts" % self.dbaas_url
+        self.http_call("mgmt_list_hosts", url, 'GET')
+
     def main(self):
 
         # Verify this is a clean environment to work on
@@ -393,6 +459,24 @@ class ExampleGenerator(object):
         self.get_list_instance_index()
         self.get_list_instance_details()
         self.get_instance_details(instance_id)
+
+        # Do some mgmt calls before deleting the instances
+        self.mgmt_list_hosts()
+        self.mgmt_get_host_detail()
+        self.mgmt_get_storage()
+        self.mgmt_get_account_details()
+        self.mgmt_get_instance_details(instance_id)
+        self.mgmt_get_root_details(instance_id)
+
+        # Configs
+        config_id = "myconf"
+        self.mgmt_create_config(config_id)
+        self.mgmt_update_config(config_id)
+        self.mgmt_list_configs()
+        self.mgmt_get_config(config_id)
+        self.mgmt_delete_configs(config_id)
+
+        # Clean up the instances
         self.delete_instance(instance_id)
         self.delete_other_instance(example_instances)
 
