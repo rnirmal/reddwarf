@@ -17,12 +17,13 @@ from nova import compute
 from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
-from nova import volume
+
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
 
 from reddwarf import exception
+from reddwarf import volume
 from reddwarf.api import common
 from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi

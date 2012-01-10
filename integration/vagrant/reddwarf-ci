@@ -479,14 +479,14 @@ dbaas_pkg_build_sneaky_pete() {
 
 patch_src_dir() {
     cd $NOVA_HOME
-    patch -r - -Np1 < $BUILD_DIR/dbaas/debian/patches/compute.patch
-    patch -r - -Np1 < $BUILD_DIR/dbaas/debian/patches/nova_api.patch
+    patch -r - -Np1 < $NOVA_HOME/patches/compute.patch
+    patch -r - -Np1 < $NOVA_HOME/patches/nova_api.patch
 }
 
 revert_patch() {
     cd $NOVA_HOME
-    patch -r - -Rp1 < $BUILD_DIR/dbaas/debian/patches/compute.patch
-    patch -r - -Rp1 < $BUILD_DIR/dbaas/debian/patches/nova_api.patch
+    patch -r - -Rp1 < $NOVA_HOME/patches/compute.patch
+    patch -r - -Rp1 < $NOVA_HOME/patches/nova_api.patch
 }
 
 build() {

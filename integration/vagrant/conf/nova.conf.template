@@ -13,7 +13,10 @@
 
 # Nova Volume
 # Volume configuration for vagrant vm
+--volume_manager=reddwarf.volume.manager.ReddwarfVolumeManager
 --volume_driver=reddwarf.tests.volume.driver.ISCSITestDriver
+--use_local_volumes=False
+--san_thin_provision=False
 --san_ip=33.33.33.11
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
@@ -38,7 +41,7 @@
 --quota_cores=20
 --quota_ram=51200
 --quota_volumes=10
---quota_gigabytes=1000
+--quota_gigabytes=10000
 --quota_floating_ips=10
 
 # Infrastructure Services

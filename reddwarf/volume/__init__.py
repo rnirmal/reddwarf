@@ -1,5 +1,4 @@
-# Copyright (c) 2011 OpenStack, LLC.
-# All Rights Reserved.
+#    Copyright 2012 OpenStack LLC
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,13 +12,5 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-:mod:`volumes` -- Tests for volumes.
-===================================
-"""
-
-""""Tests for Volumes."""
-
-# Is a set of tests written directly against the VolumeManager and VolumeClient
-# classes which doesn't require standing up Nova daemons or anything.
-VOLUMES_DRIVER = "reddwarf.volumes.driver"
+from reddwarf.volume.api import API
+from reddwarf.volume.volume_client import VolumeClient as Client

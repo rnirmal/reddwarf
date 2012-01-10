@@ -24,7 +24,6 @@ from nova import db
 from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
-from nova import volume
 from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
 from nova.api.openstack import servers
@@ -34,6 +33,7 @@ from nova.compute import vm_states
 from nova.notifier import api as notifier
 
 from reddwarf import exception
+from reddwarf import volume
 from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.api.views import instances
