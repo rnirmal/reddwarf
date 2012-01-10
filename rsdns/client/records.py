@@ -17,9 +17,9 @@
 Records interface.
 """
 
+import urlparse
 
 from novaclient import base
-import re
 from rsdns.client.future import FutureResource
 
 
@@ -52,7 +52,6 @@ class RecordsManager(base.ManagerWithFind):
     Manage :class:`Record` resources.
     """
     resource_class = Record
-    offset_regex = re.compile("""[\&|\?]offset=([0-9]+)""")
 
     def create(self, domain, record_name, record_data, record_type, record_ttl):
         """
@@ -135,8 +134,13 @@ class RecordsManager(base.ManagerWithFind):
         for link in links:
             if link['rel'] == 'next':
                 next = link['href']
-                matches = self.offset_regex.search(next)
-                if matches.lastindex >= 1:
-                    next_offset = int(matches.group(1))
+                params = urlparse.parse_qs(urlparse.urlparse(next).query)
+                offset_list = params.get('offset', [])
+                if len(offset_list) == 1:
+                    next_offset = int(offset_list[0])
+                elif len(offset_list) == 0:
+                    next_offset = None
+                else:
+                    raise RuntimeError("Next href had multiple offset params!")
         return (list, next_offset)
 

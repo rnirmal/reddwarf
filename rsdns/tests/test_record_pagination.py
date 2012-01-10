@@ -84,3 +84,36 @@ class DNSClientRecordPagination(unittest.TestCase):
         self.assertTrue('b' in list)
         self.assertEqual(578, offset)
 
+    def test_page_list_when_no_offsets_returned(self):
+        """Makes sure we throw if multiple offsets are found."""
+        client = self.mox.CreateMock(DNSaasClient)
+        dns = FakeDNSaaS(client, None, None)
+        dns.client.get("fake.com").AndReturn((None,
+              {"records":[ 'a' ],
+               "links":[
+                       {"href":"https://blah.com?limit=1",
+                        "rel":"next"
+                   }]
+          }))
+        self.mox.ReplayAll()
+        records = RecordsManager(dns)
+        list, offset = records.page_list("fake.com")
+        self.assertTrue(offset is None)
+        self.assertEqual(1, len(list))
+        self.assertEqual('a', list[0])
+
+    def test_page_list_when_multiple_offsets_returned(self):
+        """Makes sure we throw if multiple offsets are found."""
+        client = self.mox.CreateMock(DNSaasClient)
+        dns = FakeDNSaaS(client, None, None)
+        dns.client.get("fake.com").AndReturn((None,
+              {"records":[ 'a', 'b' ],
+               "links":[
+                       {"href":"https://blah.com?limit=1&offset=578&offset=1",
+                        "rel":"next"
+                   }]
+          }))
+        self.mox.ReplayAll()
+        records = RecordsManager(dns)
+        self.assertRaises(RuntimeError, records.page_list, "fake.com")
+
