@@ -65,6 +65,14 @@
     </annotation>
   </element>
 
+  <element name="rootdetails" type="dbaas:RootDetails">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Details of a configuration item</p>
+      </xsd:documentation>
+    </annotation>
+  </element>
+
   <!--Complex Types-->
   <complexType name="Hosts">
     <sequence>
@@ -252,5 +260,29 @@
       </annotation>
     </attribute>
   </complexType>
+
+  <xsd:complexType name="RootDetails">
+    <attribute name="id" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The instance id of that is checked by the call.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="root_enabled_at" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The date timestamp that a user enabled root on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="root_enabled_by" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The user that enabled root on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </xsd:complexType>
 
 </schema>
