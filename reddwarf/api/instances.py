@@ -204,8 +204,6 @@ class Controller(object):
         guest_state = self.get_guest_state_mapping([local_id])
         instance = self.view.build_single(server_resp['server'], req,
                                           guest_state, create=True)
-        # Update volume description
-        self.update_volume_info(context, volume_ref, instance)
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
@@ -228,13 +226,6 @@ class Controller(object):
                                       snapshot_id=None,
                                       name=name,
                                       description=description)
-
-    def update_volume_info(self, context, volume_ref, instance):
-        """Update the volume description with the available instance info"""
-        description = FLAGS.reddwarf_volume_description \
-                            % (volume_ref['id'], instance['id'])
-        self.volume_api.update(context, volume_ref['id'],
-                               {'display_description': description})
 
     def _try_create_server(self, req, body):
         """Handle the call to create a server through the openstack servers api.
