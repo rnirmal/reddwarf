@@ -16,9 +16,9 @@
 #    under the License.
 
 from nova import flags
-from nova.dns.api import API
+from reddwarf.dns.api import API
 
-flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
+flags.DEFINE_string('dns_driver', 'reddwarf.dns.driver.DnsDriver',
                     'Driver to use for DNS work')
 flags.DEFINE_string('dns_bridge_name', 'br100',
                     'Network bridge whose fixed_ip gets a DNS entry.')

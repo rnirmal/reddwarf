@@ -20,8 +20,8 @@ Fakes a DNS driver to make testing easier.
 """
 
 
-from nova.dns.driver import DnsEntryNotFound
-from nova.dns.driver import DnsZone
+from reddwarf.dns.driver import DnsEntryNotFound
+from reddwarf.dns.driver import DnsZone
 
 
 class FakeDnsDriver(object):

@@ -22,9 +22,9 @@ from proboscis.decorators import expect_exception
 
 from nova import flags
 from rsdns.client.records import Record
-from nova.dns.rsdns.driver import EntryToRecordConverter
-from nova.dns.rsdns.driver import RsDnsInstanceEntryFactory
-from nova.dns.rsdns.driver import RsDnsZone
+from reddwarf.dns.rsdns.driver import EntryToRecordConverter
+from reddwarf.dns.rsdns.driver import RsDnsInstanceEntryFactory
+from reddwarf.dns.rsdns.driver import RsDnsZone
 
 FLAGS = flags.FLAGS
 driver = None

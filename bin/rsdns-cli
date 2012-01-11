@@ -46,13 +46,13 @@ if __name__=="__main__":
 
 
 from reddwarfclient import common
-from nova.dns.rsdns.driver import create_client_with_flag_values
+from reddwarf.dns.rsdns.driver import create_client_with_flag_values
 from reddwarf.db import api as dbapi
 from nova.exception import DuplicateRecordEntry
 from novaclient.exceptions import NotFound
-from nova.dns.rsdns.driver import RsDnsDriver
+from reddwarf.dns.rsdns.driver import RsDnsDriver
 from nova.exception import RsDnsRecordNotFound
-from nova.dns.rsdns.driver import RsDnsZone
+from reddwarf.dns.rsdns.driver import RsDnsZone
 from sqlalchemy.exc import OperationalError
 
 # Show all records from database.   database list

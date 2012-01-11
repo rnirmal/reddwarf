@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from nova import dns
+from reddwarf import dns
 from nova import flags
 from nova import log as logging
 from nova.network import manager
