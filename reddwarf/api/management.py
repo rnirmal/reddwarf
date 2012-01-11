@@ -148,6 +148,23 @@ class Controller(object):
 
         return {'instance': instance}
 
+    @common.verify_admin_context
+    def details(self, req):
+        """ Returns all local instances, optionally filtered by deleted status."""
+        LOG.info("Get all Instances")
+        LOG.debug("%s - %s", req.environ, req.body)
+        dfilter = req.GET.get('deleted', None)
+        deleted = None
+        if dfilter is not None:
+            if  dfilter.lower() in ['true']:
+                deleted = True
+            elif dfilter.lower() in ['false']:
+                deleted = False
+
+        context = req.environ['nova.context']
+        instances = dbapi.show_all_instances(context, deleted)
+        return {"instances": instances}
+
     def _get_guest_info(self, context, id, status, instance):
         """Get all the guest details and add it to the response"""
         dbs = None

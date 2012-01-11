@@ -143,6 +143,15 @@ def show_instances_on_host(context, id):
                         filter_by(deleted=False).all()
     return result
 
+@require_admin_context
+def show_all_instances(context, deleted=None):
+    session = get_session()
+    result = session.query(Instance)
+    if deleted is not None:
+        result = result.filter_by(deleted=deleted)
+    if not result:
+        return []
+    return result.all()
 
 @require_admin_context
 def instance_get_by_state_and_updated_before(context, state, time):

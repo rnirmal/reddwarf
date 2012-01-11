@@ -120,6 +120,10 @@ class APIRouter(wsgi.Router):
                 m.connect("/{id}", action="show",
                           conditions=dict(method=["GET"]))
 
+            mapper.connect("/{project_id}/mgmt/instances",
+                            controller=management.create_resource(),
+                            action="details", conditions=dict(method=["GET"]))
+
             mapper.connect("/{project_id}/mgmt/instances/{id}",
                             controller=management.create_resource(),
                             action="show", conditions=dict(method=["GET"]))

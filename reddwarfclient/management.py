@@ -43,6 +43,27 @@ class Management(base.ManagerWithFind):
         return self._list("/mgmt/instances/%s" % base.getid(instance),
             'instance')
 
+    def details(self, deleted=None):
+        """
+        Show details of all local instances.
+        Optionally, filter by deleted status.
+
+        :rtype: list of :class:`Instance`.
+        """
+        form = ''
+        positive = ['true']
+        if deleted is not None:
+            if deleted.lower() in positive:
+                form = "?deleted=true"
+            else:
+                form = "?deleted=false"
+
+        url = "/mgmt/instances%s" % form
+        resp, body = self.api.client.get(url)
+        if not body:
+            raise Exception("Call to " + url + " did not return a body.")
+        return self.resource_class(self, body)
+
     def root_enabled_history(self, instance):
         """
         Get root access history of one instance.
