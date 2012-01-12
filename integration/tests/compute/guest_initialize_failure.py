@@ -188,7 +188,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
 
         """
         def ready():
-            results = self.db.service_get_all_compute_memory(
+            results = dbapi.service_get_all_compute_memory(
                 context.get_admin_context())
             for result in results:
                 (service, memory_mb) = result

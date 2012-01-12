@@ -259,7 +259,7 @@ class ReddwarfComputeManager(ComputeManager):
 
     def terminate_instance(self, context, instance_id):
         """Terminate the instance and also delete all the attached volumes"""
-        volumes = None
+        volumes = []
         try:
             volumes = self.db.volume_get_all_by_instance(context, instance_id)
         except exception.VolumeNotFoundForInstance:

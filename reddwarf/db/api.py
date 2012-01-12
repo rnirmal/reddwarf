@@ -18,20 +18,26 @@ API Interface for reddwarf datastore operations
 
 import datetime
 
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql import func
+from sqlalchemy.sql import text
+
 from nova import exception
 from nova import flags
 from nova import log as logging
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import func
-from sqlalchemy.sql import text
-from sqlalchemy.orm.exc import NoResultFound
 from nova.exception import DBError
+from nova.db.sqlalchemy import api as nova_db
+from nova.db.sqlalchemy import models as nova_models
 from nova.db.sqlalchemy.api import require_admin_context
+from nova.db.sqlalchemy.api import require_context
 from nova.db.sqlalchemy.models import Instance
 from nova.db.sqlalchemy.models import Service
 from nova.db.sqlalchemy.models import Volume
 from nova.db.sqlalchemy.session import get_session
 from nova.compute import power_state
+
 from reddwarf.db import models
 
 FLAGS = flags.FLAGS
@@ -392,3 +398,58 @@ def rsdns_record_list():
         raise exception.RsDnsRecordNotFound(name=name)
     return result
 
+
+@require_admin_context
+def service_get_all_compute_memory(context):
+    """Return a list of service nodes and the memory used at each.
+
+    Most available memory is returned first.
+
+    """
+    session = get_session()
+    with session.begin():
+        # NOTE(tim.simpson): Identical to service_get_all_compute_sorted,
+        #                    except memory_mb is retrieved instead of
+        #                    instances.vcpus.
+        topic = 'compute'
+        label = 'instance_cores'
+        subq = session.query(Instance.host,
+                             func.sum(Instance.memory_mb).
+                             label(label)).\
+                             filter_by(deleted=False).\
+                             group_by(Instance.host).\
+                             subquery()
+        return nova_db._service_get_all_topic_subquery(context, session, topic,
+                                                       subq, label)
+
+
+@require_context
+def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
+    session = get_session()
+    rv = session.query(nova_models.FixedIp).\
+                       options(joinedload('floating_ips')).\
+                       filter_by(instance_id=instance_id).\
+                       filter_by(deleted=False).\
+                       join(nova_models.Network).\
+                       filter_by(bridge=bridge_name).\
+                       all()
+    if not rv:
+        raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
+    return rv
+
+
+@require_context
+def instance_state_get_all_filtered(context):
+    """Returns a dictionary mapping instance IDs to their state."""
+    session = get_session()
+    query = session.query(nova_models.Instance).filter_by(deleted=False)
+
+    if not context.is_admin:
+        if context.project_id:
+            results = query.filter_by(project_id=context.project_id).all()
+        else:
+            results = query.filter_by(user_id=context.user_id).all()
+    else:
+        results = query.all()
+
+    return dict((result['id'], result['power_state']) for result in results)

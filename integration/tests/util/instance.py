@@ -173,9 +173,12 @@ class InstanceTest(object):
         self._check_vifs_cleaned()
 
     def _check_vifs_cleaned(self):
-        vifs = self.db.virtual_interface_get_by_instance(context.get_admin_context(),
-                                                         self.id)
-        assert_equal(vifs, [])
+        for network_id in [1, 2]:
+            vif = self.db.virtual_interface_get_by_instance_and_network(
+                                                    context.get_admin_context(),
+                                                    self.id,
+                                                    network_id)
+            assert_equal(vif, None)
 
     def _get_compute_instance_state(self):
         """Returns the instance state from the database."""

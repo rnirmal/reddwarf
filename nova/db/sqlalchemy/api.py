@@ -15,10 +15,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-"""Implementation of SQLAlchemy backend."""
-
-import datetime
+"""
+Implementation of SQLAlchemy backend.
+"""
 import re
 import warnings
 
@@ -268,33 +267,6 @@ def service_get_all_compute_sorted(context):
         label = 'instance_cores'
         subq = session.query(models.Instance.host,
                              func.sum(models.Instance.vcpus).label(label)).\
-                       filter_by(deleted=False).\
-                       group_by(models.Instance.host).\
-                       subquery()
-        return _service_get_all_topic_subquery(context,
-                                               session,
-                                               topic,
-                                               subq,
-                                               label)
-
-
-@require_admin_context
-def service_get_all_compute_memory(context):
-    """Return a list of service nodes and the memory used at each.
-
-    Most available memory is returned first.
-
-    """
-    session = get_session()
-    with session.begin():
-        # NOTE(tim.simpson): Identical to service_get_all_compute_sorted,
-        #                    except memory_mb is retrieved instead of
-        #                    instances.vcpus.
-        topic = 'compute'
-        label = 'instance_cores'
-        subq = session.query(models.Instance.host,
-                             func.sum(models.Instance.memory_mb).
-                             label(label)).\
                        filter_by(deleted=False).\
                        group_by(models.Instance.host).\
                        subquery()
@@ -880,21 +852,6 @@ def fixed_ip_get_by_instance(context, instance_id):
 
 
 @require_context
-def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
-    session = get_session()
-    rv = session.query(models.FixedIp).\
-                 options(joinedload('floating_ips')).\
-                 filter_by(instance_id=instance_id).\
-                 filter_by(deleted=False).\
-                 join(models.Network).\
-                 filter_by(bridge=bridge_name).\
-                 all()
-    if not rv:
-        raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
-    return rv
-
-
-@require_context
 def fixed_ip_get_by_network_host(context, network_id, host):
     session = get_session()
     rv = session.query(models.FixedIp).\
@@ -1039,6 +996,7 @@ def virtual_interface_get_by_fixed_ip(context, fixed_ip_id):
 
 
 @require_context
+@require_instance_exists
 def virtual_interface_get_by_instance(context, instance_id):
     """Gets all virtual interfaces for instance.
 
@@ -1109,17 +1067,6 @@ def virtual_interface_delete_by_instance(context, instance_id):
         virtual_interface_delete(context, vif_ref['id'])
 
 
-@require_context
-def virtual_interface_get_all(context):
-    """Get all vifs"""
-    session = get_session()
-    vif_refs = session.query(models.VirtualInterface).\
-                       options(joinedload('network')).\
-                       options(joinedload('fixed_ips')).\
-                       all()
-    return vif_refs
-
-
 ###################
 
 
@@ -1186,24 +1133,6 @@ def instance_destroy(context, instance_id):
                 update({'deleted': True,
                         'deleted_at': utils.utcnow(),
                         'updated_at': literal_column('updated_at')})
-
-
-@require_context
-def instance_state_get_all_filtered(context):
-    """Returns a dictionary mapping instance IDs to their state."""
-    session = get_session()
-    query = session.query(models.Instance).\
-                      filter_by(deleted=False)
-
-    if not context.is_admin:
-        if context.project_id:
-            results = query.filter_by(project_id=context.project_id).all()
-        else:
-            results = query.filter_by(user_id=context.user_id).all()
-    else:
-        results = query.all()
-
-    return dict((result['id'], result['power_state']) for result in results)
 
 
 @require_context
@@ -1529,6 +1458,7 @@ def instance_get_by_fixed_ip(context, address):
     fixed_ip_ref = fixed_ip_get_by_address(context, address)
     return fixed_ip_ref.instance
 
+
 @require_context
 def instance_get_by_fixed_ipv6(context, address):
     """Return instance ref by exact match of IPv6"""
@@ -1544,6 +1474,7 @@ def instance_get_by_fixed_ipv6(context, address):
     result = session.query(models.Instance).\
                      filter_by(id=vif_ref['instance_id'])
     return result
+
 
 @require_admin_context
 def instance_get_project_vpn(context, project_id):
@@ -1630,16 +1561,6 @@ def instance_update(context, instance_id, values):
         instance_ref.save(session=session)
         return instance_ref
 
-@require_admin_context
-def instance_set_state(context, instance_id, state, description=None):
-    # TODO(devcamcar): Move this out of models and into driver
-    from nova.compute import power_state
-    if not description:
-        description = power_state.name(state)
-    db.instance_update(context,
-                       instance_id,
-                       {'power_state': state,
-                        'state_description': description})
 
 def instance_add_security_group(context, instance_id, security_group_id):
     """Associate the given security group with the given instance"""
@@ -1690,18 +1611,6 @@ def instance_get_actions(context, instance_id):
     return session.query(models.InstanceActions).\
         filter_by(instance_id=instance_id).\
        all()
-
-
-@require_context
-def instance_get_id_to_uuid_mapping(context, ids):
-    session = get_session()
-    instances = session.query(models.Instance).\
-                        filter(models.Instance.id.in_(ids)).\
-                        all()
-    mapping = {}
-    for instance in instances:
-        mapping[instance['id']] = instance['uuid']
-    return mapping
 
 
 ###################
@@ -2294,7 +2203,7 @@ def volume_allocate_iscsi_target(context, volume_id, host):
     return iscsi_target_ref.target_num
 
 
-@require_context
+@require_admin_context
 def volume_attached(context, volume_id, instance_id, mountpoint):
     session = get_session()
     with session.begin():
@@ -2340,8 +2249,7 @@ def volume_destroy(context, volume_id):
                 filter_by(id=volume_id).\
                 update({'deleted': True,
                         'deleted_at': utils.utcnow(),
-                        'updated_at': literal_column('updated_at'),
-                        'status': 'deleted'})
+                        'updated_at': literal_column('updated_at')})
         session.query(models.ExportDevice).\
                 filter_by(volume_id=volume_id).\
                 update({'volume_id': None})
@@ -2419,7 +2327,7 @@ def volume_get_all_by_host(context, host):
                    all()
 
 
-@require_context
+@require_admin_context
 def volume_get_all_by_instance(context, instance_id):
     session = get_session()
     result = session.query(models.Volume).\
@@ -2500,7 +2408,6 @@ def volume_update(context, volume_id, values):
         volume_ref = volume_get(context, volume_id, session=session)
         volume_ref.update(values)
         volume_ref.save(session=session)
-    return volume_ref
 
 
 ####################
@@ -3301,21 +3208,6 @@ def migration_get_by_instance_and_status(context, instance_uuid, status):
         raise exception.MigrationNotFoundByStatus(instance_id=instance_uuid,
                                                   status=status)
     return result
-
-
-@require_admin_context
-def migration_get_all_unconfirmed(context, confirm_window, session=None):
-    confirm_window = datetime.datetime.utcnow() - datetime.timedelta(
-            seconds=confirm_window)
-
-    if not session:
-        session = get_session()
-
-    results = session.query(models.Migration).\
-            filter(models.Migration.updated_at <= confirm_window).\
-            filter_by(status="FINISHED").all()
-
-    return results
 
 
 ##################

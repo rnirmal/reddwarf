@@ -32,6 +32,8 @@ from nova.notifier import api as notifier
 from nova.scheduler import driver
 from nova.scheduler import chance
 
+from reddwarf.db import api as db_api
+
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_cores", 16,
                      "maximum number of instance cores to allow per host")
@@ -160,7 +162,7 @@ class MemoryScheduler(SimpleScheduler):
     """Implements Naive Scheduler to find a host with the most free memory."""
 
     def _schedule_based_on_resources(self, context, instance_ref):
-        results = db.service_get_all_compute_memory(context)
+        results = db_api.service_get_all_compute_memory(context)
         for result in results:
             (service, memory_mb) = result
             needed_memory = memory_mb + instance_ref['memory_mb']
