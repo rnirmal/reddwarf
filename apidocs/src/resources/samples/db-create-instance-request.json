@@ -1,7 +1,7 @@
 POST /v1.0/1234/instances HTTP/1.1
 User-Agent: python-example-client
 Host: ord.databases.api.rackspacecloud.com
-X-Auth-Token: 8e140fda-3a61-49cc-9dbf-17392a7c2f9f
+X-Auth-Token: 8071b2f6-3cde-4096-81ef-b2121949f3d9
 X-Auth-Project-ID: 1234
 Accept: application/json
 Content-Type: application/json

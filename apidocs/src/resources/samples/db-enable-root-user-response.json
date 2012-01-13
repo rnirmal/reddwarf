@@ -1,11 +1,11 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 78
-Date: Mon, 09 Jan 2012 19:04:22 GMT
+Date: Fri, 13 Jan 2012 21:05:23 GMT
 
 {
     "user": {
         "name": "root", 
-        "password": "3ce0900e-2c2a-4198-9b12-b7704207df34"
+        "password": "7f08ed23-28d7-453a-b888-8a08e048f807"
     }
 }
