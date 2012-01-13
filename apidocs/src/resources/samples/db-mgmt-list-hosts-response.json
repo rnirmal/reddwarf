@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 49
+Date: Mon, 09 Jan 2012 19:04:29 GMT
+
+{
+    "hosts": [
+        {
+            "instanceCount": 2, 
+            "name": "host"
+        }
+    ]
+}

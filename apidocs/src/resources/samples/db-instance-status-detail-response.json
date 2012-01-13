@@ -1,0 +1,64 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 1052
+Date: Mon, 09 Jan 2012 19:04:28 GMT
+
+{
+    "instance": {
+        "created": "2012-01-09T18:59:54Z", 
+        "databases": [
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "anotherexampledb"
+            }, 
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "nextround"
+            }, 
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "sampledb"
+            }, 
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "testingdb"
+            }
+        ], 
+        "flavor": {
+            "id": "1", 
+            "links": [
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1", 
+                    "rel": "self"
+                }, 
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/flavors/1", 
+                    "rel": "bookmark"
+                }
+            ]
+        }, 
+        "hostname": "1fb3aea4ef42a3aa24371c2dbe6632fc746644d0.35152ba4-3ae6-11e1-8400-080027a9d240-dbaas-tests.com", 
+        "id": "982ba7a7-c610-429c-b049-5496a0899dff", 
+        "links": [
+            {
+                "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/982ba7a7-c610-429c-b049-5496a0899dff", 
+                "rel": "self"
+            }, 
+            {
+                "href": "https://ord.databases.api.rackspacecloud.com/instances/982ba7a7-c610-429c-b049-5496a0899dff", 
+                "rel": "bookmark"
+            }
+        ], 
+        "name": "xml_rack_instance", 
+        "rootEnabled": true, 
+        "status": "ACTIVE", 
+        "updated": "2012-01-09T19:01:53Z", 
+        "volume": {
+            "size": 2
+        }
+    }
+}

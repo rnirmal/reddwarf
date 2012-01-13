@@ -1,0 +1,39 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 648
+Date: Mon, 09 Jan 2012 19:04:25 GMT
+
+{
+    "instances": [
+        {
+            "id": "982ba7a7-c610-429c-b049-5496a0899dff", 
+            "links": [
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/982ba7a7-c610-429c-b049-5496a0899dff", 
+                    "rel": "self"
+                }, 
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/instances/982ba7a7-c610-429c-b049-5496a0899dff", 
+                    "rel": "bookmark"
+                }
+            ], 
+            "name": "xml_rack_instance", 
+            "status": "ACTIVE"
+        }, 
+        {
+            "id": "046dfd74-c209-4524-9532-cc5bff18d4ea", 
+            "links": [
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/046dfd74-c209-4524-9532-cc5bff18d4ea", 
+                    "rel": "self"
+                }, 
+                {
+                    "href": "https://ord.databases.api.rackspacecloud.com/instances/046dfd74-c209-4524-9532-cc5bff18d4ea", 
+                    "rel": "bookmark"
+                }
+            ], 
+            "name": "json_rack_instance", 
+            "status": "ACTIVE"
+        }
+    ]
+}

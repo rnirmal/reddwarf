@@ -1,0 +1,26 @@
+HTTP/1.1 200 OK
+Content-Type: application/xml
+Content-Length: 248
+Date: Mon, 09 Jan 2012 19:04:14 GMT
+
+<?xml version="1.0" ?>
+<databases xmlns="http://docs.openstack.org/database/api/v1.0">
+	
+    
+	<database name="anotherexampledb"/>
+	
+    
+	<database name="exampledb"/>
+	
+    
+	<database name="nextround"/>
+	
+    
+	<database name="sampledb"/>
+	
+    
+	<database name="testingdb"/>
+	
+
+</databases>
+

@@ -36,8 +36,9 @@
     version="5.0">
     <?rax status.bar.text="BETA"?>
     <?rax title.font.size="35px" subtitle.font.size="20px"?>
-    <title>Rackspace Cloud Database BETA Developer Guide</title>
-    <titleabbrev>Rackspace Cloud Database BETA Dev Guide</titleabbrev>
+    <title>Rackspace Cloud Database BETA Developer Guide for Service Management</title>
+    <?rax status.bar.text="RAX INTERNAL"?>
+    <titleabbrev>Rackspace Cloud Database BETA Mgmt Dev Guide</titleabbrev>
     <info>
         <author>
             <personname>
@@ -49,12 +50,12 @@
             </affiliation>
         </author>
         <copyright>
-            <year>2010</year>
             <year>2011</year>
+            <year>2012</year>
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
-        <productname>Rackspace Cloud Database</productname>
+        <productname>Rackspace Cloud Database BETA</productname>
         <pubdate>2012-01-11</pubdate>
         <legalnotice role="rs-api">
             <annotation>
@@ -63,78 +64,19 @@
         </legalnotice>
         <abstract>
             <para>This document is intended for software developers
-                interested in developing applications using the
-                Rackspace Cloud Database Application Programming
-                Interface (<abbrev>API</abbrev>). </para>
+                interested in developing service management
+                applications using the Rackspace Cloud Database
+                Application Programming Interface
+                    (<abbrev>API</abbrev>). </para>
         </abstract>
         
         <revhistory>
             <revision>
-                <date>2012-01-11</date>
+                <date>2011-01-xx</date>
                 <revdescription>
                     <itemizedlist>
                         <listitem>
-                            <para>Updated to the new auto-generated
-                                examples. </para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-12-22</date>
-                <revdescription>
-                    <itemizedlist>
-                        <listitem>
-                            <para>Increased the maximum volume size
-                                per instance in gigabytes (GB) for
-                                your account to 10 (GB) in <xref
-                                   linkend="Absolute_Limits-d1e1397"
-                                />. </para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-12-20</date>
-                <revdescription>
-                    <itemizedlist>
-                        <listitem>
-                            <para>Added note about using a floating
-                                point value for flavorId parameter in
-                                <xref
-                                   linkend="GET_getFlavorById__version___accountID__flavors__flavorId__flavors"/>.
-                            </para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision> 
-            <revision>
-                <date>2011-12-8</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated with latest review comments.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added beta email list for support
-                                issues.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Updated product name.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Updated spelling for headers in
-                                examples.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-12-1</date>
-                <revdescription>
-                    <itemizedlist>
-                        <listitem>
-                            <para>Initial Private Beta Release.</para>
+                            <para>Initial Beta release.</para>
                         </listitem>
                     </itemizedlist>
                 </revdescription>
@@ -153,14 +95,20 @@
         <para>Rackspace Cloud Database is a database available to
             Rackspace Cloud customers. Interactions with Cloud
             Database occur programmatically via the Cloud Database API
-            as described in this Cloud Database Developer
-            Guide.</para>
+            as described in this <citetitle>Cloud Database Developer
+                Guide for Service Management</citetitle>.</para>
         <remark>Writer: need to synch up Overview section with
             marketing blurb for web. These should be
             consistent.</remark>
         <remark>Writer: need to check with Daniel for correct product
             name once we have settled on that name; then get product
             name modified throughout entire manual .</remark>
+        <para>The API operations described in this manual relate to
+            support of Cloud Database service activities on behalf of
+            a specific customer. The scope of these operations is
+            narrow, relating to the needs of a single customer. A
+            customer might directly request these operations, however
+            only Rackers are authorized to perform them.</para>
         <para security="writeronly">The following figure shows an
             overview of Cloud Database Infrastructure: <informalfigure>
                 <mediaobject>
@@ -190,12 +138,29 @@
             ticket, chat, email, or phone.</remark>
         <section xml:id="Intended_Audience-d1e122">
             <title>Intended Audience</title>
-            <para> This Guide is intended to assist software
-                developers who want to develop applications using the
-                Cloud Database API. It assumes the reader has a
-                general understanding of databases and is familiar
-                with: </para>
+            <para>Two APIs provide access to Rackspace Cloud Database: </para>
             <itemizedlist spacing="compact">
+                <listitem>
+                    <para>The <emphasis>management</emphasis> API,
+                        available only to developers within Rackspace,
+                        is the subject of this document.</para>
+                </listitem>
+                <listitem>
+                    <para>The <emphasis>public</emphasis> API,
+                        available to developers within Rackspace and
+                        Rackspace customers, is the subject of a
+                        companion document, the <citetitle>Cloud
+                            Database Developer
+                        Guide</citetitle>.</para>
+                </listitem>
+            </itemizedlist>
+            <para>To use the information provided here, you should
+                first have a general understanding of the Database
+                service. You should also be familiar with: </para>
+            <itemizedlist spacing="compact">
+                <listitem>
+                    <para>Database terminology</para>
+                </listitem>
                 <listitem>
                     <para>ReSTful web services</para>
                 </listitem>
@@ -206,7 +171,7 @@
                     <para>JSON and/or XML data serialization
                         formats</para>
                 </listitem>
-                <listitem>
+                <listitem security="writeronly">
                     <para>ATOM Syndication Format</para>
                 </listitem>
             </itemizedlist>
@@ -228,12 +193,12 @@
             <itemizedlist>
                 <listitem>
                     <para>The WADL is <link
-                            xlink:href="http://docs.rackspace.com/cdb/api/v1.0/cdb.wadl"
+                            xlink:href="http://docs.rackspace.com/cdb/api/v1.0/management.wadl"
                         />.</para>
                 </listitem>
                 <listitem>
                     <para>The XSD is <link
-                        xlink:href="http://docs.rackspace.com/cdb/api/v1.0/xsd/cdb.xsd"/>. </para>
+                        xlink:href="http://docs.rackspace.com/cdb/api/v1.0/xsd/management.xsd"/>. </para>
                 </listitem>
             </itemizedlist>
             <para>You can download the most current versions of other
@@ -314,337 +279,30 @@
     </chapter>
     <chapter xml:id="General_API_Information-d1e633">
         <title>General API Information</title>
-        <para> The Cloud Database API is implemented using a ReSTful
-            web service interface. Like other products in the
-            Rackspace Cloud suite, the Database Service shares a
-            common token-based authentication system that allows
-            seamless access between products and services. </para>
-        <note>
-            <para> All requests to authenticate against and operate the service are performed using
-                SSL over HTTP (HTTPS) on TCP port 443. </para>
-        </note>
+        <para> The Cloud Database Management API is implemented using
+            a ReSTful web service interface. Most functions of the
+            customer-facing Cloud Database API may be accessed on
+            behalf of a customer. The Cloud Database Management API
+            also extends this functionality to include operations for
+            managing features of the public API <remark>as well as
+                additional data fields not available to
+                customers</remark>.</para>
         <section xml:id="Authentication-d1e647">
             <title>Authentication</title>
-            <para> Every ReST request against the Database Service
-                requires the inclusion of a specific authorization
-                token, supplied by the <code>X-Auth-Token</code> HTTP
-                header. Customers obtain this token by first using the
-                Rackspace Cloud Authentication Service and supplying a
-                valid username and API access key. </para>
-            <section xml:id="Geographic_Endpoints">
-                <title>Geographic Endpoints</title>
-                <para> The Rackspace Cloud Authentication Service
-                    serves as the entry point to all Rackspace Cloud
-                    APIs and is itself a ReSTful web service. </para>
-                <para security="writeronly"> To access the Authentication Service, you must
-                    know whether your account is US-based or UK-based: </para>
-                <para> To access the Authentication Service, you
-                    authenticate through: </para>
-                <itemizedlist spacing="compact">
-                    <listitem>
-                        <para><link
-                                xlink:href="https://auth.api.rackspacecloud.com/v1.1"
-                                >https://auth.api.rackspacecloud.com/v1.1</link>. </para>
-                    </listitem>
-                    <listitem security="writeronly">
-                        <para> US-based accounts authenticate through
-                                <link
-                                xlink:href="https://auth.api.rackspacecloud.com/v1.1"
-                                >https://auth.api.rackspacecloud.com/v1.1</link>.
-                        </para>
-                    </listitem>
-                    <listitem security="writeronly">
-                        <para> UK-based accounts authenticate through
-                                <link
-                                xlink:href="https://lon.auth.api.rackspacecloud.com/v1.1"
-                                >https://lon.auth.api.rackspacecloud.com/v1.1</link>.
-                        </para>
-                    </listitem>
-                </itemizedlist>
-                <para security="writeronly"> Your account may be based in either the US or
-                    the UK; this is not determined by your physical
-                    location but by the location of the Rackspace
-                    retail site which was used to create your account: </para>
-                <itemizedlist spacing="compact" security="writeronly">
-                    <listitem>
-                        <para> If your account was created via <link
-                                xlink:href="http://www.rackspacecloud.com"
-                                >http://www.rackspacecloud.com</link>,
-                            it is a US-based account. </para>
-                    </listitem>
-                    <listitem>
-                        <para> If your account was created via <link
-                                xlink:href="http:/www.rackspace.co.uk"
-                                >http:/www.rackspace.co.uk</link>, it
-                            is a UK-based account. </para>
-                    </listitem>
-                </itemizedlist>
-                <para security="writeronly"> If you are unsure how your account was created,
-                    use the Rackspace contact information at either
-                    site to ask for help. </para>
-            </section>
-            <section xml:id="Retrieving_Auth_Token">
-                <title>Retrieving the Authentication Token</title>
-                <informaltable rules="all">
-                    <tbody>
-                        <tr>
-                            <td colspan="1">&POST; </td>
-                            <td colspan="1">/auth</td>
-                            <td colspan="4"> Authenticate to receive a
-                                token and a service catalog. </td>
-                        </tr>
-                    </tbody>
-                </informaltable>
-                <simpara> Normal Response Code(s):
-                        <returnvalue>200</returnvalue>,
-                        <returnvalue>203</returnvalue>
-                </simpara>
-                <simpara> Error Response Code(s): unauthorized
-                        (<errorcode>401</errorcode>), userDisabled
-                        (<errorcode>403</errorcode>), badRequest
-                        (<errorcode>400</errorcode>), authFault
-                        (<errorcode>500</errorcode>),
-                    serviceUnavailable (<errorcode>503</errorcode>) </simpara>
-                <para> The authenticate operation provides clients
-                    with an authentication token and a list of
-                    regional cloud endpoints. </para>
-                <example>
-                    <title>Auth Request: XML</title>
-                    <programlistingco>
-                        <areaspec>
-                            <area xml:id="credentials.xml.user"
-                                units="linecolumn" coords="11 23"/>
-                            <area xml:id="credentials.xml.key"
-                                units="linecolumn" coords="12 18"/>
-                        </areaspec>
-                        <programlisting language="xml">
-<xi:include href="samples/db-credentials.xml" parse="text"/>
-                    </programlisting>
-                    </programlistingco>
-                </example>
-                <example>
-                    <title>Auth Request: JSON</title>
-                    <programlistingco>
-                        <areaspec>
-                            <area xml:id="credentials.json.user"
-                                units="linecolumn" coords="11 22"/>
-                            <area xml:id="credentials.json.key"
-                                units="linecolumn" coords="12 18"/>
-                        </areaspec>
-                        <programlisting language="javascript">
-<xi:include href="samples/db-credentials.json" parse="text"/>
-                    </programlisting>
-                    </programlistingco>
-                </example>
-                <calloutlist>
-                    <callout arearefs="credentials.xml.user">
-                        <para> The username supplied here is your
-                            common Rackspace Cloud username. </para>
-                    </callout>
-                    <callout arearefs="credentials.xml.key">
-                        <para> The key is your API access key. The key
-                            can be obtained from the Rackspace Cloud
-                            Control Panel in the <guimenu>Your
-                                Account</guimenu>/<guimenuitem>API
-                                Access</guimenuitem> section. </para>
-                    </callout>
-                </calloutlist>
-                <example>
-                    <title>Auth Response: XML</title>
-                    <?dbfo keep-together="always"?>
-                    <programlistingco>
-                        <areaspec>
-                            <area xml:id="auth.xml.token.expires"
-                                units="linecolumn" coords="10 18"/>
-                            <area xml:id="auth.xml.sc.s.e.region"
-                                units="linecolumn" coords="14 18"/>
-                            <area xml:id="auth.xml.sc.s.e.v1d"
-                                units="linecolumn" coords="15 21"/>
-                            <area xml:id="auth.xml.sc.s.e.pu"
-                                units="linecolumn" coords="16 21"/>
-                            <area xml:id="auth.xml.sc.s.e.iu"
-                                units="linecolumn" coords="19 21"/>
-                            <area xml:id="auth.xml.sc.s.e.nr"
-                                units="linecolumn" coords="24 21"/>
-                        </areaspec>
-                        <programlisting language="xml">
-<xi:include href="samples/db-auth.xml" parse="text"/>
-                    </programlisting>
-                    </programlistingco>
-                </example>
-                <example xml:id="auth-response-example-json">
-                    <title>Auth Response: JSON</title>
-                    <?dbfo keep-together="always"?>
-                    <programlistingco>
-                        <areaspec>
-                            <area xml:id="auth.json.token.expires"
-                                units="linecolumn" coords="11 25"/>
-                            <area xml:id="auth.json.sc.s.e.region"
-                                units="linecolumn" coords="16 32"/>
-                            <area xml:id="auth.json.sc.s.e.v1d"
-                                units="linecolumn" coords="17 35"/>
-                            <area xml:id="auth.json.sc.s.e.pu"
-                                units="linecolumn" coords="18 35"/>
-                            <area xml:id="auth.json.sc.s.e.iu"
-                                units="linecolumn" coords="22 35"/>
-                            <area xml:id="auth.json.sc.s.e.nr"
-                                units="linecolumn" coords="28 35"/>
-                        </areaspec>
-                        <programlisting language="javascript">
-<xi:include href="samples/db-auth.json" parse="text"/>
-                    </programlisting>
-                    </programlistingco>
-                </example>
-                <calloutlist>
-                    <callout arearefs="auth.xml.token.expires">
-                        <para> Tokens are valid for a finite duration.
-                            The <code>expires</code> attribute denotes
-                            the time after which the token will
-                            automatically become invalid. A token may
-                            be manually revoked before the time
-                            identified by the <code>expires</code>
-                            attribute; <code>expires</code> predicts a
-                            token's maximum possible lifespan but does
-                            not guarantee that it will reach that
-                            lifespan. Clients are encouraged to cache
-                            a token until it expires. </para>
-                    </callout>
-                    <callout arearefs="auth.xml.sc.s.e.region">
-                        <para> A service may expose endpoints in
-                            different regions. Regional endpoints
-                            allow clients to provision resources in a
-                            manner that provides high availability.
-                        </para>
-                    </callout>
-                    <callout arearefs="auth.xml.sc.s.e.v1d">
-                        <para> The <code>v1Default</code> attribute
-                            denotes that an endpoint is being returned
-                            in version 1.0 of the Cloud Authentication
-                            Service. The default value of
-                                <code>v1Default</code> is
-                                <code>false</code>; clients should
-                            assume the value is <code>false</code>
-                            when the attribute is missing. Auth 1.0
-                            does not offer support for regional
-                            endpoints and therefore only returns one
-                            endpoint per service. Resources stored in
-                            endpoints where <code>v1Default</code> is
-                                <code>false</code>, will not be seen
-                            by Auth 1.0 clients. </para>
-                    </callout>
-                    <callout
-                        arearefs="auth.xml.sc.s.e.pu auth.xml.sc.s.e.iu">
-                        <para> An endpoint can be assigned public and
-                            internal URLs. A public URL is accessible
-                            from anywhere. Access to a public URL
-                            usually incurs traffic charges. Internal
-                            URLs are only accessible to services
-                            within the same region. Access to an
-                            internal URL is free of charge. Note that
-                            you can find your account number (in this
-                            example 1234) after the final '/' in the
-                            URL.</para>
-                    </callout>
-                    <callout arearefs="auth.xml.sc.s.e.nr">
-                        <para> Some services are not region-specific.
-                            These services supply a single
-                            non-regional endpoint and do not provide
-                            access to internal URLs. </para>
-                    </callout>
-                </calloutlist>
-            </section>
-        </section>
-        <section xml:id="Service_Access_Endpoints-d1e753">
-            <title>Service Access/Endpoints</title>
-            <para>The Database Service is a regionalized service. The
-                user of the service is therefore responsible for
-                appropriate replication, caching, and overall
-                maintenance of Cloud Database data across regional
-                boundaries to other Cloud Database servers.</para>
-            <para>Users can choose a region to operate against by
-                selecting an endpoint from the table below.</para>
-            <?rax-fo keep-with-next?>
-            <para>
-                <table rules="all">
-                    <caption>Regionalized Service Endpoints</caption>
-                    <thead>
-                        <tr align="center">
-                            <td colspan="2">Region</td>
-                            <td colspan="5">Endpoint</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr align="left">
-                            <td colspan="2">Chicago (ORD)</td>
-                            <td colspan="5"
-                                ><code>https://ord.databases.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
-                        </tr>
-                        <tr align="left" security="writeronly">
-                            <td colspan="2">Dallas/Ft. Worth (DFW)</td>
-                            <td colspan="5"
-                                ><code>https://dfw.databases.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
-                        </tr>
-                        <tr align="left" security="writeronly">
-                            <td colspan="2">London (LON)</td>
-                            <td colspan="5">
-                                <code>https://lon.databases.api.rackspacecloud.com/v1.0/</code><parameter>1234</parameter>/ </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </para>
+            <para>Every ReST request against the Cloud Database
+                Management API requires that the caller be
+                authenticated with HTTP Basic Auth using a valid
+                Rackspace SSO username and password. </para>
             <note>
-                <para>Additional service endpoints will be added in
-                    the future.</para>
+                <para>Not all Rackspace employees with valid SSO
+                    credentials will have access to the Cloud Database
+                    Management API. If you cannot access the service
+                    and feel that this is in error, please contact
+                    your supervisor and have the appropriate roles
+                    added to your account. </para>
             </note>
-            <remark>Reviewer: remove remove note above when additional
-                endpoints are added to the table above.</remark>
-            
-            <para>Replace the sample account ID number,
-                    <parameter>1234</parameter>, with your actual
-                account number returned as part of the authentication
-                service response.</para>
-            <para>You will find the actual account number after the
-                final '/' in the <code>publicURL</code> field returned
-                by the authentication response. For example, in <xref
-                    linkend="auth-response-example-json"/> you can see
-                from the <code>publicURL</code> field
-                (https://servers.api.rackspacecloud.com/v1. 0/1234)
-                that the account number is 1234.</para>
         </section>
-        <section xml:id="DB_service_versions">
-            <title>Cloud Database Service Versions</title>
-            <para> The Cloud Database version defines the contract and
-                build information for the API. </para>
-            <section xml:id="Contract_Version-d1e825">
-                <title>Contract Version</title>
-                <para> The contract version denotes the data model and
-                    behavior that the API supports. The requested
-                    contract version is included in all request URLs.
-                    Different contract versions of the API may be
-                    available at any given time and are not guaranteed
-                    to be compatible with one another. 
-                </para>
-                <example>
-                        <title>Example Request URL (contract version
-                            in <emphasis role="strong"
-                            >bold</emphasis>)</title>
-                        <programlisting>https://ord.databases.api.rackspacecloud.com/<emphasis role="strong">v1.0</emphasis>/1234</programlisting>
-                </example>
-                    <note>
-                        <para>This document pertains to contract
-                            version 1.0.</para>
-                    </note>
-                
-            </section>
-            <section xml:id="API_Version_Headers-d1e855">
-                <title>API Version</title>
-                <para>The API List Versions call is available to show
-                    the current API version as well as information
-                    about all versions of the API. Refer to <xref
-                        linkend="API_Versions"/> for details.</para>
-            </section>
-        </section>
-        <section xml:id="Request_Response_Types-d1e903">
+        <section xml:id="Request_Response_Types-d1e503">
             <title>Request/Response Types</title>
             <para> The Cloud Database API supports both the JSON and
                 XML data serialization formats. The request format is
@@ -818,11 +476,8 @@
                 list of the successful and error response codes for
                 the POST /xxxx call.</para>
         </section>
-           <section xml:id="Content_Compression-d1e1120" security="writeronly">
+           <section xml:id="Content_Compression-d1e1120">
             <title>Content Compression</title>
-            <remark>Reviewer: I am hiding this entire section for the
-                Private Beta, since I'm not sure that it applies. Is
-                that correct?</remark>
             <para> Request and response body data may be encoded with gzip compression to accelerate
                 interactive performance of API calls and responses. This is controlled using the
                     <code>Accept-Encoding</code> header on the request from the client and indicated
@@ -852,11 +507,8 @@
                 </tbody>
             </table>
         </section>
-        <section xml:id="Persistent_Connections-d1e1187" security="writeronly">
+        <section xml:id="Persistent_Connections-d1e1187">
             <title>Persistent Connections</title>
-            <remark>Reviewer: I am hiding this entire section for the
-                Private Beta, since I'm not sure that it applies. Is
-                that correct?</remark>
             <para>
                 By default, the API supports persistent connections
                 via HTTP/1.1 keepalives.  All connections will be kept
@@ -1449,99 +1101,63 @@
         role="api-reference">
         <title>API Operations</title>
         
-        <section xml:id="API_Versions">
-            <title>API Versions</title>
-            <para>This section describes the versions that are
-                supported for the Cloud Database API.</para>
-            <wadl:resources xmlns:wadl="http://wadl.dev.java.net/2009/02">
-                <wadl:resource href="dbaas.wadl#versions">
-                    <wadl:method href="getVersions"/>
+        <section xml:id="Database_Instance_Management">
+            <title>Database Instance Management</title>
+            <para>This section describes the operations that are supported for managing database instances.</para>
+            <wadl:resources 
+                xmlns:wadl="http://wadl.dev.java.net/2009/02">
+                <wadl:resource href="management.wadl#instanceId">
+                    <wadl:method href="showinstances"/>                
                 </wadl:resource>
-                <wadl:resource href="dbaas.wadl#version">
-                    <wadl:method href="getVersionInfo" />
+                <wadl:resource href="management.wadl#hosts">
+                    <wadl:method href="gethosts"/>
                 </wadl:resource>
-            </wadl:resources>               
-        </section>
-        
-        <section xml:id="Database_Instances">
-            <title>Database Instances</title>
-            <para>This section describes the operations that are supported for database instances.</para>
-            <wadl:resources xmlns:wadl="http://wadl.dev.java.net/2009/02">
-                <wadl:resource href="dbaas.wadl#instances" >
-                    <wadl:method href="createInstance"/>
-                    <wadl:method href="getInstance"/>
-                </wadl:resource>
-                <wadl:resource href="dbaas.wadl#instanceDetails">
-                    <wadl:method href="getInstanceDetails"/>
-                </wadl:resource>
-                <wadl:resource href="dbaas.wadl#instanceId">
-                    <wadl:method href="getInstanceById"/>
-                    <wadl:method href="deleteInstance"/>  
+                <wadl:resource href="management.wadl#hostid">
+                    <wadl:method href="gethostbyid"/> 
                 </wadl:resource>
             </wadl:resources>               
         </section>      
         
-        <section xml:id="databases">
-            <title>Databases</title>
+        <section xml:id="Storage_Management">
+            <title>Storage Management</title>
+            <para>This section describes the operations that are supported for getting information about storage devices.</para>
+            <wadl:resources 
+                xmlns:wadl="http://wadl.dev.java.net/2009/02">
+                <wadl:resource href="management.wadl#storage">
+                    <wadl:method href="indexstorage"/>                
+                </wadl:resource>
+            </wadl:resources>               
+        </section>   
+        
+        <section xml:id="Account_Information">
+            <title>Account Information</title>
             <para>This section describes the operations that are
-                supported for databases.</para>
+                supported for accounts.</para>
             <wadl:resources
                 xmlns:wadl="http://wadl.dev.java.net/2009/02">
-                <wadl:resource href="dbaas.wadl#databases">
-                    <wadl:method href="createDatabase"/>
-                    <wadl:method href="getDatabases"/>
-                </wadl:resource>
-                <wadl:resource href="dbaas.wadl#databaseName">
-                    <wadl:method href="deleteDatabase"/>
+                <wadl:resource href="management.wadl#accountid">
+                    <wadl:method href="getaccountbyid"/>
                 </wadl:resource>
             </wadl:resources>
         </section>      
         
-        <section xml:id="user_management">
-            <title>Users</title>
+        <section xml:id="Configurations">
+            <title>Configurations</title>
             <para>This section describes the operations that are
-                supported for managing database users.</para>
+                supported for managing configurations.</para>
             <wadl:resources
                 xmlns:wadl="http://wadl.dev.java.net/2009/02">
-                <wadl:resource href="dbaas.wadl#users">
-                    <wadl:method href="createUser"/>
-                    <wadl:method href="getUsers"/>
+                <wadl:resource href="management.wadl#configs">
+                    <wadl:method href="createconfigs"/>
+                    <wadl:method href="getconfigs"/>
                 </wadl:resource>
-                <wadl:resource href="dbaas.wadl#userId">
-                    <wadl:method href="deleteUser"/>
+                <wadl:resource href="management.wadl#configid">
+                    <wadl:method href="getconfigbyid"/>
+                    <wadl:method href="updateconfig"/>
+                    <wadl:method href="deleteconfig"/>
                 </wadl:resource>
             </wadl:resources>
         </section>
            
-        <section xml:id="flavors">
-            <title>Flavors</title>
-            <para>This section describes the operations that are
-                supported for flavors.</para>
-            <wadl:resources
-                xmlns:wadl="http://wadl.dev.java.net/2009/02">
-                <wadl:resource href="dbaas.wadl#flavors">
-                    <wadl:method href="getFlavors"/>
-                </wadl:resource>
-                <wadl:resource href="dbaas.wadl#flavorDetails">
-                    <wadl:method href="getFlavorDetails"/>
-                </wadl:resource>
-                <wadl:resource href="dbaas.wadl#flavorId">
-                    <wadl:method href="getFlavorById"/>
-                </wadl:resource>
-            </wadl:resources>
-        </section>
-              
-        <section xml:id="root_flag">
-            <title>Root Flag</title>
-            <para>This section describes the operations that are
-                supported for root flag.</para>
-            <wadl:resources
-                xmlns:wadl="http://wadl.dev.java.net/2009/02">
-                <wadl:resource href="dbaas.wadl#root">
-                    <wadl:method href="createRoot"/>
-                    <wadl:method href="isRootEnabled"/>
-                </wadl:resource>
-            </wadl:resources>
-        </section>
     </chapter>
 </book>

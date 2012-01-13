@@ -1,0 +1,27 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 270
+Date: Mon, 09 Jan 2012 19:04:31 GMT
+
+{
+    "account": {
+        "hosts": [
+            {
+                "id": "host", 
+                "instances": [
+                    {
+                        "id": "046dfd74-c209-4524-9532-cc5bff18d4ea", 
+                        "name": "json_rack_instance", 
+                        "status": "active"
+                    }, 
+                    {
+                        "id": "982ba7a7-c610-429c-b049-5496a0899dff", 
+                        "name": "xml_rack_instance", 
+                        "status": "active"
+                    }
+                ]
+            }
+        ], 
+        "name": "examples"
+    }
+}
