@@ -31,6 +31,9 @@
           <param name="instanceId" style="template" type="xsd:string"> 
             <doc>The instance ID for the specified database instance.</doc></param>
           <method href="#showinstances"/>
+          <resource id="rootdetails" path="root">
+              <method href="#getrootdetails"/>
+          </resource>
         </resource>
       </resource>
       <resource id="storage" path="storage">
@@ -441,5 +444,13 @@
     </response>
     &commonFaults;
     &getFaults;
+  </method>
+  <method name="GET" id="getrootdetails">
+      <response status="200">
+          <representation mediaType="application/xml" element="dbaas:RootDetails"/>
+          <representation mediaType="application/json" element="dbaas:RootDetails"/>
+      </response>
+      &commonFaults;
+      &getFaults;
   </method>
 </application>
