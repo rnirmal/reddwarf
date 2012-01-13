@@ -30,7 +30,6 @@ from nova import exception
 from nova import flags
 from nova.notifier import api as notifier
 from nova.utils import LoopingCall
-from nova.utils import poll_until
 from tests import initialize
 from tests.scheduler import SCHEDULER_DRIVER_GROUP
 from tests.volumes import VOLUMES_DRIVER
@@ -40,6 +39,7 @@ from tests.util import create_test_client
 from tests.util import test_config
 from tests.util import TestClient
 from tests.util.users import Requirements
+from reddwarf.utils import poll_until
 
 
 GROUP = SCHEDULER_DRIVER_GROUP

@@ -12,12 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from reddwarf import dns
 from nova import flags
 from nova import log as logging
 from nova.network import manager
 
 from reddwarf.db import api as db_api
+from reddwarf.dns import api as dns
 
 FLAGS = flags.FLAGS
 LOG = logging.getLogger("reddwarf.network.manager")

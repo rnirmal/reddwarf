@@ -24,6 +24,8 @@ from nova import log as logging
 from nova import utils
 from nova.manager import Manager
 
+from reddwarf import dns # import for flag values
+
 FLAGS = flags.FLAGS
 
 LOG = logging.getLogger('reddwarf.dns.manager')

@@ -27,12 +27,12 @@ from nova import utils
 from nova import log as logging
 from nova.compute import power_state
 from nova.compute import vm_states
-from nova.exception import OutOfInstanceMemory
 from nova.notifier import api as notifier
 from nova.scheduler import driver
 from nova.scheduler import chance
 
 from reddwarf.db import api as db_api
+from reddwarf.exception import OutOfInstanceMemory
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_cores", 16,
@@ -41,6 +41,8 @@ flags.DEFINE_integer("max_gigabytes", 10000,
                      "maximum number of volume gigabytes to allow per host")
 flags.DEFINE_integer("max_networks", 1000,
                      "maximum number of networks to allow per host")
+flags.DEFINE_integer("max_instance_memory_mb", 1024 * 15,
+                     "maximum amount of memory a host can use on instances")
 
 LOG = logging.getLogger('nova.scheduler.simple')
 

@@ -39,6 +39,9 @@ from nova import log as logging
 from nova import service
 from nova import utils
 
+flags.DEFINE_string('reaper_manager', 'reddwarf.reaper.manager.ReaperManager',
+                    'Manager for reaper')
+
 if __name__ == '__main__':
     utils.default_flagfile()
     flags.FLAGS(sys.argv)

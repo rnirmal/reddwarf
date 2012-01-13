@@ -257,7 +257,7 @@ class Controller(object):
         # Add image_ref
         try:
             server['imageRef'] = dbapi.config_get("reddwarf_imageref").value
-        except nova_exception.ConfigNotFound:
+        except exception.ConfigNotFound:
             msg = "Cannot find the reddwarf_imageref config value, " \
                   "using default of 1"
             LOG.warn(msg)

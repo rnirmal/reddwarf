@@ -482,6 +482,7 @@ patch_src_dir() {
     patch -r - -Np1 < $NOVA_HOME/patches/compute.patch
     patch -r - -Np1 < $NOVA_HOME/patches/nova_api.patch
     patch -r - -Np1 < $NOVA_HOME/patches/nova_db.patch
+    patch -r - -Np1 < $NOVA_HOME/patches/utils.patch
 }
 
 revert_patch() {
@@ -489,6 +490,7 @@ revert_patch() {
     patch -r - -Rp1 < $NOVA_HOME/patches/compute.patch
     patch -r - -Rp1 < $NOVA_HOME/patches/nova_api.patch
     patch -r - -Rp1 < $NOVA_HOME/patches/nova_db.patch
+    patch -r - -Rp1 < $NOVA_HOME/patches/utils.patch
 }
 
 build() {

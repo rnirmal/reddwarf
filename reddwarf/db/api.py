@@ -24,7 +24,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql import func
 from sqlalchemy.sql import text
 
-from nova import exception
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
 from nova.exception import DBError
@@ -38,6 +38,7 @@ from nova.db.sqlalchemy.models import Volume
 from nova.db.sqlalchemy.session import get_session
 from nova.compute import power_state
 
+from reddwarf import exception
 from reddwarf.db import models
 
 FLAGS = flags.FLAGS
@@ -73,7 +74,7 @@ def guest_status_get(instance_id, session=None):
                          filter_by(deleted=False).\
                          first()
     if not result:
-        raise exception.InstanceNotFound(instance_id=instance_id)
+        raise nova_exception.InstanceNotFound(instance_id=instance_id)
     return result
 
 def guest_status_get_list(instance_ids, session=None):
@@ -88,7 +89,7 @@ def guest_status_get_list(instance_ids, session=None):
                          filter(models.GuestStatus.instance_id.in_(instance_ids)).\
                          filter_by(deleted=False)
     if not result:
-        raise exception.InstanceNotFound(instance_id=instance_ids)
+        raise nova_exception.InstanceNotFound(instance_id=instance_ids)
     return result
 
 def guest_status_update(instance_id, state, description=None):
@@ -136,7 +137,7 @@ def show_instances_on_host(context, id):
                         filter_by(deleted=False).\
                         filter_by(disabled=False).count()
         if not count:
-            raise exception.HostNotFound(host=id)
+            raise nova_exception.HostNotFound(host=id)
         result = session.query(Instance).\
                         filter_by(host=id).\
                         filter_by(deleted=False).all()
@@ -180,7 +181,7 @@ def show_instances_by_account(context, id):
                         filter_by(user_id=id).\
                         filter_by(deleted=False).\
                         order_by(Instance.host).all()
-    raise exception.UserNotFound(user_id=id)
+    raise nova_exception.UserNotFound(user_id=id)
 
 
 @require_admin_context
@@ -434,7 +435,7 @@ def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
                        filter_by(bridge=bridge_name).\
                        all()
     if not rv:
-        raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
+        raise nova_exception.FixedIpNotFoundForInstance(instance_id=instance_id)
     return rv
 
 

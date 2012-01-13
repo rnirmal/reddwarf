@@ -14,6 +14,8 @@
 
 from webob import exc
 
+from nova import exception as nova_exception
+
 
 class BadRequest(exc.HTTPBadRequest, Exception):
     def __init__(self, message="The server could not comply with the request "
@@ -72,3 +74,40 @@ class ServiceUnavailable(exc.HTTPServiceUnavailable, Exception):
         self.code = 503
         errstr = '%s: %s' % (self.code, self.explanation)
         super(ServiceUnavailable, self).__init__(errstr)
+
+
+class ConfigNotFound(nova_exception.NotFound):
+    message = _("Configuration %(key)s not found.")
+
+
+class RsDnsRecordNotFound(nova_exception.NotFound):
+    message = _("RsDnsRecord with name= %(name)s not found.")
+
+
+class DuplicateConfigEntry(nova_exception.NotFound):
+    message = _("Configuration %(key)s already exists.")
+
+
+class DuplicateRecordEntry(nova_exception.NotFound):
+    message = _("Record with name %(name) or id=%(id) already exists.")
+
+
+class DevicePathInvalidForUuid(nova_exception.NotFound):
+    message = _("Could not get a UUID from device path %(device_path).")
+
+
+class VolumeProvisioningError(nova_exception.NotFound):
+    message = _("An error occured provisioning volume %(volume_id)s.")
+
+
+class ISCSITargetNotDiscoverable(nova_exception.NotFound):
+    message = _("Target for volume %(volume_id)s not found.")
+
+
+class OutOfInstanceMemory(nova_exception.NovaException):
+    message = _("Scheduler unable to find a host with memory left for an "
+                "instance needing %(instance_memory_mb)s MB of RAM.")
+
+
+class PollTimeOut(nova_exception.NovaException):
+    message = _("Polling request timed out.")

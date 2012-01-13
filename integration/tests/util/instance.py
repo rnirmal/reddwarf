@@ -31,6 +31,7 @@ from reddwarf.api.common import dbaas_mapping
 from reddwarf.compute.manager import ReddwarfInstanceMetaData
 from reddwarf.compute.manager import VALID_ABORT_STATES
 from reddwarf.db import api as dbapi
+from reddwarf.utils import poll_until
 from tests.util import create_test_client
 from tests.util import test_config
 from tests.util.users import Requirements
@@ -111,7 +112,7 @@ class InstanceTest(object):
                 return False
             except exception.VolumeNotFound:
                 return True
-        utils.poll_until(volume_not_found, sleep_time=1, time_out=time_out)
+        poll_until(volume_not_found, sleep_time=1, time_out=time_out)
 
     def _create_instance(self):
         """Makes a call to create an instance.
@@ -187,12 +188,12 @@ class InstanceTest(object):
 
     def wait_for_rest_api_to_show_status_as_failed(self, time_out):
         """Confirms the REST API state becomes failure."""
-        utils.poll_until(self._get_status_tuple, self._assert_status_failure,
+        poll_until(self._get_status_tuple, self._assert_status_failure,
                          sleep_time=1, time_out=time_out)
 
     def wait_for_compute_instance_to_suspend(self):
         """Polls until the compute instance is known to be suspended."""
-        utils.poll_until(self._get_compute_instance_state,
+        poll_until(self._get_compute_instance_state,
                          lambda state : state in VALID_ABORT_STATES,
                          sleep_time=1,
                          time_out=FLAGS.reddwarf_instance_suspend_time_out)

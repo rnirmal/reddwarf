@@ -38,8 +38,8 @@ from nova import utils
 LOG = logging.getLogger('nova.guest.manager')
 FLAGS = flags.FLAGS
 flags.DEFINE_multistring('guest_drivers',
-                         ['nova.guest.dbaas.DBaaSAgent',
-                          'nova.guest.pkg.PkgAgent'],
+                         ['reddwarf.guest.dbaas.DBaaSAgent',
+                          'reddwarf.guest.pkg.PkgAgent'],
                          'A simple database guest agent')
 
 
