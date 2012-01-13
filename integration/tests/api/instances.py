@@ -432,9 +432,6 @@ class TestVolume(unittest.TestCase):
         volumes = db.volume_get_all_by_instance(context.get_admin_context(),
                                                 instance_info.local_id)
         self.assertEqual(1, len(volumes))
-        description = "Volume ID: %s assigned to Instance: %s" \
-                        % (volumes[0]['id'], instance_info.id)
-        self.assertEqual(description, volumes[0]['display_description'])
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],

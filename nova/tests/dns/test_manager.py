@@ -23,9 +23,9 @@ Unit tests for the Dns Manager.
 import unittest
 
 from nova import context
-from nova.dns.driver import DnsEntry
-from nova.dns.driver import DnsEntryNotFound
-from nova.dns.manager import DnsManager
+from reddwarf.dns.driver import DnsEntry
+from reddwarf.dns.driver import DnsEntryNotFound
+from reddwarf.dns.manager import DnsManager
 from nova.tests.dns.fake import FakeDnsDriver
 
 

@@ -17,6 +17,7 @@
 Records interface.
 """
 
+import urlparse
 
 from novaclient import base
 from rsdns.client.future import FutureResource
@@ -81,20 +82,65 @@ class RecordsManager(base.ManagerWithFind):
                (not address or record.data == address) and \
                (not type or record.type == type)
 
+    def get(self, domain_id, record_id):
+        """
+        Get a single record by id.
 
-    def list(self, domain_id, record_name=None, record_address=None,
-             record_type=None):
+        :rtype: Single instance of :class:`Record`
+        """
+        url = "/domains/%s/records" % domain_id
+        if record_id:
+            url += ("/%s" % record_id)
+        resp, body = self.api.client.get(url)
+        try:
+            item = body
+        except IndexError:
+            raise RuntimeError('Body was missing record element.')
+        return self.resource_class(self, item)
+
+    def list(self, domain_id, record_id=None, record_name=None,
+             record_address=None, record_type=None):
         """
         Get a list of all records under a domain.
 
         :rtype: list of :class:`Record`
         """
-        resp, body = self.api.client.get("/domains/%s/records" % domain_id)
-        try:
-            list = body['records']            
-        except NameError:
-            raise RuntimeError('Body was missing "records" or "record" key.')
+        url = "/domains/%s/records" % domain_id
+        if record_id:
+            url += ("/%s" % record_id)
+        offset = 0
+        list = []
+        while offset is not None:
+            next_url = "%s?offset=%d" % (url, offset)
+            partial_list, offset = self.page_list(next_url)
+            list += partial_list
         all_records = self.create_from_list(list)
         return [record for record in all_records
                 if self.match_record(record, record_name, record_address,
                                      record_type)]
+
+    def page_list(self, url):
+        """
+        Given a URL and an offset, returns a tuple containing a list and the
+        next URL.
+        """
+        resp, body = self.api.client.get(url)
+        try:
+            list = body['records']
+        except NameError:
+            raise RuntimeError('Body was missing "records" or "record" key.')
+        next_offset = None
+        links = body.get('links', [])
+        for link in links:
+            if link['rel'] == 'next':
+                next = link['href']
+                params = urlparse.parse_qs(urlparse.urlparse(next).query)
+                offset_list = params.get('offset', [])
+                if len(offset_list) == 1:
+                    next_offset = int(offset_list[0])
+                elif len(offset_list) == 0:
+                    next_offset = None
+                else:
+                    raise RuntimeError("Next href had multiple offset params!")
+        return (list, next_offset)
+

@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright (c) 2011 Openstack, LLC.
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+"""
+  CLI interface for the RS DNS driver.
+"""
+
+import optparse
+import os
+import sys
+
+if __name__=="__main__":
+    # If ../reddwarf/__init__.py exists, add ../ to Python search path, so that
+    # it will override what happens to be installed in /usr/(local/)lib/python...
+    possible_topdir = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
+                                       os.pardir,
+                                       os.pardir))
+    def add_to_path(path):
+        if os.path.exists(os.path.join(possible_topdir, path,
+                                   '__init__.py')):
+            sys.path.insert(0, possible_topdir)
+        if os.path.exists(os.path.join(possible_topdir, path, '__init__.py')):
+            sys.path.insert(0, possible_topdir)
+
+    add_to_path('nova')
+    add_to_path('reddwarf')
+
+    from nova import flags
+    FLAGS = flags.FLAGS
+    FLAGS(sys.argv)
+
+
+from reddwarfclient import common
+from reddwarf.dns.rsdns.driver import create_client_with_flag_values
+from reddwarf.db import api as dbapi
+from nova.exception import DuplicateRecordEntry
+from novaclient.exceptions import NotFound
+from reddwarf.dns.rsdns.driver import RsDnsDriver
+from nova.exception import RsDnsRecordNotFound
+from reddwarf.dns.rsdns.driver import RsDnsZone
+from sqlalchemy.exc import OperationalError
+
+# Show all records from database.   database list
+# Update database with all DNS records.  database refresh
+
+
+class RsDnsCommand(object):
+
+    def get_dns_client(self):
+        dns_client = create_client_with_flag_values()
+        domain_id = FLAGS.dns_domain_id
+        if not domain_id:
+            raise RuntimeError("dns_domain_id not defined in the flag file.")
+        return dns_client, domain_id
+
+
+class DomainCommands(object):
+    """See the domains in the RS DNS account."""
+
+    def list(self, name=None):
+        """List the domains owned by the account in the FLAG values."""
+        dns_client = create_client_with_flag_values()
+        domains = dns_client.domains.list(name=name)
+        for domain in domains:
+            print("%s %s\n\tcreated=%s\n\tupdated=%s"
+                  % (domain.id, domain.name, domain.created, domain.updated))
+
+
+class RecordCommands(object):
+    """Work with the Nova database RsDnsRecord table."""
+
+    def __init__(self):
+        pass
+
+    def create(self, record_name, record_data, record_type, record_ttl):
+        """Create a DNS record."""
+        dns_client = create_client_with_flag_values()
+        domain_id = FLAGS.dns_domain_id
+        if not domain_id:
+            print("dns_domain_id not defined in the flag file.")
+            return
+        dns_client.records.create(domain_id, record_name, record_data,
+                                  record_type, record_ttl)
+
+    @staticmethod
+    def destroy():
+        """Delete all RS DNS records in the database."""
+        records = dbapi.rsdns_record_list()
+        print("Deleting records from the database...")
+        for record in records:
+            print("%s %s %s" % (record.id, record.name, record.created_at))
+            dbapi.rsdns_record_delete(record.name)
+
+    @staticmethod
+    def list():
+        """List all RS DNS records in the database."""
+        records = dbapi.rsdns_record_list()
+        for record in records:
+            print("%s %s %s" % (record.id, record.name, record.created_at))
+
+    def update(self, domain_id = None):
+        """Retrieve all Rs DNS records from the API and update the database."""
+        dns_client = create_client_with_flag_values()
+        domain_id = domain_id or FLAGS.dns_domain_id
+        if not domain_id:
+            print("dns_domain_id not defined in the flag file.")
+            return
+        try:
+            records = dns_client.records.list(domain_id=domain_id,
+                                              record_type="A")
+        except NotFound:
+            print("Domain with id=%s was not found!" % domain_id)
+            return
+        for record in records:
+            try:
+                db_record = dbapi.rsdns_record_get(record.name)
+                print("%s %s %s" % (record.id, record.name,
+                                    db_record.created_at))
+            except RsDnsRecordNotFound:
+                print("%s, %s, ?!" % (record.id, record.name))
+                print("\t\tAdding to database...")
+                try:
+                    dbapi.rsdns_record_create(record.name, record.id)
+                except DuplicateRecordEntry:
+                    print("\t\t\t\tIt was a duplicate? How can that be!?!")
+
+
+COMMANDS = { 'domains': DomainCommands,
+             'records': RecordCommands }
+
+
+if __name__=="__main__":
+    oparser = optparse.OptionParser("%prog [options] <cmd> <action> <args>")
+    oparser.add_option("-f", "--flagfile",
+                       help="A flag file.")
+    (options, args) = oparser.parse_args()
+    
+    if not args:
+        common.print_commands(COMMANDS)
+
+    # Pop the command and check if it's in the known commands
+    cmd = args.pop(0)
+    if cmd in COMMANDS:
+        fn = COMMANDS.get(cmd)
+        command_object = fn()
+
+        # Get a list of supported actions for the command
+        actions = common.methods_of(command_object)
+
+        if len(args) < 1:
+            common.print_actions(cmd, actions)
+
+        # Check for a valid action and perform that action
+        action = args.pop(0)
+        if action in actions:
+            fn = actions.get(action)
+
+            try:
+                fn(*args)
+                sys.exit(0)
+            except TypeError as err:
+                print "Possible wrong number of arguments supplied."
+                print "%s %s: %s" % (cmd, action, fn.__doc__)
+                print "\t\t", [fn.func_code.co_varnames[i] for i in
+                                            range(fn.func_code.co_argcount)]
+                print "ERROR: %s" % err
+            except OperationalError as oe:
+                print(oe)
+                print("Did you specify the database connection? Remember that "
+                      " a --flagfile option can be used with this program.")
+            except Exception:
+                print "Command failed, please check the log for more info."
+                raise
+        else:
+            common.print_actions(cmd, actions)
+    else:
+        common.print_commands(COMMANDS)

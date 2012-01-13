@@ -14,7 +14,7 @@
 
 from nova import flags
 from nova import log as logging
-from nova.volume.san import HpSanISCSIDriver
+from reddwarf.volume.san import ReddwarfHpSanISCSIDriver
 
 
 LOG = logging.getLogger("reddwarf.tests.volume.driver")
@@ -24,7 +24,7 @@ FLAGS = flags.FLAGS
 TESTS_VOLUME_SIZE_MULTIPLIER = 256
 
 
-class ISCSITestDriver(HpSanISCSIDriver):
+class ISCSITestDriver(ReddwarfHpSanISCSIDriver):
     """ISCSILite Driver, basic ISCSI target features
 
     This is a lite ISCSI driver which uses all the client functionality

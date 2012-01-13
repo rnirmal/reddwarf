@@ -51,9 +51,6 @@ flags.DEFINE_integer('find_host_timeout', 30,
                      'Timeout after NN seconds when looking for a host.')
 
 
-dns_entry_factory = None
-
-
 def generate_default_hostname(instance):
     """Default function to generate a hostname given an instance reference."""
     display_name = instance['display_name']
@@ -74,21 +71,7 @@ def generate_default_hostname(instance):
             deletions += c
     if isinstance(display_name, unicode):
         display_name = display_name.encode('latin-1', 'ignore')
-    hostname = "%s-instance-%s" % (display_name.translate(table, deletions),
-                                   instance['id'])
-    return hostname
-
-
-def generate_dns_hostname(instance):
-    """Provide a DNS generated hostname given an instance reference"""
-    global dns_entry_factory
-    if not dns_entry_factory:
-        dns_entry_factory = utils.import_object(FLAGS.dns_instance_entry_factory)
-    entry = dns_entry_factory.create_entry(instance)
-    if entry:
-        return entry.name
-    else:
-        return generate_default_hostname(instance)
+    return display_name.translate(table, deletions)
 
 
 def _is_able_to_shutdown(instance, instance_id):
@@ -113,7 +96,7 @@ class API(base.Base):
     """API for interacting with the compute manager."""
 
     def __init__(self, image_service=None, network_api=None,
-                 volume_api=None, hostname_factory=generate_dns_hostname,
+                 volume_api=None, hostname_factory=generate_default_hostname,
                  **kwargs):
         self.image_service = image_service or \
                 nova.image.get_default_image_service()
@@ -922,7 +905,7 @@ class API(base.Base):
         if 'reservation_id' in filters:
             recurse_zones = True
 
-        instances = self._get_instances_by_filters(context, filters)
+        instances = self.db.instance_get_all_by_filters(context, filters)
 
         if not recurse_zones:
             return instances
@@ -946,18 +929,6 @@ class API(base.Base):
                 instances.append(server._info)
 
         return instances
-
-    def _get_instances_by_filters(self, context, filters):
-        ids = None
-        if 'ip6' in filters or 'ip' in filters:
-            res = self.network_api.get_instance_uuids_by_ip_filter(context,
-                                                                   filters)
-            # NOTE(jkoelker) It is possible that we will get the same
-            #                instance uuid twice (one for ipv4 and ipv6)
-            uuids = set([r['instance_uuid'] for r in res])
-            filters['uuid'] = uuids
-
-        return self.db.instance_get_all_by_filters(context, filters)
 
     def _cast_compute_message(self, method, context, instance_id, host=None,
                               params=None):
@@ -1081,14 +1052,13 @@ class API(base.Base):
         return recv_meta
 
     @scheduler_api.reroute_compute("reboot")
-    def reboot(self, context, instance_id, reboot_type):
+    def reboot(self, context, instance_id):
         """Reboot the given instance."""
         self.update(context,
                     instance_id,
                     vm_state=vm_states.ACTIVE,
                     task_state=task_states.REBOOTING)
-        self._cast_compute_message('reboot_instance', context, instance_id,
-                params={'reboot_type': reboot_type})
+        self._cast_compute_message('reboot_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("rebuild")
     def rebuild(self, context, instance_id, image_href, admin_password,
@@ -1312,18 +1282,13 @@ class API(base.Base):
         self._cast_compute_message('resume_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("rescue")
-    def rescue(self, context, instance_id, rescue_password=None):
+    def rescue(self, context, instance_id):
         """Rescue the given instance."""
         self.update(context,
                     instance_id,
                     vm_state=vm_states.ACTIVE,
                     task_state=task_states.RESCUING)
-
-        rescue_params = {
-            "rescue_password": rescue_password
-        }
-        self._cast_compute_message('rescue_instance', context, instance_id,
-                                    params=rescue_params)
+        self._cast_compute_message('rescue_instance', context, instance_id)
 
     @scheduler_api.reroute_compute("unrescue")
     def unrescue(self, context, instance_id):

@@ -752,14 +752,6 @@ def cast(context, topic, msg):
         conn.topic_send(topic, msg)
 
 
-def cast_with_consumer(context, topic, msg):
-    """Sends a message on a topic without waiting for a response."""
-    LOG.debug(_('Making asynchronous cast on %s...'), topic)
-    with ConnectionContext() as conn:
-        consumer = conn.declare_topic_consumer(topic=topic)
-        cast(context, topic, msg)        
-
-
 def fanout_cast(context, topic, msg):
     """Sends a message on a fanout exchange without waiting for a response."""
     LOG.debug(_('Making asynchronous fanout cast...'))

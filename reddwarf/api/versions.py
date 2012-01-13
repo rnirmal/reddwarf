@@ -31,7 +31,6 @@ VERSIONS = {
     },
 }
 
-
 class Controller(object):
     """Supported versions"""
 
@@ -41,7 +40,7 @@ class Controller(object):
     def dispatch(self, req, *args):
         """Respond to a request for all Reddwarf API versions."""
         builder = nova.api.openstack.views.versions.get_view_builder(req)
-        if req.path == '/':
+        if req.path in ('/', ''):
             return builder.build_versions(VERSIONS)
         else:
             return builder.build_version(VERSIONS['v1.0'])

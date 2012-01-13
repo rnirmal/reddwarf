@@ -26,7 +26,7 @@ from nova.manager import Manager
 
 FLAGS = flags.FLAGS
 
-LOG = logging.getLogger('nova.dns.manager')
+LOG = logging.getLogger('reddwarf.dns.manager')
 
 
 class DnsManager(Manager):

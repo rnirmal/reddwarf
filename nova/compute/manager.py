@@ -56,8 +56,6 @@ from nova import rpc
 from nova import utils
 from nova import volume
 from nova.compute import power_state
-from nova.utils import LoopingCall
-from nova.utils import LoopingCallDone
 from nova.compute import task_states
 from nova.compute import vm_states
 from nova.notifier import api as notifier
@@ -72,6 +70,8 @@ flags.DEFINE_string('compute_driver', 'nova.virt.connection.get_connection',
                     'Driver to use for controlling virtualization')
 flags.DEFINE_string('stub_network', False,
                     'Stub network related code')
+flags.DEFINE_integer('password_length', 12,
+                    'Length of generated admin passwords')
 flags.DEFINE_string('console_host', socket.gethostname(),
                     'Console proxy host to use to connect to instances on'
                     'this host.')
@@ -80,9 +80,6 @@ flags.DEFINE_integer('live_migration_retry_count', 30,
                      " sleep 1 sec for each count")
 flags.DEFINE_integer("rescue_timeout", 0,
                      "Automatically unrescue an instance after N seconds."
-                     " Set to 0 to disable.")
-flags.DEFINE_integer("resize_confirm_window", 0,
-                     "Automatically confirm resizes after N seconds."
                      " Set to 0 to disable.")
 flags.DEFINE_integer('host_state_interval', 120,
                      'Interval in seconds for querying the host status')
@@ -146,12 +143,7 @@ class ComputeManager(manager.SchedulerDependentManager):
 
         self.network_api = network.API()
         self.network_manager = utils.import_object(FLAGS.network_manager)
-        #TODO(tim.simpson) Anywhere volume_manager is called here is probably
-        #                  a bug. volume.API() should be used instead.
         self.volume_manager = utils.import_object(FLAGS.volume_manager)
-        self.network_api = network.API()
-        self.volume_api = volume.API()
-        self.volume_client = volume.Client()
         self._last_host_check = 0
         super(ComputeManager, self).__init__(service_name="compute",
                                              *args, **kwargs)
@@ -516,10 +508,7 @@ class ComputeManager(manager.SchedulerDependentManager):
     @checks_instance_lock
     def terminate_instance(self, context, instance_id):
         """Terminate an instance on this host."""
-        try:
-            self._shutdown_instance(context, instance_id, 'Terminating')
-        except Exception as ex:
-            LOG.error(ex)
+        self._shutdown_instance(context, instance_id, 'Terminating')
         instance = self.db.instance_get(context.elevated(), instance_id)
         self._instance_update(context,
                               instance_id,
@@ -609,7 +598,7 @@ class ComputeManager(manager.SchedulerDependentManager):
 
     @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     @checks_instance_lock
-    def reboot_instance(self, context, instance_id, reboot_type="SOFT"):
+    def reboot_instance(self, context, instance_id):
         """Reboot an instance on this host."""
         LOG.audit(_("Rebooting instance %s"), instance_id, context=context)
         context = context.elevated()
@@ -631,7 +620,7 @@ class ComputeManager(manager.SchedulerDependentManager):
                      context=context)
 
         network_info = self._get_instance_nw_info(context, instance_ref)
-        self.driver.reboot(instance_ref, network_info, reboot_type)
+        self.driver.reboot(instance_ref, network_info)
 
         current_power_state = self._get_power_state(context, instance_ref)
         self._instance_update(context,
@@ -826,18 +815,12 @@ class ComputeManager(manager.SchedulerDependentManager):
 
     @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     @checks_instance_lock
-    def rescue_instance(self, context, instance_id, **kwargs):
-        """
-        Rescue an instance on this host.
-        :param rescue_password: password to set on rescue instance
-        """
-
+    def rescue_instance(self, context, instance_id):
+        """Rescue an instance on this host."""
         LOG.audit(_('instance %s: rescuing'), instance_id, context=context)
         context = context.elevated()
 
         instance_ref = self.db.instance_get(context, instance_id)
-        instance_ref.admin_pass = kwargs.get('rescue_password',
-                utils.generate_password(FLAGS.password_length))
         network_info = self._get_instance_nw_info(context, instance_ref)
 
         # NOTE(blamar): None of the virt drivers use the 'callback' param
@@ -860,10 +843,6 @@ class ComputeManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         network_info = self._get_instance_nw_info(context, instance_ref)
 
-    @staticmethod
-    def _update_state_callback(self, context, instance_id, result=None):
-        """Update instance state when async task completes."""
-        self._update_state(context, instance_id, result)
         # NOTE(blamar): None of the virt drivers use the 'callback' param
         self.driver.unrescue(instance_ref, None, network_info)
 
@@ -1277,9 +1256,8 @@ class ComputeManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         LOG.audit(_("instance %(instance_id)s: attaching volume %(volume_id)s"
                 " to %(mountpoint)s") % locals(), context=context)
-
-        dev_path = self.volume_client.initialize(context, volume_id, self.host)
-
+        dev_path = self.volume_manager.setup_compute_volume(context,
+                                                            volume_id)
         try:
             self.driver.attach_volume(instance_ref['name'],
                                       dev_path,
@@ -1304,7 +1282,8 @@ class ComputeManager(manager.SchedulerDependentManager):
             #             ecxception below.
             LOG.exception(_("instance %(instance_id)s: attach failed"
                     " %(mountpoint)s, removing") % locals(), context=context)
-            self.volume_client.remove_volume(context, volume_id, self.host)
+            self.volume_manager.remove_compute_volume(context,
+                                                      volume_id)
             raise exc
 
         return True
@@ -1325,7 +1304,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         else:
             self.driver.detach_volume(instance_ref['name'],
                                       volume_ref['mountpoint'])
-        self.volume_client.remove_volume(context, volume_id, self.host)
+        self.volume_manager.remove_compute_volume(context, volume_id)
         self.db.volume_detached(context, volume_id)
         if destroy_bdm:
             self.db.block_device_mapping_destroy_by_instance_and_volume(
@@ -1336,7 +1315,6 @@ class ComputeManager(manager.SchedulerDependentManager):
         """Detach a volume from an instance."""
         return self._detach_volume(context, instance_id, volume_id, True)
 
-    @exception.wrap_exception(notifier=notifier, publisher_id=publisher_id())
     def remove_volume(self, context, volume_id):
         """Remove volume on compute host.
 
@@ -1428,12 +1406,17 @@ class ComputeManager(manager.SchedulerDependentManager):
         instance_ref = self.db.instance_get(context, instance_id)
         hostname = instance_ref['hostname']
 
+        # Getting fixed ips
+        fixed_ips = self.db.instance_get_fixed_addresses(context, instance_id)
+        if not fixed_ips:
+            raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
+
         # If any volume is mounted, prepare here.
         if not instance_ref['volumes']:
             LOG.info(_("%s has no volume."), hostname)
         else:
             for v in instance_ref['volumes']:
-                self.volume_client.initialize(context, v['id'], v['host'])
+                self.volume_manager.setup_compute_volume(context, v['id'])
 
         # Bridge settings.
         # Call this method prior to ensure_filtering_rules_for_instance,
@@ -1443,11 +1426,6 @@ class ComputeManager(manager.SchedulerDependentManager):
         # Retry operation is necessary because continuously request comes,
         # concorrent request occurs to iptables, then it complains.
         network_info = self._get_instance_nw_info(context, instance_ref)
-
-        fixed_ips = [nw_info[1]['ips'] for nw_info in network_info]
-        if not fixed_ips:
-            raise exception.FixedIpNotFoundForInstance(instance_id=instance_id)
-
         max_retry = FLAGS.live_migration_retry_count
         for cnt in range(max_retry):
             try:
@@ -1548,7 +1526,7 @@ class ComputeManager(manager.SchedulerDependentManager):
         # Detaching volumes.
         try:
             for vol in self.db.volume_get_all_by_instance(ctxt, instance_id):
-                self.volume_client.remove_volume(ctxt, vol['id'])
+                self.volume_manager.remove_compute_volume(ctxt, vol['id'])
         except exception.NotFound:
             pass
 
@@ -1684,23 +1662,14 @@ class ComputeManager(manager.SchedulerDependentManager):
                 self.driver.poll_rescued_instances(FLAGS.rescue_timeout)
         except Exception as ex:
             LOG.warning(_("Error during poll_rescued_instances: %s"),
-                    unicode(ex))
-            error_list.append(ex)
-
-        try:
-            if FLAGS.resize_confirm_window > 0:
-                self.driver.poll_unconfirmed_resizes(
-                        FLAGS.resize_confirm_window)
-        except Exception as ex:
-            LOG.warning(_("Error during poll_unconfirmed_resizes: %s"),
-                    unicode(ex))
+                        unicode(ex))
             error_list.append(ex)
 
         try:
             self._report_driver_status()
         except Exception as ex:
             LOG.warning(_("Error during report_driver_status(): %s"),
-                    unicode(ex))
+                        unicode(ex))
             error_list.append(ex)
 
         try:

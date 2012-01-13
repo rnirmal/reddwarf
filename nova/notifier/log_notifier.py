@@ -20,14 +20,6 @@ from nova import log as logging
 
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('notifier_logfile', None,
-                    'Separate log file for notifications, off by default')
-
-
-if FLAGS.notifier_logfile:
-    logger = logging.getLogger("nova.notification")
-    handler = logging.WatchedFileHandler(FLAGS.notifier_logfile)
-    logger.addHandler(handler)
 
 
 def notify(message):

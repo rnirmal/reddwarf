@@ -45,8 +45,9 @@ def db_sync():
     migration.db_sync()
 
 
-def wsgi_app(fake_auth=True, fake_auth_context=None):
-    app = reddwarf.api.APIRouter()
+def wsgi_app(fake_auth=True, fake_auth_context=None,
+             router_app=reddwarf.api.APIRouter):
+    app = router_app()
     if fake_auth_context is not None:
         ctxt = fake_auth_context
     else:

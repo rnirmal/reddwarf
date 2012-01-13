@@ -24,7 +24,6 @@ from nova import db
 from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
-from nova import volume
 from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
 from nova.api.openstack import servers
@@ -34,6 +33,7 @@ from nova.compute import vm_states
 from nova.notifier import api as notifier
 
 from reddwarf import exception
+from reddwarf import volume
 from reddwarf.api import common
 from reddwarf.api import deserializer
 from reddwarf.api.views import instances
@@ -204,8 +204,6 @@ class Controller(object):
         guest_state = self.get_guest_state_mapping([local_id])
         instance = self.view.build_single(server_resp['server'], req,
                                           guest_state, create=True)
-        # Update volume description
-        self.update_volume_info(context, volume_ref, instance)
 
         # add the volume information to response
         LOG.debug("adding the volume information to the response...")
@@ -228,13 +226,6 @@ class Controller(object):
                                       snapshot_id=None,
                                       name=name,
                                       description=description)
-
-    def update_volume_info(self, context, volume_ref, instance):
-        """Update the volume description with the available instance info"""
-        description = FLAGS.reddwarf_volume_description \
-                            % (volume_ref['id'], instance['id'])
-        self.volume_api.update(context, volume_ref['id'],
-                               {'display_description': description})
 
     def _try_create_server(self, req, body):
         """Handle the call to create a server through the openstack servers api.
@@ -273,9 +264,9 @@ class Controller(object):
             notifier.notify(publisher_id(), "reddwarf.image", notifier.WARN,
                             msg)
             server['imageRef'] = 1
-        # Add Firewall rules
-        firewall_rules = [FLAGS.default_firewall_rule_name]
-        server['firewallRules'] = firewall_rules
+        # Add security groups
+        security_groups = [{'name': FLAGS.default_firewall_rule_name}]
+        server['security_groups'] = security_groups
         # Add volume id
         if not 'metadata' in instance:
             server['metadata'] = {}

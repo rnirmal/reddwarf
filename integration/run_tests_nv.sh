@@ -23,7 +23,7 @@ then
     echo $PYTHONPATH
     export VENV_DIR=.nemesis-venv
     #        $VENV_DIR/bin/nosetests --verbose --with-id $arg
-    python -B int_tests.py --verbose --verbose $*
+    python $INT_TEST_OPTIONS -B int_tests.py --verbose --verbose $*
 else
     echo Please set NOVASRC to a Nova source tree.
 fi

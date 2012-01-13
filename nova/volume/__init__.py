@@ -17,4 +17,3 @@
 #    under the License.
 
 from nova.volume.api import API
-from nova.volume.volume_client import VolumeClient as Client

@@ -1,6 +1,4 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
-# Copyright (c) 2011 Openstack, LLC.
+# Copyright 2011 OpenStack LLC.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -16,9 +14,21 @@
 #    under the License.
 
 from nova import flags
-from nova.dns.api import API
+from nova import log as logging
+from nova.notifier import log_notifier
 
-flags.DEFINE_string('dns_driver', 'nova.dns.driver.DnsDriver',
-                    'Driver to use for DNS work')
-flags.DEFINE_string('dns_bridge_name', 'br100',
-                    'Network bridge whose fixed_ip gets a DNS entry.')
+FLAGS = flags.FLAGS
+flags.DEFINE_string('notifier_logfile', None,
+                    'Separate log file for notifications, off by default')
+
+
+if FLAGS.notifier_logfile:
+    logger = logging.getLogger("nova.notification")
+    handler = logging.WatchedFileHandler(FLAGS.notifier_logfile)
+    logger.addHandler(handler)
+
+
+def notify(message):
+    """Notifies the recipient of the desired event given the model.
+    Log notifications using nova's default logging system"""
+    log_notifier.notify(message)

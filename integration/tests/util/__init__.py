@@ -35,7 +35,7 @@ from sqlalchemy import create_engine
 
 from nova import flags
 from nova import utils
-from nova.notifier import log_notifier  # This is here so flags are loaded
+from reddwarf.notifier import logfile_notifier  # This is here so flags are loaded
 from nose.tools import assert_false
 from nova.utils import PollTimeOut
 from reddwarfclient import Dbaas
@@ -169,7 +169,7 @@ def wait_for_compute_service():
 
 def should_run_rsdns_tests():
     """If true, then the RS DNS tests should also be run."""
-    return FLAGS.dns_driver == "nova.dns.rsdns.driver.RsDnsDriver"
+    return FLAGS.dns_driver == "reddwarf.dns.rsdns.driver.RsDnsDriver"
 
 
 def string_in_list(str, substr_list):

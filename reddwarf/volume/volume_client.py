@@ -20,7 +20,7 @@ from nova import db
 from nova import flags
 from nova import log as logging
 from nova import utils
-from nova.volume.api import API
+from reddwarf.volume.api import API
 from nova.db.base import Base
 
 

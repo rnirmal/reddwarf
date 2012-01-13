@@ -23,6 +23,7 @@ Handles all requests relating to volumes.
 
 from eventlet import greenthread
 
+from nova import db
 from nova import exception
 from nova import flags
 from nova import log as logging
@@ -39,14 +40,6 @@ LOG = logging.getLogger('nova.volume')
 
 class API(base.Base):
     """API for interacting with the volume manager."""
-
-    def assign_to_compute(self, context, volume_id, host):
-        rpc.cast(context,
-                 FLAGS.scheduler_topic,
-                 {"method": "assign_volume",
-                  "args": {"topic": FLAGS.volume_topic,
-                           "volume_id": volume_id,
-                           "host": host}})
 
     def create(self, context, size, snapshot_id, name, description,
                      volume_type=None, metadata=None, availability_zone=None):
@@ -111,26 +104,14 @@ class API(base.Base):
         now = utils.utcnow()
         self.db.volume_update(context, volume_id, {'status': 'deleting',
                                                    'terminated_at': now})
-        host = volume['host']  # TODO(tim.simpson): Is this correct?
+        host = volume['host']
         rpc.cast(context,
                  self.db.queue_get_for(context, FLAGS.volume_topic, host),
                  {"method": "delete_volume",
                   "args": {"volume_id": volume_id}})
 
-    def delete_volume_when_available(self, context, volume_id, time_out):
-        host = self.get(context, volume_id)['host']
-        rpc.cast(context,
-                 self.db.queue_get_for(context, FLAGS.volume_topic, host),
-                 {"method": "delete_volume_when_available",
-                  "args": {"volume_id": volume_id,
-                           "time_out": time_out}})
-
     def update(self, context, volume_id, fields):
-        volume_ref = self.db.volume_update(context, volume_id, fields)
-        rpc.cast(context, FLAGS.scheduler_topic,
-                 {'method': 'update_info',
-                  'args': {'topic': FLAGS.volume_topic,
-                           'volume_ref': volume_ref}})
+        self.db.volume_update(context, volume_id, fields)
 
     def get(self, context, volume_id):
         rv = self.db.volume_get(context, volume_id)
@@ -176,26 +157,6 @@ class API(base.Base):
             volumes = result
         return volumes
 
-    def check_for_available_space(self, context, size):
-        """Check the device for available space for a Volume"""
-        #TODO(cp16net) scheduler does not support rpc call with scheduler topic
-        # scheduler changes the rpc call to a cast when forwarding the msg.
-        # We will have to revisit this when we add multiple volume managers.
-        return rpc.call(context,
-                         FLAGS.volume_topic,
-                         {"method": "check_for_available_space",
-                          "args": {'size': size}})
-
-    def get_storage_device_info(self, context):
-        """Returns the storage device information for Admins."""
-        if context.is_admin:
-            LOG.debug("calling the method get_storage_device_info")
-            return rpc.call(context,
-                             FLAGS.volume_topic,
-                             {"method": "get_storage_device_info",
-                              "args": {}})
-        raise exception.AdminRequired()
-
     def get_snapshot(self, context, snapshot_id):
         rv = self.db.snapshot_get(context, snapshot_id)
         return dict(rv.iteritems())
@@ -219,13 +180,12 @@ class API(base.Base):
         if volume['status'] == "available":
             raise exception.ApiError(_("Volume is already detached"))
 
-    def unassign_from_compute(self, context, volume_id, host):
-        rpc.cast(context,
-                 FLAGS.scheduler_topic,
-                 {"method": "unassign_volume",
-                  "args": {"topic": FLAGS.volume_topic,
-                           "volume_id": volume_id,
-                           "host": host}})
+    def remove_from_compute(self, context, volume_id, host):
+        """Remove volume from specified compute host."""
+        rpc.call(context,
+                 self.db.queue_get_for(context, FLAGS.compute_topic, host),
+                 {"method": "remove_volume",
+                  "args": {'volume_id': volume_id}})
 
     def _create_snapshot(self, context, volume_id, name, description,
                          force=False):

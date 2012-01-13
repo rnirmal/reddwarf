@@ -365,7 +365,7 @@ DEFINE_string('compute_manager', 'nova.compute.manager.ComputeManager',
               'Manager for compute')
 DEFINE_string('console_manager', 'nova.console.manager.ConsoleProxyManager',
               'Manager for console proxy')
-DEFINE_string('dns_manager', 'nova.dns.manager.DnsManager',
+DEFINE_string('dns_manager', 'reddwarf.dns.manager.DnsManager',
               'Manager for dns')
 DEFINE_string('network_manager', 'nova.network.manager.VlanManager',
               'Manager for network')
@@ -412,7 +412,7 @@ DEFINE_list('zone_capabilities',
                  'Key/Multi-value list representng capabilities of this zone')
 
 DEFINE_string('dns_instance_entry_factory',
-              'nova.dns.driver.DnsInstanceEntryFactory',
+              'reddwarf.dns.driver.DnsInstanceEntryFactory',
               'Method used to create entries for instances')
 DEFINE_string('build_plan_encryption_key', None,
         '128bit (hex) encryption key for scheduler build plans.')
@@ -428,9 +428,6 @@ DEFINE_string('root_helper', 'sudo',
               'Command prefix to use for running commands as root')
 
 DEFINE_bool('use_ipv6', False, 'use ipv6')
-
-DEFINE_integer('password_length', 12,
-                    'Length of generated instance admin passwords')
 
 DEFINE_bool('monkey_patch', False,
               'Whether to log monkey patching')

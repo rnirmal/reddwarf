@@ -12,15 +12,15 @@ import pexpect
 from nova import context
 from nova import exception
 from nova import flags
-from nova import volume
 from nova import utils
 from nova.utils import poll_until
+
+from reddwarf import volume
 
 from proboscis import test
 from proboscis.asserts import assert_raises
 from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
-from reddwarf.tests.volume.driver import ISCSITestDriver
 from tests import initialize
 from tests import util
 from tests.volumes import VOLUMES_DRIVER
@@ -30,6 +30,7 @@ FLAGS = flags.FLAGS
 UUID_PATTERN = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
                           '[0-9a-f]{4}-[0-9a-f]{12}$')
 
+HUGE_VOLUME=5000
 
 def is_uuid(text):
     return UUID_PATTERN.search(text) is not None
@@ -148,7 +149,7 @@ class SetUp(VolumeTest):
         print("usable : %r" % usable)
         print("real_free : %r" % real_free)
 
-        self.assertFalse(self.story.api.check_for_available_space(self.story.context, 500))
+        self.assertFalse(self.story.api.check_for_available_space(self.story.context, HUGE_VOLUME))
         self.assertFalse(self.story.api.check_for_available_space(self.story.context, real_free+1))
 
         if fail:
@@ -172,10 +173,11 @@ class AddVolumeFailure(VolumeTest):
         desc = "A volume that was created for testing."
         self.storyFail.volume_name = name
         self.storyFail.volume_desc = desc
-        volume = self.storyFail.api.create(self.storyFail.context, size=500,
+        volume = self.storyFail.api.create(self.storyFail.context,
+                                           size=HUGE_VOLUME,
                                            snapshot_id=None, name=name,
                                            description=desc)
-        self.assertEqual(500, volume["size"])
+        self.assertEqual(HUGE_VOLUME, volume["size"])
         self.assertTrue("creating", volume["status"])
         self.assertTrue("detached", volume["attach_status"])
         self.storyFail.volume = volume
@@ -408,7 +410,7 @@ class Initialize(VolumeTest):
         """If initialize is called but a UUID exists, it should not format."""
         old_uuid = self.story.get_volume()['uuid']
         self.assertTrue(old_uuid is not None)
-        
+
         class VolumeClientNoFmt(volume.Client):
 
             def _format(self, device_path):
@@ -439,6 +441,7 @@ class DeleteVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
+    @expect_exception(Exception)
     @time_out(60)
     def test_discover_should_fail(self):
         assert_raises(exception.Error, 

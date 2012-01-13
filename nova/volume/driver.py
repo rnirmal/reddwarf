@@ -24,8 +24,6 @@ import time
 import os
 from xml.etree import ElementTree
 
-import pexpect
-
 from nova import exception
 from nova import flags
 from nova import log as logging
@@ -39,10 +37,10 @@ flags.DEFINE_string('volume_group', 'nova-volumes',
                     'Name for the VG that will contain exported volumes')
 flags.DEFINE_string('aoe_eth_dev', 'eth0',
                     'Which device to export the volumes on')
-flags.DEFINE_integer('num_shell_tries', 3,
+flags.DEFINE_string('num_shell_tries', 3,
                     'number of times to attempt to run flakey shell commands')
-flags.DEFINE_integer('max_sleep_between_shell_tries', 5,
-                     'Max. seconds to sleep between shell retries')
+flags.DEFINE_string('num_iscsi_scan_tries', 3,
+                    'number of times to rescan iSCSI target to find volume')
 flags.DEFINE_integer('num_shelves',
                     100,
                     'Number of vblade shelves')
@@ -58,16 +56,6 @@ flags.DEFINE_string('iscsi_ip_prefix', '$my_ip',
                     'discover volumes on the ip that starts with this prefix')
 flags.DEFINE_string('rbd_pool', 'rbd',
                     'the rbd pool in which volumes are stored')
-flags.DEFINE_integer('volume_format_timeout', 120,
-                     'timeout for formatting volumes')
-flags.DEFINE_string('volume_fstype', 'ext3',
-                    'The file system type used to format and mount volumes.')
-flags.DEFINE_string('san_ip', '',
-                    'IP address of SAN controller')
-flags.DEFINE_string('format_options', '-m 5',
-                    'String specifying various options passed to mkfs')
-flags.DEFINE_string('mount_options', 'noatime',
-                    'String specifying various options passed to mount')
 
 
 class VolumeDriver(object):
@@ -95,24 +83,6 @@ class VolumeDriver(object):
                 LOG.exception(_("Recovering from a failed execute.  "
                                 "Try number %s"), tries)
                 time.sleep(tries ** 2)
-
-    def assign_volume(self, volume_id, host):
-        """
-        Assign the volume to the specified compute host so that it could
-        be potentially used in discovery in certain drivers
-        """
-        pass
-
-    def check_for_available_space(self, size):
-        """Call to check the size is available for volume"""
-        pass
-
-    def check_for_client_setup_error(self):
-        """
-        Returns and error if the client is not setup properly to
-        talk to the specific volume management service.
-        """
-        pass
 
     def check_for_setup_error(self):
         """Returns an error if prerequisites aren't met"""
@@ -213,25 +183,6 @@ class VolumeDriver(object):
         # it's quite slow.
         self._delete_volume(snapshot, snapshot['volume_size'])
 
-    def get_volume_uuid(self, device_path):
-        """Returns the UUID of a device given that device path.
-
-        The returned UUID is expected to be hex in five groups with the lengths
-        8,4,4,4 and 12.
-        Example:
-        fd575a25-f9d9-4e7f-aafd-9c2b92e9ec4c
-
-        If the device_path doesn't match anything, DevicePathInvalidForUuid
-        is raised.
-
-        """
-        child = pexpect.spawn("sudo blkid " + device_path)
-        i = child.expect(['UUID="([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
-                          '[0-9a-f]{4}-[0-9a-f]{12})"', pexpect.EOF])
-        if i > 0:
-            raise exception.DevicePathInvalidForUuid(device_path=device_path)
-        return child.match.groups()[0]
-
     def local_path(self, volume):
         # NOTE(vish): stops deprecation warning
         escaped_group = FLAGS.volume_group.replace('-', '--')
@@ -263,156 +214,6 @@ class VolumeDriver(object):
         """Make sure volume is exported."""
         raise NotImplementedError()
 
-    def unassign_volume(self, volume_id, host):
-        """Some drivers need this to associate a volume to a host."""
-        pass
-
-    def _check_device_exists(self, device_path):
-        """Check that the device path exists.
-
-        Verify that the device path has actually been created and can report
-        it's size, only then can it be available for formatting, retry
-        num_shell_tries to account for the time lag.
-        """
-        try:
-            utils.execute('sudo', 'blockdev', '--getsize64', device_path,
-                          attempts=FLAGS.num_shell_tries)
-        except exception.ProcessExecutionError:
-            raise exception.InvalidDevicePath(path=device_path)
-
-    def _check_format(self, device_path):
-        """Checks that an unmounted volume is formatted."""
-        child = pexpect.spawn("sudo dumpe2fs %s" % device_path)
-        try:
-            i = child.expect(['has_journal', 'Wrong magic number'])
-            if i == 0:
-                return
-            raise IOError('Device path at %s did not seem to be %s.' %
-                          (device_path, FLAGS.volume_fstype))
-        except pexpect.EOF:
-            raise IOError("Volume was not formatted.")
-        child.expect(pexpect.EOF)
-
-    def _format(self, device_path):
-        """Calls mkfs to format the device at device_path."""
-        cmd = "sudo mkfs -t %s %s %s" % (FLAGS.volume_fstype,
-                                         FLAGS.format_options, device_path)
-        child = pexpect.spawn(cmd, timeout=FLAGS.volume_format_timeout)
-        child.expect("(y,n)")
-        child.sendline('y')
-        child.expect(pexpect.EOF)
-
-    def format(self, device_path):
-        """Formats the device at device_path and checks the filesystem."""
-        self._check_device_exists(device_path)
-        self._format(device_path)
-        self._check_format(device_path)
-
-    def mount(self, device_path, mount_point):
-        if not os.path.exists(mount_point):
-            os.makedirs(mount_point)
-        cmd = "sudo mount -t %s -o %s %s %s" % (FLAGS.volume_fstype,
-                                                FLAGS.mount_options,
-                                                device_path, mount_point)
-        child = pexpect.spawn(cmd)
-        child.expect(pexpect.EOF)
-
-    def unmount(self, mount_point):
-        if os.path.exists(mount_point):
-            cmd = "sudo umount %s" % mount_point
-            child = pexpect.spawn(cmd)
-            child.expect(pexpect.EOF)
-
-    def update_info(self, volume_ref):
-        """Update any provided volume info like name or description"""
-        pass
-
-    def get_volume_stats(self, refresh=False):
-        """Return the current state of the volume service. If 'refresh' is
-           True, run the update first."""
-        # Setting this to default of None
-        return None
-
-
-class LoggingVolumeDriver(VolumeDriver):
-    """Logs and records calls, for unit tests."""
-
-    def _check_device_exists(self, *args, **kwargs):
-        pass
-
-    def get_volume_uuid(self, device_path):
-        pass
-
-    def format(self, device_path):
-        pass
-
-    def check_for_setup_error(self):
-        pass
-
-    def create_volume(self, volume):
-        self.log_action('create_volume', volume)
-
-    def delete_volume(self, volume):
-        self.log_action('delete_volume', volume)
-
-    def local_path(self, volume):
-        print "local_path not implemented"
-        raise NotImplementedError()
-
-    def ensure_export(self, context, volume):
-        self.log_action('ensure_export', volume)
-
-    def create_export(self, context, volume):
-        self.log_action('create_export', volume)
-
-    def remove_export(self, context, volume):
-        self.log_action('remove_export', volume)
-
-    def discover_volume(self, context, volume):
-        self.log_action('discover_volume', volume)
-
-    def undiscover_volume(self, volume):
-        self.log_action('undiscover_volume', volume)
-
-    def check_for_export(self, context, volume_id):
-        self.log_action('check_for_export', volume_id)
-
-    _LOGS = []
-
-    @staticmethod
-    def clear_logs():
-        LoggingVolumeDriver._LOGS = []
-
-    @staticmethod
-    def log_action(action, parameters):
-        """Logs the command."""
-        LOG.debug(_("LoggingVolumeDriver: %s") % (action))
-        log_dictionary = {}
-        if parameters:
-            log_dictionary = dict(parameters)
-        log_dictionary['action'] = action
-        LOG.debug(_("LoggingVolumeDriver: %s") % (log_dictionary))
-        LoggingVolumeDriver._LOGS.append(log_dictionary)
-
-    @staticmethod
-    def all_logs():
-        return LoggingVolumeDriver._LOGS
-
-    @staticmethod
-    def logs_like(action, **kwargs):
-        matches = []
-        for entry in LoggingVolumeDriver._LOGS:
-            if entry['action'] != action:
-                continue
-            match = True
-            for k, v in kwargs.iteritems():
-                if entry.get(k) != v:
-                    match = False
-                    break
-            if match:
-                matches.append(entry)
-        return matches
-    
     def get_volume_stats(self, refresh=False):
         """Return the current state of the volume service. If 'refresh' is
            True, run the update first."""
@@ -555,18 +356,6 @@ class ISCSIDriver(VolumeDriver):
                        `CHAP` is the only auth_method in use at the moment.
     """
 
-    def check_for_client_setup_error(self):
-        """
-        Returns an error if the client is not setup properly to
-        talk to the iscsi target server.
-        """
-        try:
-            self._execute("sudo", "iscsiadm", "-m", "discovery",
-                          "-t", "st", "-p", FLAGS.san_ip)
-        except exception.ProcessExecutionError as err:
-            LOG.fatal("Error initializing the volume client: %s" % err)
-            raise exception.VolumeServiceUnavailable()
-
     def ensure_export(self, context, volume):
         """Synchronously recreates an export for a logical volume."""
         try:
@@ -654,8 +443,7 @@ class ISCSIDriver(VolumeDriver):
 
         (out, _err) = self._execute('iscsiadm', '-m', 'discovery',
                                     '-t', 'sendtargets', '-p', volume['host'],
-                                    run_as_root=True,
-                                    attempts=FLAGS.num_shell_tries)
+                                    run_as_root=True)
         for target in out.splitlines():
             if FLAGS.iscsi_ip_prefix in target and volume_name in target:
                 return target
@@ -717,12 +505,11 @@ class ISCSIDriver(VolumeDriver):
 
         return properties
 
-    def _run_iscsiadm(self, iscsi_properties, iscsi_command, num_tries=1):
+    def _run_iscsiadm(self, iscsi_properties, iscsi_command):
         (out, err) = self._execute('iscsiadm', '-m', 'node', '-T',
                                    iscsi_properties['target_iqn'],
                                    '-p', iscsi_properties['target_portal'],
-                                   iscsi_command, run_as_root=True,
-                                   attempts=num_tries)
+                                   *iscsi_command, run_as_root=True)
         LOG.debug("iscsiadm %s: stdout=%s stderr=%s" %
                   (iscsi_command, out, err))
         return (out, err)
@@ -732,16 +519,14 @@ class ISCSIDriver(VolumeDriver):
                          '-v', property_value)
         return self._run_iscsiadm(iscsi_properties, iscsi_command)
 
-    def get_iscsi_properties_for_volume(self, context, volume):
-        #TODO(tim.simpson) This method executes commands assuming the
-        # nova-volume is on the same node as nova-compute.
+    def discover_volume(self, context, volume):
+        """Discover volume on a remote host."""
         iscsi_properties = self._get_iscsi_properties(volume)
+
         if not iscsi_properties['target_discovered']:
             self._run_iscsiadm(iscsi_properties, ('--op', 'new'))
-        return iscsi_properties
 
-    def set_iscsi_auth(self, iscsi_properties):
-        if iscsi_properties.get('auth_method', None):
+        if iscsi_properties.get('auth_method'):
             self._iscsiadm_update(iscsi_properties,
                                   "node.session.auth.authmethod",
                                   iscsi_properties['auth_method'])
@@ -752,33 +537,46 @@ class ISCSIDriver(VolumeDriver):
                                   "node.session.auth.password",
                                   iscsi_properties['auth_password'])
 
-    def discover_volume(self, context, volume):
-        """Discover volume on a remote host."""
+        self._run_iscsiadm(iscsi_properties, ("--login", ))
 
-        iscsi_properties = self.get_iscsi_properties_for_volume(context,
-                                                                volume)
-        self.set_iscsi_auth(iscsi_properties)
-
-        try:
-            self._run_iscsiadm(iscsi_properties, "--login",
-                               num_tries=FLAGS.num_shell_tries)
-            self._iscsiadm_update(iscsi_properties, "node.startup",
-                                  "automatic")
-        except exception.ProcessExecutionError as err:
-            LOG.error(err)
-            raise exception.Error(_("iSCSI device %s not found") %
-                                    iscsi_properties['target_iqn'])
+        self._iscsiadm_update(iscsi_properties, "node.startup", "automatic")
 
         mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
                         (iscsi_properties['target_portal'],
                          iscsi_properties['target_iqn']))
+
+        # The /dev/disk/by-path/... node is not always present immediately
+        # TODO(justinsb): This retry-with-delay is a pattern, move to utils?
+        tries = 0
+        while not os.path.exists(mount_device):
+            if tries >= FLAGS.num_iscsi_scan_tries:
+                raise exception.Error(_("iSCSI device not found at %s") %
+                                      (mount_device))
+
+            LOG.warn(_("ISCSI volume not yet found at: %(mount_device)s. "
+                       "Will rescan & retry.  Try number: %(tries)s") %
+                     locals())
+
+            # The rescan isn't documented as being necessary(?), but it helps
+            self._run_iscsiadm(iscsi_properties, ("--rescan", ))
+
+            tries = tries + 1
+            if not os.path.exists(mount_device):
+                time.sleep(tries ** 2)
+
+        if tries != 0:
+            LOG.debug(_("Found iSCSI node %(mount_device)s "
+                        "(after %(tries)s rescans)") %
+                      locals())
+
         return mount_device
 
     def undiscover_volume(self, volume):
         """Undiscover volume on a remote host."""
-        iscsi_properties = self.get_iscsi_properties_for_volume(None, volume)
+        iscsi_properties = self._get_iscsi_properties(volume)
         self._iscsiadm_update(iscsi_properties, "node.startup", "manual")
-        self._run_iscsiadm(iscsi_properties, "--logout")
+        self._run_iscsiadm(iscsi_properties, ("--logout", ))
+        self._run_iscsiadm(iscsi_properties, ('--op', 'delete'))
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
@@ -796,40 +594,12 @@ class ISCSIDriver(VolumeDriver):
             raise
 
 
-class FakeISCSIDriver(ISCSIDriver, LoggingVolumeDriver):
+class FakeISCSIDriver(ISCSIDriver):
     """Logs calls instead of executing."""
     def __init__(self, *args, **kwargs):
         super(FakeISCSIDriver, self).__init__(execute=self.fake_execute,
                                               sync_exec=self.fake_execute,
                                               *args, **kwargs)
-
-    def discover_volume(self, context, volume):
-        LoggingVolumeDriver.discover_volume(self, context, volume)
-
-    def undiscover_volume(self, volume):
-        LoggingVolumeDriver.undiscover_volume(self, volume)
-
-    def get_volume_uuid(self, device_path):
-        pass
-
-    def format(self, device_path):
-        pass
-
-    def _check_device_exists(self, *args, **kwargs):
-        pass
-
-    def get_volume_uuid(self, device_path):
-        pass
-
-    def format(self, device_path):
-        pass
-
-    def check_for_setup_error(self):
-        pass
-
-    def check_for_client_setup_error(self):
-        """No client check necessary """
-        pass
 
     def check_for_setup_error(self):
         """No setup necessary in fake mode."""

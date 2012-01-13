@@ -367,7 +367,7 @@ class HyperVConnection(driver.ComputeDriver):
                     wmi_obj.Properties_.Item(prop).Value
         return newinst
 
-    def reboot(self, instance, network_info, reboot_type):
+    def reboot(self, instance, network_info):
         """Reboot the specified instance."""
         vm = self._lookup(instance.name)
         if vm is None:
@@ -485,9 +485,6 @@ class HyperVConnection(driver.ComputeDriver):
             raise exception.InstanceNotFound(instance_id=instance_name)
 
     def poll_rescued_instances(self, timeout):
-        pass
-
-    def poll_unconfirmed_resizes(self, resize_confirm_window):
         pass
 
     def update_available_resource(self, ctxt, host):

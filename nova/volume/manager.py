@@ -58,10 +58,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('storage_availability_zone',
                     'nova',
                     'availability zone of this service')
-# Using a fake is necessary because unit tests are starting various daemons.
-flags.DEFINE_string('volume_driver', 'nova.volume.driver.FakeISCSIDriver',
+flags.DEFINE_string('volume_driver', 'nova.volume.driver.ISCSIDriver',
                     'Driver to use for volume creation')
-flags.DEFINE_boolean('use_local_volumes', False,
+flags.DEFINE_boolean('use_local_volumes', True,
                      'if True, will not discover local volumes')
 flags.DEFINE_boolean('volume_force_update_capabilities', False,
                      'if True will force update capabilities on each check')
@@ -94,10 +93,6 @@ class VolumeManager(manager.SchedulerDependentManager):
             else:
                 LOG.info(_("volume %s: skipping export"), volume['name'])
 
-    def assign_volume(self, context, volume_id, host):
-        """Assigns a created volume to a host (usually a compute node)."""
-        self.driver.assign_volume(volume_id, host)
-
     def create_volume(self, context, volume_id, snapshot_id=None):
         """Creates and exports the volume."""
         context = context.elevated()
@@ -114,11 +109,6 @@ class VolumeManager(manager.SchedulerDependentManager):
         try:
             vol_name = volume_ref['name']
             vol_size = volume_ref['size']
-            vol_avail = self.driver.check_for_available_space(vol_size)
-            if not vol_avail:
-                LOG.error(_("Can not allocate requested volume size. "
-                            "requested size: %(vol_size)sG") % locals())
-                raise exception.VolumeProvisioningError(volume_id=volume_id)
             LOG.debug(_("volume %(vol_name)s: creating lv of"
                     " size %(vol_size)sG") % locals())
             if snapshot_id == None:
@@ -136,7 +126,6 @@ class VolumeManager(manager.SchedulerDependentManager):
             if model_update:
                 self.db.volume_update(context, volume_ref['id'], model_update)
         except Exception:
-            LOG.error("Error occurred creating volume.")
             with utils.save_and_reraise_exception():
                 self.db.volume_update(context,
                                       volume_ref['id'], {'status': 'error'})
@@ -201,13 +190,6 @@ class VolumeManager(manager.SchedulerDependentManager):
         LOG.debug(_("volume %s: deleted successfully"), volume_ref['name'])
         return True
 
-    def delete_volume_when_available(self, context, volume_id, time_out):
-        """Waits until the volume is available and then deletes it."""
-        utils.poll_until(lambda: self.db.volume_get(context, volume_id),
-                         lambda volume: volume['status'] == 'available',
-                         sleep_time=1, time_out=time_out)
-        self.delete_volume(context, volume_id)
-
     def create_snapshot(self, context, volume_id, snapshot_id):
         """Creates and exports the snapshot."""
         context = context.elevated()
@@ -252,30 +234,33 @@ class VolumeManager(manager.SchedulerDependentManager):
         LOG.debug(_("snapshot %s: deleted successfully"), snapshot_ref['name'])
         return True
 
+    def setup_compute_volume(self, context, volume_id):
+        """Setup remote volume on compute host.
+
+        Returns path to device."""
+        context = context.elevated()
+        volume_ref = self.db.volume_get(context, volume_id)
+        if volume_ref['host'] == self.host and FLAGS.use_local_volumes:
+            path = self.driver.local_path(volume_ref)
+        else:
+            path = self.driver.discover_volume(context, volume_ref)
+        return path
+
+    def remove_compute_volume(self, context, volume_id):
+        """Remove remote volume on compute host."""
+        context = context.elevated()
+        volume_ref = self.db.volume_get(context, volume_id)
+        if volume_ref['host'] == self.host and FLAGS.use_local_volumes:
+            return True
+        else:
+            self.driver.undiscover_volume(volume_ref)
+
     def check_for_export(self, context, instance_id):
         """Make sure whether volume is exported."""
         instance_ref = self.db.instance_get(context, instance_id)
         for volume in instance_ref['volumes']:
             self.driver.check_for_export(context, volume['id'])
 
-    def check_for_available_space(self, context, size):
-        """Check the device for available space for a Volume"""
-        return self.driver.check_for_available_space(size)
-
-    def get_storage_device_info(self, context):
-        """Returns the storage device information."""
-        return self.driver.get_storage_device_info()
-
-    def unassign_volume(self, context, volume_id, host):
-        """
-        Un-Assigns an existing volume from a host (usually a compute node).
-        """
-        self.driver.unassign_volume(volume_id, host)
-
-    def update_info(self, context, volume_ref):
-        """Update volume info like name and description"""
-        self.driver.update_info(volume_ref)
-    
     def periodic_tasks(self, context=None):
         """Tasks to be run at a periodic interval."""
 

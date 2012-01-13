@@ -2,18 +2,21 @@
 --image_service=nova.image.glance.GlanceImageService
 
 # Nova Network
---network_manager=nova.network.manager.FlatManager
+--network_manager=reddwarf.network.manager.FlatManager
 --fixed_range=10.0.0.0/26
 --network_size=1
 --flat_network_bridge=br100
 
 # Nova Scheduler
---scheduler_driver=nova.scheduler.simple.UnforgivingMemoryScheduler
+--scheduler_driver=reddwarf.scheduler.simple.UnforgivingMemoryScheduler
 --max_instance_memory_mb=6144
 
 # Nova Volume
 # Volume configuration for vagrant vm
+--volume_manager=reddwarf.volume.manager.ReddwarfVolumeManager
 --volume_driver=reddwarf.tests.volume.driver.ISCSITestDriver
+--use_local_volumes=False
+--san_thin_provision=False
 --san_ip=33.33.33.11
 --san_login=vagrant
 --san_privatekey=/home/vagrant/.ssh/id_rsa
@@ -38,7 +41,7 @@
 --quota_cores=20
 --quota_ram=51200
 --quota_volumes=10
---quota_gigabytes=1000
+--quota_gigabytes=10000
 --quota_floating_ips=10
 
 # Infrastructure Services
@@ -49,7 +52,7 @@
 # Logging
 --logfile=/vagrant/nova.log
 --verbose
---notification_driver=nova.notifier.log_notifier
+--notification_driver=reddwarf.notifier.logfile_notifier
 --notifier_logfile=/vagrant/notification.log
 
 # Reaper config
