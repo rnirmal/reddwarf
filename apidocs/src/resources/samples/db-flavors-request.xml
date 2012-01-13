@@ -1,7 +1,7 @@
 GET /v1.0/1234/flavors HTTP/1.1
 User-Agent: python-example-client
 Host: ord.databases.api.rackspacecloud.com
-X-Auth-Token: 8e140fda-3a61-49cc-9dbf-17392a7c2f9f
+X-Auth-Token: f02af495-d526-48d6-9343-fa8a198b6cff
 X-Auth-Project-ID: 1234
 Accept: application/xml
 Content-Type: application/xml

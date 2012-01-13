@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 1072
-Date: Mon, 09 Jan 2012 18:59:41 GMT
+Date: Fri, 13 Jan 2012 21:00:57 GMT
 
 {
     "flavors": [

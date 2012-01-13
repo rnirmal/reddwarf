@@ -1,18 +1,18 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 216
-Date: Mon, 09 Jan 2012 19:04:29 GMT
+Date: Fri, 13 Jan 2012 21:05:30 GMT
 
 {
     "host": {
         "instances": [
             {
-                "id": 3, 
+                "id": 1, 
                 "name": "json_rack_instance", 
                 "status": "active"
             }, 
             {
-                "id": 4, 
+                "id": 2, 
                 "name": "xml_rack_instance", 
                 "status": "active"
             }
