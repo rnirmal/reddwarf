@@ -955,44 +955,6 @@ class MultiDriverTestCase(SimpleDriverTestCase):
         self.scheduler = manager.SchedulerManager()
 
 
-class MemoryDriverTestCase(SimpleDriverTestCase):
-    """Additional tests for the memory scheduler."""
-
-    def setUp(self):
-        super(SimpleDriverTestCase, self).setUp()
-        self.flags(connection_type='fake',
-                   stub_network=True,
-                   max_cores=4,
-                   max_gigabytes=4,
-                   network_manager='nova.network.manager.FlatManager',
-                   volume_driver='nova.volume.driver.FakeISCSIDriver',
-                   scheduler_driver='nova.scheduler.simple.MemoryScheduler')
-        self.scheduler = manager.SchedulerManager()
-        self.manager = auth_manager.AuthManager()
-        self.user = self.manager.create_user('fake', 'fake', 'fake')
-        self.project = self.manager.create_project('fake', 'fake', 'fake')
-        self.context = context.get_admin_context()
-
-    def test_dont_raise_if_only_one_host_full(self):
-        """Ensures that if host1 is over max cores, it still works."""
-        compute1 = self.start_service('compute', host='host1')
-        compute2 = self.start_service('compute', host='host2')
-        instance_ids1 = []
-        for index in xrange(FLAGS.max_cores * 2):
-            instance_id = self._create_instance()
-            compute1.run_instance(self.context, instance_id)
-            instance_ids1.append(instance_id)
-        instance_id2 = self._create_instance()
-        host = self.scheduler.driver.schedule_run_instance(self.context,
-                                                           instance_id2)
-        self.assertEqual('host2', host)
-        for instance_id in instance_ids1:
-            compute1.terminate_instance(self.context, instance_id)
-        compute2.terminate_instance(self.context, instance_id2)
-        compute1.kill()
-        compute2.kill()
-
-
 class FakeZone(object):
     def __init__(self, id, api_url, username, password):
         self.id = id

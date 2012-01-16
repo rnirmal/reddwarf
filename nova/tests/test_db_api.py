@@ -18,8 +18,6 @@
 
 """Unit tests for the DB API"""
 
-import datetime
-
 from nova import test
 from nova import context
 from nova import db
