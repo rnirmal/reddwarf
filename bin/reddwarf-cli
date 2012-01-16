@@ -294,7 +294,7 @@ def main():
     # Parse arguments
     global oparser
     oparser = optparse.OptionParser("%prog [options] <cmd> <action> <args>",
-                                    version="1.0")
+                                    version='1.0')
     config_options()
     (options, args) = oparser.parse_args()
 
