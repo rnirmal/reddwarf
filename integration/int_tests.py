@@ -144,6 +144,7 @@ if __name__ == '__main__':
         from tests.api.mgmt import accounts
         from tests.api.mgmt import admin_required
         from tests.api.mgmt import hosts
+        from tests.api.mgmt import instances
         from tests.api.mgmt import storage
         from tests.openvz import dbaas_ovz
         from tests.dns import dns

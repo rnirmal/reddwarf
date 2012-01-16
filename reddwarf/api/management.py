@@ -149,7 +149,7 @@ class Controller(object):
         return {'instance': instance}
 
     @common.verify_admin_context
-    def details(self, req):
+    def index(self, req):
         """ Returns all local instances, optionally filtered by deleted status."""
         LOG.info("Get all Instances")
         LOG.debug("%s - %s", req.environ, req.body)
@@ -162,8 +162,34 @@ class Controller(object):
                 deleted = False
 
         context = req.environ['nova.context']
-        instances = dbapi.show_all_instances(context, deleted)
-        return {"instances": instances}
+        instances, flavors, ips = dbapi.instances_mgmt_index(context, deleted)
+        result = []
+        for instance in instances:
+            details = {
+                'account_id': instance['project_id'],
+                'id': instance['uuid'],
+                'host': instance['host'],
+                'state': instance['vm_state'],
+                'created_at': instance['created_at'],
+                'deleted_at': instance['deleted_at'],
+                'deleted': instance['deleted'],
+            }
+            # Associate the flavor.
+            # TODO(ed-): Should probably make the relational database do all the data relating.
+            flavor = [f for f in flavors if f['id'] == instance['instance_type_id']]
+            if len(flavor) > 0:
+                flavor = flavor[0]
+                details['flavorid'] = flavor['flavorid']
+
+            # Now associate the IPs.
+            # TODO(ed-): A join would be preferable.
+            details['ips'] = [{
+                'address': ip['address'],
+                'virtual_interface_id': ip['virtual_interface_id'],
+                } for ip in ips]
+            result.append(details)
+
+        return {"instances": result}
 
     def _get_guest_info(self, context, id, status, instance):
         """Get all the guest details and add it to the response"""

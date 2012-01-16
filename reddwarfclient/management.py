@@ -43,17 +43,16 @@ class Management(base.ManagerWithFind):
         return self._list("/mgmt/instances/%s" % base.getid(instance),
             'instance')
 
-    def details(self, deleted=None):
+    def index(self, deleted=None):
         """
-        Show details of all local instances.
+        Show an overview of all local instances.
         Optionally, filter by deleted status.
 
         :rtype: list of :class:`Instance`.
         """
         form = ''
-        positive = ['true']
         if deleted is not None:
-            if deleted.lower() in positive:
+            if deleted:
                 form = "?deleted=true"
             else:
                 form = "?deleted=false"
@@ -62,7 +61,7 @@ class Management(base.ManagerWithFind):
         resp, body = self.api.client.get(url)
         if not body:
             raise Exception("Call to " + url + " did not return a body.")
-        return self.resource_class(self, body)
+        return [self.resource_class(self, instance) for instance in body['instances']]
 
     def root_enabled_history(self, instance):
         """
