@@ -36,7 +36,9 @@ from reddwarf.dns.driver import DnsEntry
 from reddwarf.dns.rsdns.driver import RsDnsInstanceEntryFactory
 from reddwarf.dns.rsdns.driver import RsDnsDriver
 from reddwarf.dns.rsdns.driver import RsDnsZone
+from reddwarf.utils import poll_until
 from tests.util import should_run_rsdns_tests
+
 
 FLAGS = flags.FLAGS
 TEST_CONTENT="126.1.1.1"
@@ -122,7 +124,7 @@ class RsDnsDriverTests(object):
                 self.driver.delete_entry(name=entry.name, type=entry.type,
                                          dns_zone=entry.dns_zone)
         # It takes awhile for them to be deleted.
-        utils.poll_until(lambda : self.driver.get_entries_by_name(TEST_NAME),
+        poll_until(lambda : self.driver.get_entries_by_name(TEST_NAME),
                          lambda list : len(list) == 0,
                          sleep_time=4, time_out=60)
 
@@ -162,6 +164,6 @@ class RsDnsDriverTests(object):
         fullname = TEST_NAME
         self.driver.delete_entry(fullname, "A")
         # It takes awhile for them to be deleted.
-        utils.poll_until(lambda : self.driver.get_entries_by_name(TEST_NAME),
+        poll_until(lambda : self.driver.get_entries_by_name(TEST_NAME),
                          lambda list : len(list) == 0,
                          sleep_time=2, time_out=60)

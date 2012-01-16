@@ -12,10 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from reddwarf import dns
 from nova import flags
 from nova import log as logging
 from nova.network import manager
+
+from reddwarf.db import api as db_api
+from reddwarf.dns import api as dns
 
 FLAGS = flags.FLAGS
 LOG = logging.getLogger("reddwarf.network.manager")
@@ -69,7 +71,7 @@ class FixedIpDnsEntries(manager.NetworkManager):
             self.dns_api.delete_instance_entry(context, instance_ref, address)
 
     def _find_address_used_for_dns(self, context, instance_id):
-        fixed_ips = self.db.fixed_ip_get_by_instance_for_network(context,
+        fixed_ips = db_api.fixed_ip_get_by_instance_for_network(context,
                                             instance_id, FLAGS.dns_bridge_name)
         if fixed_ips and len(fixed_ips) > 0:
             return fixed_ips[0].address

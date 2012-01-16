@@ -34,11 +34,11 @@ from novaclient import exceptions as nova_exceptions
 from nova import context
 from nova import db
 from nova import exception as backend_exception
-from nova import utils
 from reddwarf.api.common import dbaas_mapping
 from reddwarf.api.instances import FLAGS as dbaas_FLAGS
 from nova.compute import power_state
 from reddwarf.db import api as dbapi
+from reddwarf.utils import poll_until
 
 from reddwarfclient import exceptions
 
@@ -358,7 +358,7 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
         def compute_manager_finished():
             return util.check_logs_for_message("INFO reddwarf.compute.manager [-] Guest is now running on instance %s"
                                         % str(instance_info.local_id))
-        utils.poll_until(compute_manager_finished, sleep_time=2, time_out=60)
+        poll_until(compute_manager_finished, sleep_time=2, time_out=60)
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],
@@ -378,7 +378,7 @@ class VerifyGuestStarted(unittest.TestCase):
                 return True
             else:
                 return False
-        utils.poll_until(check_status_of_instance, sleep_time=5, time_out=60*8)
+        poll_until(check_status_of_instance, sleep_time=5, time_out=60*8)
 
     def test_get_init_pid(self):
         def get_the_pid():
@@ -386,7 +386,7 @@ class VerifyGuestStarted(unittest.TestCase):
                                 % str(instance_info.local_id))
             instance_info.pid = out.strip()
             return len(instance_info.pid) > 0
-        utils.poll_until(get_the_pid, sleep_time=10, time_out=60*10)
+        poll_until(get_the_pid, sleep_time=10, time_out=60*10)
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],

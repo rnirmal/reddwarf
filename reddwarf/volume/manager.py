@@ -33,12 +33,13 @@ intact.
 
 """
 
-from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import utils
 from nova.volume import manager
 
+from reddwarf import exception
+from reddwarf.utils import poll_until
 
 LOG = logging.getLogger('reddwarf.volume.manager')
 FLAGS = flags.FLAGS
@@ -74,7 +75,7 @@ class ReddwarfVolumeManager(manager.VolumeManager):
 
     def delete_volume_when_available(self, context, volume_id, time_out):
         """Waits until the volume is available and then deletes it."""
-        utils.poll_until(lambda: self.db.volume_get(context, volume_id),
+        poll_until(lambda: self.db.volume_get(context, volume_id),
                          lambda volume: volume['status'] == 'available',
                          sleep_time=1, time_out=time_out)
         self.delete_volume(context, volume_id)

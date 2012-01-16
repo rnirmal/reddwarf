@@ -1,10 +1,11 @@
 import httplib2
 import json
-import xml.dom.minidom
-import sys
 import os
-from urlparse import urlparse
+import re
+import sys
 import time
+from urlparse import urlparse
+import xml.dom.minidom
 
 
 class ExampleGenerator(object):
@@ -102,6 +103,15 @@ class ExampleGenerator(object):
 
         return json_resp, xml_resp
 
+    def _indent_xml(self, my_string):
+        my_string = my_string.encode("utf-8") 
+        # convert to plain string without indents and spaces
+        my_string = re.compile('>\s+([^\s])', re.DOTALL).sub('>\g<1>', my_string)
+        my_string = xml.dom.minidom.parseString(my_string).toprettyxml()
+        # remove line breaks
+        my_string = re.compile('>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL).sub('>\g<1></', my_string)
+        return my_string
+    
     def output_request(self, url, output_headers, body, content_type, method):
         output_list = []
         parsed = urlparse(url)
@@ -141,8 +151,8 @@ class ExampleGenerator(object):
         else:
             # expected type of body is xml
             try:
-                return xml.dom.minidom.parseString(body).toprettyxml()
-            except Exception:
+                return self._indent_xml(body)
+            except Exception as ex:
                 return body if body else ''
 
     def get_auth_token_id(self, url, username, password):
@@ -167,8 +177,9 @@ class ExampleGenerator(object):
             instances = resp_content['instances']
             print_list = [(instance['id'], instance['status']) for instance in instances]
             print "checking  for : %s\n" % print_list
+            bad_status = ['ACTIVE', 'ERROR', 'FAILED', 'SHUTDOWN']
             list_id_status = [(instance['id'], instance['status']) for instance in instances if
-                                                                   instance['status'] in ['ACTIVE', 'ERROR', 'FAILED']]
+                                                                   instance['status'] in bad_status]
             if len(list_id_status) == 2:
                 statuses = [item[1] for item in list_id_status]
                 if statuses.count('ACTIVE') != 2:
@@ -425,7 +436,7 @@ class ExampleGenerator(object):
         # no auth required
         self.get_versions()
 
-        #requires auth
+        # requires auth
         self.get_version()
         self.get_flavors()
         self.get_flavor_details()

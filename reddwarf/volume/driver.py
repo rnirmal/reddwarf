@@ -23,12 +23,13 @@ import os
 
 import pexpect
 
-from nova import exception
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
 from nova import utils
 from nova.volume import driver as nova_driver
 
+from reddwarf import exception
 
 LOG = logging.getLogger("nova.volume.driver")
 FLAGS = flags.FLAGS
@@ -104,8 +105,8 @@ class ReddwarfVolumeDriver(nova_driver.VolumeDriver):
         try:
             utils.execute('sudo', 'blockdev', '--getsize64', device_path,
                           attempts=FLAGS.num_tries)
-        except exception.ProcessExecutionError:
-            raise exception.InvalidDevicePath(path=device_path)
+        except nova_exception.ProcessExecutionError:
+            raise nova_exception.InvalidDevicePath(path=device_path)
 
     def _check_format(self, device_path):
         """Checks that an unmounted volume is formatted."""
@@ -173,9 +174,9 @@ class ReddwarfISCSIDriver(ReddwarfVolumeDriver, nova_driver.ISCSIDriver):
         try:
             self._execute("sudo", "iscsiadm", "-m", "discovery",
                           "-t", "st", "-p", FLAGS.san_ip)
-        except exception.ProcessExecutionError as err:
+        except nova_exception.ProcessExecutionError as err:
             LOG.fatal("Error initializing the volume client: %s" % err)
-            raise exception.VolumeServiceUnavailable()
+            raise nova_exception.VolumeServiceUnavailable()
 
     def _do_iscsi_discovery(self, volume):
         # TODO(rnirmal): Bulk copy-paste. Needs to be merged back into nova
@@ -237,10 +238,10 @@ class ReddwarfISCSIDriver(ReddwarfVolumeDriver, nova_driver.ISCSIDriver):
                                num_tries=FLAGS.num_tries)
             self._iscsiadm_update(iscsi_properties, "node.startup",
                                   "automatic")
-        except exception.ProcessExecutionError as err:
+        except nova_exception.ProcessExecutionError as err:
             LOG.error(err)
-            raise exception.Error(_("iSCSI device %s not found") %
-                                    iscsi_properties['target_iqn'])
+            raise nova_exception.Error(_("iSCSI device %s not found") %
+                                        iscsi_properties['target_iqn'])
 
         mount_device = ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
                         (iscsi_properties['target_portal'],

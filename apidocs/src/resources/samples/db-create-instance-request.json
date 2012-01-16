@@ -1,0 +1,27 @@
+POST /v1.0/1234/instances HTTP/1.1
+User-Agent: python-example-client
+Host: ord.databases.api.rackspacecloud.com
+X-Auth-Token: 8071b2f6-3cde-4096-81ef-b2121949f3d9
+X-Auth-Project-ID: 1234
+Accept: application/json
+Content-Type: application/json
+
+{
+    "instance": {
+        "databases": [
+            {
+                "character_set": "utf8", 
+                "collate": "utf8_general_ci", 
+                "name": "sampledb"
+            }, 
+            {
+                "name": "nextround"
+            }
+        ], 
+        "flavorRef": "https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1", 
+        "name": "json_rack_instance", 
+        "volume": {
+            "size": "2"
+        }
+    }
+}

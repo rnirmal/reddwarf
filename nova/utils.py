@@ -204,7 +204,7 @@ def execute(*cmd, **kwargs):
 
 def ssh_execute(ssh, cmd, process_input=None,
                 addl_env=None, check_exit_code=True):
-    LOG.debug(_('Running cmd (SSH): %s'), cmd)
+    LOG.debug(_('Running cmd (SSH): %s'), ' '.join(cmd))
     if addl_env:
         raise exception.Error(_('Environment not supported over SSH'))
 
@@ -223,8 +223,6 @@ def ssh_execute(ssh, cmd, process_input=None,
     stdout = stdout_stream.read()
     stderr = stderr_stream.read()
     stdin_stream.close()
-    stdout_stream.close()
-    stderr_stream.close()
 
     exit_status = channel.recv_exit_status()
 
@@ -237,7 +235,6 @@ def ssh_execute(ssh, cmd, process_input=None,
                                                   stderr=stderr,
                                                   cmd=' '.join(cmd))
 
-    channel.close()
     return (stdout, stderr)
 
 
@@ -824,30 +821,6 @@ def parse_server_string(server_str):
     except Exception:
         LOG.debug(_('Invalid server_string: %s' % server_str))
         return ('', '')
-
-
-class PollTimeOut(exception.NovaException):
-    message = _("Polling request timed out.")
-
-
-def poll_until(retriever, condition=lambda value: value,
-               sleep_time=1, time_out=None):
-    """Retrieves object until it passes condition, then returns it.
-
-    If time_out_limit is passed in, PollTimeOut will be raised once that
-    amount of time is eclipsed.
-
-    """
-    start_time = time.time()
-
-    def poll_and_check():
-        obj = retriever()
-        if condition(obj):
-            raise LoopingCallDone(retvalue=obj)
-        if time_out is not None and time.time() > start_time + time_out:
-            raise PollTimeOut
-    lc = LoopingCall(f=poll_and_check).start(sleep_time, True)
-    return lc.wait()
 
 
 def gen_uuid():

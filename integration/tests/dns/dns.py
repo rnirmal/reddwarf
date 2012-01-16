@@ -7,6 +7,10 @@ from proboscis.decorators import time_out
 from reddwarfclient import Dbaas
 from nova import flags
 from nova import utils
+
+from reddwarf import exception
+from reddwarf.utils import poll_until
+
 import rsdns
 from tests.api.instances import instance_info
 from tests.api.instances import GROUP_START as INSTANCE_START
@@ -45,9 +49,9 @@ class WhenInstanceIsCreated(unittest.TestCase):
             def get_entries():
                 return dns_driver.get_entries_by_name(entry.name)
             try:
-                utils.poll_until(get_entries, lambda entries: len(entries) > 0,
+                poll_until(get_entries, lambda entries: len(entries) > 0,
                                  sleep_time=2, time_out = 60)
-            except utils.PollTimeOut:
+            except exception.PollTimeOut:
                 self.fail("Did not find name " + entry.name + \
                           " in the entries, which were as follows:"
                           + str(dns_driver.get_entries()))
@@ -74,9 +78,9 @@ class AfterInstanceIsDestroyed(unittest.TestCase):
             return dns_driver.get_entries_by_name(entry.name)
 
         try:
-            utils.poll_until(get_entries, lambda entries : len(entries) == 0,
+            poll_until(get_entries, lambda entries : len(entries) == 0,
                              sleep_time=2, time_out=60)
-        except utils.PollTimeOut:
+        except exception.PollTimeOut:
             # Manually delete the rogue item
             dns_driver.delete_entry(entry.name, entry.type, entry.dns_zone)
             self.fail("The DNS entry was never deleted when the instance "

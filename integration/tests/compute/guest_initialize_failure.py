@@ -39,6 +39,8 @@ from nova.compute import vm_states
 from nova.notifier import api as notifier
 from reddwarf.api.common import dbaas_mapping
 from reddwarf.db import api as dbapi
+from reddwarf.utils import poll_until
+from reddwarf.scheduler import simple # import used for FLAG values
 from nova import flags
 from reddwarf.compute.manager import ReddwarfInstanceMetaData
 from tests.util import test_config
@@ -188,7 +190,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
 
         """
         def ready():
-            results = self.db.service_get_all_compute_memory(
+            results = dbapi.service_get_all_compute_memory(
                 context.get_admin_context())
             for result in results:
                 (service, memory_mb) = result
@@ -197,7 +199,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
                    Scheduler.service_is_up(service):
                     return True
             return False
-        utils.poll_until(ready, sleep_time=2, time_out=60)
+        poll_until(ready, sleep_time=2, time_out=60)
 
     @test(depends_on=[wait_for_compute_host_up])
     def create_instance(self):
@@ -282,7 +284,7 @@ class VerifyManagerAbortsInstanceWhenGuestInstallFails(InstanceTest):
 
     @test(depends_on=[destroy_guest_and_wait_for_failure])
     def test_volume_detached(self):
-        utils.poll_until(self._check_volume_detached, sleep_time=1, time_out=3 * 60)
+        poll_until(self._check_volume_detached, sleep_time=1, time_out=3 * 60)
 
     @test(depends_on=[test_volume_detached])
     @time_out(2 * 60)

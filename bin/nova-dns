@@ -40,6 +40,9 @@ from nova import log as logging
 from nova import service
 from nova import utils
 
+flags.DEFINE_string('dns_manager', 'reddwarf.dns.manager.DnsManager',
+                    'Manager for dns')
+
 if __name__ == '__main__':
     utils.default_flagfile()
     flags.FLAGS(sys.argv)

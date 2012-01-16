@@ -33,7 +33,7 @@
     </profile> 
   </profiles>
   <properties>
-    <doctools.version>1.0.9-SNAPSHOT</doctools.version>
+    <doctools.version>1.0.10-SNAPSHOT</doctools.version>
   </properties>
 
     <dependencies>
@@ -155,7 +155,8 @@
 			    <security>internal</security>
                             <includes>cdb-mgmt-devguide.xml</includes>
 			    <pdfUrl>../../cdb-mgmt-devguide-internal.pdf</pdfUrl>
-                          <enableDisqus>0</enableDisqus>
+                          <enableDisqus>intranet</enableDisqus>
+                          <feedbackEmail>mike.asthalter@rackspace.com</feedbackEmail>
                         </configuration>
                     </execution>
                     <execution>

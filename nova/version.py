@@ -22,7 +22,7 @@ except ImportError:
                     'revno': 0}
 
 
-NOVA_VERSION = ['2012', '1']
+NOVA_VERSION = ['2011', '3']
 YEAR, COUNT = NOVA_VERSION
 FINAL = True    # This becomes true at Release Candidate time
 

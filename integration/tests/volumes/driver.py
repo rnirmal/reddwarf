@@ -13,8 +13,9 @@ from nova import context
 from nova import exception
 from nova import flags
 from nova import utils
-from nova.utils import poll_until
 
+from reddwarf import exception as reddwarf_exception
+from reddwarf.utils import poll_until
 from reddwarf import volume
 
 from proboscis import test
@@ -371,7 +372,7 @@ class GrabUuid(VolumeTest):
         """DevicePathInvalidForUuid is raised if device_path is wrong."""
         client = self.story.client
         device_path = "gdfjghsfjkhggrsyiyerreygghdsghsdfjhf"
-        self.assertRaises(exception.DevicePathInvalidForUuid, client.get_uuid,
+        self.assertRaises(reddwarf_exception.DevicePathInvalidForUuid, client.get_uuid,
                           device_path)
 
 

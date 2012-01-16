@@ -1,0 +1,15 @@
+HTTP/1.1 200 OK
+Content-Type: application/xml
+Content-Length: 427
+Date: Fri, 13 Jan 2012 21:05:32 GMT
+
+<account name="examples" xmlns="http://docs.openstack.org/database/api/v1.0">
+	<hosts>
+		<host id="host">
+			<instances>
+				<instance id="6d568a00-1f09-47bf-b057-3da0dbb4489d" name="json_rack_instance" status="active"/>
+				<instance id="763f887f-9783-4ff3-8048-04135198204d" name="xml_rack_instance" status="active"/>
+			</instances>
+		</host>
+	</hosts>
+</account>

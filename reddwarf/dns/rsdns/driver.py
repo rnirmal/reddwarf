@@ -25,14 +25,14 @@ from novaclient.exceptions import NotFound
 from rsdns.client import DNSaas
 from rsdns.client.future import RsDnsError
 
-from nova.exception import RsDnsRecordNotFound
 from nova import flags
-from reddwarf.dns.driver import DnsEntry
 from nova import log as logging
 from nova import utils
+
 from reddwarf.db import api as dbapi
-
-
+from reddwarf.dns.driver import DnsEntry
+from reddwarf import exception
+from reddwarf.utils import poll_until
 
 
 flags.DEFINE_string('dns_hostname', 'dbaas-test-domain.com',
@@ -135,7 +135,7 @@ class RsDnsDriver(object):
                                                     record_type=entry.type,
                                                     record_ttl=entry.ttl)
             try:
-                utils.poll_until(lambda : future.ready, sleep_time=2,
+                poll_until(lambda : future.ready, sleep_time=2,
                                  time_out=60*2)
                 if len(future.resource) < 1:
                     raise RsDnsError("No DNS records were created.")
@@ -144,7 +144,7 @@ class RsDnsDriver(object):
                 actual_record = future.resource[0]
                 dbapi.rsdns_record_create(name=name, id=actual_record.id)
                 LOG.debug("Added RS DNS entry.")
-            except utils.PollTimeOut as pto:
+            except exception.PollTimeOut as pto:
                 LOG.error("Failed to create DNS entry before time_out!")
                 raise
             except RsDnsError as rde:
@@ -165,7 +165,7 @@ class RsDnsDriver(object):
                       " database returned a DNS record with the name %s and "
                       "type %s." % (name, db_record.id, record.name,
                                     record.type))
-            raise RsDnsRecordNotFound(name)
+            raise exception.RsDnsRecordNotFound(name)
         self.dns_client.records.delete(domain_id=dns_zone.id,
                                        record_id=record.id)
         dbapi.rsdns_record_delete(name)

@@ -1,0 +1,41 @@
+HTTP/1.1 200 OK
+Content-Type: application/xml
+Content-Length: 1982
+Date: Fri, 13 Jan 2012 21:05:35 GMT
+
+<instance account_id="examples" created="2012-01-13T21:01:15Z" host="host" hostname="3f20f5632d3db9f3296b9fff184a85b328a924ea.041df828-3e29-11e1-8f71-080027a9d240-dbaas-tests.com" id="763f887f-9783-4ff3-8048-04135198204d" name="xml_rack_instance" root_enabled_at="2012-01-13 21:05:23" root_enabled_by="examples" server_state_description="active" status="ACTIVE" updated="2012-01-13T21:03:14Z" xmlns="http://docs.openstack.org/database/api/v1.0">
+	<volume description="Volume ID: None assigned to Instance: None" id="2" name="xml_rack_instance" size="2"/>
+	<guest_status created_at="2012-01-13 21:01:16" deleted="False" deleted_at="None" instance_id="2" state="1" state_description="running" updated_at="2012-01-13 21:05:27"/>
+	<users>
+		<user name="dbuser3"/>
+		<user name="dbuser4"/>
+		<user name="root"/>
+		<user name="userwith2dbs"/>
+	</users>
+	<databases>
+		<database character_set="utf8" collate="utf8_general_ci" name="anotherexampledb"/>
+		<database character_set="utf8" collate="utf8_general_ci" name="nextround"/>
+		<database character_set="utf8" collate="utf8_general_ci" name="sampledb"/>
+		<database character_set="utf8" collate="utf8_general_ci" name="testingdb"/>
+	</databases>
+	<flavor id="1">
+		<links>
+			<link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1" rel="self"/>
+			<link href="https://ord.databases.api.rackspacecloud.com/flavors/1" rel="bookmark"/>
+		</links>
+	</flavor>
+	<addresses>
+		<infranet>
+			<item>
+				<version>4</version>
+				<addr>10.0.4.17</addr>
+			</item>
+		</infranet>
+		<usernet>
+			<item>
+				<version>4</version>
+				<addr>10.0.2.17</addr>
+			</item>
+		</usernet>
+	</addresses>
+</instance>

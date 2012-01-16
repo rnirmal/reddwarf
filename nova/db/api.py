@@ -118,15 +118,6 @@ def service_get_all_compute_sorted(context):
     return IMPL.service_get_all_compute_sorted(context)
 
 
-def service_get_all_compute_memory(context):
-    """Return a list of service nodes and the memory used at each.
-
-    Most available memory is returned first.
-
-    """
-    return IMPL.service_get_all_compute_memory(context)
-
-
 def service_get_all_network_sorted(context):
     """Get all network services sorted by network count.
 
@@ -332,11 +323,6 @@ def migration_get_by_instance_and_status(context, instance_uuid, status):
             status)
 
 
-def migration_get_all_unconfirmed(context, confirm_window):
-    """Finds all unconfirmed migrations within the confirmation window."""
-    return IMPL.migration_get_all_unconfirmed(context, confirm_window)
-
-
 ####################
 
 
@@ -399,12 +385,6 @@ def fixed_ip_get_by_address(context, address):
 def fixed_ip_get_by_instance(context, instance_id):
     """Get fixed ips by instance or raise if none exist."""
     return IMPL.fixed_ip_get_by_instance(context, instance_id)
-
-
-def fixed_ip_get_by_instance_for_network(context, instance_id, bridge_name):
-    """Get fixed ips for instance on a certain network bridge."""
-    return IMPL.fixed_ip_get_by_instance_for_network(context, instance_id,
-                                                     bridge_name)
 
 
 def fixed_ip_get_by_network_host(context, network_id, host):
@@ -487,11 +467,6 @@ def virtual_interface_delete_by_instance(context, instance_id):
     return IMPL.virtual_interface_delete_by_instance(context, instance_id)
 
 
-def virtual_interface_get_all(context):
-    """Gets all virtual interfaces from the table"""
-    return IMPL.virtual_interface_get_all(context)
-
-
 ####################
 
 
@@ -528,11 +503,6 @@ def instance_get(context, instance_id):
 def instance_get_all(context):
     """Get all instances."""
     return IMPL.instance_get_all(context)
-
-
-def instance_state_get_all_filtered(context):
-    """Return a dictionary mapping instance ids to states for a project/user."""
-    return IMPL.instance_state_get_all_filtered(context)
 
 
 def instance_get_all_by_filters(context, filters):
@@ -639,11 +609,6 @@ def instance_action_create(context, values):
 def instance_get_actions(context, instance_id):
     """Get instance actions by instance id."""
     return IMPL.instance_get_actions(context, instance_id)
-
-
-def instance_get_id_to_uuid_mapping(context, ids):
-    """Return a dictionary containing 'ID: UUID' given the ids"""
-    return IMPL.instance_get_id_to_uuid_mapping(context, ids)
 
 
 ###################
@@ -974,7 +939,7 @@ def volume_get_all_by_host(context, host):
 
 
 def volume_get_all_by_instance(context, instance_id):
-    """Get all volumes belonging to an instance."""
+    """Get all volumes belonging to a instance."""
     return IMPL.volume_get_all_by_instance(context, instance_id)
 
 
@@ -1069,7 +1034,7 @@ def block_device_mapping_update_or_create(context, values):
 
 
 def block_device_mapping_get_all_by_instance(context, instance_id):
-    """Get all block device mapping belonging to an instance"""
+    """Get all block device mapping belonging to a instance"""
     return IMPL.block_device_mapping_get_all_by_instance(context, instance_id)
 
 
@@ -1395,7 +1360,7 @@ def instance_type_get_by_flavor_id(context, id):
 
 
 def instance_type_destroy(context, name):
-    """Delete an instance type."""
+    """Delete a instance type."""
     return IMPL.instance_type_destroy(context, name)
 
 

@@ -1,0 +1,19 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 212
+Date: Fri, 13 Jan 2012 21:05:37 GMT
+
+{
+    "configs": [
+        {
+            "description": "updated some config value used in the system", 
+            "key": "myconf", 
+            "value": "testval_update"
+        }, 
+        {
+            "description": "updated config value set with xml", 
+            "key": "xmlconfig", 
+            "value": "XML"
+        }
+    ]
+}

@@ -284,7 +284,6 @@ DEFINE_string('scheduler_topic', 'scheduler',
               'the topic scheduler nodes listen on')
 DEFINE_string('volume_topic', 'volume', 'the topic volume nodes listen on')
 DEFINE_string('network_topic', 'network', 'the topic network nodes listen on')
-DEFINE_string('dns_topic', 'dns', 'the topic dns nodes listen on')
 DEFINE_string('ajax_console_proxy_topic', 'ajax_proxy',
               'the topic ajax proxy nodes listen on')
 DEFINE_string('ajax_console_proxy_url',
@@ -365,19 +364,12 @@ DEFINE_string('compute_manager', 'nova.compute.manager.ComputeManager',
               'Manager for compute')
 DEFINE_string('console_manager', 'nova.console.manager.ConsoleProxyManager',
               'Manager for console proxy')
-DEFINE_string('dns_manager', 'reddwarf.dns.manager.DnsManager',
-              'Manager for dns')
 DEFINE_string('network_manager', 'nova.network.manager.VlanManager',
               'Manager for network')
 DEFINE_string('volume_manager', 'nova.volume.manager.VolumeManager',
               'Manager for volume')
 DEFINE_string('scheduler_manager', 'nova.scheduler.manager.SchedulerManager',
               'Manager for scheduler')
-DEFINE_string('guest_manager', 'reddwarf.guest.manager.GuestManager',
-              'Manager for guest agent')
-DEFINE_string('reaper_manager', 'reddwarf.reaper.manager.ReaperManager',
-              'Manager for reaper')
-
 DEFINE_string('vsa_manager', 'nova.vsa.manager.VsaManager',
               'Manager for vsa')
 DEFINE_string('vc_image_name', 'vc_image',
@@ -410,15 +402,9 @@ DEFINE_string('zone_name', 'nova', 'name of this zone')
 DEFINE_list('zone_capabilities',
                 ['hypervisor=xenserver;kvm', 'os=linux;windows'],
                  'Key/Multi-value list representng capabilities of this zone')
-
-DEFINE_string('dns_instance_entry_factory',
-              'reddwarf.dns.driver.DnsInstanceEntryFactory',
-              'Method used to create entries for instances')
 DEFINE_string('build_plan_encryption_key', None,
         '128bit (hex) encryption key for scheduler build plans.')
 
-DEFINE_integer("max_instance_memory_mb", 1024 * 15,
-                     "maximum amount of memory a host can use on instances")
 DEFINE_bool('start_guests_on_host_boot', False,
             'Whether to restart guests when the host reboots')
 DEFINE_bool('resume_guests_state_on_host_boot', False,

@@ -101,6 +101,13 @@ flags.DEFINE_bool('ovz_use_dhcp',
 flags.DEFINE_string('ovz_mount_options',
                     'defaults',
                     'Mount options for external filesystems')
+flags.DEFINE_integer('ovz_kmemsize_percent_of_memory',
+                    20,
+                    'Percent of memory of the container to \
+                    allow to be used by the kernel')
+flags.DEFINE_integer('ovz_kmemsize_barrier_differential',
+                    10,
+                    'Difference of kmemsize barrier vs limit')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -128,7 +135,7 @@ class OpenVzConnection(driver.ComputeDriver):
     @classmethod
     def instance(cls):
         """
-        This is borrowed from the fake driver.  
+        This is borrowed from the fake driver.
         """
         if not hasattr(cls, '_instance'):
             cls._instance = cls()
@@ -272,6 +279,7 @@ class OpenVzConnection(driver.ComputeDriver):
         self._set_hostname(instance)
         self._set_vmguarpages(instance)
         self._set_privvmpages(instance)
+        self._set_kmemsize(instance)
         self._attach_volumes(instance)
 
         if FLAGS.ovz_use_cpuunit:
@@ -354,7 +362,7 @@ class OpenVzConnection(driver.ComputeDriver):
         """
         I exist as a stopgap because currently there are no os hints
         in the image managment of nova.  There are ways of hacking it in
-        via image_properties but this requires special case code just for 
+        via image_properties but this requires special case code just for
         this driver.  I will be working to hack in an oshint feature once
         the driver is accepted into nova.
 
@@ -774,6 +782,49 @@ class OpenVzConnection(driver.ComputeDriver):
             raise exception.Error(_('Cannot set privvmpages for %s') %
                                   instance['id'])
 
+    def _set_kmemsize(self, instance):
+        """
+        Set the kmemsize attribute for a container.  This represents the
+        amount of the container's memory allocation that will be made
+        available to the kernel.  This is used for tcp connections, unix
+        sockets and the like.
+
+        This runs the command:
+
+        vzctl set <ctid> --save --kmemsize <barrier>:<limit>
+
+        If this fails to run an exception is raised as this is essential for
+        the container to operate under a normal load.  Defaults for this
+        setting are completely inadequate for any normal workload.
+        """
+
+        # First figure out what our allocated memory is via the
+        # flavor definition.
+        instance_type = instance_types.get_instance_type(
+            instance['instance_type_id'])
+        instance_memory = ((int(instance_type['memory_mb']) * 1024) * 1024)
+
+        # Now use the configuration flags to calculate the appropriate
+        # values for both barrier and limit.
+        kmem_limit = int(instance_memory * (
+            float(FLAGS.ovz_kmemsize_percent_of_memory) / 100.0))
+        kmem_barrier = int(kmem_limit * (
+            float(FLAGS.ovz_kmemsize_barrier_differential) / 100.0))
+        kmemsize = '%d:%d' % (kmem_barrier, kmem_limit)
+
+        try:
+            out, err = utils.execute('vzctl', 'set', instance['id'], '--save',
+                                     '--kmemsize',
+                                     kmemsize, run_as_root=True)
+            LOG.debug(_('Stdout from vzctl: %s') % out)
+            if err:
+                LOG.error(_('Stderr from vzctl: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Error setting kmemsize: %s') % err)
+            raise exception.Error(
+                _('Error setting kmemsize to %(kmemsize) on %(id)s') %
+                {'kmemsize': kmemsize, 'id': instance['id']})
+
     def _set_cpuunits(self, instance, units=None):
         """
         Set the cpuunits setting for the container.  This is an integer
@@ -785,7 +836,7 @@ class OpenVzConnection(driver.ComputeDriver):
         vzctl set <ctid> --save --cpuunits <units>
 
         If I fail to run an exception is raised because this is the secret
-        sauce to constraining each container within it's subscribed slice of 
+        sauce to constraining each container within it's subscribed slice of
         the host node.
         """
         if not units:
@@ -824,7 +875,7 @@ class OpenVzConnection(driver.ComputeDriver):
         vzctl set <ctid> --save --cpulimit <cpulimit>
 
         If I fail to run an exception is raised because this is the secret
-        sauce to constraining each container within it's subscribed slice of 
+        sauce to constraining each container within it's subscribed slice of
         the host node.
         """
 
@@ -958,7 +1009,7 @@ class OpenVzConnection(driver.ComputeDriver):
 
     def plug_vifs(self, instance, network_info):
         """
-        I plug vifs into networks and configure network devices in the 
+        I plug vifs into networks and configure network devices in the
         container.  I am necessary to make multi-nic go.
         """
         interfaces = []
@@ -2178,7 +2229,7 @@ class OVZNetworkInterfaces(object):
         else:
             for net_dev in self.interface_info:
                 self._add_ip(net_dev['id'], net_dev['address'])
-        
+
         self._set_nameserver(net_dev['id'], net_dev['dns'])
 
     def _load_template(self):

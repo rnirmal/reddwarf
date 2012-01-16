@@ -27,10 +27,12 @@ from nova import utils
 from nova import log as logging
 from nova.compute import power_state
 from nova.compute import vm_states
-from nova.exception import OutOfInstanceMemory
 from nova.notifier import api as notifier
 from nova.scheduler import driver
 from nova.scheduler import chance
+
+from reddwarf.db import api as db_api
+from reddwarf.exception import OutOfInstanceMemory
 
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("max_cores", 16,
@@ -39,6 +41,8 @@ flags.DEFINE_integer("max_gigabytes", 10000,
                      "maximum number of volume gigabytes to allow per host")
 flags.DEFINE_integer("max_networks", 1000,
                      "maximum number of networks to allow per host")
+flags.DEFINE_integer("max_instance_memory_mb", 1024 * 15,
+                     "maximum amount of memory a host can use on instances")
 
 LOG = logging.getLogger('nova.scheduler.simple')
 
@@ -160,7 +164,7 @@ class MemoryScheduler(SimpleScheduler):
     """Implements Naive Scheduler to find a host with the most free memory."""
 
     def _schedule_based_on_resources(self, context, instance_ref):
-        results = db.service_get_all_compute_memory(context)
+        results = db_api.service_get_all_compute_memory(context)
         for result in results:
             (service, memory_mb) = result
             needed_memory = memory_mb + instance_ref['memory_mb']

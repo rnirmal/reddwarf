@@ -221,7 +221,7 @@ class Instance(BASE, NovaBase):
     display_name = Column(String(255))
     display_description = Column(String(255))
 
-    # To remember on which host an instance booted.
+    # To remember on which host a instance booted.
     # An instance may have moved to another host by live migraiton.
     launched_on = Column(Text)
     locked = Column(Boolean)
@@ -342,7 +342,6 @@ class Volume(BASE, NovaBase):
     provider_location = Column(String(255))
     provider_auth = Column(String(255))
 
-    uuid = Column(String(64))
     volume_type_id = Column(Integer)
 
 
@@ -643,7 +642,6 @@ class VirtualInterface(BASE, NovaBase):
     address = Column(String(255), unique=True)
     network_id = Column(Integer, ForeignKey('networks.id'))
     network = relationship(Network, backref=backref('virtual_interfaces'))
-    instance_id = Column(Integer, nullable=False)
 
     # TODO(tr3buchet): cut the cord, removed foreign key and backrefs
     instance_id = Column(Integer, ForeignKey('instances.id'), nullable=False)

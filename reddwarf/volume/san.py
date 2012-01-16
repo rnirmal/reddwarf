@@ -27,14 +27,15 @@ import random
 from eventlet import greenthread
 from eventlet import pools
 
-from nova import exception
+from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
 from nova import utils
-from nova.exception import ISCSITargetNotDiscoverable
 from nova.utils import ssh_execute
 from nova.volume import san as nova_san
 
+from reddwarf import exception
+from reddwarf.utils import poll_until
 from reddwarf.volume.driver import ReddwarfISCSIDriver
 
 LOG = logging.getLogger("reddwarf.volume.san")
@@ -78,7 +79,7 @@ class SSHPool(pools.Pool):
                             pkey=privatekey,
                             timeout=FLAGS.ssh_conn_timeout)
             else:
-                raise exception.Error(_("Specify san_password or san_privatekey"))
+                raise nova_exception.Error(_("Specify san_password or san_privatekey"))
             # Paramiko by default sets the socket timeout to 0.1 seconds,
             # ignoring what we set thru the sshclient. This doesn't help for
             # keeping long lived connections. Hence we have to bypass it, by
@@ -107,7 +108,7 @@ class DiscoveryInfo(object):
         self.volume_id = long(match.group(1))
 
 
-class InitiatorLoginError(exception.Error):
+class InitiatorLoginError(nova_exception.Error):
     """Occurs when the initiator fails to login for some reason."""
     pass
 
@@ -337,13 +338,13 @@ class ReddwarfHpSanISCSIDriver(ReddwarfSanISCSIDriver,
     def get_iscsi_properties_for_volume(self, context, volume):
         try:
             # Assume each discovery attempt takes roughly two seconds.
-            return utils.poll_until(lambda: self._attempt_discovery(context,
+            return poll_until(lambda: self._attempt_discovery(context,
                                                                      volume),
                                     lambda properties: properties is not None,
                                     sleep_time=3,
                                     time_out=5 * FLAGS.num_tries)
-        except utils.PollTimeOut:
-            raise ISCSITargetNotDiscoverable(volume_id=volume['id'])
+        except exception.PollTimeOut:
+            raise exception.ISCSITargetNotDiscoverable(volume_id=volume['id'])
 
     def remove_export(self, context, volume):
         """Remove export is not applicable unlike other drivers.

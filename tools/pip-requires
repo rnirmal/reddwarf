@@ -35,3 +35,4 @@ nosexcover
 paramiko
 feedparser
 pexpect
+beaker

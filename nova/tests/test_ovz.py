@@ -492,6 +492,33 @@ class OpenVzConnTestCase(test.TestCase):
         self.assertRaises(exception.Error, conn._set_privvmpages,
                           INSTANCE)
 
+    def test_set_kmemsize_success(self):
+        self.mox.StubOutWithMock(openvz_conn.instance_types,
+                                 'get_instance_type')
+        openvz_conn.instance_types.get_instance_type(INSTANCE['id']).AndReturn(
+                {'memory_mb': 1024})
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('vzctl', 'set', INSTANCE['id'], '--save',
+                                  '--kmemsize', mox.IgnoreArg(),
+                                  run_as_root=True).AndReturn(('',''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_kmemsize(INSTANCE)
+
+    def test_set_kmemsize_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.instance_types,
+                                 'get_instance_type')
+        openvz_conn.instance_types.get_instance_type(INSTANCE['id']).AndReturn(
+                {'memory_mb': 1024})
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('vzctl', 'set', INSTANCE['id'], '--save',
+                                  '--kmemsize', mox.IgnoreArg(),
+                                  run_as_root=True)\
+                                  .AndRaise(exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        self.assertRaises(exception.Error, conn._set_kmemsize, INSTANCE)
+
     def test_set_cpuunits_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'set', INSTANCE['id'], '--save',
