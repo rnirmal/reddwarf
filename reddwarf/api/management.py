@@ -76,6 +76,16 @@ def create_resource(version='1.0'):
                 'root_enabled_history': ['id',
                                          'root_enabled_at',
                                          'root_enabled_by'],
+                'index': ['account_id',
+                          'created_at',
+                          'deleted',
+                          'deleted_at',
+                          'flavorid',
+                          'host',
+                          'id',
+                          'ips': ['address',
+                                  'virtual_interface_id'],
+                          'state'],
             },
     }
 

@@ -117,6 +117,46 @@
     </sequence>
   </complexType>
 
+  <complexType name="ManagementInstanceIP">
+    <element name="address" type="xsd:string"/>
+    <element name="virtual_interface_id" type="xsd:id"/>
+  </complexType>
+
+  <complexType name="ManagementInstanceIPs">
+    <sequence>
+      <element name="ip" type="dbaas:ManagementInstanceIP" minOccurs="0" maxOccurs="unbounded" />
+    </sequence>
+  </complexType>
+
+  <complexType name="ManagmentIndexInstance">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A single database instance, with some additional management information.</p>
+        </xsd:documentation>
+        <element name="account_id" type="xsd:string"/>
+        <element name="created_at" type="xsd:string"/>
+        <element name="deleted" type="xsd:boolean"/>
+        <element name="deleted_at" type="xsd:string"/>
+        <element name="flavorid" type="xsd:integer"/>
+        <element name="host" type="xsd:string"/>
+        <element name="id" type="xsd:string"/>
+        <element name="ips" type="dbaas:ManagementInstanceIPs"/>
+        <element name="state" type="xsd:string"/>
+      </annotation>
+  </complexType>
+
+  <complexType name="ManagmentIndexInstances">
+    <sequence>
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A list of database index instances, with some additional management information.</p>
+        </xsd:documentation>
+        <element name="instance" type="dbaas:ManagementIndexInstance" minOccurs="0" maxOccurs="unbounded">
+        </element>
+      </annotation>
+    </sequence>
+  </complexType>
+
   <complexType name="Host">
     <sequence>
       <annotation>
