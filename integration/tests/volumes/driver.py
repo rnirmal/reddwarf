@@ -339,7 +339,7 @@ class MountVolume(VolumeTest):
         self.assertTrue(os.path.exists(self.story.test_mount_file_path))
 
     def test_mount_options(self):
-        cmd = "mount -l | awk '/noatime/ { print $1 }'"
+        cmd = "mount -l | awk '/%s.*noatime/ { print $1 }'" % LOCAL_MOUNT_PATH
         out, err = util.process(cmd)
         self.assertEqual(os.path.realpath(self.story.device_path), out.strip(),
                          msg=out)
