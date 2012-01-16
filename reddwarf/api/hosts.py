@@ -22,6 +22,7 @@ from nova.db.sqlalchemy.api import service_get_all_compute_sorted
 from reddwarf import exception
 from reddwarf.api import common
 from reddwarf.db import api as dbapi
+from reddwarf.scheduler import simple # import used for FLAG values
 
 LOG = logging.getLogger('reddwarf.api.hosts')
 LOG.setLevel(logging.DEBUG)

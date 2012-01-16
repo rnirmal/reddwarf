@@ -30,6 +30,8 @@ from nova.db import base
 from nova.db.sqlalchemy.models import NovaBase
 
 FLAGS = flags.FLAGS
+flags.DEFINE_string('dns_topic', 'dns', 'the topic dns nodes listen on')
+
 LOG = logging.getLogger('reddwarf.dns.api')
 
 

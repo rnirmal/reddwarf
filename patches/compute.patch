@@ -1,8 +1,16 @@
 Index: reddwarf/nova/compute/api.py
 ===================================================================
 --- reddwarf.orig/nova/compute/api.py	2012-01-03 13:35:45.000000000 -0600
-+++ reddwarf/nova/compute/api.py	2012-01-10 11:43:46.000000000 -0600
-@@ -51,6 +51,9 @@
++++ reddwarf/nova/compute/api.py	2012-01-13 14:48:05.000000000 -0600
+@@ -41,6 +41,7 @@
+ from nova.scheduler import api as scheduler_api
+ from nova.db import base
+ 
++from reddwarf import dns
+ 
+ LOG = logging.getLogger('nova.compute.api')
+ 
+@@ -51,6 +52,9 @@
                       'Timeout after NN seconds when looking for a host.')
  
  
@@ -12,7 +20,7 @@ Index: reddwarf/nova/compute/api.py
  def generate_default_hostname(instance):
      """Default function to generate a hostname given an instance reference."""
      display_name = instance['display_name']
-@@ -71,7 +74,21 @@
+@@ -71,7 +75,21 @@
              deletions += c
      if isinstance(display_name, unicode):
          display_name = display_name.encode('latin-1', 'ignore')
@@ -35,7 +43,7 @@ Index: reddwarf/nova/compute/api.py
  
  
  def _is_able_to_shutdown(instance, instance_id):
-@@ -96,7 +113,7 @@
+@@ -96,7 +114,7 @@
      """API for interacting with the compute manager."""
  
      def __init__(self, image_service=None, network_api=None,
@@ -47,7 +55,7 @@ Index: reddwarf/nova/compute/api.py
 Index: reddwarf/nova/compute/manager.py
 ===================================================================
 --- reddwarf.orig/nova/compute/manager.py	2012-01-03 13:36:00.000000000 -0600
-+++ reddwarf/nova/compute/manager.py	2012-01-11 12:56:26.000000000 -0600
++++ reddwarf/nova/compute/manager.py	2012-01-13 14:41:26.000000000 -0600
 @@ -62,6 +62,7 @@
  from nova.compute.utils import terminate_volumes
  from nova.virt import driver

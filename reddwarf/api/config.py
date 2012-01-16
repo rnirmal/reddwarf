@@ -17,7 +17,6 @@
 
 from webob import exc
 
-from nova import exception as nova_exception
 from nova import log as logging
 from nova.api.openstack import wsgi
 
@@ -43,7 +42,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         try:
             config = dbapi.config_get(id)
-        except nova_exception.ConfigNotFound as cnf:
+        except exception.ConfigNotFound as cnf:
             raise exception.NotFound(cnf._error_string)
         return {'config': {'key': config.key, 'value': config.value,
                             'description': config.description}}
@@ -55,7 +54,7 @@ class Controller(object):
         LOG.debug("%s - %s", req.environ, req.body)
         try:
             configs_data = dbapi.config_get_all()
-        except nova_exception.ConfigNotFound as cnf:
+        except exception.ConfigNotFound as cnf:
             raise exception.NotFound(cnf._error_string)
         configs = []
         for config in configs_data:
@@ -83,7 +82,7 @@ class Controller(object):
                 dbapi.config_create(config.get('key'),
                                     config.get('value', None),
                                     config.get('description', None))
-        except nova_exception.DuplicateConfigEntry as dce:
+        except exception.DuplicateConfigEntry as dce:
             raise exception.InstanceFault(dce._error_string)
         return exc.HTTPOk()
 

@@ -133,7 +133,7 @@ class Service(object):
     def start(self):
         vcs_string = version.version_string_with_vcs()
         logging.audit(_('Starting %(topic)s node (version %(vcs_string)s)'),
-                {'topic': self.topic, 'vcs_string': vcs_string})
+                      {'topic': self.topic, 'vcs_string': vcs_string})
         self.manager.init_host()
         self.model_disconnected = False
         ctxt = context.get_admin_context()
@@ -176,11 +176,11 @@ class Service(object):
     def _create_service_ref(self, context):
         zone = FLAGS.node_availability_zone
         service_ref = db.service_create(context,
-                {'host': self.host,
-                 'binary': self.binary,
-                 'topic': self.topic,
-                 'report_count': 0,
-                 'availability_zone': zone})
+                                        {'host': self.host,
+                                         'binary': self.binary,
+                                         'topic': self.topic,
+                                         'report_count': 0,
+                                         'availability_zone': zone})
         self.service_id = service_ref['id']
 
     def __getattr__(self, key):
@@ -263,8 +263,8 @@ class Service(object):
                 service_ref = db.service_get(ctxt, self.service_id)
 
             db.service_update(ctxt,
-                              self.service_id,
-                    {'report_count': service_ref['report_count'] + 1})
+                             self.service_id,
+                             {'report_count': service_ref['report_count'] + 1})
 
             # TODO(termie): make this pattern be more elegant.
             if getattr(self, 'model_disconnected', False):

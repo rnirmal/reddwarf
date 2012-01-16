@@ -19,7 +19,7 @@ import json
 
 from nova import flags
 from nova import log as logging
-from nova import exception
+from nova import exception as nova_exception
 from nova import utils
 from nova.compute import vm_states
 from nova.compute import power_state
@@ -29,6 +29,8 @@ from nova.volume import api as volume_api
 
 from reddwarf import guest
 from reddwarf.db import api as dbapi
+from reddwarf import exception
+from reddwarf.utils import poll_until
 
 
 flags.DEFINE_integer('reddwarf_guest_initialize_time_out', 10 * 60,
@@ -120,7 +122,7 @@ class ReddwarfInstanceInitializer(object):
             self._set_instance_status_to_fail()
             return instance_state in VALID_ABORT_STATES
 
-        utils.poll_until(get_instance_state,
+        poll_until(get_instance_state,
                          confirm_state_is_suspended,
                          sleep_time=1,
                          time_out=FLAGS.reddwarf_instance_suspend_time_out)
@@ -151,13 +153,13 @@ class ReddwarfInstanceInitializer(object):
         try:
             guest_api.prepare(self.context, self.instance_id,
                                           self.databases)
-            utils.poll_until(lambda : dbapi.guest_status_get(self.instance_id),
+            poll_until(lambda : dbapi.guest_status_get(self.instance_id),
                              lambda status : status.state == power_state.RUNNING,
                              sleep_time=2,
                              time_out=FLAGS.reddwarf_guest_initialize_time_out)
             LOG.info("Guest is now running on instance %s" % self.instance_id)
             return True
-        except utils.PollTimeOut as pto:
+        except exception.PollTimeOut as pto:
             self._notify_of_failure(
                 exception=pto,
                 event_type='reddwarf.instance.abort.guest',
@@ -228,7 +230,7 @@ class ReddwarfInstanceInitializer(object):
                 LOG.error("STATUS: %s" % status)
                 raise exception.VolumeProvisioningError(
                     volume_id=self.volume_id)
-        utils.poll_until(volume_is_available, sleep_time=1, time_out=time_out)
+        poll_until(volume_is_available, sleep_time=1, time_out=time_out)
 
 class ReddwarfComputeManager(ComputeManager):
     """Manages the running Reddwarf instances."""
@@ -259,10 +261,10 @@ class ReddwarfComputeManager(ComputeManager):
 
     def terminate_instance(self, context, instance_id):
         """Terminate the instance and also delete all the attached volumes"""
-        volumes = None
+        volumes = []
         try:
             volumes = self.db.volume_get_all_by_instance(context, instance_id)
-        except exception.VolumeNotFoundForInstance:
+        except nova_exception.VolumeNotFoundForInstance:
             LOG.info("Skipping as no volumes are associated with the instance")
 
         self.compute_manager.terminate_instance(context, instance_id)

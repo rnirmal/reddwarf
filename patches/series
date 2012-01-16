@@ -1,2 +1,4 @@
 compute.patch
 nova_api.patch
+nova_db.patch
+utils.patch
