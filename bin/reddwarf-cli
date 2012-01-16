@@ -36,7 +36,6 @@ if os.path.exists(os.path.join(possible_topdir, 'nova', '__init__.py')):
     sys.path.insert(0, possible_topdir)
 
 
-from nova import version
 from reddwarfclient import common
 
 
@@ -295,7 +294,7 @@ def main():
     # Parse arguments
     global oparser
     oparser = optparse.OptionParser("%prog [options] <cmd> <action> <args>",
-                                    version=version.version_string)
+                                    version="1.0")
     config_options()
     (options, args) = oparser.parse_args()
 
