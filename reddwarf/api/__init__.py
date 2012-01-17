@@ -205,7 +205,4 @@ class VersionsAPIRouter(wsgi.Router):
         mapper.connect("/", controller=versions.create_resource(),
                        action="dispatch", conditions={'method': 'GET'})
 
-        mapper.connect("", controller=versions.create_resource(),
-                       action="dispatch", conditions={'method': 'GET'})
-
         super(VersionsAPIRouter, self).__init__(mapper)
