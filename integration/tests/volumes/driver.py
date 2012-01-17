@@ -443,12 +443,17 @@ class DeleteVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[DeleteVolume])
 class ConfirmMissing(VolumeTest):
 
-    @expect_exception(Exception)
     @time_out(60)
     def test_discover_should_fail(self):
-        assert_raises(exception.Error, 
-                      self.story.client.driver.discover_volume,
-                      self.story.context,self.story.volume)
+        try:
+            self.story.client.driver.discover_volume(self.story.context,
+                                                     self.story.volume)
+            self.fail("Expecting an error but did not get one.")
+        except exception.Error:
+            pass
+        except reddwarf_exception.ISCSITargetNotDiscoverable:
+            pass
+
 
     @time_out(60)
     def test_get_missing_volume(self):
