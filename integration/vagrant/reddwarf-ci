@@ -30,7 +30,6 @@ KEYSTONE_HOME="/keystone"
 KEYSTONE_CONF="/etc/keystone/keystone.conf"
 
 USERNET="br100"
-INFRANET="eth1:1"
 
 PACKAGES_DIR="/var/www/debian/"
 BUILD_DIR="/tmp/build/"
@@ -148,7 +147,7 @@ refresh_up_agent_work_directory() {
 
 setup_ips() {
     USERNET_IP=`get_ip_for_device $USERNET`
-    INFRANET_IP=`get_ip_for_device $INFRANET`
+    INFRANET_IP=USERNET_IP
 }
 
 ###############################################################################
