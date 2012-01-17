@@ -15,8 +15,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from lxml import etree
-
 from nova.log import logging
 from nova.tests.integrated import integrated_helpers
 from nova.api.openstack import common
@@ -36,8 +34,9 @@ class XmlTests(integrated_helpers._IntegratedTestBase):
         response = self.api.api_request('/limits', headers=headers)
         data = response.read()
         LOG.debug("data: %s" % data)
-        root = etree.XML(data)
-        self.assertEqual(root.nsmap.get(None), common.XML_NS_V11)
+
+        prefix = '<limits xmlns="%s"' % common.XML_NS_V11
+        self.assertTrue(data.startswith(prefix))
 
     def test_namespace_servers(self):
         """/servers should have v1.1 namespace (has changed in 1.1)."""
@@ -47,5 +46,6 @@ class XmlTests(integrated_helpers._IntegratedTestBase):
         response = self.api.api_request('/servers', headers=headers)
         data = response.read()
         LOG.debug("data: %s" % data)
-        root = etree.XML(data)
-        self.assertEqual(root.nsmap.get(None), common.XML_NS_V11)
+
+        prefix = '<servers xmlns="%s"' % common.XML_NS_V11
+        self.assertTrue(data.startswith(prefix))

@@ -158,8 +158,6 @@ class _AuthManagerBaseTestCase(test.TestCase):
 
     def test_can_list_users(self):
         with user_generator(self.manager):
-            #TODO(tim.simpson): This test does not test what attributes are in
-            # users.
             with user_generator(self.manager, name="test2"):
                 users = self.manager.get_users()
                 self.assert_(filter(lambda u: u.id == 'test1', users))
