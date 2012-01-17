@@ -45,9 +45,9 @@
 --quota_floating_ips=10
 
 # Infrastructure Services
---sql_connection=mysql://nova:novapass@127.0.0.1/nova
+--sql_connection=mysql://nova:novapass@10.0.4.15/nova
 --sql_min_pool_size=1
---rabbit_host=127.0.0.1
+--rabbit_host=10.0.4.15
 
 # Logging
 --logfile=/vagrant/nova.log
