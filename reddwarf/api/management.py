@@ -83,8 +83,8 @@ def create_resource(version='1.0'):
                           'flavorid',
                           'host',
                           'id',
-                          'ips': ['address',
-                                  'virtual_interface_id'],
+                          {'ips': ['address',
+                                  'virtual_interface_id']},
                           'state'],
             },
     }
