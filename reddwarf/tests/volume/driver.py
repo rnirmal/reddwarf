@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from nova import context
+from nova import exception
 from nova import flags
 from nova import log as logging
 from reddwarf.volume.san import ReddwarfHpSanISCSIDriver
@@ -106,9 +108,9 @@ class ISCSITestDriver(ReddwarfHpSanISCSIDriver):
 
     def _get_device_info(self):
         """Get the raw data from the volume server"""
-        # Value hard coded to 20GBs (could change to a constant
+        # Value hard coded to 30GBs (could change to a constant
         # value if needed)
-        space_total = 20 * (1024 ** 3)
+        space_total = 30 * (1024 ** 3)
 
         # Find out how much space is used on volume server
         (std_out, std_err) = self._run_ssh("sudo du -m /san")
@@ -146,6 +148,26 @@ class ISCSITestDriver(ReddwarfHpSanISCSIDriver):
         """Nothing to un-assign here."""
         pass
 
-    def update_info(self, volume_ref):
-        """Nothing to update"""
-        pass
+    def resize(self, volume, new_size):
+        """Resize the existing volume to the specified size"""
+        iscsi_target = self.db.volume_get_iscsi_target_num(context.get_admin_context(),
+                                                           volume['id'])
+        id = volume['id']
+        old_size = volume['size']
+        size = (int(new_size) - int(old_size)) * TESTS_VOLUME_SIZE_MULTIPLIER
+        try:
+            LOG.debug("Resizing iscsi target:%(iscsi_target)s from " \
+                      "%(old_size)sGB to %(new_size)sGB" % locals())
+            # Resize the disk image
+            self._run_ssh("sudo dd conv=notrunc oflag=append if=/dev/zero " \
+                          "of=/san/%s.img bs=1024k count=%d" % (id, size))
+            # Delete the existing lun
+            self._run_ssh("sudo ietadm --op delete --tid=%s --lun=0"
+                          % iscsi_target)
+            # Re-add the lun and it should pickup the new size
+            self._run_ssh("sudo ietadm --op new --tid=%s --lun=0 " \
+                          "--params Path=/san/%s.img,Type=fileio"
+                          % (iscsi_target, id))
+        except exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise

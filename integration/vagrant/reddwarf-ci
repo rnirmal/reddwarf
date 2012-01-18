@@ -734,8 +734,8 @@ reset_services() {
     ssh vagrant@33.33.33.11 "sudo /vagrant/volumeserver delete"
     
     # Manually remove the nodes & send_targets
-    sudo rm -fr /etc/iscsi/nodes/*
-    sudo rm -fr /etc/iscsi/send_targets/*
+    sudo rm -fr /etc/iscsi/nodes
+    sudo rm -fr /etc/iscsi/send_targets
 
     # Restart Rabbit MQ so all the old queues are cleared
     sudo /etc/init.d/rabbitmq-server restart

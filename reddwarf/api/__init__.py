@@ -25,7 +25,6 @@ from nova import flags
 from nova import log as logging
 from nova import wsgi
 from reddwarf.api import accounts
-from reddwarf.api import actions
 from reddwarf.api import config
 from reddwarf.api import databases
 from reddwarf.api import images
@@ -148,8 +147,6 @@ class APIRouter(wsgi.Router):
             # functions as long as the allow_admin_api flag is set.
             # Need to put something in place so that only real admin
             # users can hit that api, others would just be rejected.
-
-        instance_members['action'] = 'POST'
 
         mapper.resource("instance", "instances",
                         controller=instances.create_resource(),

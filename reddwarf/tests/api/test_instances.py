@@ -30,9 +30,12 @@ import nova.exception as nova_exception
 
 
 import reddwarf
+from reddwarf import exception
 from reddwarf.api import instances
 from reddwarf.db import models
 from reddwarf.tests import util
+
+from nose.tools import raises
 
 instances_url = util.v1_instances_prefix
 
@@ -106,3 +109,43 @@ class InstanceApiTest(test.TestCase):
         req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 202)
+
+
+class InstanceApiValidation(test.TestCase):
+    """Test the instance api validation methods"""
+
+    resize_body = {'resize': {'volume': {'size': 2}}}
+
+    def setUp(self):
+        super(InstanceApiValidation, self).setUp()
+        self.context = context.get_admin_context()
+        self.controller = instances.Controller()
+
+    @raises(exception.BadRequest)
+    def test_create_empty_body(self):
+        self.controller._validate({})
+
+    def test_valid_resize(self):
+        self.controller._validate_resize(self.resize_body, 1)
+
+    @raises(exception.BadRequest)
+    def test_invalid_resize_size(self):
+        self.controller._validate_resize(self.resize_body, 2)
+
+    @raises(exception.BadRequest)
+    def test_invalid_resize_size2(self):
+        self.controller._validate_resize(self.resize_body, 5.2)
+
+    @raises(exception.BadRequest)
+    def test_invalid_resize_size3(self):
+        self.controller._validate_resize(self.resize_body, 'a')
+
+    @raises(exception.BadRequest)
+    def test_resize_no_size(self):
+        body = {'resize': {'volume': {}}}
+        self.controller._validate_resize(body, 1)
+
+    @raises(exception.BadRequest)
+    def test_resize_no_volume(self):
+        body = {'resize': {}}
+        self.controller._validate_resize(body, 1)

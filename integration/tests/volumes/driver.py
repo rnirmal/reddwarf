@@ -17,6 +17,7 @@ from nova import utils
 from reddwarf import exception as reddwarf_exception
 from reddwarf.utils import poll_until
 from reddwarf import volume
+from reddwarf.tests.volume import driver as test_driver
 
 from proboscis import test
 from proboscis.asserts import assert_raises
@@ -51,6 +52,7 @@ class StoryDetails(object):
         self.host = socket.gethostname()
         self.original_uuid = None
         self.original_device_info = None
+        self.resize_volume_size = 2
 
     def get_volume(self):
         return self.api.get(self.context, self.volume_id)
@@ -141,8 +143,8 @@ class SetUp(VolumeTest):
         total = int(device_info['spaceTotal'])*gbs
         free = int(device_info['spaceAvail'])*gbs
         used = total - free
-        usable = round(total * (FLAGS.san_max_provision_percent * 0.01))
-        real_free = round((usable - used))
+        usable = total * (FLAGS.san_max_provision_percent * 0.01)
+        real_free = float(int(usable - used))
 
         print("total : %r" % total)
         print("free : %r" % free)
@@ -347,6 +349,39 @@ class MountVolume(VolumeTest):
 
 
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[MountVolume])
+class ResizeVolume(VolumeTest):
+
+    @time_out(300)
+    def test_resize(self):
+        self.story.api.resize(self.story.context, self.story.volume_id,
+                              self.story.resize_volume_size)
+
+        volume = poll_until(lambda : self.story.get_volume(),
+                            lambda volume : volume["status"] == "resized")
+        self.assertEqual(volume["status"], "resized")
+        self.assertTrue(volume["attach_status"], "attached")
+        self.assertTrue(volume['size'], self.story.resize_volume_size)
+
+    @time_out(300)
+    def test_resizefs_rescan(self):
+        self.story.client.resize_fs(self.story.context,
+                                    self.story.volume_id)
+        if FLAGS.volume_driver is "reddwarf.tests.volume.driver.ISCSITestDriver":
+            size = self.story.resize_volume_size * \
+                   test_driver.TESTS_VOLUME_SIZE_MULTIPLIER * 1024 * 1024
+        else:
+            size = self.story.resize_volume_size * 1024 * 1024
+        out, err = utils.execute('sudo', 'blockdev', '--getsize64',
+                                 os.path.realpath(self.story.device_path))
+        if int(out) < (size * 0.8):
+            self.fail("Size %s is not more or less %s" % (out, size))
+
+        # Reset the volume status to available
+        self.story.api.update(self.story.context, self.story.volume_id,
+                              {'status': 'available'})
+
+
+@test(groups=[VOLUMES_DRIVER], depends_on_classes=[MountVolume])
 class UnmountVolume(VolumeTest):
 
     @time_out(60)
@@ -392,7 +427,7 @@ class RemoveVolume(VolumeTest):
 @test(groups=[VOLUMES_DRIVER], depends_on_classes=[GrabUuid])
 class Initialize(VolumeTest):
 
-    @time_out(60)
+    @time_out(300)
     def test_10_initialize_will_format(self):
         """initialize will setup, format, and store the UUID of a volume"""
         self.assertTrue(self.story.get_volume()['uuid'] is None)

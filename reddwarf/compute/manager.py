@@ -273,3 +273,34 @@ class ReddwarfComputeManager(ComputeManager):
             self.volume_api.delete_volume_when_available(context,
                                                          volume['id'],
                                                          time_out=60)
+
+    def resize_volume(self, context, instance_id, volume_id):
+        """
+        Rescan and resize the attached volume filesystem once the actual volume
+        resizing has been completed.
+        """
+        try:
+            poll_until(lambda: self.db.volume_get(context, volume_id),
+                       lambda volume: volume['status'] == 'resized',
+                       sleep_time=2,
+                       time_out=FLAGS.reddwarf_volume_time_out)
+            self.volume_client.resize_fs(context, volume_id)
+            self.volume_api.update(context, volume_id, {'status': 'in-use'})
+            notifier.notify(publisher_id(self.host),
+                            'volume.resize.confirm', notifier.INFO,
+                            "Resize completed for volume:%s instance:%s"
+                            % (volume_id, instance_id))
+            return
+        except exception.PollTimeOut as pto:
+            LOG.error("Timeout trying to rescan or resize the "
+                      "attached volume filesystem for volume: %s" % volume_id)
+        except Exception as e:
+            LOG.error("Error encountered trying to rescan or resize the "
+                      "attached volume filesystem for volume: %s" % volume_id)
+
+        # Set the status to error and send a notification
+        self.volume_api.update(context, volume_id, {'status': 'error'})
+        notifier.notify(publisher_id(self.host),
+                        'volume.resize.resizefs', notifier.ERROR,
+                        "Error re-sizing filesystem volume:%s instance:%s"
+                        % (volume_id, instance_id))

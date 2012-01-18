@@ -19,7 +19,6 @@ import copy
 import json
 from webob import exc
 
-from nova import compute
 from nova import db
 from nova import exception as nova_exception
 from nova import flags
@@ -32,6 +31,7 @@ from nova.compute import power_state
 from nova.compute import vm_states
 from nova.notifier import api as notifier
 
+from reddwarf import compute
 from reddwarf import exception
 from reddwarf import volume
 from reddwarf.api import common
@@ -73,9 +73,12 @@ class Controller(object):
 
     def action(self, req, id, body):
         """Multi-purpose method used to take actions on an instance."""
-        print("ACTIONS was called.")
+        ctxt = req.environ['nova.context']
+        common.instance_exists(ctxt, id, self.compute_api)
+
         _actions = {
-            'reboot': self._action_reboot
+            'reboot': self._action_reboot,
+            'resize': self._action_resize
             }
 
         for key in body:
@@ -141,6 +144,27 @@ class Controller(object):
             msg = _("Missing argument 'type' for reboot")
             LOG.exception(msg)
             raise exc.HTTPBadRequest(explanation=msg)
+
+    def _action_resize(self, body, req, id):
+        LOG.info("Call to resize instance %s" % id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        context = req.environ['nova.context']
+        local_id = dbapi.localid_from_uuid(id)
+        volumes = db.volume_get_all_by_instance(context, local_id)
+        assert len(volumes) == 1
+        volume_ref = volumes[0]
+
+        Controller._validate_resize(body, volume_ref['size'])
+        # Initiate the resizing of the volume
+        new_size = body['resize']['volume']['size']
+        self.volume_api.resize(context, volume_ref['id'], new_size)
+        # Kickoff rescaning and resizing the filesystem
+        self.compute_api.resize_volume(context, volume_ref['id'])
+        # TODO(rnirmal): Need to figure out how to set the instance state
+        # during volume resize, as the compute driver and guest agent will
+        # rewrite those states. We may have to include the volume state at
+        # some point.
+        return exc.HTTPAccepted()
 
     def index(self, req):
         """ Returns a list of instance names and ids for a given user """
@@ -404,34 +428,64 @@ class Controller(object):
         return [], None
 
     @staticmethod
-    def _validate(body):
-        """Validate that the request has all the required parameters"""
+    def _validate_empty_body(body):
+        """Check that the body is not empty"""
         if not body:
             raise exception.BadRequest("The request contains an empty body")
 
+    @staticmethod
+    def _validate_volume_size(size):
+        """Validate the various possible errors for volume size"""
+        try:
+            volume_size = float(size)
+        except (ValueError, TypeError) as err:
+            LOG.error(err)
+            raise exception.BadRequest("Required element/key - instance volume"
+                                       "'size' was not specified as a number")
+        if int(volume_size) != volume_size or int(volume_size) < 1:
+            raise exception.BadRequest("Volume 'size' needs to be a positive "
+                                       "integer value, %s cannot be accepted."
+                                       % volume_size)
+        max_size = FLAGS.reddwarf_max_accepted_volume_size
+        if int(volume_size) > max_size:
+            raise exception.BadRequest("Volume 'size' cannot exceed maximum "
+                                       "of %d Gb, %s cannot be accepted."
+                                       % (max_size, volume_size))
+
+    @staticmethod
+    def _validate(body):
+        """Validate that the request has all the required parameters"""
+        Controller._validate_empty_body(body)
         try:
             body['instance']
             body['instance']['flavorRef']
-            try:
-                volume_size = float(body['instance']['volume']['size'])
-            except (ValueError, TypeError) as e:
-                LOG.error("Create Instance Required field(s) - "
-                          "['instance']['volume']['size']")
-                raise exception.BadRequest("Required element/key - instance "
-                                "volume 'size' was not specified as a number")
-            if int(volume_size) != volume_size or int(volume_size) < 1:
-                raise exception.BadRequest("Volume 'size' needs to be a "
-                                "positive integer value, %s cannot be accepted."
-                                % volume_size)
-            max_size = FLAGS.reddwarf_max_accepted_volume_size
-            if int(volume_size) > max_size:
-                raise exception.BadRequest("Volume 'size' cannot exceed maximum "
-                                           "of %d Gb, %s cannot be accepted."
-                                           % (max_size, volume_size))
+            volume_size = body['instance']['volume']['size']
         except KeyError as e:
             LOG.error("Create Instance Required field(s) - %s" % e)
             raise exception.BadRequest("Required element/key - %s was not "
                                        "specified" % e)
+        Controller._validate_volume_size(volume_size)
+
+    @staticmethod
+    def _validate_resize(body, old_volume_size):
+        """
+        Currently we only support volume resizing, so we are going to check
+        if that's present.
+        """
+        Controller._validate_empty_body(body)
+        try:
+            body['resize']
+            body['resize']['volume']
+            new_volume_size = body['resize']['volume']['size']
+        except KeyError as e:
+            LOG.error("Resize Instance Required field(s) - %s" % e)
+            raise exception.BadRequest("Required element/key - %s was not "
+                                       "specified" % e)
+        Controller._validate_volume_size(new_volume_size)
+        if int(new_volume_size) <= old_volume_size:
+            raise exception.BadRequest("The new volume 'size' cannot be less "
+                                       "than the current volume size of '%s'"
+                                       % old_volume_size)
 
 
 def create_resource(version='1.0'):

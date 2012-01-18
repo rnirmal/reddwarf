@@ -23,6 +23,7 @@ import os
 
 import pexpect
 
+from nova import context
 from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
@@ -151,6 +152,24 @@ class ReddwarfVolumeDriver(nova_driver.VolumeDriver):
             child = pexpect.spawn(cmd)
             child.expect(pexpect.EOF)
 
+    def resize(self, volume, new_size):
+        """Resize the existing volume to the specified size"""
+        pass
+
+    def rescan(self, volume):
+        """Rescan the client storage connection"""
+        pass
+
+    def resize_fs(self, device_path):
+        """Resize the filesystem on the specified device"""
+        self._check_device_exists(device_path)
+        try:
+            self._execute("sudo", "resize2fs", device_path)
+        except nova_exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise nova_exception.Error("Error resizing the filesystem: %s"
+                                       % device_path)
+
 
 class ReddwarfISCSIDriver(ReddwarfVolumeDriver, nova_driver.ISCSIDriver):
     """Executes commands relating to ISCSI volumes.
@@ -252,3 +271,20 @@ class ReddwarfISCSIDriver(ReddwarfVolumeDriver, nova_driver.ISCSIDriver):
         iscsi_properties = self.get_iscsi_properties_for_volume(None, volume)
         self._iscsiadm_update(iscsi_properties, "node.startup", "manual")
         self._run_iscsiadm(iscsi_properties, "--logout")
+
+    def rescan(self, volume):
+        """Rescan the client storage connection"""
+
+        iscsi_properties = self.get_iscsi_properties_for_volume(context.get_admin_context(),
+                                                                volume)
+        try:
+            LOG.debug("ISCSI Properties: %s" % iscsi_properties)
+            self._run_iscsiadm(iscsi_properties, "--rescan",
+                               num_tries=FLAGS.num_tries)
+            return ("/dev/disk/by-path/ip-%s-iscsi-%s-lun-0" %
+                                   (iscsi_properties['target_portal'],
+                                    iscsi_properties['target_iqn']))
+        except nova_exception.ProcessExecutionError as err:
+            LOG.error(err)
+            raise nova_exception.Error(_("Error rescanning iscsi device: %s") %
+                                       iscsi_properties['target_iqn'])

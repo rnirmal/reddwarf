@@ -54,7 +54,7 @@ def methods_of(obj):
 
 
 def check_for_exceptions(resp, body):
-    if resp.status in (422, 500):
+    if resp.status in (400, 422, 500):
             raise exceptions.from_response(resp, body)
 
 

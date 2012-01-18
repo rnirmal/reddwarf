@@ -18,6 +18,8 @@ from novaclient import base
 import exceptions
 
 
+from reddwarfclient.common import check_for_exceptions
+
 class Instance(base.Resource):
     """
     An Instance is an opaque instance used to store Database instances.
@@ -103,3 +105,15 @@ class Instances(base.ManagerWithFind):
         resp, body = self.api.client.delete("/instances/%s" % base.getid(instance))
         if resp.status in (422, 500):
             raise exceptions.from_response(resp, body)
+
+    def _action(self, instance_id, body):
+        url = "/instances/%s/action" % instance_id
+        resp, body = self.api.client.post(url, body=body)
+        check_for_exceptions(resp, body)
+
+    def resize(self, instance_id, volume_size):
+        """
+        Resize the volume on an existing instances
+        """
+        body = {"resize": {"volume": {"size": volume_size}}}
+        self._action(instance_id, body)
