@@ -163,7 +163,7 @@
     </request>
       <response status="200">
       <representation mediaType="application/xml" element="dbaas:ManagmentIndexInstances">
-      <doc />
+      <doc>
         <para xmlns="http://docbook.org/ns/docbook" />
         <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instances-response.xml"/>
       </doc>
