@@ -293,6 +293,7 @@ class OpenVzConnection(driver.ComputeDriver):
         if FLAGS.ovz_use_disk_quotas:
             self._set_diskspace(instance)
 
+        self._set_onboot(instance)
         self._start(instance)
         self._initial_secure_host(instance)
         self._gratuitous_arp_all_addresses(instance, network_info)
@@ -453,6 +454,30 @@ class OpenVzConnection(driver.ComputeDriver):
             LOG.error(_('Stderr output from vzctl: %s') % err)
             raise exception.Error(_('Failed to add %s to OpenVz')
                                   % instance['id'])
+
+    def _set_onboot(self, instance):
+        """
+        Method to set the onboot status of the instance. This is done
+        so that openvz does not handle booting, and instead the compute
+        manager can handle initialization.
+        
+        I run the command:
+        
+        vzctl set <ctid> --onboot no --save
+        
+        If I fail to run an exception is raised.
+        """
+        try:
+            # Set the onboot status for the vz
+            out, err = utils.execute('vzctl', 'set', instance['id'],
+                                     '--onboot', 'no', '--save',
+                                     run_as_root=True)
+            LOG.debug(_('Stdout output from vzctl: %s') % out)
+            if err:
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+        except ProcessExecutionError as err:
+            LOG.error(_('Stderr output from vzctl: %s') % err)
+            LOG.error(_('Failed setting onboot'))
 
     def _start(self, instance):
         """
