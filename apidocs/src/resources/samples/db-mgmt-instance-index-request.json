@@ -1,0 +1,9 @@
+GET /v1.0/1234/mgmt/instances HTTP/1.1
+User-Agent: python-example-client
+Host: ord.databases.api.rackspacecloud.com
+X-Auth-Token: bfb3e07c-3185-42bb-ba5a-0547ea746b90
+X-Auth-Project-ID: 1234
+Accept: application/json
+Content-Type: application/json
+
+

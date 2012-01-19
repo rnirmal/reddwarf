@@ -424,6 +424,15 @@ class ExampleGenerator(object):
         url = "%s/mgmt/hosts/host" % self.dbaas_url
         self.http_call("mgmt_get_host_detail", url, 'GET')
 
+    def mgmt_instance_index(self, deleted=None):
+        url = "%s/mgmt/instances" % self.dbaas_url
+        if deleted is not None:
+            if deleted:
+                url = "%s?deleted=true" % url
+            else:
+                url = "%s?deleted=false" % url
+        self.http_call("mgmt_instance_index", url, 'GET')
+
     def mgmt_list_hosts(self):
         url = "%s/mgmt/hosts" % self.dbaas_url
         self.http_call("mgmt_list_hosts", url, 'GET')
@@ -478,6 +487,7 @@ class ExampleGenerator(object):
         self.mgmt_get_account_details()
         self.mgmt_get_instance_details(instance_id)
         self.mgmt_get_root_details(instance_id)
+        self.mgmt_instance_index(False)
 
         # Configs
         config_id = "myconf"

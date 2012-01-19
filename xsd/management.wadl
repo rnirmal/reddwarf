@@ -152,12 +152,14 @@
       </para>
     </wadl:doc>
     <request>
-      <representation mediaType="application/xml">
-        <doc />
-      </representation>
-      <representation mediaType="application/json">
+      <representation>
         <doc>
-          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instances-request.json"/>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.json"/>
+        </doc>
+      </representation>
+      <representation>
+        <doc>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.xml"/>
         </doc>
       </representation>
     </request>
@@ -165,13 +167,13 @@
       <representation mediaType="application/xml" element="dbaas:ManagmentIndexInstances">
       <doc>
         <para xmlns="http://docbook.org/ns/docbook" />
-        <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instances-response.xml"/>
+        <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.xml"/>
       </doc>
       </representation>
       <representation mediaType="application/json" element="dbaas:ManagmentIndexInstances">
         <doc>
           <para xmlns="http://docbook.org/ns/docbook" />
-          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instances-response.json"/>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.json"/>
         </doc>
       </representation>
     </response>
