@@ -35,3 +35,12 @@ integration/.noseids
 host.Dummy*
 integration/vagrant/report/*
 .venv
+nova/api/openstack/faults.py
+nova/api/openstack/servers.py
+nova/api/openstack/views/servers.py
+nova/api/openstack/wsgi.py
+nova/compute/api.py
+nova/compute/manager.py
+nova/db/sqlalchemy/api.py
+nova/db/sqlalchemy/models.py
+nova/utils.py
