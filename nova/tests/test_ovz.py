@@ -336,6 +336,26 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._start, INSTANCE)
 
+    def test_set_onboot_success(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('vzctl', 'set', instance['id'],
+                                  '--onboot', 'no', '--save',
+                                  run_as_root=True))\
+                                  .AndReturn(('', ''))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_onboot(INSTANCE)
+
+    def test_set_onboot_failure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('vzctl', 'set', instance['id'],
+                                  '--onboot', 'no', '--save',
+                                  run_as_root=True))\
+                                  .AndRaise(exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._set_onboot(INSTANCE)
+
     def test_list_instances_success(self):
         # Testing happy path of OpenVzConnection.list_instances()
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
