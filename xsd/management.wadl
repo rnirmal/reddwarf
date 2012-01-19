@@ -27,6 +27,11 @@
           </resource>
       </resource>
       <resource id="instances" path="instances">
+        <method href="#getIndex" name="POST">
+            <request>
+              <param name="deleted" style="query" type="xsd:string" />
+            </request>
+        </method>
         <resource id="instanceId" path="{instanceId}">
           <param name="instanceId" style="template" type="xsd:string"> 
             <doc>The instance ID for the specified database instance.</doc></param>
@@ -134,6 +139,41 @@
       <representation mediaType="application/json" element="dbaas:Host">
         <doc>
           <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-get-host-detail-response.json"/>
+        </doc>
+      </representation>
+    </response>
+    &commonFaults;
+    &getFaults;
+  </method>
+  <method name="GET" id="getIndex">
+    <wadl:doc xml:lang="EN" title="List Management Index of Instances" xmlns="http://docbook.org/ns/docbook">
+      <para role="shortdesc">
+        Lists all of the database instances, optionally filtered by deleted status.
+      </para>
+    </wadl:doc>
+    <request>
+      <representation>
+        <doc>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.json"/>
+        </doc>
+      </representation>
+      <representation>
+        <doc>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.xml"/>
+        </doc>
+      </representation>
+    </request>
+      <response status="200">
+      <representation mediaType="application/xml" element="dbaas:ManagmentIndexInstances">
+      <doc>
+        <para xmlns="http://docbook.org/ns/docbook" />
+        <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.xml"/>
+      </doc>
+      </representation>
+      <representation mediaType="application/json" element="dbaas:ManagmentIndexInstances">
+        <doc>
+          <para xmlns="http://docbook.org/ns/docbook" />
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.json"/>
         </doc>
       </representation>
     </response>

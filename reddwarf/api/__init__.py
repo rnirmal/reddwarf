@@ -120,6 +120,10 @@ class APIRouter(wsgi.Router):
                 m.connect("/{id}", action="show",
                           conditions=dict(method=["GET"]))
 
+            mapper.connect("/{project_id}/mgmt/instances",
+                            controller=management.create_resource(),
+                            action="index", conditions=dict(method=["GET"]))
+
             mapper.connect("/{project_id}/mgmt/instances/{id}",
                             controller=management.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
@@ -196,7 +200,7 @@ class VersionsAPIRouter(wsgi.Router):
         return cls()
 
     def __init__(self):
-        mapper = routes.Mapper()
+        mapper = APIMapper()
 
         mapper.connect("/", controller=versions.create_resource(),
                        action="dispatch", conditions={'method': 'GET'})

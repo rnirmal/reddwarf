@@ -234,6 +234,14 @@ class MgmtCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def instances(self, deleted=None):
+        """List all local instances, optionally filtered by deleted status."""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.management.details(deleted)._info)
+        except:
+            print sys.exc_info()[1]
+
     def storage(self):
         """List details for the storage devices"""
         dbaas = common.get_client()

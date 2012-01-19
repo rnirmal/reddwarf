@@ -43,6 +43,10 @@ def create_resource(version='1.0'):
             'attributes': {
                 'instance': ['account_id',
                              'created',
+                             'created_at',
+                             'deleted',
+                             'deleted_at',
+                             'flavorid',
                              'host',
                              'hostname',
                              'id',
@@ -54,7 +58,9 @@ def create_resource(version='1.0'):
                              'updated'],
                 'network': ['id'],
                 'ip': ['addr',
-                       'version'],
+                       'address',
+                       'version',
+                       'virtual_interface_id'],
                 'flavor': ['id'],
                 'guest_status': ['created_at',
                                  'deleted',
@@ -147,6 +153,49 @@ class Controller(object):
             raise exception.InstanceFault(msg)
 
         return {'instance': instance}
+
+    @common.verify_admin_context
+    def index(self, req):
+        """ Returns all local instances, optionally filtered by deleted status."""
+        LOG.info("Get all Instances")
+        LOG.debug("%s - %s", req.environ, req.body)
+        dfilter = req.GET.get('deleted', None)
+        deleted = None
+        if dfilter is not None:
+            if  dfilter.lower() in ['true']:
+                deleted = True
+            elif dfilter.lower() in ['false']:
+                deleted = False
+
+        context = req.environ['nova.context']
+        instances, flavors, ips = dbapi.instances_mgmt_index(context, deleted)
+        result = []
+        for instance in instances:
+            details = {
+                'account_id': instance['project_id'],
+                'id': instance['uuid'],
+                'host': instance['host'],
+                'status': instance['vm_state'],
+                'created_at': instance['created_at'],
+                'deleted_at': instance['deleted_at'],
+                'deleted': instance['deleted'],
+            }
+            # Associate the flavor.
+            # TODO(ed-): Should probably make the relational database do all the data relating.
+            flavor = [f for f in flavors if f['id'] == instance['instance_type_id']]
+            if len(flavor) > 0:
+                flavor = flavor[0]
+                details['flavorid'] = flavor['flavorid']
+
+            # Now associate the IPs.
+            # TODO(ed-): A join would be preferable.
+            details['ips'] = [{
+                'address': ip['address'],
+                'virtual_interface_id': ip['virtual_interface_id'],
+                } for ip in ips]
+            result.append(details)
+
+        return {"instances": result}
 
     def _get_guest_info(self, context, id, status, instance):
         """Get all the guest details and add it to the response"""
