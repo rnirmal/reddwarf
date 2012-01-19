@@ -221,7 +221,7 @@ class Controller(object):
 
             compute_response = self.compute_api.get(context, instance_id)
         except nova_exception.NotFound:
-            raise exception.NotFound(instance)
+            raise exception.NotFound()
         LOG.debug("server_response - %s", compute_response)
         build_states = [
              nova_common.vm_states.REBUILDING,
