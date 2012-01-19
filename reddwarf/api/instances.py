@@ -71,6 +71,77 @@ class Controller(object):
         self.view = instances.ViewBuilder()
         super(Controller, self).__init__()
 
+    def action(self, req, id, body):
+        """Multi-purpose method used to take actions on an instance."""
+        print("ACTIONS was called.")
+        _actions = {
+            'reboot': self._action_reboot
+            }
+
+        for key in body:
+            if key in _actions:
+                return _actions[key](body, req, id)
+            else:
+                msg = _("There is no such server action: %s") % (key,)
+                raise exc.HTTPBadRequest(explanation=msg)
+
+        msg = _("Invalid request body")
+        raise exc.HTTPBadRequest(explanation=msg)
+
+    def _action_reboot(self, input_dict, req, id):
+        reboot_type = self._get_reboot_type(input_dict)
+        if reboot_type == "HARD":
+            self._action_reboot_hard(req, id)
+        else:
+            self._action_reboot_soft(req, id)
+
+    def _action_reboot_hard(self, req, id):
+        try:
+            #TODO(tim.simpson): Implement.
+            return exc.HTTPAccepted()
+        except Exception, e:
+            LOG.exception(_("Error in reboot %s"), e)
+            raise exc.HTTPUnprocessableEntity()
+
+    def _action_reboot_soft(self, req, id):
+        LOG.info("Call to reboot for instance %s", id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        local_id = dbapi.localid_from_uuid(id)
+        ctxt = req.environ['nova.context']
+        self._check_instance_exists(ctxt, local_id)
+        try:
+            result = self.guest_api.restart(ctxt, local_id)
+            return exc.HTTPAccepted()
+        except Exception as err:
+            LOG.error(err)
+            raise exception.InstanceFault("Error restarting MySQL.")
+
+    def _check_instance_exists(self, ctxt, local_id):
+        try:
+            instance = self.compute_api.get(ctxt, local_id)
+        except nova_exception.NotFound:
+            raise exception.NotFound()
+
+    @staticmethod
+    def _get_reboot_type(input_dict):
+        """Fetches the the reboot type from a dict or raises an exception.
+
+        Return value is either "HARD" or "SOFT".
+
+        """
+        if 'reboot' in input_dict and 'type' in input_dict['reboot']:
+            valid_reboot_types = ['HARD', 'SOFT']
+            reboot_type = input_dict['reboot']['type'].upper()
+            if not valid_reboot_types.count(reboot_type):
+                msg = _("Argument 'type' for reboot is not HARD or SOFT")
+                LOG.exception(msg)
+                raise exc.HTTPBadRequest(explanation=msg)
+            return reboot_type
+        else:
+            msg = _("Missing argument 'type' for reboot")
+            LOG.exception(msg)
+            raise exc.HTTPBadRequest(explanation=msg)
+
     def index(self, req):
         """ Returns a list of instance names and ids for a given user """
         LOG.info("Call to Instances index")
@@ -150,7 +221,7 @@ class Controller(object):
 
             compute_response = self.compute_api.get(context, instance_id)
         except nova_exception.NotFound:
-            raise exception.NotFound()
+            raise exception.NotFound(instance)
         LOG.debug("server_response - %s", compute_response)
         build_states = [
              nova_common.vm_states.REBUILDING,
