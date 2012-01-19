@@ -121,6 +121,14 @@ class API(base.Base):
                   "args": {"databases": databases}
                  })
 
+    def restart(self, context, id):
+        """Restart the MySQL server."""
+        LOG.debug(_("Sending the call to restart MySQL on the Guest."))
+        reddwarf_rpc.cast_with_consumer(context, self._get_routing_key(context, id),
+                 {"method": "restart",
+                  "args": {}
+                 })
+
     def upgrade(self, context, id):
         """Make an asynchronous call to self upgrade the guest agent"""
         topic = self._get_routing_key(context, id)
