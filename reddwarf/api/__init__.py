@@ -25,7 +25,6 @@ from nova import flags
 from nova import log as logging
 from nova import wsgi
 from reddwarf.api import accounts
-from reddwarf.api import actions
 from reddwarf.api import config
 from reddwarf.api import databases
 from reddwarf.api import images
@@ -99,7 +98,6 @@ class APIRouter(wsgi.Router):
     def __init__(self):
         mapper = APIMapper()
 
-        instance_members = {'action': 'POST'}
         if FLAGS.allow_admin_api:
             LOG.debug(_("Including admin operations in API."))
             with mapper.submapper(path_prefix="/{project_id}/mgmt/guests",
