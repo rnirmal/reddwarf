@@ -7,9 +7,11 @@ import shutil
 import sys
 import time
 from os import path
+from tests.util import test_config
 
 
 class Reporter(object):
+    """Saves the logs from a test run."""
 
     def __init__(self, root_path):
         self.root_path = root_path
@@ -19,7 +21,7 @@ class Reporter(object):
             if file.endswith(".log"):
                 os.remove(path.join(self.root_path, file))
 
-    def find_all_instance_ids(self):
+    def _find_all_instance_ids(self):
         instances = []
         for dir in os.listdir("/vz/private"):
             instances.append(dir)
@@ -27,45 +29,42 @@ class Reporter(object):
 
     def log(self, msg):
         with open("%s/report.log" % self.root_path, 'a') as file:
-            file.write(msg)
+            file.write(str(msg) + "\n")
 
-    def save_syslog(self):
+    def _save_syslog(self):
         try:
             shutil.copyfile("/var/log/syslog", "host-syslog.log")
         except (shutil.Error, IOError) as err:
             self.log("ERROR logging syslog : %s" % (err))
 
-    def update_instance(self, id):
+    def _update_instance(self, id):
         root = "%s/%s" % (self.root_path, id)
-        try:
-            shutil.copyfile("/vz/private/%s/var/log/firstboot" % id,
-                            "%s-firstboot.log" % root)
-        except (shutil.Error, IOError) as err:
-            self.log("ERROR logging firstboot for instance id %s! : %s"
-                     % (id, err))
-        try:
-            shutil.copyfile("/vz/private/%s/var/log/syslog" % id,
-                            "%s-syslog.log" % root)
-        except (shutil.Error, IOError) as err:
-            self.log("ERROR logging firstboot for instance id %s! : %s"
-                     % (id, err))
+        def save_file(path, short_name):
+            try:
+                shutil.copyfile("/vz/private/%s/%s" % (id, path),
+                                "%s-%s.log" % (root, short_name))
+            except (shutil.Error, IOError) as err:
+                self.log("ERROR logging %s for instance id %s! : %s"
+                % (path, id, err))
 
-    def update_instances(self):
-        for id in self.find_all_instance_ids():
-            self.update_instance(id)
+        save_file("/var/log/firstboot", "firstboot")
+        save_file("/var/log/syslog", "syslog")
+        save_file("/var/log/nova/guest.log", "nova-guest")
+
+    def _update_instances(self):
+        for id in self._find_all_instance_ids():
+            self._update_instance(id)
 
     def update(self):
-        self.update_instances()
-        self.save_syslog()
+        self._update_instances()
+        self._save_syslog()
 
 
-if __name__=="__main__":
-    if len(sys.argv) < 2:
-        print("No report file path specified.")
-    else:
-        reporter = Reporter(sys.argv[1])
-        atexit.register(reporter.update)
-        while(True):
-            time.sleep(10)
-            reporter.update()
+REPORTER = Reporter(test_config.values["report_directory"])
 
+
+def log(msg):
+    REPORTER.log(msg)
+
+def update():
+    REPORTER.update()

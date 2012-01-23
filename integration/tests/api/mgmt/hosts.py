@@ -24,6 +24,7 @@ from proboscis.asserts import assert_true
 from proboscis.asserts import fail
 
 import tests
+from tests.api.instances import create_new_instance
 from tests.api.instances import instance_info
 from tests.util import test_config
 from tests.util import create_dbaas_client
@@ -32,16 +33,17 @@ from tests.util.users import Requirements
 GROUP="dbaas.api.mgmt.hosts"
 
 
-@test(groups=[tests.DBAAS_API, GROUP, tests.PRE_INSTANCES], depends_on_groups=["services.initialize"])
+@test(groups=[tests.DBAAS_API, GROUP, tests.PRE_INSTANCES],
+      depends_on_groups=["services.initialize"])
 class HostsBeforeInstanceCreation(object):
 
-    @before_class
+    @before_class(enabled=create_new_instance())
     def setUp(self):
         self.user = test_config.users.find_user(Requirements(is_admin=True))
         self.client = create_dbaas_client(self.user)
         self.host = None
 
-    @test
+    @test(enabled=create_new_instance())
     def test_empty_index_host_list(self):
         host_index_result = self.client.hosts.index()
         assert_not_equal(host_index_result, None,
@@ -57,7 +59,7 @@ class HostsBeforeInstanceCreation(object):
             print("%r host: %r" % (host[0], host[1]))
             self.host = host[1]
 
-    @test
+    @test(enabled=create_new_instance())
     def test_empty_index_host_list_single(self):
         single_host = self.client.hosts.get(self.host)
         assert_not_equal(single_host, None,
@@ -76,21 +78,22 @@ class HostsBeforeInstanceCreation(object):
         for index, instance in enumerate(single_host.instances, start=1):
             print("%r instance: %r" % (index, instance))
 
-    @test
+    @test(enabled=create_new_instance())
     def test_host_not_found(self):
         assert_raises(exceptions.NotFound, self.client.hosts.get, "host@$%3dne")
 
 
-@test(groups=[tests.INSTANCES, GROUP], depends_on_groups=["dbaas.listing"])
+@test(groups=[tests.INSTANCES, GROUP], depends_on_groups=["dbaas.listing"],
+      enabled=create_new_instance())
 class HostsAfterInstanceCreation(object):
 
-    @before_class
+    @before_class(enabled=create_new_instance())
     def setUp(self):
         self.user = test_config.users.find_user(Requirements(is_admin=True))
         self.client = create_dbaas_client(self.user)
         self.host = None
 
-    @test
+    @test(enabled=create_new_instance())
     def test_index_host_list(self):
         myresult = self.client.hosts.index()
         assert_true(len(myresult) > 0,
@@ -102,7 +105,7 @@ class HostsAfterInstanceCreation(object):
             print("%d host: %s" % (index, host))
             self.host = host
 
-    @test
+    @test(enabled=create_new_instance())
     def test_index_host_list_single(self):
         myresult = self.client.hosts.get(self.host)
         assert_not_equal(myresult, None,

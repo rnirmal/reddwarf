@@ -54,6 +54,7 @@ from proboscis.asserts import fail
 
 import tests
 from tests.util import test_config
+from tests.util import report
 from tests.util import check_database
 from tests.util import create_dns_entry
 from tests.util import create_dbaas_client
@@ -78,6 +79,8 @@ class InstanceTestInfo(object):
         self.dbaas_image = None  # The image used to create the instance.
         self.dbaas_image_href = None  # The link of the image.
         self.id = None  # The ID of the instance in the database.
+        self.local_id = None
+        self.address = None
         self.initial_result = None # The initial result from the create call.
         self.user_ip = None  # The IP address of the instance, given to user.
         self.infra_ip = None # The infrastructure network IP address.
@@ -94,7 +97,7 @@ class InstanceTestInfo(object):
         self.user_context = None # A regular user context
 
     def check_database(self, dbname):
-        return check_database(self.local_id, dbname)
+        return check_database(self.get_local_id(), dbname)
 
     def expected_dns_entry(self):
         """Returns expected DNS entry for this instance.
@@ -103,6 +106,17 @@ class InstanceTestInfo(object):
 
         """
         return create_dns_entry(instance_info.local_id, instance_info.id)
+
+    def get_address(self):
+        if self.address is None:
+            self.address = db.instance_get_fixed_addresses(
+                context.get_admin_context(), self.get_local_id())
+        return self.address
+
+    def get_local_id(self):
+        if self.local_id is None:
+            self.local_id = dbapi.localid_from_uuid(self.id)
+        return self.local_id
 
 
 # The two variables are used below by tests which depend on an instance
@@ -118,12 +132,12 @@ def existing_instance():
     return os.environ.get("TESTS_USE_INSTANCE_ID", None)
 
 
-@property
 def create_new_instance():
     return existing_instance() is None
 
 
-@test(groups=[GROUP, GROUP_START, 'dbaas.setup'], depends_on_groups=["services.initialize"])
+@test(groups=[GROUP, GROUP_START, 'dbaas.setup'],
+      depends_on_groups=["services.initialize"])
 class Setup(object):
     """Makes sure the client can hit the ReST service.
 
@@ -141,6 +155,7 @@ class Setup(object):
         instance_info.user_context = context.RequestContext(instance_info.user.auth_user,
                                                             instance_info.user.tenant)
         dbaas = create_test_client(instance_info.user)
+        instance_info.dbaas = dbaas
         dbaas_admin = create_test_client(instance_info.admin_user)
 
     @test
@@ -186,14 +201,15 @@ class Setup(object):
 
 
 @test(depends_on_classes=[Setup], depends_on_groups=['dbaas.setup'],
-      groups=[tests.DBAAS_API],
-      enabled=create_new_instance)
+      groups=[tests.DBAAS_API])
 class PreInstanceTest(object):
     """Instance tests before creating an instance"""
 
-    @test
+    @test(enabled=create_new_instance())
     def test_delete_instance_not_found(self):
-        assert_raises(nova_exceptions.NotFound, dbaas.instances.delete, 1)
+        # Looks for a random UUID that (most probably) does not exist.
+        assert_raises(nova_exceptions.NotFound, dbaas.instances.delete,
+                      "7016efb6-c02c-403e-9628-f6f57d0920d0")
 
 
 @test(depends_on_classes=[PreInstanceTest], groups=[GROUP, GROUP_START, tests.INSTANCES],
@@ -223,7 +239,7 @@ class CreateInstance(unittest.TestCase):
         instance_info.databases = databases
         instance_info.volume = {'size': 2}
 
-        if create_new_instance:
+        if create_new_instance():
             instance_info.initial_result = dbaas.instances.create(
                                                instance_info.name,
                                                instance_info.dbaas_flavor_href,
@@ -237,14 +253,20 @@ class CreateInstance(unittest.TestCase):
         instance_info.id = result.id
         instance_info.local_id = dbapi.localid_from_uuid(result.id)
 
-        if create_new_instance:
+        if create_new_instance():
             assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
+        else:
+            report.log("Test was invoked with TESTS_USE_INSTANCE=%s, so no "
+                       "instance was actually created." % id)
+            report.log("Local id = %d" % instance_info.get_local_id())
 
         # Check these attrs only are returned in create response
         expected_attrs = ['created', 'flavor', 'hostname', 'id', 'links',
                           'name', 'status', 'updated', 'volume']
-        CheckInstance(result._info).attrs_exist(result._info, expected_attrs,
-                                                msg="Create response")
+        if create_new_instance():
+            CheckInstance(result._info).attrs_exist(
+                result._info, expected_attrs, msg="Create response")
+        # Don't CheckInstance if the instance already exists.
         CheckInstance(result._info).flavor()
         CheckInstance(result._info).links(result._info['links'])
         CheckInstance(result._info).volume()
@@ -283,7 +305,9 @@ class CreateInstance(unittest.TestCase):
             assert_false(True, "Security groups did not get created")
 
 
-@test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'])
+@test(depends_on_classes=[CreateInstance],
+      groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'],
+      enabled=create_new_instance())
 class AfterInstanceCreation(unittest.TestCase):
 
     # instance calls
@@ -331,7 +355,7 @@ class AfterInstanceCreation(unittest.TestCase):
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
-      enabled=create_new_instance)
+      enabled=create_new_instance())
 class WaitForGuestInstallationToFinish(unittest.TestCase):
     """
         Wait until the Guest is finished installing.  It takes quite a while...
@@ -353,6 +377,11 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
                 time.sleep(5)
             else:
                 break
+        report.log("Created an instance, ID = %s." % instance_info.id)
+        report.log("Local id = %d" % instance_info.get_local_id())
+        report.log("Rerun the tests with TESTS_USE_INSTANCE=%s to skip ahead "
+                   "to this point." % instance_info.id)
+
 
     def test_instance_wait_for_initialize_guest_to_exit_polling(self):
         def compute_manager_finished():
@@ -362,7 +391,7 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],
-      groups=[GROUP, GROUP_START], enabled=create_new_instance)
+      groups=[GROUP, GROUP_START], enabled=create_new_instance())
 class VerifyGuestStarted(unittest.TestCase):
     """
         Test to verify the guest instance is started and we can get the init
@@ -390,7 +419,7 @@ class VerifyGuestStarted(unittest.TestCase):
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],
-      groups=[GROUP, GROUP_START], enabled=create_new_instance)
+      groups=[GROUP, GROUP_START], enabled=create_new_instance())
 class TestGuestProcess(unittest.TestCase):
     """
         Test that the guest process is started with all the right parameters
@@ -624,6 +653,8 @@ class DeleteInstance(object):
         volumes = db.volume_get_all_by_instance(context.get_admin_context(),
                                                 instance_info.local_id)
         instance_info.volume_id = volumes[0].id
+        # Update the report so the logs inside the instance will be saved.
+        report.update()
         dbaas.instances.delete(instance_info.id)
 
         attempts = 0

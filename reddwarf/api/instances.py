@@ -86,44 +86,37 @@ class Controller(object):
                 return _actions[key](body, req, id)
             else:
                 msg = _("There is no such server action: %s") % (key,)
-                raise exc.HTTPBadRequest(explanation=msg)
+                raise exception.BadRequest(msg)
 
         msg = _("Invalid request body")
-        raise exc.HTTPBadRequest(explanation=msg)
+        raise exception.BadRequest(msg)
 
     def _action_reboot(self, input_dict, req, id):
+        LOG.info("Call to reboot for instance %s", id)
         reboot_type = self._get_reboot_type(input_dict)
+        LOG.debug("%s - %s", req.environ, req.body)
+        ctxt = req.environ['nova.context']
+        local_id = dbapi.localid_from_uuid(id)
         if reboot_type == "HARD":
-            self._action_reboot_hard(req, id)
+            self._action_reboot_hard(ctxt, local_id)
         else:
-            self._action_reboot_soft(req, id)
+            self._action_reboot_soft(ctxt, local_id)
 
-    def _action_reboot_hard(self, req, id):
+    def _action_reboot_hard(self, ctxt, local_id):
         try:
-            #TODO(tim.simpson): Implement.
+            self.compute_api.reboot(ctxt, local_id)
             return exc.HTTPAccepted()
         except Exception, e:
             LOG.exception(_("Error in reboot %s"), e)
-            raise exc.HTTPUnprocessableEntity()
+            raise exception.UnprocessableEntity()
 
-    def _action_reboot_soft(self, req, id):
-        LOG.info("Call to reboot for instance %s", id)
-        LOG.debug("%s - %s", req.environ, req.body)
-        local_id = dbapi.localid_from_uuid(id)
-        ctxt = req.environ['nova.context']
-        self._check_instance_exists(ctxt, local_id)
+    def _action_reboot_soft(self, ctxt, local_id):
         try:
-            result = self.guest_api.restart(ctxt, local_id)
+            self.compute_api.restart(ctxt, local_id)
             return exc.HTTPAccepted()
         except Exception as err:
             LOG.error(err)
             raise exception.InstanceFault("Error restarting MySQL.")
-
-    def _check_instance_exists(self, ctxt, local_id):
-        try:
-            instance = self.compute_api.get(ctxt, local_id)
-        except nova_exception.NotFound:
-            raise exception.NotFound()
 
     @staticmethod
     def _get_reboot_type(input_dict):
@@ -138,12 +131,12 @@ class Controller(object):
             if not valid_reboot_types.count(reboot_type):
                 msg = _("Argument 'type' for reboot is not HARD or SOFT")
                 LOG.exception(msg)
-                raise exc.HTTPBadRequest(explanation=msg)
+                raise exception.BadRequest(msg)
             return reboot_type
         else:
             msg = _("Missing argument 'type' for reboot")
             LOG.exception(msg)
-            raise exc.HTTPBadRequest(explanation=msg)
+            raise exception.BadRequest(explanation=msg)
 
     def _action_resize(self, body, req, id):
         LOG.info("Call to resize instance %s" % id)

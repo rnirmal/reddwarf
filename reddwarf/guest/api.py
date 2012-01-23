@@ -124,7 +124,7 @@ class API(base.Base):
     def restart(self, context, id):
         """Restart the MySQL server."""
         LOG.debug(_("Sending the call to restart MySQL on the Guest."))
-        reddwarf_rpc.cast_with_consumer(context, self._get_routing_key(context, id),
+        rpc.call(context, self._get_routing_key(context, id),
                  {"method": "restart",
                   "args": {}
                  })

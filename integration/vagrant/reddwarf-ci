@@ -453,14 +453,24 @@ dbaas_pkg_build_sneaky_pete() {
     # If we're using a shared folder with a copy of Sneaky-Pete, copy it over.
     if [ ! -d $BUILD_DIR/agent ]; then
         mkdir $BUILD_DIR/agent
-        # Clean this to prevent any shenanigans.
+    fi
+
+    # Clean this to prevent any shenanigans.
+    if [ "$1" != "no-clean" ]; then
         rm -rf $AGENT_WORK_DIR/bin
+    fi
+
+    # If using a working copy, AGENT_DIR == AGENT_WORK_DIR.
+    # So enter that directory, build it there first (to avoid confusion), then
+    # copy it to the $BUILD_DIR.
+    if [ -d $AGENT_DIR ]; then
         cd $AGENT_WORK_DIR
         bjam -d+2 link=static release nova-guest
         cp -rf $AGENT_WORK_DIR/* $BUILD_DIR/agent
     fi
-    # Otherwise $BUILD_DIR/agent will already exist and have a fresh copy of
-    # the GIT source.
+
+    # If there isn't a working copy $BUILD_DIR/agent will already exist and
+    # have a fresh copy of the GIT source from a previous step.
 
     cd $BUILD_DIR/agent
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
@@ -473,7 +483,6 @@ dbaas_pkg_build_sneaky_pete() {
     cd $BUILD_DIR/agent
     sudo chown -R vagrant bin
     sudo chown -R vagrant parrot
-    
 }
 
 patch_src_dir() {
@@ -515,6 +524,23 @@ build() {
     dbaas_pkg_build_sneaky_pete
     sudo apt-get update
     patch_src_dir
+}
+
+build_agent() {
+    echo "Quick building the Agent."
+    sudo -E reprepro -Vb /var/www/debian remove squeeze nova-guest
+
+    sudo rm -rf /var/cache/apt-cacher-ng/apt.rackspace.com/debian/pool/main/n/nova-guest
+    sudo apt-get update
+
+    GIT_REVISION=`git --git-dir=${NOVA_HOME}/.git rev-parse HEAD`
+
+    mkdir -p $BUILD_DIR
+    cd $BUILD_DIR
+    # git clone https://github.com/hub-cap/oizys.git
+
+    dbaas_pkg_build_sneaky_pete no-clean
+    sudo apt-get update
 }
 
 ###############################################################################
@@ -961,6 +987,7 @@ case "$1" in
     "run" ) shift; run_ci $@;;
     "install" ) install_deps;;
     "build" ) build;;
+    "build-agent" ) build_agent $@;;
     "test-agent" ) shift; run_agent_tests $@;;
     "initialize" ) initialize;;
     "test" ) shift; run_tests $@;;

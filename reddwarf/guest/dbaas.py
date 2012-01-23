@@ -301,8 +301,9 @@ class DBaaSAgent(object):
 class LocalSqlClient(object):
     """A sqlalchemy wrapper to manage transactions"""
 
-    def __init__(self, engine):
+    def __init__(self, engine, use_flush=True):
         self.engine = engine
+        self.use_flush = use_flush
 
     def __enter__(self):
         self.conn = self.engine.connect()
@@ -314,7 +315,8 @@ class LocalSqlClient(object):
             if type is not None:  # An error occurred
                 self.trans.rollback()
             else:
-                self.conn.execute(FLUSH)
+                if self.use_flush:
+                    self.conn.execute(FLUSH)
                 self.trans.commit()
         self.conn.close()
 

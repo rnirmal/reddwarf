@@ -145,8 +145,5 @@ class TestUsers(object):
                       instance_info.id, users)
 
     def _check_connection(self, username, password):
-        pos_error = re.compile("ERROR 1130 \(HY000\): Host '[\w\.]*' is not allowed to connect to this MySQL server")
-        dblist, err = process("sudo mysql -h %s -u '%s' -p'%s' -e 'show databases;'"
-                                % (instance_info.user_ip, username, password))
-        if not pos_error.match(err):
-            fail(err)
+        util.assert_mysql_connection_fails(username, password,
+                                           instance_info.user_ip)
