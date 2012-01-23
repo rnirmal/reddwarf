@@ -73,6 +73,14 @@
     </annotation>
   </element>
 
+  <element name="diagnosticsDetails" type="dbaas:DiagnosticsDetails">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Diagnostic details of a guest.</p>
+      </xsd:documentation>
+    </annotation>
+  </element>
+
   <!--Complex Types-->
   <complexType name="Hosts">
     <sequence>
@@ -320,6 +328,51 @@
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>The user that enabled root on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </xsd:complexType>
+
+  <xsd:complexType name="DiagnosticsDetails">
+    <attribute name="version" type="xsd:string" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The version of the guest installed on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="vmsize" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Virtual memory size of the guest running on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="vmpeak" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Peak virtual memory size of the guest on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="vmrss" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Resident set size of the guest on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="vmhwm" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Peak resident set size ("high water mark") of the guest on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="threads" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Number of threads in process containing this thread of the guest on the instance.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
