@@ -236,8 +236,6 @@ class ReddwarfISCSIDriver(ReddwarfVolumeDriver, nova_driver.ISCSIDriver):
         try:
             self._run_iscsiadm(iscsi_properties, "--login",
                                num_tries=FLAGS.num_tries)
-            self._iscsiadm_update(iscsi_properties, "node.startup",
-                                  "automatic")
         except nova_exception.ProcessExecutionError as err:
             LOG.error(err)
             raise nova_exception.Error(_("iSCSI device %s not found") %

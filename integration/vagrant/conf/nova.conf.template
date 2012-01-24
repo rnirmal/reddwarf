@@ -28,6 +28,8 @@
 --connection_type=openvz
 --ovz_ve_private_dir=/var/lib/vz/private/
 --lock_path=/tmp
+--resume_guests_state_on_host_boot=True
+#--start_guests_on_host_boot=True
 
 # API
 --api_paste_config=/home/vagrant/api-paste_keystone.ini

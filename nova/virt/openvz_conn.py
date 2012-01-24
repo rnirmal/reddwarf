@@ -160,13 +160,9 @@ class OpenVzConnection(driver.ComputeDriver):
 
             LOG.debug(_('Current state of %(name)s was %(power_state)s') %
                     {'name': instance['name'], 'power_state': state})
-            db.instance_update(ctxt, instance['id'], {'power_state': state})
 
             if state == power_state.SHUTOFF:
                 db.instance_destroy(ctxt, instance['id'])
-
-            if state != power_state.RUNNING:
-                continue
 
         LOG.debug(_('Determining the computing power of the host'))
 
@@ -1088,7 +1084,7 @@ class OpenVzConnection(driver.ComputeDriver):
         # TODO(imsplitbit): Need to implement vzdump
         pass
 
-    def reboot(self, instance):
+    def reboot(self, instance, network_info):
         """
         Reboot the specified instance.
 

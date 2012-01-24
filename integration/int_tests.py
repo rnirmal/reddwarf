@@ -157,10 +157,12 @@ if __name__ == '__main__':
         from tests.volumes import driver
         from tests.volumes import VOLUMES_DRIVER
         from tests.compute import guest_initialize_failure
+        from tests.openvz import compute_reboot_vz as compute_reboot
         from tests import util
 
         host_ovz_groups = [
             "dbaas.guest",
+            compute_reboot.GROUP,
             "dbaas.guest.dns",
             SCHEDULER_DRIVER_GROUP,
             pkg_tests.GROUP,
