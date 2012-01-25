@@ -352,3 +352,18 @@ class ReddwarfHpSanISCSIDriver(ReddwarfSanISCSIDriver,
         Check unassign_volume() instead
         """
         pass
+
+    def resize(self, volume, new_size):
+        """Resize the existing volume to the specified size"""
+        LOG.debug("Resizing Volume:%s from %sGB to %sGB"
+                  % (volume['id'], volume['size'], new_size))
+        cliq_args = {}
+        cliq_args['volumeName'] = volume['id']
+        # TODO(rnirmal): We may need to double check the current size, incase
+        # the user is attempting to decrease the size and the current size
+        # as reported from the san is different than the nova database.
+        volume_size = int(new_size)
+        if volume_size <= 0:
+            raise ValueError("Invalid volume size.")
+        cliq_args['size'] = '%sGB' % volume_size
+        self._cliq_run_xml("modifyVolume", cliq_args)

@@ -36,6 +36,7 @@ intact.
 from nova import flags
 from nova import log as logging
 from nova import utils
+from nova.notifier import api as notifier
 from nova.volume import manager
 
 from reddwarf import exception
@@ -44,6 +45,9 @@ from reddwarf.utils import poll_until
 LOG = logging.getLogger('reddwarf.volume.manager')
 FLAGS = flags.FLAGS
 
+def publisher_id(host=None):
+    return notifier.publisher_id("volume", host)
+
 
 class ReddwarfVolumeManager(manager.VolumeManager):
     """Extends Nova Volume Manager with extended capabilities"""
@@ -51,6 +55,14 @@ class ReddwarfVolumeManager(manager.VolumeManager):
     def __init__(self, volume_driver=None, *args, **kwargs):
         """Load the driver from the one specified in args, or from flags."""
         super(ReddwarfVolumeManager, self).__init__(*args, **kwargs)
+
+    def _verify_available_space(self, context, volume_id, size):
+        vol_avail = self.driver.check_for_available_space(size)
+        if not vol_avail:
+            LOG.error(_("Cannot allocate requested volume size. "
+                        "requested size: %(size)sG") % locals())
+            self.db.volume_update(context, volume_id, {'status': 'error'})
+            raise exception.VolumeProvisioningError(volume_id=volume_id)
 
     def assign_volume(self, context, volume_id, host):
         """Assigns a created volume to a host (usually a compute node)."""
@@ -61,14 +73,7 @@ class ReddwarfVolumeManager(manager.VolumeManager):
         #TODO (rnirmal): Need to somehow remove the extra db call
         context = context.elevated()
         volume_ref = self.db.volume_get(context, volume_id)
-        vol_size = volume_ref['size']
-        vol_avail = self.driver.check_for_available_space(vol_size)
-        if not vol_avail:
-            LOG.error(_("Can not allocate requested volume size. "
-                        "requested size: %(vol_size)sG") % locals())
-            self.db.volume_update(context, volume_ref['id'],
-                                  {'status': 'error'})
-            raise exception.VolumeProvisioningError(volume_id=volume_id)
+        self._verify_available_space(context, volume_id, volume_ref['size'])
         return super(ReddwarfVolumeManager, self).create_volume(context,
                                                                 volume_id,
                                                                 snapshot_id)
@@ -93,3 +98,29 @@ class ReddwarfVolumeManager(manager.VolumeManager):
         Un-Assigns an existing volume from a host (usually a compute node).
         """
         self.driver.unassign_volume(volume_id, host)
+
+    def resize(self, context, volume_id, size):
+        """Resize an existing volume to the specified size"""
+        context = context.elevated()
+        volume_ref = self.db.volume_get(context, volume_id)
+        old_size = volume_ref['size']
+        space_required = int(size) - int(old_size)
+        self._verify_available_space(context, volume_id, space_required)
+        self.db.volume_update(context, volume_id, {'status': 'resizing'})
+        try:
+            LOG.info("Resizing volume %(volume_id)s from %(old_size)sGB to "
+                     "%(size)sGB" % locals())
+            self.driver.resize(volume_ref, size)
+            self.db.volume_update(context, volume_id,
+                                  {'size': int(size), 'status': 'resized'})
+            notifier.notify(publisher_id(self.host),
+                            'volume.resize', notifier.INFO,
+                            "Completed the volume resize")
+        except Exception as e:
+            LOG.error(e)
+            self.db.volume_update(context, volume_id, {'status': 'error'})
+            notifier.notify(publisher_id(self.host),
+                            'volume.resize.resize',
+                            notifier.ERROR,
+                            "Error re-sizing volume %s" % volume_id)
+            raise exception.VolumeProvisioningError(volume_id=volume_id)

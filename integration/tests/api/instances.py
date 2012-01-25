@@ -556,6 +556,61 @@ class TestInstanceListing(object):
         CheckInstance(result._info).volume_mgmt()
 
 
+@test(depends_on_groups=['dbaas.api.root'], groups=[GROUP, tests.INSTANCES])
+class ResizeInstance(object):
+    """ Resize the volume of the instance """
+
+    @before_class
+    def setUp(self):
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
+                                                instance_info.local_id)
+        instance_info.volume_id = volumes[0].id
+        self.old_volume_size = int(volumes[0].size)
+        self.new_volume_size = self.old_volume_size + 1
+
+        # Create some databases to check they still exist after the resize
+        self.expected_dbs = ['salmon', 'halibut']
+        databases = []
+        for name in self.expected_dbs:
+            databases.append({"name": name})
+        dbaas.databases.create(instance_info.id, databases)
+
+    @test
+    @time_out(60)
+    def test_volume_resize(self):
+        dbaas.instances.resize(instance_info.id, self.new_volume_size)
+
+    @test
+    @time_out(300)
+    def test_volume_resize_success(self):
+        # TODO(rnirmal): # Timeout for the volume to get to resizing state
+        # This can ideally go away when we incorporate the resize into
+        # the instance status
+        time.sleep(10)
+        poll_until(lambda: db.volume_get(context.get_admin_context(),
+                                         instance_info.volume_id),
+                   lambda volume: volume.status == 'in-use',
+                   sleep_time=2,
+                   time_out=300)
+        volumes = db.volume_get(context.get_admin_context(),
+                                instance_info.volume_id)
+        assert_equal(volumes.status, 'in-use')
+        assert_equal(volumes.size, self.new_volume_size)
+        assert_equal(volumes.attach_status, 'attached')
+
+    @test
+    @time_out(300)
+    def test_volume_resize_success_databases(self):
+        databases = dbaas.databases.list(instance_info.id)
+        db_list = []
+        for database in databases:
+            db_list.append(database.name)
+        for name in self.expected_dbs:
+            if not name in db_list:
+                fail("Database %s was not found after the volume resize. "
+                     "Returned list: %s" % (name, databases))
+
+
 @test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])
 class DeleteInstance(object):
     """ Delete the created instance """

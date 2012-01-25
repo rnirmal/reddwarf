@@ -75,3 +75,12 @@ class API(nova_volume_api.API):
                   "args": {"topic": FLAGS.volume_topic,
                            "volume_id": volume_id,
                            "host": host}})
+
+    def resize(self, context, volume_id, size):
+        """Resize an existing volume to the specified size"""
+        rpc.cast(context,
+                 FLAGS.scheduler_topic,
+                 {"method": "resize",
+                 "args": {"topic": FLAGS.volume_topic,
+                          "volume_id": volume_id,
+                          "size": size}})

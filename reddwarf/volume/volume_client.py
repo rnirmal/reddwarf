@@ -92,3 +92,12 @@ class VolumeClient(Base):
     def _unmount(self, mount_point):
         """Unmount the filesystem at the mount point."""
         self.driver.unmount(mount_point)
+
+    def resize_fs(self, context, volume_id):
+        """
+        Complete the volume resize operation on the compute host, by rescanning
+        if necessary and resizing the filesystem
+        """
+        volume_ref = db.volume_get(context, volume_id)
+        device_path = self.driver.rescan(volume_ref)
+        self.driver.resize_fs(device_path)
