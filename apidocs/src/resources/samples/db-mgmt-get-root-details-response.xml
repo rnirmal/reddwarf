@@ -1,6 +1,7 @@
 HTTP/1.1 200 OK
 Content-Type: application/xml
 Content-Length: 148
-Date: Fri, 13 Jan 2012 21:05:36 GMT
+Date: Wed, 25 Jan 2012 21:58:27 GMT
 
-<root_enabled_history id="2" root_enabled_at="2012-01-13 21:05:23" root_enabled_by="examples" xmlns="http://docs.openstack.org/database/api/v1.0"/>
+<root_enabled_history id="2" root_enabled_at="2012-01-25 21:58:11" root_enabled_by="examples" xmlns="http://docs.openstack.org/database/api/v1.0"/>
+

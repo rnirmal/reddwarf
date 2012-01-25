@@ -1,12 +1,13 @@
 HTTP/1.1 200 OK
 Content-Type: application/xml
-Content-Length: 813
-Date: Fri, 13 Jan 2012 21:01:16 GMT
+Content-Length: 748
+Date: Wed, 25 Jan 2012 21:53:23 GMT
 
-<instance created="2012-01-13T21:01:15Z" hostname="3f20f5632d3db9f3296b9fff184a85b328a924ea.041df828-3e29-11e1-8f71-080027a9d240-dbaas-tests.com" id="763f887f-9783-4ff3-8048-04135198204d" name="xml_rack_instance" status="BUILD" updated="2012-01-13T21:01:16Z" xmlns="http://docs.openstack.org/database/api/v1.0">
+<?xml version="1.0" ?>
+<instance created="2012-01-25T21:53:18Z" hostname="e09ad9a3f73309469cf1f43d11e79549caf9acf2.rackspaceclouddb.com" id="692d8418-7a8f-47f1-8060-59846c6e024f" name="xml_rack_instance" status="BUILD" updated="2012-01-25T21:53:22Z" xmlns="http://docs.openstack.org/database/api/v1.0">
 	<links>
-		<link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/763f887f-9783-4ff3-8048-04135198204d" rel="self"/>
-		<link href="https://ord.databases.api.rackspacecloud.com/instances/763f887f-9783-4ff3-8048-04135198204d" rel="bookmark"/>
+		<link href="https://ord.databases.api.rackspacecloud.com/v1.0/1234/instances/692d8418-7a8f-47f1-8060-59846c6e024f" rel="self"/>
+		<link href="https://ord.databases.api.rackspacecloud.com/instances/692d8418-7a8f-47f1-8060-59846c6e024f" rel="bookmark"/>
 	</links>
 	<volume size="2"/>
 	<flavor id="1">

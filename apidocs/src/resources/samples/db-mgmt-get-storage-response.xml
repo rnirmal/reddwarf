@@ -1,8 +1,8 @@
 HTTP/1.1 200 OK
 Content-Type: application/xml
-Content-Length: 170
-Date: Fri, 13 Jan 2012 21:05:32 GMT
+Content-Length: 171
+Date: Wed, 25 Jan 2012 21:58:21 GMT
 
 <devices xmlns="http://docs.openstack.org/database/api/v1.0">
-	<device availablesize="3.0" name="ISCSI test class" totalsize="7.0" type="ISCSITestDriver"/>
+	<device availablesize="6.5" name="ISCSI test class" totalsize="10.5" type="ISCSITestDriver"/>
 </devices>

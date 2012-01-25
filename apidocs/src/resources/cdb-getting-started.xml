@@ -505,7 +505,6 @@
             <title>cURL List Flavors Details Request: XML</title>
             <programlisting><command>curl -i</command> \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Accept: application/xml"</option> \
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri></programlisting>
         </example>
@@ -513,7 +512,6 @@
             <title>cURL List Flavors Details Request: JSON</title>
             <programlisting><command>curl -i</command> \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Accept: application/json"</option> \
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri></programlisting>
         </example>
@@ -525,12 +523,6 @@
                         authentication response (see the response
                         examples in <xref
                             linkend="Generating_Auth_Token"/>)</para>
-                </listitem>
-                <listitem>
-                    <para>your_acct_id &mdash; as returned in your
-                        authentication response (must be replaced in
-                        both the <code>X-Auth-Project-ID</code> header
-                        and the request URL)</para>
                 </listitem>
             </itemizedlist></para>
         <para>The following examples show the responses for List
@@ -593,7 +585,6 @@
     &lt;volume size="2" /> 
 &lt;/instance>' \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Content-Type: application/xml"</option> \
 <option>-H "Accept: application/xml"</option> \
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri></programlisting>
@@ -620,7 +611,6 @@
     } 
 }' \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Content-Type: application/json"</option> \
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri></programlisting>
         </example>
@@ -632,12 +622,6 @@
                         authentication response (see the response
                         examples in <xref
                             linkend="Generating_Auth_Token"/>)</para>
-                </listitem>
-                <listitem>
-                    <para>your_acct_id &mdash; as returned in your
-                        authentication response (must be replaced in
-                        both the <code>X-Auth-Project-ID</code> header
-                        and the request URL)</para>
                 </listitem>
             </itemizedlist></para>
         <para>Also remember to replace the dummy account id
@@ -685,7 +669,6 @@
          password="password" database="sampledb"/> 
 &lt;/users>' \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Content-Type: application/xml"</option> \
 <option>-H "Accept: application/xml"</option> \
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances/instance_id/users</uri></programlisting>
@@ -704,7 +687,6 @@
     ] 
 }' \
 <option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "X-Auth-Project-ID: your_acct_id"</option> \
 <option>-H "Content-Type: application/json"</option> \
 <uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances/instance_id/users</uri></programlisting>
         </example>
