@@ -340,7 +340,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'set', instance['id'],
                                   '--onboot', 'no', '--save',
-                                  run_as_root=True))\
+                                  run_as_root=True)\
                                   .AndReturn(('', ''))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -350,7 +350,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'set', instance['id'],
                                   '--onboot', 'no', '--save',
-                                  run_as_root=True))\
+                                  run_as_root=True)\
                                   .AndRaise(exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
