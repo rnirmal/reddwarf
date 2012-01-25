@@ -259,6 +259,14 @@ class MgmtCommands(object):
         except:
             print sys.exc_info()[1]
 
+    def diagnostics(self, id):
+        """List details for the instance provided"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.diagnostics.get(id)._info)
+        except:
+            print sys.exc_info()[1]
+
     def root(self, id):
         """List root history for the instance provided"""
         dbaas = common.get_client()

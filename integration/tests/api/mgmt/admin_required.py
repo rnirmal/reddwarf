@@ -78,3 +78,9 @@ class TestAdminRequired(object):
     def test_storage_index(self):
         """ A regular user may not view the list of storage available. """
         assert_raises(Unauthorized, self.dbaas.storage.index)
+
+    @test
+    def test_diagnostics_get(self):
+        """ A regular user may not view the diagnostics. """
+        assert_raises(Unauthorized, self.dbaas.diagnostics.get, 0)
+

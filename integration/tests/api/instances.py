@@ -95,6 +95,7 @@ class InstanceTestInfo(object):
         self.databases = None # The databases created on the instance.
         self.host_info = None # Host Info before creating instances
         self.user_context = None # A regular user context
+        self.diagnostics = None # Diagnostics from the guest on an instances.
 
     def check_database(self, dbname):
         return check_database(self.get_local_id(), dbname)
@@ -451,6 +452,14 @@ class TestGuestProcess(unittest.TestCase):
         result = dbaas.instances.get(instance_info.id)
         self.assertEqual(dbaas_mapping[power_state.RUNNING], result.status)
 
+    def test_instance_diagnostics_on_before_tests(self):
+        diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
+        print("diagnostics : %r" % diagnostics._info)
+        expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
+        CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
+                                        msg="Diagnostics")
+        instance_info.diagnostics = diagnostics
+
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, "nova.volumes.instance"])
 class TestVolume(unittest.TestCase):
@@ -638,6 +647,23 @@ class ResizeInstance(object):
             if not name in db_list:
                 fail("Database %s was not found after the volume resize. "
                      "Returned list: %s" % (name, databases))
+
+
+@test(depends_on_classes=[ResizeInstance], groups=[GROUP, tests.INSTANCES, "dbaas.diagnostics"])
+class CheckDiagnosticsAfterTests(object):
+    """ Check the diagnostics after running api commands on an instance. """
+    @test
+    def test_check_diagnostics_on_instance_after_tests(self):
+        diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
+        print("diagnostics : %r" % diagnostics._info)
+        expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
+        CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
+                                        msg="Diagnostics")
+        assert_equal(instance_info.diagnostics.version, diagnostics.version)
+        assert_equal(instance_info.diagnostics.Threads, diagnostics.Threads)
+        #TODO(cp16net) check that the memory did not increase too much after running all the tests
+        #               Need to determine a thresh hold to check for here
+#        assert_true(instance_info.diagnostics.VmSize == diagnostics.VmSize)
 
 
 @test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])

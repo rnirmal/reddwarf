@@ -116,6 +116,7 @@ class Dbaas(Client):
         self.management = Management(self)
         self.accounts = Accounts(self)
         self.configs = Configs(self)
+        self.diagnostics = Interrogator(self)
 
 
 from reddwarfclient.accounts import Accounts
@@ -128,3 +129,4 @@ from reddwarfclient.root import Root
 from reddwarfclient.storage import StorageInfo
 from reddwarfclient.users import Users
 from reddwarfclient.versions import Versions
+from reddwarfclient.diagnostics import Interrogator
