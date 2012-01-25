@@ -77,36 +77,27 @@ class AuthApiTest(test.TestCase):
 
     def test_valid_token(self):
         req = webob.Request.blank(flavors_url)
-        req.headers = [("X_AUTH_PROJECT_ID", "dbaas"),
-                       ("X-AUTH-TOKEN", TOKEN)]
+        req.headers = [("X-AUTH-TOKEN", TOKEN)]
         res = req.get_response(util.wsgi_app(fake_auth=False))
         self.assertEqual(res.status_int, 200)
 
     def test_invalid_token(self):
         req = webob.Request.blank(flavors_url)
-        req.headers = [("X_AUTH_PROJECT_ID", "dbaas"),
-                       ("X-AUTH-TOKEN", "aat-asd")]
+        req.headers = [("X-AUTH-TOKEN", "aat-asd")]
         res = req.get_response(util.wsgi_app(fake_auth=False))
         self._assert_401(res)
 
     def test_no_claims_provided(self):
         req = webob.Request.blank(flavors_url)
-        req.headers = [("X_AUTH_PROJECT_ID", "dbaas")]
+        req.headers = []
         res = req.get_response(util.wsgi_app(fake_auth=False))
         self._assert_401(res)
 
-    def test_no_auth_project_id(self):
-        req = webob.Request.blank(flavors_url)
+    def test_auth_tenant_not_provided(self):
+        req = webob.Request.blank("/v1.0/flavors/")
         req.headers = [("X-AUTH-TOKEN", TOKEN)]
         res = req.get_response(util.wsgi_app(fake_auth=False))
-        self._assert_401(res)
-
-    def test_auth_project_id_path_no_match(self):
-        req = webob.Request.blank(flavors_url)
-        req.headers = [("X_AUTH_PROJECT_ID", "other"),
-                       ("X-AUTH-TOKEN", TOKEN)]
-        res = req.get_response(util.wsgi_app(fake_auth=False))
-        self._assert_401(res)
+        self.assertEqual(res.status_int, 404)
 
     def test_validate_status(self):
         status = 200
@@ -124,7 +115,6 @@ class AuthApiTest(test.TestCase):
         cache_key = "aat/dbaas"
         self.auth.cache.set_value(cache_key, (data, 200))
         req = webob.Request.blank(flavors_url)
-        req.headers = [("X_AUTH_PROJECT_ID", "dbaas"),
-                       ("X-AUTH-TOKEN", "aat")]
+        req.headers = [("X-AUTH-TOKEN", "aat")]
         res = req.get_response(util.wsgi_app(fake_auth=False))
         self.assertEqual(res.status_int, 200)

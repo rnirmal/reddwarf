@@ -37,6 +37,10 @@ from reddwarf.tests import util
 base_url = util.v1_prefix
 mgmt_url = util.v1_mgmt_prefix
 
+def images_show(self, req, id):
+    return {'image': {'id': id, 'name': id}}
+
+
 class MgmtApiTest(test.TestCase):
     """Test various Database Management API calls"""
 
@@ -64,6 +68,8 @@ class MgmtApiTest(test.TestCase):
         self._test_path_restricted('hosts')
 
     def test_images_available_to_admin(self):
+        self.stubs.Set(nova.api.openstack.images.Controller,
+                       "show", images_show)
         req = webob.Request.blank(base_url + '/images/1')
         admin_context = context.RequestContext('fake', 'fake', 
                                               auth_token=True, is_admin=True)

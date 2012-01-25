@@ -118,9 +118,9 @@ class AuthProtocol(object):
         """ Handle incoming request. Authenticate. And send downstream. """
         proxy_headers = self._prep_headers(env)
 
-        # get validate tenant exists
-        tenant = env.get('HTTP_X_AUTH_PROJECT_ID', '')
-        if not self._check_path(env, tenant):
+        # Retrieve the tenant, if not reject the request
+        tenant = self._retrieve_tenant(env)
+        if not tenant:
             return self._reject_request(env, start_response)
 
         # Look for authentication claims
@@ -133,7 +133,6 @@ class AuthProtocol(object):
         cache_key = "%s/%s" % (claims,tenant)
 
         # this request is presenting claims. Let's validate them
-        auth_user = proxy_headers['X_AUTH_PROJECT_ID']
         #TODO(cp16net) what happens with 1000s of users being cached?
         if self.cache.has_key(cache_key):
             # get the cached values
@@ -168,16 +167,20 @@ class AuthProtocol(object):
 
         # Collect information about valid claims
         if valid:
+            # This is only required for auth 1.1, 2.0 onwards this is retrieved
+            # from the validation step.
+            self._decorate_request('X_TENANT', tenant, env, proxy_headers)
             env = self._expound_claims(data, env, proxy_headers)
 
         return self.app(env, start_response)
 
-    def _check_path(self, env, tenant):
-        # Check that the tenant/account id's in header and url match
+    def _retrieve_tenant(self, env):
+        # Retrieve the tenant/accountid from the url
         path_info = env.get('PATH_INFO', '/')
         if path_info not in ["", "/"]:
-            return path_info.split("/")[1] == tenant
-        return True
+            return path_info.split("/")[1]
+        else:
+            return None
 
     def _prep_headers(self, env):
         # Prep headers to forward request to local or remote downstream service
@@ -259,8 +262,6 @@ class AuthProtocol(object):
 
         # Store authentication data
         self._decorate_request('X_AUTHORIZATION', "Proxy %s" % userId, env,
-                               proxy_headers)
-        self._decorate_request('X_TENANT', env['HTTP_X_AUTH_PROJECT_ID'], env,
                                proxy_headers)
         self._decorate_request('X_USER', userId, env, proxy_headers)
         return env
