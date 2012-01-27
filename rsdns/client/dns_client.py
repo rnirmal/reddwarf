@@ -65,28 +65,27 @@ class DNSaasClient(HTTPClient):
 
     def request(self, *args, **kwargs):
         auth_attempts = 0
+        if 'body' in kwargs:
+            kwargs['headers']['Content-Type'] = 'application/json'
+            kwargs['body'] = json.dumps(kwargs['body'])
+            LOG.debug("REQ BODY:" + str(kwargs['body']))
         while(True):
             kwargs.setdefault('headers', {})
             kwargs['headers']['User-Agent'] = self.USER_AGENT
             kwargs['headers']['X-Auth-Token'] = self.auth_token
             LOG.debug("REQ ARGS:" + str(args))
             LOG.debug("REQ HEADERS:" + str(kwargs['headers']))
-            if 'body' in kwargs:
-                kwargs['headers']['Content-Type'] = 'application/json'
-                kwargs['body'] = json.dumps(kwargs['body'])
-                LOG.debug("REQ BODY:" + str(kwargs['body']))
 
-            resp, body = httplib2.Http.request(self, *args, **kwargs)
+            resp, body_response = httplib2.Http.request(self, *args, **kwargs)
             LOG.debug("RES RESPONSE:" + str(resp))
-            LOG.debug("RES BODY:" + str(body))
-            body = json.loads(body)
-            if resp.status == 401 \
-                and auth_attempts < 3:
-                    LOG.debug("Auth token expired, re-authing....")
-                    auth_attempts += 1
-                    if auth_attempts == 3:
-                        LOG.debug("This is the last attempt to re-auth...")
-                    self.authenticate()
+            LOG.debug("RES BODY:" + str(body_response))
+            body = json.loads(body_response)
+            if resp.status == 401 and auth_attempts < 3:
+                LOG.debug("Auth token expired, re-authing....")
+                auth_attempts += 1
+                if auth_attempts == 2:
+                    LOG.debug("This is the last attempt to re-auth...")
+                self.authenticate()
             else:
                 if resp.status in (400, 401, 403, 404, 413, 500, 501):
                     raise exception_from_response(resp, body)
