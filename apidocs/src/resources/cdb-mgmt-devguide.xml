@@ -335,13 +335,6 @@
                 specified using both an <code>Accept</code> header and
                 a query extension, the query extension takes
                 precedence.</para>
-            <para>Also note in <xref
-                    linkend="request_with_headers_json"/> that the
-                    <code>X-Auth-Project-ID</code> is a
-                    <emphasis>required</emphasis> header, and you must
-                specify your account number (as returned by the
-                Authentication Response) as its value, for example:
-                    <code>X-Auth-Project-ID: 1234</code>.</para>
             <para security="writeronly">Some operations support an Atom representation that
                 can be used to efficiently determine when the state of
                 services has changed. </para>

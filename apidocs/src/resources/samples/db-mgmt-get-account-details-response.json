@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 270
-Date: Fri, 13 Jan 2012 21:05:32 GMT
+Date: Wed, 25 Jan 2012 21:58:22 GMT
 
 {
     "account": {
@@ -10,12 +10,12 @@ Date: Fri, 13 Jan 2012 21:05:32 GMT
                 "id": "host", 
                 "instances": [
                     {
-                        "id": "6d568a00-1f09-47bf-b057-3da0dbb4489d", 
+                        "id": "dea5a2f7-3ec7-4496-adab-0abb5a42d635", 
                         "name": "json_rack_instance", 
                         "status": "active"
                     }, 
                     {
-                        "id": "763f887f-9783-4ff3-8048-04135198204d", 
+                        "id": "692d8418-7a8f-47f1-8060-59846c6e024f", 
                         "name": "xml_rack_instance", 
                         "status": "active"
                     }

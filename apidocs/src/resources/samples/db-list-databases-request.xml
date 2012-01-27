@@ -1,8 +1,7 @@
-GET /v1.0/1234/instances/763f887f-9783-4ff3-8048-04135198204d/databases HTTP/1.1
+GET /v1.0/1234/instances/692d8418-7a8f-47f1-8060-59846c6e024f/databases HTTP/1.1
 User-Agent: python-example-client
 Host: ord.databases.api.rackspacecloud.com
-X-Auth-Token: f02af495-d526-48d6-9343-fa8a198b6cff
-X-Auth-Project-ID: 1234
+X-Auth-Token: 87c6033c-9ff6-405f-943e-2deb73f278b7
 Accept: application/xml
 Content-Type: application/xml
 

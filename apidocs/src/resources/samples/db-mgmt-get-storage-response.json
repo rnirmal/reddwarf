@@ -1,14 +1,14 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 110
-Date: Fri, 13 Jan 2012 21:05:31 GMT
+Content-Length: 111
+Date: Wed, 25 Jan 2012 21:58:21 GMT
 
 {
     "devices": [
         {
-            "availablesize": 3.0, 
+            "availablesize": 6.5, 
             "name": "ISCSI test class", 
-            "totalsize": 7.0, 
+            "totalsize": 10.5, 
             "type": "ISCSITestDriver"
         }
     ]

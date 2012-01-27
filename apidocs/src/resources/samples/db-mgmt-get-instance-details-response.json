@@ -1,18 +1,12 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 1469
-Date: Fri, 13 Jan 2012 21:05:34 GMT
+Content-Length: 1353
+Date: Wed, 25 Jan 2012 21:58:25 GMT
 
 {
     "instance": {
         "account_id": "examples", 
         "addresses": {
-            "infranet": [
-                {
-                    "addr": "10.0.4.17", 
-                    "version": 4
-                }
-            ], 
             "usernet": [
                 {
                     "addr": "10.0.2.17", 
@@ -20,7 +14,7 @@ Date: Fri, 13 Jan 2012 21:05:34 GMT
                 }
             ]
         }, 
-        "created": "2012-01-13T21:01:15Z", 
+        "created": "2012-01-25T21:53:18Z", 
         "databases": [
             {
                 "character_set": "utf8", 
@@ -57,23 +51,23 @@ Date: Fri, 13 Jan 2012 21:05:34 GMT
             ]
         }, 
         "guest_status": {
-            "created_at": "2012-01-13 21:01:16", 
+            "created_at": "2012-01-25 21:53:23", 
             "deleted": false, 
             "deleted_at": null, 
             "instance_id": 2, 
             "state": 1, 
             "state_description": "running", 
-            "updated_at": "2012-01-13 21:05:27"
+            "updated_at": "2012-01-25 21:57:57"
         }, 
         "host": "host", 
-        "hostname": "3f20f5632d3db9f3296b9fff184a85b328a924ea.041df828-3e29-11e1-8f71-080027a9d240-dbaas-tests.com", 
-        "id": "763f887f-9783-4ff3-8048-04135198204d", 
+        "hostname": "e09ad9a3f73309469cf1f43d11e79549caf9acf2.rackspaceclouddb.com", 
+        "id": "692d8418-7a8f-47f1-8060-59846c6e024f", 
         "name": "xml_rack_instance", 
-        "root_enabled_at": "2012-01-13 21:05:23", 
+        "root_enabled_at": "2012-01-25 21:58:11", 
         "root_enabled_by": "examples", 
         "server_state_description": "active", 
         "status": "ACTIVE", 
-        "updated": "2012-01-13T21:03:14Z", 
+        "updated": "2012-01-25T21:55:30Z", 
         "users": [
             {
                 "name": "dbuser3"

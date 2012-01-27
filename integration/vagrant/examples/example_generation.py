@@ -36,11 +36,11 @@ class ExampleGenerator(object):
         self.tenant = config.get("tenant", None)
         self.replace_host = config.get("replace_host", None)
         print "tenant = %s" % self.tenant
+        self.replace_dns_hostname = config.get("replace_dns_hostname", None)
         auth_id = self.get_auth_token_id(auth_url, username, password)
         print "id = %s" % auth_id
         self.headers = {
-            'X-Auth-Token': auth_id,
-            'X-Auth-Project-ID': self.tenant
+            'X-Auth-Token': auth_id
         }
         self.dbaas_url = "%s/v1.0/%s" % (self.api_url, self.tenant)
 
@@ -119,7 +119,6 @@ class ExampleGenerator(object):
         output_list.append("User-Agent: %s" % output_headers['User-Agent'])
         output_list.append("Host: %s" % parsed.netloc)
         output_list.append("X-Auth-Token: %s" % output_headers['X-Auth-Token'])
-        output_list.append("X-Auth-Project-ID: %s" % output_headers['X-Auth-Project-ID'])
         output_list.append("Accept: %s" % output_headers['Accept'])
         output_list.append("Content-Type: %s" % output_headers['Content-Type'])
         output_list.append("")
@@ -145,12 +144,20 @@ class ExampleGenerator(object):
     def format_body(self, body, content_type):
         if content_type == 'json':
             try:
+                if self.replace_dns_hostname:
+                    body = re.sub(r'\"hostname\": \"[a-zA-Z0-9-_\.]*\"',
+                                  '\"hostname\": \"%s\"' % self.replace_dns_hostname,
+                                  body)
                 return json.dumps(json.loads(body), sort_keys=True, indent=4)
             except Exception:
                 return body if body else ''
         else:
             # expected type of body is xml
             try:
+                if self.replace_dns_hostname:
+                    body = re.sub(r'hostname=\"[a-zA-Z0-9-_\.]*\"',
+                                  'hostname=\"%s\"' % self.replace_dns_hostname,
+                                  body)
                 return self._indent_xml(body)
             except Exception as ex:
                 return body if body else ''
