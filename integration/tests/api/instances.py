@@ -95,7 +95,6 @@ class InstanceTestInfo(object):
         self.databases = None # The databases created on the instance.
         self.host_info = None # Host Info before creating instances
         self.user_context = None # A regular user context
-        self.diagnostics = None # Diagnostics from the guest on an instances.
 
     def check_database(self, dbname):
         return check_database(self.get_local_id(), dbname)
@@ -454,11 +453,7 @@ class TestGuestProcess(unittest.TestCase):
 
     def test_instance_diagnostics_on_before_tests(self):
         diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
-        print("diagnostics : %r" % diagnostics._info)
-        expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
-        CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
-                                        msg="Diagnostics")
-        instance_info.diagnostics = diagnostics
+        diagnostic_tests_helper(diagnostics)
 
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, "nova.volumes.instance"])
@@ -655,15 +650,8 @@ class CheckDiagnosticsAfterTests(object):
     @test
     def test_check_diagnostics_on_instance_after_tests(self):
         diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
-        print("diagnostics : %r" % diagnostics._info)
-        expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
-        CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
-                                        msg="Diagnostics")
-        assert_equal(instance_info.diagnostics.version, diagnostics.version)
-        assert_equal(instance_info.diagnostics.Threads, diagnostics.Threads)
-        #TODO(cp16net) check that the memory did not increase too much after running all the tests
-        #               Need to determine a thresh hold to check for here
-#        assert_true(instance_info.diagnostics.VmSize == diagnostics.VmSize)
+        diagnostic_tests_helper(diagnostics)
+        assert_true(diagnostics.VmHWM < 30*1024, "Fat Pete has emerged. size (%s > 30MB)" % diagnostics.VmHWM)
 
 
 @test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])
@@ -839,3 +827,9 @@ class CheckInstance(object):
         expected_attrs = ['description', 'id', 'name', 'size']
         self.attrs_exist(self.instance['volume'], expected_attrs,
                          msg="Volume")
+
+def diagnostic_tests_helper(diagnostics):
+    print("diagnostics : %r" % diagnostics._info)
+    expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
+    CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
+                                    msg="Diagnostics")

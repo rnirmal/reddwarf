@@ -44,9 +44,8 @@ class Controller(object):
         common.instance_available(ctxt, id, local_id, self.compute_api)
         try:
             diags = self.guest_api.get_diagnostics(ctxt, local_id)
-            result = {"diagnostics":diags}
-            LOG.debug("get_diagnostics: %r" % result)
-            return result
+            LOG.debug("get_diagnostics: %r" % diags)
+            return {"diagnostics":diags}
         except Exception as err:
             LOG.error(err)
             raise exception.InstanceFault("Error determining diagnostics")

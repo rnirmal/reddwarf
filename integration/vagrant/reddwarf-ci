@@ -964,24 +964,6 @@ run_vagrant_ci() {
 
 ###############################################################################
 
-build_agent() {
-    echo "Quick building the Agent."
-    sudo -E reprepro -Vb /var/www/debian remove squeeze nova-guest
-
-    sudo rm -rf /var/cache/apt-cacher-ng/apt.rackspace.com/debian/pool/main/n/nova-guest
-    sudo apt-get update
-
-    GIT_REVISION=`git --git-dir=${NOVA_HOME}/.git rev-parse HEAD`
-
-    mkdir -p $BUILD_DIR
-    cd $BUILD_DIR
-    # git clone https://github.com/hub-cap/oizys.git
-
-    dbaas_pkg_build_sneaky_pete no-clean
-    sudo apt-get update
-}
-
-
 ###############################################################################
 # Process the user provided command and run the appropriate command
 ###############################################################################
