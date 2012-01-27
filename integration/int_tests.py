@@ -57,12 +57,11 @@ def add_support_for_localization():
 
 
 MAIN_RUNNER = None
-REPORTER = None
 
 def _clean_up():
     """Shuts down any services this program has started and shows results."""
-    if REPORTER is not None:
-        REPORTER.update()
+    from tests.util import report
+    report.update()
     if MAIN_RUNNER is not None:
         MAIN_RUNNER.on_exit()
     from tests.util.services import get_running_services
@@ -87,7 +86,7 @@ if __name__ == '__main__':
     groups = []
     print("RUNNING TEST ARGS :  " + str(sys.argv))
     for arg in sys.argv[1:]:
-        if arg[:2] == "-i":
+        if arg[:2] == "-i" or arg == 'repl':
             repl = True
         if arg[:7] == "--conf=":
             conf_file = os.path.expanduser(arg[7:])
@@ -121,8 +120,12 @@ if __name__ == '__main__':
     FLAGS = flags.FLAGS
     FLAGS(sys.argv)
 
-    from tests.util.report import Reporter
-    REPORTER = Reporter(test_config.values["report_directory"])
+    from tests.util import report
+    from datetime import datetime
+    report.log("Reddwarf Integration Tests, %s" % datetime.now())
+    report.log("Invoked via command: " + str(sys.argv))
+    report.log("Groups = " + str(groups))
+    report.log("Test configuration file = %s" % nova_conf)
 
     # Now that the FlagFiles and other args have been parsed, time to import
     # everything.
@@ -138,6 +141,7 @@ if __name__ == '__main__':
         from tests.api import flavors
         from tests.api import versions
         from tests.api import instances
+        from tests.api import instances_actions
         from tests.api import databases
         from tests.api import root
         from tests.api import users

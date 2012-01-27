@@ -21,10 +21,14 @@ from nova import flags
 from nova import log as logging
 from nova import exception as nova_exception
 from nova import utils
+from nova.compute import task_states
 from nova.compute import vm_states
 from nova.compute import power_state
 from nova.compute.manager import ComputeManager
+from nova.compute.manager import checks_instance_lock
+from nova.exception import wrap_exception as nova_wrap_exception
 from nova.notifier import api as notifier
+from nova.rpc.common import RemoteError
 from nova.volume import api as volume_api
 
 from reddwarf import guest
@@ -143,7 +147,7 @@ class ReddwarfInstanceInitializer(object):
         self.db.volume_attached(self.context, self.volume_id,
                                 self.instance_id, self.volume_mount_point)
         volume_api.update(self.context, self.volume_id, {})
-    
+
     def initialize_guest(self, guest_api):
         """Tell the guest to initialize itself and wait for it to happen.
 
@@ -240,6 +244,20 @@ class ReddwarfComputeManager(ComputeManager):
         self.guest_api = guest.API()
         self.compute_manager = super(ReddwarfComputeManager, self)
 
+    def restart(self, context, instance_id):
+        """Call agent to restart MySQL."""
+        LOG.audit(_("Rebooting instance %s"), instance_id, context=context)
+        context = context.elevated()
+        instance_ref = self.db.instance_get(context, instance_id)
+        self._instance_update(context, instance_id,
+                              task_state=task_states.REBOOTING)
+        try:
+            self.guest_api.restart(context, instance_id)
+        except RemoteError:
+            LOG.error("Failure to restart MySQL.")
+        finally:
+            self._instance_update(context,instance_id, task_state=None)
+
     def run_instance(self, context, instance_id, **kwargs):
         """Launch a new instance with specified options.
 
@@ -273,6 +291,46 @@ class ReddwarfComputeManager(ComputeManager):
             self.volume_api.delete_volume_when_available(context,
                                                          volume['id'],
                                                          time_out=60)
+
+    @nova_wrap_exception(notifier=notifier, publisher_id=publisher_id())
+    @checks_instance_lock
+    def reboot_instance(self, context, instance_id):
+        """Reboot an instance on this host."""
+        #TODO(tim.simpson): This is all copy and pasted from Nova.
+        LOG.audit(_("Rebooting instance %s"), instance_id, context=context)
+        context = context.elevated()
+        instance_ref = self.db.instance_get(context, instance_id)
+
+        current_power_state = self._get_power_state(context, instance_ref)
+        self._instance_update(context,
+                              instance_id,
+                              power_state=current_power_state,
+                              vm_state=vm_states.ACTIVE,
+                              task_state=task_states.REBOOTING)
+
+        if instance_ref['power_state'] != power_state.RUNNING:
+            state = instance_ref['power_state']
+            running = power_state.RUNNING
+            LOG.warn(_('trying to reboot a non-running '
+                       'instance: %(instance_id)s (state: %(state)s '
+                       'expected: %(running)s)') % locals(),
+                     context=context)
+
+        network_info = self._get_instance_nw_info(context, instance_ref)
+        self.driver.reboot(instance_ref, network_info)
+
+        # Code unique to  Reddwarf:
+        #TODO(tim.simpson): Setting this to "paused" is unclear. Once the
+        # status code is cleaned up, change this to RESTART or something.
+        dbapi.guest_status_update(instance_id, power_state.PAUSED, "paused")
+        # End unique Reddwarf code.
+
+        current_power_state = self._get_power_state(context, instance_ref)
+        self._instance_update(context,
+                              instance_id,
+                              power_state=current_power_state,
+                              vm_state=vm_states.ACTIVE,
+                              task_state=None)
 
     def resize_volume(self, context, instance_id, volume_id):
         """

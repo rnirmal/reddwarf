@@ -135,14 +135,18 @@ class ViewBuilder(object):
         IDs to their states.
 
         """
-        if server['status'] == 'ERROR':
-            return 'ERROR'
+        if server['status'] in ['ERROR', 'REBOOT']:
+            return server['status']
         else:
             try:
                 state = guest_states[server['id']]
+                if state == power_state.PAUSED:
+                    return "REBOOT"
             except (KeyError, InstanceNotFound):
                 # we set the state to shutdown if not found
                 state = power_state.SHUTDOWN
+            # The guest state is set to PAUSED before reboot. When it wakes
+            # up, it will change the state to something else.
             return common.dbaas_mapping.get(state, None)
 
 

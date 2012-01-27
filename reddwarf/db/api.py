@@ -356,10 +356,10 @@ def localid_from_uuid(uuid):
     session = get_session()
     try:
         result = session.query(Instance).filter_by(uuid=uuid).one()
+        return result['id']
     except NoResultFound:
         LOG.debug("No such instance found.")
-        return None
-    return result['id']
+        raise exception.NotFound()
 
 
 def rsdns_record_create(name, id):

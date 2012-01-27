@@ -33,6 +33,7 @@ from reddwarf.compute.manager import VALID_ABORT_STATES
 from reddwarf.db import api as dbapi
 from reddwarf.utils import poll_until
 from tests.util import create_test_client
+from tests.util import report
 from tests.util import test_config
 from tests.util.users import Requirements
 
@@ -152,6 +153,8 @@ class InstanceTest(object):
         time it also makes sure that the API returns SHUTDOWN.
 
         """
+        # Update the report so the logs inside the instance will be saved.
+        report.update()
         self.dbaas.instances.delete(self.id)
         attempts = 0
         try:
