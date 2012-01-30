@@ -91,10 +91,7 @@ class APIToken(object):
 
 
 class Auth(object):
-    """
-    Authenticate with your username and api key to get the auth token
-    for future requests
-    """
+    """Authenticate with your username and api key"""
 
     def __init__(self):
         pass
