@@ -951,8 +951,8 @@ vagrant_ssh() {
 
 run_vagrant_ci() {
     shift
-    echo vagrant_ssh $HTTP_PROXY /vagrant/reddwarf-ci run $@
-    vagrant_ssh $HTTP_PROXY /vagrant/reddwarf-ci run $@
+    echo vagrant_ssh $HTTP_PROXY $CI_RUN_VARS /vagrant/reddwarf-ci run $@
+    vagrant_ssh $HTTP_PROXY $CI_RUN_VARS /vagrant/reddwarf-ci run $@
 }
 
 ###############################################################################
