@@ -46,91 +46,14 @@ def _pretty_print(info):
     print json.dumps(info, sort_keys=True, indent=4)
 
 
-class ListCommands(object):
-    """List details of Instances, Databases, Users, Flavors and Images"""
+class InstanceCommands(object):
+    """Commands to perform various instances operations and actions"""
 
     def __init__(self):
         pass
 
-    def instances(self):
-        """List all Instances for account"""
-        dbaas = common.get_client()
-        try:
-            for instance in dbaas.instances.list():
-                _pretty_print(instance._info)
-        except:
-            print sys.exc_info()[1]
-
-    def instance(self, id):
-        """List details for the specified Instance"""
-        dbaas = common.get_client()
-        try:
-            _pretty_print(dbaas.instances.get(id)._info)
-        except:
-            print sys.exc_info()[1]
-
-    def flavors(self):
-        """List the available flavors"""
-        dbaas = common.get_client()
-        try:
-            for flavor in dbaas.flavors.list():
-                _pretty_print(flavor._info)
-        except:
-            print sys.exc_info()[1]
-
-    def images(self):
-        """List the available images"""
-        dbaas = common.get_client()
-        try:
-            for image in dbaas.images.list():
-                _pretty_print(image._info)
-        except:
-            print sys.exc_info()[1]
-
-    def users(self, id):
-        """List the users on an instance's database"""
-        dbaas = common.get_client()
-        try:
-            for user in dbaas.users.list(id):
-                _pretty_print(user._info)
-        except:
-            print sys.exc_info()[1]
-
-    def databases(self, id):
-        """List the databases on an instance"""
-        dbaas = common.get_client()
-        try:
-            for database in dbaas.databases.list(id):
-                _pretty_print(database._info)
-        except:
-            print sys.exc_info()[1]
-
-    def root(self, id):
-        """Check the instance for root access"""
-        dbaas = common.get_client()
-        try:
-            _pretty_print(dbaas.root.is_root_enabled(id))
-        except:
-            print sys.exc_info()[1]
-
-    def versions(self, url):
-        """List all the supported versions"""
-        dbaas = common.get_client()
-        try:
-            versions = dbaas.versions.index(url)
-            for version in versions:
-                _pretty_print(version._info)
-        except:
-            print sys.exc_info()[1]
-
-class CreateCommands(object):
-    """Create Instances, Databases and Users"""
-
-    def __init__(self):
-        pass
-
-    def instance(self, name, volume_size,
-                 flavorRef="http://localhost:8775/v1.0/flavors/1"):
+    def create(self, name, volume_size,
+               flavorRef="http://localhost:8775/v1.0/flavors/1"):
         """Create a new instance"""
         dbaas = common.get_client()
         volume = {"size": volume_size}
@@ -140,44 +63,7 @@ class CreateCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def database(self, id, dbname):
-        """Create a database within the specified instance"""
-        dbaas = common.get_client()
-        try:
-            databases = [{'name': dbname}]
-            dbaas.databases.create(id, databases)
-        except:
-            print sys.exc_info()[1]
-
-    def user(self, id, username, password, dbname, *args):
-        """Create a user in instance, with access to one or more databases"""
-        dbaas = common.get_client()
-        try:
-            databases = [{'name': dbname}]
-            [databases.append({"name": db}) for db in args]
-            users = [{'name': username, 'password': password,
-                     'databases': databases}]
-            dbaas.users.create(id, users)
-        except:
-            print sys.exc_info()[1]
-
-    def root(self, id):
-        """Enabling the instance's root user."""
-        dbaas = common.get_client()
-        try:
-            user, password = dbaas.root.create(id)
-            print "User:\t\t%s\nPassword:\t%s" % (user, password)
-        except:
-            print sys.exc_info()[1]
-
-
-class DeleteCommands(object):
-    """Delete Instances, Databases and Users"""
-
-    def __init__(self):
-        pass
-
-    def instance(self, id):
+    def delete(self, id):
         """Delete the specified instance"""
         dbaas = common.get_client()
         try:
@@ -187,109 +73,168 @@ class DeleteCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def database(self, id, dbname):
-        """Delete the specified database in the instance"""
+    def get(self, id):
+        """Get details for the specified instance"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.instances.get(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+    def list(self):
+        """List all instances for account"""
+        dbaas = common.get_client()
+        try:
+            for instance in dbaas.instances.list():
+                _pretty_print(instance._info)
+        except:
+            print sys.exc_info()[1]
+
+    def resize(self, id, size):
+        """Resize an instance volume"""
+        dbaas = common.get_client()
+        try:
+            result = dbaas.instances.resize(id, size)
+            if result:
+                print result
+        except:
+            print sys.exc_info()[1]
+
+    def reboot(self, id, type="SOFT"):
+        """Reboot the database (SOFT) or the OS (HARD)"""
+        dbaas = common.get_client()
+        try:
+            result = dbaas.instances.reboot(id, type)
+            if result:
+                print result
+        except:
+            print sys.exc_info()[1]
+
+
+class FlavorsCommands(object):
+    """Commands for listing Flavors"""
+
+    def __init__(self):
+        pass
+
+    def list(self):
+        """List the available flavors"""
+        dbaas = common.get_client()
+        try:
+            for flavor in dbaas.flavors.list():
+                _pretty_print(flavor._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class DatabaseCommands(object):
+    """Database CRUD operations on an instance"""
+
+    def __init__(self):
+        pass
+
+    def create(self, id, dbname):
+        """Create a database"""
+        dbaas = common.get_client()
+        try:
+            databases = [{'name': dbname}]
+            dbaas.databases.create(id, databases)
+        except:
+            print sys.exc_info()[1]
+
+    def delete(self, id, dbname):
+        """Delete a database"""
         dbaas = common.get_client()
         try:
             dbaas.databases.delete(id, dbname)
         except:
             print sys.exc_info()[1]
 
-    def user(self, id, user):
-        """Delete the specified user in the instance"""
+    def list(self, id):
+        """List the databases"""
+        dbaas = common.get_client()
+        try:
+            for database in dbaas.databases.list(id):
+                _pretty_print(database._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class UserCommands(object):
+    """User CRUD operations on an instance"""
+
+    def __init__(self):
+        pass
+
+    def create(self, id, username, password, dbname, *args):
+        """Create a user in instance, with access to one or more databases"""
+        dbaas = common.get_client()
+        try:
+            databases = [{'name': dbname}]
+            [databases.append({"name": db}) for db in args]
+            users = [{'name': username, 'password': password,
+                      'databases': databases}]
+            dbaas.users.create(id, users)
+        except:
+            print sys.exc_info()[1]
+
+    def delete(self, id, user):
+        """Delete the specified user"""
         dbaas = common.get_client()
         try:
             dbaas.users.delete(id, user)
         except:
             print sys.exc_info()[1]
 
-class MgmtCommands(object):
-    """Run various management commands"""
+    def list(self, id):
+        """List all the users for an instance"""
+        dbaas = common.get_client()
+        try:
+            for user in dbaas.users.list(id):
+                _pretty_print(user._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class RootCommands(object):
+    """Root user related operations on an instance"""
 
     def __init__(self):
         pass
 
-    def hosts(self):
-        """List all Compute hosts"""
+    def create(self, id):
+        """Enable the instance's root user."""
         dbaas = common.get_client()
         try:
-            for host in dbaas.hosts.index():
-                _pretty_print(host._info)
+            user, password = dbaas.root.create(id)
+            print "User:\t\t%s\nPassword:\t%s" % (user, password)
         except:
             print sys.exc_info()[1]
 
-    def host(self, name):
-        """List details for the specified Host"""
+    def enabled(self, id):
+        """Check the instance for root access"""
         dbaas = common.get_client()
         try:
-            _pretty_print(dbaas.hosts.get(name)._info)
+            _pretty_print(dbaas.root.is_root_enabled(id))
         except:
             print sys.exc_info()[1]
 
-    def instance(self, id):
-        """List details for the specified Instance"""
+
+class VersionCommands(object):
+    """List available versions"""
+
+    def __init__(self):
+        pass
+
+    def list(self, url):
+        """List all the supported versions"""
         dbaas = common.get_client()
         try:
-            _pretty_print(dbaas.management.show(id)._info)
+            versions = dbaas.versions.index(url)
+            for version in versions:
+                _pretty_print(version._info)
         except:
             print sys.exc_info()[1]
-
-    def instances(self, deleted=None):
-        """List all local instances, optionally filtered by deleted status."""
-        dbaas = common.get_client()
-        try:
-            _pretty_print(dbaas.management.details(deleted)._info)
-        except:
-            print sys.exc_info()[1]
-
-    def storage(self):
-        """List details for the storage devices"""
-        dbaas = common.get_client()
-        try:
-            for device in dbaas.storage.index():
-                _pretty_print(device._info)
-        except:
-            print sys.exc_info()[1]
-
-    def accounts(self, acct):
-        """List details for the account provided"""
-        dbaas = common.get_client()
-        try:
-            _pretty_print(dbaas.accounts.show(acct)._info)
-        except:
-            print sys.exc_info()[1]
-
-    def diagnostics(self, id):
-        """List details for the instance provided"""
-        dbaas = common.get_client()
-        try:
-            _pretty_print(dbaas.diagnostics.get(id)._info)
-        except:
-            print sys.exc_info()[1]
-
-    def root(self, id):
-        """List root history for the instance provided"""
-        dbaas = common.get_client()
-        try:
-          _pretty_print(dbaas.management.root_enabled_history(id)._info)
-        except:
-          print sys.exc_info()[1]
-
-    def upgrade(self, id):
-        """Upgrade a single instance."""
-        dbaas = common.get_client()
-        try:
-          _pretty_print(dbaas.guests.upgrade(id)._info)
-        except:
-          print sys.exc_info()[1]
-
-    def upgradeall(self):
-        """Upgrade a single instance."""
-        dbaas = common.get_client()
-        try:
-          _pretty_print(dbaas.guests.upgradeall()._info)
-        except:
-          print sys.exc_info()[1]
 
 
 def config_options():
@@ -300,10 +245,12 @@ def config_options():
 
 
 COMMANDS = {'auth': common.Auth,
-            'list': ListCommands,
-            'create': CreateCommands,
-            'delete': DeleteCommands,
-            'mgmt': MgmtCommands}
+            'instance': InstanceCommands,
+            'flavor': FlavorsCommands,
+            'database': DatabaseCommands,
+            'user': UserCommands,
+            'root': RootCommands,
+            'version': VersionCommands}
 
 
 def main():

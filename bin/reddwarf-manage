@@ -52,6 +52,10 @@ format = "%-25s\t%-25s\t%-30s"
 dash = "----------------------------"
 
 
+def _pretty_print(info):
+    print json.dumps(info, sort_keys=True, indent=4)
+
+
 class DbCommands(object):
     """Commands to manage the datastore"""
 
@@ -133,6 +137,147 @@ class ConfigCommands(object):
         dbaas.configs.delete(config)
 
 
+class ImageCommands(object):
+    """Commands to list images"""
+
+    def __init__(self):
+        pass
+
+    def list(self):
+        """List the available images"""
+        dbaas = common.get_client()
+        try:
+            for image in dbaas.images.list():
+                _pretty_print(image._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class InstanceCommands(object):
+    """Commands to perform various instances operations and actions"""
+
+    def __init__(self):
+        pass
+
+    def get(self, id):
+        """List details for the specified Instance"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.management.show(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+    def list(self, deleted=None):
+        """List all instances, optionally filtered by deleted"""
+        dbaas = common.get_client()
+        try:
+            instances = dbaas.management.index(deleted)
+            for instance in instances:
+                _pretty_print(instance._info)
+        except:
+            print sys.exc_info()[1]
+
+    def diagnostics(self, id):
+        """List diagnostics for the instance"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.diagnostics.get(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class HostCommands(object):
+    """Commands to list info on hosts"""
+
+    def __init__(self):
+        pass
+
+    def get(self, name):
+        """List details for the specified host"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.hosts.get(name)._info)
+        except:
+            print sys.exc_info()[1]
+
+    def list(self):
+        """List all compute hosts"""
+        dbaas = common.get_client()
+        try:
+            for host in dbaas.hosts.index():
+                _pretty_print(host._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class StorageCommands(object):
+    """Commands to list info on storage systems"""
+
+    def __init__(self):
+        pass
+
+    def list(self):
+        """List details for the storage devices"""
+        dbaas = common.get_client()
+        try:
+            for device in dbaas.storage.index():
+                _pretty_print(device._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class RootCommands(object):
+    """List details about root info for an instance"""
+
+    def __init__(self):
+        pass
+
+    def history(self, id):
+        """List root history for the instance"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.management.root_enabled_history(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class AccountCommands(object):
+    """Commands to list account info"""
+
+    def __init__(self):
+        pass
+
+    def get(self, acct):
+        """List details for the account provided"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.accounts.show(acct)._info)
+        except:
+            print sys.exc_info()[1]
+
+
+class UpgradeCommands(object):
+    """Commands to upgrade"""
+
+    def all(self):
+        """Upgrade all instances"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.guests.upgradeall()._info)
+        except:
+            print sys.exc_info()[1]
+
+    def instance(self, id):
+        """Upgrade a single instance"""
+        dbaas = common.get_client()
+        try:
+            _pretty_print(dbaas.guests.upgrade(id)._info)
+        except:
+            print sys.exc_info()[1]
+
+
+
+
 def config_options(oparser):
     oparser.add_option("-f", "--flagfile", default="/etc/nova/nova.conf",
                         help="Flag file with reddwarf conf")
@@ -140,7 +285,14 @@ def config_options(oparser):
 
 COMMANDS = {'auth': common.Auth,
             'config': ConfigCommands,
-            'db': DbCommands}
+            'db': DbCommands,
+            'instance': InstanceCommands,
+            'host': HostCommands,
+            'image': ImageCommands,
+            'storage': StorageCommands,
+            'root': RootCommands,
+            'account': AccountCommands,
+            'upgrade': UpgradeCommands}
 
 
 def main():
