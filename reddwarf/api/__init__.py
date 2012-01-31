@@ -27,6 +27,7 @@ from nova import wsgi
 from reddwarf.api import accounts
 from reddwarf.api import config
 from reddwarf.api import databases
+from reddwarf.api import diagnostics
 from reddwarf.api import images
 from reddwarf.api import instances
 from reddwarf.api import guests
@@ -126,6 +127,10 @@ class APIRouter(wsgi.Router):
             mapper.connect("/{project_id}/mgmt/instances/{id}",
                             controller=management.create_resource(),
                             action="show", conditions=dict(method=["GET"]))
+
+            mapper.connect("/{project_id}/mgmt/instances/{id}/diagnostics",
+                            controller=diagnostics.create_resource(),
+                            action="get_diagnostics", conditions=dict(method=["GET"]))
 
             mapper.connect("/{project_id}/mgmt/instances/{id}/root",
                             controller=management.create_resource(),

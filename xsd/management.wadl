@@ -39,6 +39,9 @@
           <resource id="rootdetails" path="root">
               <method href="#getrootdetails"/>
           </resource>
+          <resource id="diagnostics" path="diagnostics">
+              <method href="#getdiagnosticdetails"/>
+          </resource>
         </resource>
       </resource>
       <resource id="storage" path="storage">
@@ -106,6 +109,7 @@
     &commonFaults;
     &getFaults;
   </method>
+
   <method name="GET" id="gethostbyid">
     <wadl:doc xml:lang="EN" title="List All Instances for a Host" xmlns="http://docbook.org/ns/docbook">
       <para role="shortdesc">
@@ -162,6 +166,7 @@
     &commonFaults;
     &getFaults;
   </method>
+
   <method name="GET" id="getIndex">
     <wadl:doc xml:lang="EN" title="List Management Index of Instances" xmlns="http://docbook.org/ns/docbook">
       <para role="shortdesc">
@@ -197,6 +202,7 @@
     &commonFaults;
     &getFaults;
   </method>
+
   <method name="GET" id="showinstances">
     <wadl:doc xml:lang="EN" title="List Database Instance Status and Details" xmlns="http://docbook.org/ns/docbook">
       <para role="shortdesc">
@@ -519,7 +525,7 @@
     &commonFaults;
     &getFaults;
   </method>
-  
+
   <method name="GET" id="getrootdetails">
     <wadl:doc xml:lang="EN" title="Get Root Details" xmlns="http://docbook.org/ns/docbook">
       <para role="shortdesc">
@@ -553,6 +559,15 @@
               <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-get-root-details-response.json"/>
             </doc>
           </representation>
+      </response>
+      &commonFaults;
+      &getFaults;
+  </method>
+
+  <method name="GET" id="getdiagnosticdetails">
+      <response status="200">
+          <representation mediaType="application/xml" element="dbaas:DiagnosticsDetails"/>
+          <representation mediaType="application/json" element="dbaas:DiagnosticsDetails"/>
       </response>
       &commonFaults;
       &getFaults;

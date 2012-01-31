@@ -451,6 +451,10 @@ class TestGuestProcess(unittest.TestCase):
         result = dbaas.instances.get(instance_info.id)
         self.assertEqual(dbaas_mapping[power_state.RUNNING], result.status)
 
+    def test_instance_diagnostics_on_before_tests(self):
+        diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
+        diagnostic_tests_helper(diagnostics)
+
 
 @test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START, "nova.volumes.instance"])
 class TestVolume(unittest.TestCase):
@@ -640,6 +644,16 @@ class ResizeInstance(object):
                      "Returned list: %s" % (name, databases))
 
 
+@test(depends_on_classes=[ResizeInstance], groups=[GROUP, tests.INSTANCES, "dbaas.diagnostics"])
+class CheckDiagnosticsAfterTests(object):
+    """ Check the diagnostics after running api commands on an instance. """
+    @test
+    def test_check_diagnostics_on_instance_after_tests(self):
+        diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
+        diagnostic_tests_helper(diagnostics)
+        assert_true(diagnostics.VmHWM < 30*1024, "Fat Pete has emerged. size (%s > 30MB)" % diagnostics.VmHWM)
+
+
 @test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])
 class DeleteInstance(object):
     """ Delete the created instance """
@@ -813,3 +827,9 @@ class CheckInstance(object):
         expected_attrs = ['description', 'id', 'name', 'size']
         self.attrs_exist(self.instance['volume'], expected_attrs,
                          msg="Volume")
+
+def diagnostic_tests_helper(diagnostics):
+    print("diagnostics : %r" % diagnostics._info)
+    expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
+    CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
+                                    msg="Diagnostics")

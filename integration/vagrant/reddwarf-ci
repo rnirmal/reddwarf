@@ -458,6 +458,7 @@ dbaas_pkg_build_sneaky_pete() {
     # Clean this to prevent any shenanigans.
     if [ "$1" != "no-clean" ]; then
         rm -rf $AGENT_WORK_DIR/bin
+
     fi
 
     # If using a working copy, AGENT_DIR == AGENT_WORK_DIR.
@@ -465,6 +466,12 @@ dbaas_pkg_build_sneaky_pete() {
     # copy it to the $BUILD_DIR.
     if [ -d $AGENT_DIR ]; then
         cd $AGENT_WORK_DIR
+
+        # TODO(cp16net) not happy about updating the version.h file here. Would probably be best to try to do it in bjam.
+        # Update the version in the build to the git revision number
+        AGENT_GIT_REVISION=`git --git-dir=${AGENT_WORK_DIR}/.git rev-parse HEAD`
+        sed -i.bak "s/THIS_IS_THE_CURRENT_VERSION/$AGENT_GIT_REVISION/g" $AGENT_WORK_DIR/include/nova/guest/version.h
+
         bjam -d+2 link=static release nova-guest
         cp -rf $AGENT_WORK_DIR/* $BUILD_DIR/agent
     fi
