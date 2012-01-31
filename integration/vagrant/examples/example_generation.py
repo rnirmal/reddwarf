@@ -331,11 +331,13 @@ class ExampleGenerator(object):
 
     def instance_reboot(self, instance_id, type):
         url = "%s/instances/%s/action" % (self.dbaas_url, instance_id)
-        body = {'json': json.dumps({'reboot': {'type': type}}),
-                'xml' : """<?xml version="1.0" encoding="UTF-8"?>
-<reboot xmlns="http://docs.openstack.org/database/api/v1.0"
- type="%s"/>""" % type
-        }
+        json_data = {'reboot': {'type': type}}
+        xml_data = """
+           <?xml version="1.0" encoding="UTF-8"?>
+           <reboot xmlns="http://docs.openstack.org/database/api/v1.0"
+           type="%s"/>""" % type
+        body = {'json': json.dumps(json_data),
+                'xml' : xml_data }
         self.http_call('instance_reboot-%s' % type, url, 'POST', body=body)
 
 
