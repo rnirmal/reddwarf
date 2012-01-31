@@ -40,6 +40,7 @@ function process_option {
   esac
 }
 
+UNITTEST_FIXTURE=${UNITTEST_FIXTURE:-reddwarf}
 venv=.venv
 with_venv=tools/with_venv.sh
 always_venv=0
@@ -87,7 +88,7 @@ function run_pep8 {
   GLOBIGNORE="$ignore_scripts:$ignore_files:$ignore_dirs"
   srcfiles=`find bin -type f ! -name "nova.conf*"`
   srcfiles+=" `find tools/*`"
-  srcfiles+=" nova setup.py plugins/xenserver/xenapi/etc/xapi.d/plugins/glance"
+  srcfiles+=" $UNITTEST_FIXTURE setup.py plugins/xenserver/xenapi/etc/xapi.d/plugins/glance"
   # Just run PEP8 in current environment
   #
   # NOTE(sirp): W602 (deprecated 3-arg raise) is being ignored for the

@@ -50,16 +50,27 @@ fi
 
 print_usage() {
     echo "Usage: $0 [command]"
-    echo ""
-    echo "Commands:
-            vagrantci       - Run CI from the host
-            run             - Run install, build, initialize and test
-            install         - Install all the required dependencies
-            build           - Build the packages
-            initialize      - Initialize Reddwarf environment
-            test            - Run the tests
-            start           - Start Reddwarf in a screen session
-            stop            - Stop Reddwarf screen session"
+    echo "
+    Host Commands:
+          vagrantci       - Run CI from the host
+
+    Vm Commands (WARNING!: Run these outside of a VM at your own peril!):
+          run             - Run install, build, initialize and test
+          install         - Install all the required dependencies
+          build           - Build the packages (including the agent)
+          build-agent     - Builds only the agent package (runs during 'build')
+          unit-tests      - Run unit tests
+          initialize      - Initialize Reddwarf environment
+          test-agent      - Run the agent functional tests
+          test            - Run the Reddwarf integration tests
+          start           - Start Reddwarf in a screen session
+          stop            - Stop Reddwarf screen session
+          repl            - Run the integration tests with a repl
+          patch           - Apply the nova patch (runs during 'build')
+          revert-patch    - Remove the nova patch
+    "
+
+
     exit 1
 }
 
@@ -196,7 +207,18 @@ Description: Rackspace DBaaS APT Repository' | sudo tee $PACKAGES_DIR/conf/distr
 
 install_packages() {
     exclaim 'Installing Dependencies...'
-    pkg_install git-core python-all python-setuptools python-sphinx python-distutils-extra pep8 debhelper apache2 dupload bzr gawk iptables ebtables screen curl rabbitmq-server lvm2 socat unzip python-twisted python-mox python-ipy python-paste python-migrate python-gflags python-greenlet python-libxml2 python-routes python-netaddr python-pastedeploy python-eventlet python-novaclient python-glance python-cheetah python-carrot python-tempita python-sqlalchemy python-suds mysql-server python-mysqldb python-paramiko python-lockfile python-pip cdbs python-mock uuid python-webob python-m2crypto python-twisted-web python-boto python-amqplib python-unittest2 python-feedparser python-kombu python-pexpect python-beaker 
+    pkg_install git-core python-all python-setuptools python-sphinx \
+        python-distutils-extra pep8 debhelper apache2 dupload bzr gawk \
+        iptables ebtables screen curl rabbitmq-server lvm2 socat unzip \
+        python-twisted python-mox python-ipy python-paste python-migrate \
+        python-gflags python-greenlet python-libxml2 python-routes \
+        python-netaddr python-pastedeploy python-eventlet python-novaclient \
+        python-glance python-cheetah python-carrot python-tempita \
+        python-sqlalchemy python-suds mysql-server python-mysqldb \
+        python-paramiko python-lockfile python-pip cdbs python-mock uuid \
+        python-webob python-m2crypto python-twisted-web python-boto \
+        python-amqplib python-unittest2 python-feedparser python-kombu \
+        python-pexpect python-beaker
 
     # The default version of pip Ubuntu installs is old.
     cd /tmp
@@ -554,6 +576,22 @@ build_agent() {
 
 
 ###############################################################################
+# Run unit-tests
+###############################################################################
+
+run_unit_tests() {
+    cd $NOVA_HOME
+    touch $NOVA_HOME/clean.sqlite
+    exclaim "Running Reddwarf Unit Tests..."
+    UNITTEST_FIXTURE=reddwarf $NOVA_HOME/run_tests.sh -N $@
+    exclaim "Running RSDNS Unit Tests..."
+    UNITTEST_FIXTURE=rsdns $NOVA_HOME/run_tests.sh -N $@
+    #exclaim "Running OpenVZ Driver NOVA Unit Tests..."
+    #UNITTEST_FIXTURE=nova /src/run_tests.sh -N test_ovz
+}
+
+
+###############################################################################
 # Initialize or re-initalize nova
 #
 # Clean the Nova environment removing all vms, volumes and database entries
@@ -629,6 +667,9 @@ setup_nova_conf() {
     cp /src/etc/nova/api-paste_keystone.ini /home/vagrant
     cp /src/etc/nova/reddwarf-api-paste.ini /home/vagrant
 }
+###############################################################################
+# Install all the required dependencies
+###############################################################################
 
 setup_tests_conf() {
     cat /vagrant/conf/host.tests.conf_begin > $TESTS_CONF
@@ -850,6 +891,7 @@ run_host_tests() {
 run_ci() {
     install_deps
     build
+    run_unit_tests --no-pep8
     initialize
     run_agent_tests
     run_tests $@
@@ -1004,6 +1046,7 @@ case "$1" in
     "show_dns_entries" ) show_dns_entries;;
     "patch" ) patch_src_dir;;
     "revert-patch" ) revert_patch;;
+    "unit-tests" ) shift; run_unit_tests $@;;
     * )
         echo "'$1' not a valid command"
         exit 1
