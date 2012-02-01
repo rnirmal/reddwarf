@@ -63,12 +63,13 @@ class TestUsers(object):
 
     @test()
     def test_create_users(self):
-        users = list()
+        users = []
         users.append({"name": self.username, "password": self.password,
                       "database": self.db1})
         users.append({"name": self.username1, "password": self.password1,
                      "databases": [{"name": self.db1}, {"name": self.db2}]})
         self.dbaas.users.create(instance_info.id, users)
+        # Do we need this?
         time.sleep(5)
 
         self.check_database_for_user(self.username, self.password,
@@ -135,6 +136,21 @@ class TestUsers(object):
                       "database": self.db1})
         assert_raises(nova_exceptions.BadRequest, self.dbaas.users.create,
                       instance_info.id, users)
+
+    @test(enabled=False)
+    #TODO(hub_cap): Make this test work once python-routes is updated, if ever...
+    def test_delete_user_with_period_in_name(self):
+        """Attempt to create/destroy a user with a period in its name"""
+        users = []
+        username_with_period = "user.name"
+        users.append({"name": username_with_period, "password": self.password,
+                      "database": self.db1})
+        self.dbaas.users.create(instance_info.id, users)
+        time.sleep(5)
+
+        self.check_database_for_user(username_with_period, self.password,
+            [self.db1])
+        self.dbaas.users.delete(instance_info.id, username_with_period)
 
     @test
     def test_invalid_password(self):
