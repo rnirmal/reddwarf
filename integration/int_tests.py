@@ -19,8 +19,22 @@
 
 """Runs the tests.
 
+There are a few initialization issues to deal with.
+The first is flags, which must be initialized before any imports. The test
+configuration has the same problem (it was based on flags back when the tests
+resided outside of the Nova code).
+
+The command line is picked apart so that Nose won't see commands it isn't
+compatable with, such as "--flagfile" or "--group".
+
 This script imports all other tests to make them known to Proboscis before
-passing control to proboscis.TestProgram.
+passing control to proboscis.TestProgram which itself calls nose, which then
+call unittest.TestProgram and exits.
+
+If "repl" is a command line argument, then the original stdout and stderr is
+saved and sys.exit is neutralized so that unittest.TestProgram will not exit
+and instead sys.stdout and stderr are restored so that interactive mode can
+be used.
 
 """
 
@@ -32,6 +46,9 @@ import os
 import time
 import unittest
 import sys
+
+
+
 
 
 if os.environ.get("PYDEV_DEBUG", "False") == 'True':
@@ -132,6 +149,7 @@ if __name__ == '__main__':
 
     import proboscis
     from tests.dns import check_domain
+    from tests.dns import concurrency
     from tests.dns import conversion
 
     # The DNS stuff is problematic. Not loading the other tests allow us to
@@ -175,7 +193,8 @@ if __name__ == '__main__':
             volume_reaping.GROUP
         ]
         if util.should_run_rsdns_tests():
-            host_ovz_groups += ["rsdns.conversion", "rsdns.domains"]
+            host_ovz_groups += ["rsdns.conversion", "rsdns.domains",
+                                "rsdns.eventlet"]
 
         proboscis.register(groups=["host.ovz"], depends_on_groups=host_ovz_groups)
 

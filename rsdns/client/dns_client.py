@@ -19,9 +19,11 @@ We have to duplicate a lot of code from the OpenStack client since so much
 is different here.
 """
 
+import eventlet
+from eventlet import pools
 from novaclient.client import HTTPClient
 from novaclient import exceptions
-import httplib2
+httplib2 = eventlet.import_patched('httplib2')
 
 from nova import log as logging
 
@@ -40,13 +42,18 @@ class DNSaasClient(HTTPClient):
         super(DNSaasClient, self).__init__(user, apikey, tenant, auth_url)
         self.accountId = accountId
         self.management_base_url = management_base_url
+        self.http_pool = pools.Pool()
+        self.http_pool.create = httplib2.Http
 
     def authenticate(self):
-        http = httplib2.Http()
         headers = {'Content-Type': 'application/json'}
         body = {'credentials':{'username':self.user, 'key':self.apikey}}
+        with self.http_pool.item() as http:
+            resp, resp_body = http.request(
+                self.auth_url, "POST", headers=headers, body=json.dumps(body))
         resp, resp_body = http.request(self.auth_url, "POST", headers=headers,
                                        body=json.dumps(body))
+
         resp_body = json.loads(resp_body)
         LOG.debug(json.dumps({'body':resp_body, 'resp':resp}, sort_keys=True,
                              indent=4))
@@ -76,7 +83,9 @@ class DNSaasClient(HTTPClient):
             LOG.debug("REQ ARGS:" + str(args))
             LOG.debug("REQ HEADERS:" + str(kwargs['headers']))
 
-            resp, body_response = httplib2.Http.request(self, *args, **kwargs)
+            with self.http_pool.item() as http:
+                LOG.debug("BODY:" + str(args) + " kWARGS:" + str(kwargs))
+                resp, body_response = http.request(*args, **kwargs)
             LOG.debug("RES RESPONSE:" + str(resp))
             LOG.debug("RES BODY:" + str(body_response))
             body = json.loads(body_response)
