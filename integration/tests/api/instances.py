@@ -830,6 +830,6 @@ class CheckInstance(object):
 
 def diagnostic_tests_helper(diagnostics):
     print("diagnostics : %r" % diagnostics._info)
-    expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
+    expected_attrs = ['version', 'fdSize', 'vmSize', 'vmHwm', 'vmRss', 'vmPeak', 'threads']
     CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
                                     msg="Diagnostics")
