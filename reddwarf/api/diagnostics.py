@@ -45,7 +45,15 @@ class Controller(object):
         try:
             diags = self.guest_api.get_diagnostics(ctxt, local_id)
             LOG.debug("get_diagnostics: %r" % diags)
-            return {"diagnostics":diags}
+            ret_diags = {}
+            ret_diags['version'] = diags['version']
+            ret_diags['threads'] = diags['threads']
+            ret_diags['fdSize'] = diags['fd_size']
+            ret_diags['vmSize'] = diags['vm_size']
+            ret_diags['vmPeak'] = diags['vm_peak']
+            ret_diags['vmRss'] = diags['vm_rss']
+            ret_diags['vmHwm'] = diags['vm_hwm']
+            return {"diagnostics":ret_diags}
         except Exception as err:
             LOG.error(err)
             raise exception.InstanceFault("Error determining diagnostics")
@@ -58,11 +66,12 @@ def create_resource(version='1.0'):
     metadata = {
         "attributes": {
             'diagnostics': ['version',
-                            'VmSize',
-                            'VmPeak',
-                            'VmRSS',
-                            'VmHWM',
-                            'Threads']
+                            'fdSize',
+                            'vmSize',
+                            'vmPeak',
+                            'vmRss',
+                            'vmHwm',
+                            'threads']
         },
     }
 

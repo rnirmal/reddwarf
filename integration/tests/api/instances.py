@@ -651,7 +651,7 @@ class CheckDiagnosticsAfterTests(object):
     def test_check_diagnostics_on_instance_after_tests(self):
         diagnostics = dbaas_admin.diagnostics.get(instance_info.id)
         diagnostic_tests_helper(diagnostics)
-        assert_true(diagnostics.VmHWM < 30*1024, "Fat Pete has emerged. size (%s > 30MB)" % diagnostics.VmHWM)
+        assert_true(diagnostics.vmPeak < 30*1024, "Fat Pete has emerged. size (%s > 30MB)" % diagnostics.vmPeak)
 
 
 @test(depends_on_groups=[GROUP_TEST, tests.INSTANCES], groups=[GROUP, GROUP_STOP])
@@ -830,6 +830,6 @@ class CheckInstance(object):
 
 def diagnostic_tests_helper(diagnostics):
     print("diagnostics : %r" % diagnostics._info)
-    expected_attrs = ['version', 'VmSize', 'VmHWM', 'VmRSS', 'VmPeak', 'Threads']
+    expected_attrs = ['version', 'fdSize', 'vmSize', 'vmHwm', 'vmRss', 'vmPeak', 'threads']
     CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
                                     msg="Diagnostics")

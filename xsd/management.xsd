@@ -341,28 +341,35 @@
         </xsd:documentation>
       </annotation>
     </attribute>
-    <attribute name="vmsize" type="xsd:integer" use="optional">
+    <attribute name="fdSize" type="xsd:integer" use="optional">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>The size of the file descriptors of the guest running on the instance.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+    <attribute name="vmSize" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>Virtual memory size of the guest running on the instance.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
-    <attribute name="vmpeak" type="xsd:integer" use="optional">
+    <attribute name="vmPeak" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>Peak virtual memory size of the guest on the instance.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
-    <attribute name="vmrss" type="xsd:integer" use="optional">
+    <attribute name="vmRss" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>Resident set size of the guest on the instance.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
-    <attribute name="vmhwm" type="xsd:integer" use="optional">
+    <attribute name="vmHwm" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>Peak resident set size ("high water mark") of the guest on the instance.</p>
