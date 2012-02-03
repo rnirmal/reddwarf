@@ -201,7 +201,9 @@ class RsDnsInstanceEntryFactory(object):
     """Defines how instance DNS entries are created for instances."""
 
     def __init__(self, dns_domain_id=None):
-        self.default_dns_zone = RsDnsZone(id=(dns_domain_id or FLAGS.dns_domain_id), name=FLAGS.dns_domain_name)
+        dns_domain_id = dns_domain_id or FLAGS.dns_domain_id
+        self.default_dns_zone = RsDnsZone(id=dns_domain_id,
+                                          name=FLAGS.dns_domain_name)
 
     def create_entry(self, instance):
         id = instance.get("uuid", "")
