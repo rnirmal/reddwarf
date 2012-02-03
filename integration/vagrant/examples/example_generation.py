@@ -329,6 +329,18 @@ class ExampleGenerator(object):
         body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
         self.http_call("create_users", url, 'POST', body=body)
 
+    def instance_reboot(self, instance_id, type):
+        url = "%s/instances/%s/action" % (self.dbaas_url, instance_id)
+        json_data = {'reboot': {'type': type}}
+        xml_data = """
+           <?xml version="1.0" encoding="UTF-8"?>
+           <reboot xmlns="http://docs.openstack.org/database/api/v1.0"
+           type="%s"/>""" % type
+        body = {'json': json.dumps(json_data),
+                'xml' : xml_data }
+        self.http_call('instance_reboot-%s' % type, url, 'POST', body=body)
+
+
     def get_list_users(self, instance_id):
         url = "%s/instances/%s/users" % (self.dbaas_url, instance_id)
         self.http_call("list_users", url, 'GET')
@@ -486,6 +498,8 @@ class ExampleGenerator(object):
         self.get_list_instance_index()
         self.get_list_instance_details()
         self.get_instance_details(instance_id)
+        self.instance_reboot(instance_id, "SOFT")
+        self.instance_reboot(instance_id, "HARD")
 
         # Do some mgmt calls before deleting the instances
         self.mgmt_list_hosts()
