@@ -3,6 +3,8 @@ import httplib2
 import mox
 import json
 
+from eventlet import pools
+
 from novaclient import client
 from novaclient import exceptions
 from rsdns.client import DNSaas
@@ -11,10 +13,16 @@ from rsdns.client import DNSaas
 fake_response = httplib2.Response({"status": 200})
 fake_body = '{"hi": "there", "auth": {"token": {"id": "token_id_value"}}}'
 
-def get_client():
+def get_client(fake_request_method):
     cl = DNSaas("1234", "username", "password",
                 auth_url="auth_url",
                 management_base_url="mgmt_url")
+    class FakeHttpLib2(object):
+        pass
+
+    FakeHttpLib2.request = fake_request_method
+    cl.client.http_pool = pools.Pool()
+    cl.client.http_pool.create = FakeHttpLib2
     return cl
 
 def mock_request(self, *args, **kwargs):
@@ -36,10 +44,7 @@ class DNSClientAuthFailPassTest(unittest.TestCase):
         self.mox.VerifyAll()
 
     def test_auth_fail(self):
-        my_client = get_client()
-
-        self.mox.StubOutWithMock(httplib2.Http, "request")
-        httplib2.Http.request = mock_request_bad
+        my_client = get_client(mock_request_bad)
 
         def test_auth_call():
             self.assertRaises(exceptions.HTTPNotImplemented, my_client.authenticate)
@@ -48,10 +53,7 @@ class DNSClientAuthFailPassTest(unittest.TestCase):
         test_auth_call()
 
     def test_auth_pass(self):
-        my_client = get_client()
-
-        self.mox.StubOutWithMock(httplib2.Http, "request")
-        httplib2.Http.request = mock_request
+        my_client = get_client(mock_request)
 
         def test_get_call():
             resp, body = my_client.client.request("/list")
@@ -69,8 +71,6 @@ class DNSClientAuthFailPassTest(unittest.TestCase):
         # of failing the first time and successfully the second time
         # calling the http.request method.
 
-        my_client = get_client()
-
         self.count = 0
         def fake_request(_self, *args, **kwargs):
             self.count += 1
@@ -78,8 +78,8 @@ class DNSClientAuthFailPassTest(unittest.TestCase):
                 return mock_request(_self, *args, **kwargs)
             else:
                 return mock_request_bad(_self, *args, **kwargs)
-        self.mox.StubOutWithMock(httplib2.Http, "request")
-        httplib2.Http.request = fake_request
+
+        my_client = get_client(fake_request)
 
         def test_auth_call():
             resp, body = my_client.client.request("/list")
