@@ -430,13 +430,13 @@
                             element="dbaas:Reboot">
                 <doc>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the Reboot Instance requests:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-reboot-request.xml"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-request.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json"
                             element="dbaas:Reboot">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-reboot-request.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-request.json"/>
                 </doc>
             </representation>
         </request>
@@ -444,12 +444,12 @@
             <representation mediaType="application/xml">
                 <doc>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the Reboot Instance responses:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-reboot-response.xml"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-response.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-reboot-response.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-response.json"/>
                 </doc>
             </representation>
         </response>
@@ -469,13 +469,13 @@
                             element="dbaas:Resize">
                 <doc>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the Resize Instance requests:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-resize-request.xml"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-resize-volume-request.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json"
                             element="dbaas:Resize">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-resize-request.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-resize-volume-request.json"/>
                 </doc>
             </representation>
         </request>
@@ -483,12 +483,12 @@
             <representation mediaType="application/xml">
                 <doc>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the Resize Instance responses:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-resize-response.xml"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-resize-volume-response.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instances-resize-response.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-resize-volume-response.json"/>
                 </doc>
             </representation>
         </response>

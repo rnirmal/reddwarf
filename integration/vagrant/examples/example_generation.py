@@ -44,8 +44,7 @@ class ExampleGenerator(object):
         }
         self.dbaas_url = "%s/v1.0/%s" % (self.api_url, self.tenant)
 
-    def http_call(self, name, url, method, body=None, output=True):
-        body = {} if not body else body
+    def http_call(self, name, method, json, xml, output=True):
         name = name.replace('_', '-')
         print "http call for %s" % name
         http = httplib2.Http()
@@ -56,7 +55,8 @@ class ExampleGenerator(object):
         req_headers.update(self.headers)
 
         content_type = 'json'
-        request_body = body.get(content_type, None)
+        request_body = json.get('body', None)
+        url = json.get('url')
         if output:
             with open("%sdb-%s-request.%s" % (self.directory, name, content_type), "w") as file:
                 output = self.output_request(url, req_headers, request_body, content_type, method)
@@ -80,7 +80,8 @@ class ExampleGenerator(object):
         content_type = 'xml'
         req_headers['Accept'] = 'application/xml'
         req_headers['Content-Type'] = 'application/xml'
-        request_body = body.get(content_type, None)
+        request_body = xml.get('body', None)
+        url = xml.get('url')
         if output:
             with open("%sdb-%s-request.%s" % (self.directory, name, content_type), "w") as file:
                 output = self.output_request(url, req_headers, request_body, content_type, method)
@@ -178,8 +179,10 @@ class ExampleGenerator(object):
         example_instances = []
         # wait for instances
         while True:
-            url = "%s/instances" % self.dbaas_url
-            resp_json, resp_xml = self.http_call("get_instances", url, 'GET', output=False)
+            req_json = {"url": "%s/instances" % self.dbaas_url}
+            req_xml = {"url": "%s/instances" % self.dbaas_url}
+            resp_json, resp_xml = self.http_call("get_instances", 'GET',
+                                                 req_json, req_xml, output=False)
             resp_content = json.loads(resp_json[1])
             instances = resp_content['instances']
             print_list = [(instance['id'], instance['status']) for instance in instances]
@@ -200,8 +203,10 @@ class ExampleGenerator(object):
         return example_instances
 
     def check_clean(self):
-        url = "%s/instances" % self.dbaas_url
-        resp_json, resp_xml = self.http_call("get_instances", url, 'GET', output=False)
+        req_json = {"url": "%s/instances" % self.dbaas_url}
+        req_xml = {"url": "%s/instances" % self.dbaas_url}
+        resp_json, resp_xml = self.http_call("get_instances", 'GET',
+                                             req_json, req_xml, output=False)
         resp_content = json.loads(resp_json[1])
         instances = resp_content['instances']
         if len(instances) > 0:
@@ -210,27 +215,33 @@ class ExampleGenerator(object):
 
     def get_versions(self):
         #no auth required
-        url = "%s/" % self.api_url
-        self.http_call("versions", url, 'GET')
+        req_json = {"url": "%s/" % self.api_url}
+        req_xml = {"url": "%s/" % self.api_url}
+        self.http_call("versions", 'GET', req_json, req_xml)
 
     def get_version(self):
-        url = "%s/v1.0/" % self.api_url
-        self.http_call("version", url, 'GET')
+        req_json = {"url": "%s/v1.0/" % self.api_url}
+        req_xml = {"url": "%s/v1.0/" % self.api_url}
+        self.http_call("version", 'GET', req_json, req_xml)
 
     def get_flavors(self):
-        url = "%s/flavors" % self.dbaas_url
-        self.http_call("flavors", url, 'GET')
+        req_json = {"url": "%s/flavors" % self.dbaas_url}
+        req_xml = {"url": "%s/flavors" % self.dbaas_url}
+        self.http_call("flavors", 'GET', req_json, req_xml)
 
     def get_flavor_details(self):
-        url = "%s/flavors/detail" % self.dbaas_url
-        self.http_call("flavors_detail", url, 'GET')
+        req_json = {"url": "%s/flavors/detail" % self.dbaas_url}
+        req_xml = {"url":"%s/flavors/detail" % self.dbaas_url}
+        self.http_call("flavors_detail", 'GET', req_json, req_xml)
 
     def get_flavor_by_id(self):
-        url = "%s/flavors/1" % self.dbaas_url
-        self.http_call("flavors_by_id", url, 'GET')
+        req_json = {"url": "%s/flavors/1" % self.dbaas_url}
+        req_xml = {"url": "%s/flavors/1" % self.dbaas_url}
+        self.http_call("flavors_by_id", 'GET', req_json, req_xml)
 
     def post_create_instance(self):
-        url = "%s/instances" % self.dbaas_url
+        req_json = {"url": "%s/instances" % self.dbaas_url}
+        req_xml = {"url": "%s/instances" % self.dbaas_url}
         JSON_DATA = {
             "instance": {
                 "name": "json_rack_instance",
@@ -259,11 +270,15 @@ class ExampleGenerator(object):
                     '</databases>'
                     '<volume size="2" />'
                     '</instance>') % self.dbaas_url
-        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
-        self.http_call("create_instance", url, 'POST', body=body)
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call("create_instance", 'POST', req_json, req_xml)
 
-    def post_create_databases(self, database_name, instance_id):
-        url = "%s/instances/%s/databases" % (self.dbaas_url, instance_id)
+    def post_create_databases(self, database_name, instance_ids):
+        req_json = {"url": "%s/instances/%s/databases"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/databases"
+                            % (self.dbaas_url, instance_ids['xml'])}
         JSON_DATA = {
             "databases": [
                     {
@@ -282,19 +297,31 @@ class ExampleGenerator(object):
                     '<Database name="%s" character_set="utf8" collate="utf8_general_ci" />'
                     '<Database name="anotherexampledb" />'
                     '</Databases>') % database_name
-        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
-        self.http_call("create_databases", url, 'POST', body=body)
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call("create_databases", 'POST', req_json, req_xml)
 
-    def get_list_databases(self, instance_id):
-        url = "%s/instances/%s/databases" % (self.dbaas_url, instance_id)
-        self.http_call("list_databases", url, 'GET')
+    def get_list_databases(self, instance_ids):
+        req_json = {"url": "%s/instances/%s/databases"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/databases"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("list_databases", 'GET', req_json, req_xml)
 
-    def delete_databases(self, database_name, instance_id):
-        url = "%s/instances/%s/databases/%s" % (self.dbaas_url, instance_id, database_name)
-        self.http_call("delete_databases", url, 'DELETE')
+    def delete_databases(self, database_name, instance_ids):
+        req_json = {"url": "%s/instances/%s/databases/%s"
+                            % (self.dbaas_url, instance_ids['json'],
+                               database_name)}
+        req_xml = {"url": "%s/instances/%s/databases/%s"
+                            % (self.dbaas_url, instance_ids['xml'],
+                               database_name)}
+        self.http_call("delete_databases", 'DELETE', req_json, req_xml)
 
-    def post_create_users(self, instance_id, user_name):
-        url = "%s/instances/%s/users" % (self.dbaas_url, instance_id)
+    def post_create_users(self, instance_ids, user_name):
+        req_json = {"url": "%s/instances/%s/users"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/users"
+                            % (self.dbaas_url, instance_ids['xml'])}
         JSON_DATA = {
             "users": [
                     {
@@ -326,73 +353,112 @@ class ExampleGenerator(object):
                     '</databases>'
                     '</user>'
                     '</users>') % user_name
-        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
-        self.http_call("create_users", url, 'POST', body=body)
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call("create_users", 'POST', req_json, req_xml)
 
-    def instance_reboot(self, instance_id, type):
-        url = "%s/instances/%s/action" % (self.dbaas_url, instance_id)
-        json_data = {'reboot': {'type': type}}
-        xml_data = """
-           <?xml version="1.0" encoding="UTF-8"?>
-           <reboot xmlns="http://docs.openstack.org/database/api/v1.0"
-           type="%s"/>""" % type
-        body = {'json': json.dumps(json_data),
-                'xml' : xml_data }
-        self.http_call('instance_reboot-%s' % type, url, 'POST', body=body)
+    def instance_reboot(self, instance_ids, type):
+        req_json = {"url": "%s/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        JSON_DATA = {'reboot': {'type': type}}
+        XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
+                    <reboot xmlns="http://docs.openstack.org/database/api/v1.0"
+                    type="%s"/>""" % type
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call('instance_reboot-%s' % type, 'POST', req_json, req_xml)
+        time.sleep(60) #TODO: replace
 
+    def instance_resize_volume(self, instance_ids):
+        req_json = {"url": "%s/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        json_data = {'resize': {'volume': {'size': 4}}}
+        xml_data = """<?xml version="1.0" encoding="UTF-8"?>
+                <resize xmlns="http://docs.openstack.org/database/api/v1.0">
+                <volume size="4"/></resize>"""
+        req_json['body'] = json.dumps(json_data)
+        req_xml['body'] = xml_data
+        self.http_call('instance_resize_volume', 'POST', req_json, req_xml)
+        time.sleep(120) #TODO: replace
 
-    def get_list_users(self, instance_id):
-        url = "%s/instances/%s/users" % (self.dbaas_url, instance_id)
-        self.http_call("list_users", url, 'GET')
+    def get_list_users(self, instance_ids):
+        req_json = {"url": "%s/instances/%s/users"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/users"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("list_users", 'GET', req_json, req_xml)
 
-    def delete_users(self, instance_id, user_name):
-        url = "%s/instances/%s/users/%s" % (self.dbaas_url, instance_id, user_name)
-        self.http_call("delete_users", url, 'DELETE')
+    def delete_users(self, instance_ids, user_name):
+        req_json = {"url": "%s/instances/%s/users/%s"
+                            % (self.dbaas_url, instance_ids['json'], user_name)}
+        req_xml = {"url": "%s/instances/%s/users/%s"
+                            % (self.dbaas_url, instance_ids['xml'], user_name)}
+        self.http_call("delete_users", 'DELETE', req_json, req_xml)
 
-    def post_enable_root_access(self, instance_id):
-        url = "%s/instances/%s/root" % (self.dbaas_url, instance_id)
-        self.http_call("enable_root_user", url, 'POST')
+    def post_enable_root_access(self, instance_ids):
+        req_json = {"url": "%s/instances/%s/root"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/root"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("enable_root_user", 'POST', req_json, req_xml)
 
-    def get_check_root_access(self, instance_id):
-        url = "%s/instances/%s/root" % (self.dbaas_url, instance_id)
-        self.http_call("check_root_user", url, 'GET')
+    def get_check_root_access(self, instance_ids):
+        req_json = {"url": "%s/instances/%s/root"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/root"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("check_root_user", 'GET', req_json, req_xml)
 
     def get_list_instance_index(self):
-        url = "%s/instances" % self.dbaas_url
-        self.http_call("instances_index", url, 'GET')
+        req_json = {"url": "%s/instances" % self.dbaas_url}
+        req_xml = {"url": "%s/instances" % self.dbaas_url}
+        self.http_call("instances_index", 'GET', req_json, req_xml)
 
     def get_list_instance_details(self):
-        url = "%s/instances/detail" % self.dbaas_url
-        self.http_call("instances_detail", url, 'GET')
+        req_json = {"url": "%s/instances/detail" % self.dbaas_url}
+        req_xml = {"url": "%s/instances/detail" % self.dbaas_url}
+        self.http_call("instances_detail", 'GET', req_json, req_xml)
 
-    def get_instance_details(self, instance_id):
-        url = "%s/instances/%s" % (self.dbaas_url, instance_id)
-        self.http_call("instance_status_detail", url, 'GET')
+    def get_instance_details(self, instance_ids):
+        req_json = {"url": "%s/instances/%s"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("instance_status_detail", 'GET', req_json, req_xml)
 
-    def delete_instance(self, instance_id):
-        url = "%s/instances/%s" % (self.dbaas_url, instance_id)
-        self.http_call("delete_instance", url, 'DELETE')
-
-    def delete_other_instance(self, example_instances):
-        url = "%s/instances/%s" % (self.dbaas_url, example_instances[1])
-        self.http_call("delete_instance", url, 'DELETE', output=False)
+    def delete_instance(self, instance_ids):
+        req_json = {"url": "%s/instances/%s"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("delete_instance", 'DELETE', req_json, req_xml)
 
     def mgmt_delete_configs(self, config_id):
-        url = "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)
-        self.http_call("mgmt_delete_config", url, 'DELETE')
-        url = "%s/mgmt/configs/%s" % (self.dbaas_url, "xmlconfig")
-        self.http_call("mgmt_delete_config", url, 'DELETE', output=False)
+        req_json = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)}
+        req_xml = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)}
+        self.http_call("mgmt_delete_config", 'DELETE', req_json, req_xml)
+        req_json = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, "xmlconfig")}
+        req_xml = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, "xmlconfig")}
+        self.http_call("mgmt_delete_config", 'DELETE', req_json, req_xml,
+                       output=False)
 
     def mgmt_get_config(self, config_id):
-        url = "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)
-        self.http_call("mgmt_get_config", url, 'GET')
+        req_json = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)}
+        req_xml = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)}
+        self.http_call("mgmt_get_config", 'GET', req_json, req_xml)
 
     def mgmt_list_configs(self):
-        url = "%s/mgmt/configs" % self.dbaas_url
-        self.http_call("mgmt_list_configs", url, 'GET')
+        req_json = {"url": "%s/mgmt/configs" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/configs" % self.dbaas_url}
+        self.http_call("mgmt_list_configs", 'GET', req_json, req_xml)
 
     def mgmt_update_config(self, config_id):
-        url = "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)
+        req_json = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)}
+        req_xml = {"url": "%s/mgmt/configs/%s" % (self.dbaas_url, config_id)}
         JSON_DATA = {
             "config": {
                 "key": "%s" % config_id,
@@ -402,11 +468,13 @@ class ExampleGenerator(object):
         }
         XML_DATA = ('<?xml version="1.0" ?>'
                     '<config key="xmlconfig" value="XML" description="updated config value set with xml"/>')
-        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
-        self.http_call("mgmt_update_config", url, 'PUT', body=body)
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call("mgmt_update_config", 'PUT', req_json, req_xml)
 
     def mgmt_create_config(self, config_id):
-        url = "%s/mgmt/configs" % self.dbaas_url
+        req_json = {"url": "%s/mgmt/configs" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/configs" % self.dbaas_url}
         JSON_DATA = {
             "configs": [
                     {
@@ -420,41 +488,55 @@ class ExampleGenerator(object):
                     '<configs>'
                     '<config key="xmlconfig" value="xml" description="config value set with xml"/>'
                     '</configs>')
-        body = {'xml': XML_DATA, 'json': json.dumps(JSON_DATA)}
-        self.http_call("mgmt_create_config", url, 'POST', body=body)
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call("mgmt_create_config", 'POST', req_json, req_xml)
 
-    def mgmt_get_root_details(self, instance_id):
-        url = "%s/mgmt/instances/%s/root" % (self.dbaas_url, instance_id)
-        self.http_call("mgmt_get_root_details", url, 'GET')
+    def mgmt_get_root_details(self, instance_ids):
+        req_json = {"url": "%s/mgmt/instances/%s/root"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/mgmt/instances/%s/root"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("mgmt_get_root_details", 'GET', req_json, req_xml)
 
-    def mgmt_get_instance_details(self, instance_id):
-        url = "%s/mgmt/instances/%s" % (self.dbaas_url, instance_id)
-        self.http_call("mgmt_get_instance_details", url, 'GET')
+    def mgmt_get_instance_details(self, instance_ids):
+        req_json = {"url": "%s/mgmt/instances/%s"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/mgmt/instances/%s"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("mgmt_get_instance_details", 'GET', req_json, req_xml)
 
     def mgmt_get_account_details(self):
-        url = "%s/mgmt/accounts/examples" % self.dbaas_url
-        self.http_call("mgmt_get_account_details", url, 'GET')
+        req_json = {"url": "%s/mgmt/accounts/examples" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/accounts/examples" % self.dbaas_url}
+        self.http_call("mgmt_get_account_details", 'GET', req_json, req_xml)
 
     def mgmt_get_storage(self):
-        url = "%s/mgmt/storage" % self.dbaas_url
-        self.http_call("mgmt_get_storage", url, 'GET')
+        req_json = {"url": "%s/mgmt/storage" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/storage" % self.dbaas_url}
+        self.http_call("mgmt_get_storage", 'GET', req_json, req_xml)
 
     def mgmt_get_host_detail(self):
-        url = "%s/mgmt/hosts/host" % self.dbaas_url
-        self.http_call("mgmt_get_host_detail", url, 'GET')
+        req_json = {"url": "%s/mgmt/hosts/host" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/hosts/host" % self.dbaas_url}
+        self.http_call("mgmt_get_host_detail", 'GET', req_json, req_xml)
 
     def mgmt_instance_index(self, deleted=None):
-        url = "%s/mgmt/instances" % self.dbaas_url
+        req_json = {"url": "%s/mgmt/instances" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/instances" % self.dbaas_url}
         if deleted is not None:
             if deleted:
-                url = "%s?deleted=true" % url
+                req_json['url'] = "%s?deleted=true" % req_json['url']
+                req_xml['url'] = "%s?deleted=true" % req_xml['url']
             else:
-                url = "%s?deleted=false" % url
-        self.http_call("mgmt_instance_index", url, 'GET')
+                req_json['url'] = "%s?deleted=false" % req_json['url']
+                req_xml['url'] = "%s?deleted=false" % req_xml['url']
+        self.http_call("mgmt_instance_index", 'GET', req_json, req_xml)
 
     def mgmt_list_hosts(self):
-        url = "%s/mgmt/hosts" % self.dbaas_url
-        self.http_call("mgmt_list_hosts", url, 'GET')
+        req_json = {"url": "%s/mgmt/hosts" % self.dbaas_url}
+        req_xml = {"url": "%s/mgmt/hosts" % self.dbaas_url}
+        self.http_call("mgmt_list_hosts", 'GET', req_json, req_xml)
 
     def main(self):
 
@@ -482,32 +564,35 @@ class ExampleGenerator(object):
             print("------------------------------------------------------------")
             return 1
 
-        instance_id = example_instances[0]
+        instance_ids = {"json": example_instances[0],
+                        "xml": example_instances[1]}
         database_name = "exampledb"
         user_name = "testuser"
-        print "\nusing instance id(%s) for these calls\n" % instance_id
+        print "\nUsing instance id(%s) for JSON calls\n" % instance_ids['json']
+        print "\nUsing instance id(%s) for XML calls\n" % instance_ids['xml']
 
-        self.post_create_databases(database_name, instance_id)
-        self.get_list_databases(instance_id)
-        self.delete_databases(database_name, instance_id)
-        self.post_create_users(instance_id, user_name)
-        self.get_list_users(instance_id)
-        self.delete_users(instance_id, user_name)
-        self.post_enable_root_access(instance_id)
-        self.get_check_root_access(instance_id)
+        self.post_create_databases(database_name, instance_ids)
+        self.get_list_databases(instance_ids)
+        self.delete_databases(database_name, instance_ids)
+        self.post_create_users(instance_ids, user_name)
+        self.get_list_users(instance_ids)
+        self.delete_users(instance_ids, user_name)
+        self.post_enable_root_access(instance_ids)
+        self.get_check_root_access(instance_ids)
         self.get_list_instance_index()
         self.get_list_instance_details()
-        self.get_instance_details(instance_id)
-        self.instance_reboot(instance_id, "SOFT")
-        self.instance_reboot(instance_id, "HARD")
+        self.get_instance_details(instance_ids)
+        self.instance_reboot(instance_ids, "SOFT")
+        self.instance_reboot(instance_ids, "HARD")
+        self.instance_resize_volume(instance_ids)
 
         # Do some mgmt calls before deleting the instances
         self.mgmt_list_hosts()
         self.mgmt_get_host_detail()
         self.mgmt_get_storage()
         self.mgmt_get_account_details()
-        self.mgmt_get_instance_details(instance_id)
-        self.mgmt_get_root_details(instance_id)
+        self.mgmt_get_instance_details(instance_ids)
+        self.mgmt_get_root_details(instance_ids)
         self.mgmt_instance_index(False)
 
         # Configs
@@ -519,8 +604,7 @@ class ExampleGenerator(object):
         self.mgmt_delete_configs(config_id)
 
         # Clean up the instances
-        self.delete_instance(instance_id)
-        self.delete_other_instance(example_instances)
+        self.delete_instance(instance_ids)
 
 
 if __name__ == "__main__":
