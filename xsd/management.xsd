@@ -81,6 +81,14 @@
     </annotation>
   </element>
 
+  <element name="reboot">
+    <annotation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Reboot an Instance</p>
+      </xsd:documentation>
+    </annotation>
+  </element>
+
   <!--Complex Types-->
   <complexType name="Hosts">
     <sequence>

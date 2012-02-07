@@ -74,6 +74,7 @@ class InstanceTestInfo(object):
 
     def __init__(self):
         self.dbaas = None  # The rich client instance used by these tests.
+        self.dbaas_admin = None # The rich client with admin access.
         self.dbaas_flavor = None # The flavor object of the instance.
         self.dbaas_flavor_href = None  # The flavor of the instance.
         self.dbaas_image = None  # The image used to create the instance.
@@ -157,6 +158,9 @@ class Setup(object):
         dbaas = create_test_client(instance_info.user)
         instance_info.dbaas = dbaas
         dbaas_admin = create_test_client(instance_info.admin_user)
+        # TODO(rnirmal): We need to better split out the regular client and
+        # the admin client
+        instance_info.dbaas_admin = dbaas_admin
 
     @test
     def auth_token(self):

@@ -42,6 +42,9 @@
           <resource id="diagnostics" path="diagnostics">
               <method href="#getdiagnosticdetails"/>
           </resource>
+          <resource id="instanceAction" path="action">
+            <method href="#rebootInstance" />
+          </resource>
         </resource>
       </resource>
       <resource id="storage" path="storage">
@@ -241,7 +244,45 @@
     &commonFaults;
     &getFaults;
   </method>
-  
+
+    <!-- Instance Actions -->
+  <method name="POST" id="rebootInstance">
+    <wadl:doc xml:lang="EN" title="Reboot the Instance"  xmlns="http://docbook.org/ns/docbook">
+      <para role="shortdesc">Perform a reboot of the instance.</para>
+      <para>This operation will reboot the underlying OS along with the mysql instance.</para>
+      <para>This operation does returns a 202 Accepted response.</para>
+    </wadl:doc>
+    <request>
+      <representation mediaType="application/xml" element="dbaas:Reboot">
+        <doc>
+          <para xmlns="http://docbook.org/ns/docbook">The following examples show the Reboot Instance requests:</para>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-request.xml"/>
+        </doc>
+      </representation>
+      <representation mediaType="application/json" element="dbaas:Reboot">
+        <doc>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-request.json"/>
+        </doc>
+      </representation>
+    </request>
+    <response status="202">
+      <representation mediaType="application/xml">
+        <doc>
+          <para xmlns="http://docbook.org/ns/docbook">The following examples show the Reboot Instance responses:</para>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-response.xml"/>
+        </doc>
+      </representation>
+      <representation mediaType="application/json">
+        <doc>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-response.json"/>
+        </doc>
+      </representation>
+    </response>
+    &commonFaults;
+    &getFaults;
+    &postPutFaults;
+  </method>
+
   <method name="GET" id="indexstorage">
     <wadl:doc xml:lang="EN" title="List Storage Device Details" xmlns="http://docbook.org/ns/docbook">
       <para role="shortdesc">

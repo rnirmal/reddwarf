@@ -1152,6 +1152,16 @@
                 <wadl:resource href="management.wadl#hostid">
                     <wadl:method href="gethostbyid"/>
                 </wadl:resource>
+            </wadl:resources>               
+        </section>
+
+        <section xml:id="Management_Instances_Actions">
+            <title>Management Instance Actions</title>
+            <para>This section describes the actions that are supported for database instances.</para>
+            <wadl:resources xmlns:wadl="http://wadl.dev.java.net/2009/02">
+                <wadl:resource href="management.wadl#instanceAction" >
+                    <wadl:method href="rebootInstance"/>
+                </wadl:resource>
             </wadl:resources>
         </section>
 

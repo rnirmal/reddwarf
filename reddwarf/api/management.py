@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from webob import exc
+
 from nova import compute
 from nova import exception as nova_exception
 from nova import flags
@@ -229,3 +231,36 @@ class Controller(object):
         except Exception as err:
             LOG.error(err)
             raise exception.InstanceFault("Error determining root access history")
+
+    @common.verify_admin_context
+    def action(self, req, id, body):
+        """Multi-purpose method used to take actions on an instance."""
+        ctxt = req.environ['nova.context']
+        common.instance_exists(ctxt, id, self.compute_api)
+
+        _actions = {
+            'reboot': self._action_reboot,
+        }
+
+        for key in body:
+            if key in _actions:
+                return _actions[key](body, req, id)
+            else:
+                msg = _("There is no such server action: %s") % (key,)
+                raise exception.BadRequest(msg)
+
+        msg = _("Invalid request body")
+        raise exception.BadRequest(msg)
+
+    def _action_reboot(self, body, req, id):
+        LOG.info("Call to reboot for instance %s", id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        ctxt = req.environ['nova.context']
+        local_id = dbapi.localid_from_uuid(id)
+
+        try:
+            self.compute_api.reboot(ctxt, local_id)
+            return exc.HTTPAccepted()
+        except Exception as err:
+            LOG.exception(_("Error in reboot %s"), e)
+            raise exception.UnprocessableEntity()

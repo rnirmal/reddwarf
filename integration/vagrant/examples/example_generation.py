@@ -357,18 +357,17 @@ class ExampleGenerator(object):
         req_xml['body'] = XML_DATA
         self.http_call("create_users", 'POST', req_json, req_xml)
 
-    def instance_reboot(self, instance_ids, type):
+    def instance_restart(self, instance_ids):
         req_json = {"url": "%s/instances/%s/action"
                             % (self.dbaas_url, instance_ids['json'])}
         req_xml = {"url": "%s/instances/%s/action"
                             % (self.dbaas_url, instance_ids['xml'])}
-        JSON_DATA = {'reboot': {'type': type}}
+        JSON_DATA = {'restart': {}}
         XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
-                    <reboot xmlns="http://docs.openstack.org/database/api/v1.0"
-                    type="%s"/>""" % type
+            <restart xmlns="http://docs.openstack.org/database/api/v1.0"/>"""
         req_json['body'] = json.dumps(JSON_DATA)
         req_xml['body'] = XML_DATA
-        self.http_call('instance_reboot-%s' % type, 'POST', req_json, req_xml)
+        self.http_call('instance_restart', 'POST', req_json, req_xml)
         time.sleep(60) #TODO: replace
 
     def instance_resize_volume(self, instance_ids):
@@ -545,6 +544,19 @@ class ExampleGenerator(object):
         req_xml = {"url": "%s/mgmt/hosts" % self.dbaas_url}
         self.http_call("mgmt_list_hosts", 'GET', req_json, req_xml)
 
+    def mgmt_instance_reboot(self, instance_ids):
+        req_json = {"url": "%s/mgmt/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/mgmt/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        JSON_DATA = {'reboot': {}}
+        XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
+                <reboot xmlns="http://docs.openstack.org/database/api/v1.0"/>"""
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call('instance_reboot', 'POST', req_json, req_xml)
+        time.sleep(60) #TODO: replace
+
     def main(self):
 
         # Verify this is a clean environment to work on
@@ -589,8 +601,7 @@ class ExampleGenerator(object):
         self.get_list_instance_index()
         self.get_list_instance_details()
         self.get_instance_details(instance_ids)
-        self.instance_reboot(instance_ids, "SOFT")
-        self.instance_reboot(instance_ids, "HARD")
+        self.instance_restart(instance_ids)
         self.instance_resize_volume(instance_ids)
 
         # Do some mgmt calls before deleting the instances
@@ -602,6 +613,7 @@ class ExampleGenerator(object):
         self.mgmt_get_root_details(instance_ids)
         self.mgmt_instance_index(False)
         self.mgmt_get_instance_diagnostics(instance_ids)
+        self.mgmt_instance_reboot(instance_ids)
 
         # Configs
         config_id = "myconf"

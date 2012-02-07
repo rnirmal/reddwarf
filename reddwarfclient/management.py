@@ -14,6 +14,8 @@
 #    under the License.
 
 from novaclient import base
+
+from reddwarfclient.common import check_for_exceptions
 from reddwarfclient.instances import Instance
 
 class RootHistory(base.Resource):
@@ -73,3 +75,20 @@ class Management(base.ManagerWithFind):
         if not body:
             raise Exception("Call to " + url + " did not return a body.")
         return RootHistory(self, body['root_enabled_history'])
+
+    def _action(self, instance_id, body):
+        """
+        Perform a server "action" -- reboot/rebuild/resize/etc.
+        """
+        url = "/mgmt/instances/%s/action" % instance_id
+        resp, body = self.api.client.post(url, body=body)
+        check_for_exceptions(resp, body)
+
+    def reboot(self, instance_id):
+        """
+        Reboot the underlying OS.
+
+        :param instance_id: The :class:`Instance` (or its ID) to share onto.
+        """
+        body = {'reboot': {}}
+        self._action(instance_id, body)
