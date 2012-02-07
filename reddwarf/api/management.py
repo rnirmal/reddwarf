@@ -224,7 +224,7 @@ class Controller(object):
         common.instance_exists(ctxt, id, self.compute_api)
         try:
             result = dbapi.get_root_enabled_history(ctxt, local_id)
-            root_history = self.instance_view.build_root_history(local_id, result)
+            root_history = self.instance_view.build_root_history(id, result)
             return {'root_enabled_history': root_history}
         except Exception as err:
             LOG.error(err)
