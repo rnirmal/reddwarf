@@ -42,6 +42,10 @@ class API(nova_compute_api.API):
         instance = self.db.volume_get_instance(context, volume_id)
         if not instance:
             raise exception.Error(_("Volume isn't attached to anything!"))
+        self.update(context,
+                    instance['id'],
+                    vm_state=vm_states.RESIZING,
+                    task_state=task_states.RESIZE_PREP)
         rpc.cast(context,
                  self.db.queue_get_for(context, FLAGS.compute_topic,
                                        instance['host']),

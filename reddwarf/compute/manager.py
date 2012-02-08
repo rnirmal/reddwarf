@@ -342,12 +342,16 @@ class ReddwarfComputeManager(ComputeManager):
                        lambda volume: volume['status'] == 'resized',
                        sleep_time=2,
                        time_out=FLAGS.reddwarf_volume_time_out)
+            self.volume_api.update(context, volume_id, {'status': 'rescanning'})
             self.volume_client.resize_fs(context, volume_id)
             self.volume_api.update(context, volume_id, {'status': 'in-use'})
             notifier.notify(publisher_id(self.host),
                             'volume.resize.confirm', notifier.INFO,
                             "Resize completed for volume:%s instance:%s"
                             % (volume_id, instance_id))
+            self._instance_update(context, instance_id,
+                                  vm_state=vm_states.ACTIVE,
+                                  task_state=None)
             return
         except exception.PollTimeOut as pto:
             LOG.error("Timeout trying to rescan or resize the "
@@ -358,6 +362,9 @@ class ReddwarfComputeManager(ComputeManager):
 
         # Set the status to error and send a notification
         self.volume_api.update(context, volume_id, {'status': 'error'})
+        self._instance_update(context, instance_id,
+                              vm_state=vm_states.ERROR,
+                              task_state=task_states.RESIZE_VERIFY)
         notifier.notify(publisher_id(self.host),
                         'volume.resize.resizefs', notifier.ERROR,
                         "Error re-sizing filesystem volume:%s instance:%s"
