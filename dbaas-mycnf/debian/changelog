@@ -1,3 +1,10 @@
+dbaas-mycnf (1.0-8) lucid; urgency=low
+
+  [ Nirmal Ranganathan ]
+  * Generating all the flavor templates by default
+
+ -- DBaaS-Dev <dbaas-dev@rackspace.com>  Wed, 08 Feb 2012 17:00:27 +0600
+
 dbaas-mycnf (1.0-7) lucid; urgency=low
 
   [ Nirmal Ranganathan ]
