@@ -126,8 +126,8 @@
   </complexType>
 
   <complexType name="ManagementInstanceIP">
-    <element name="address" type="xsd:string"/>
-    <element name="virtual_interface_id" type="xsd:id"/>
+    <attribute name="address" type="xsd:string"/>
+    <attribute name="virtual_interface_id" type="xsd:id"/>
   </complexType>
 
   <complexType name="ManagementInstanceIPs">
@@ -136,24 +136,26 @@
     </sequence>
   </complexType>
 
-  <complexType name="ManagmentIndexInstance">
+  <complexType name="ManagementIndexInstance">
+    <sequence>
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>A single database instance, with some additional management information.</p>
         </xsd:documentation>
-        <element name="account_id" type="xsd:string"/>
-        <element name="created_at" type="xsd:string"/>
-        <element name="deleted" type="xsd:boolean"/>
-        <element name="deleted_at" type="xsd:string"/>
-        <element name="flavorid" type="xsd:integer"/>
-        <element name="host" type="xsd:string"/>
-        <element name="id" type="xsd:string"/>
+        <atrribute name="account_id" type="xsd:string"/>
+        <attribute name="created_at" type="xsd:string"/>
+        <attribute name="deleted" type="xsd:boolean"/>
+        <attribute name="deleted_at" type="xsd:string"/>
+        <attribute name="flavorid" type="xsd:integer"/>
+        <attribute name="host" type="xsd:string"/>
+        <attribute name="id" type="xsd:string"/>
+        <attribute name="state" type="xsd:string"/>
         <element name="ips" type="dbaas:ManagementInstanceIPs"/>
-        <element name="state" type="xsd:string"/>
       </annotation>
+    </sequence>
   </complexType>
 
-  <complexType name="ManagmentIndexInstances">
+  <complexType name="ManagementIndexInstances">
     <sequence>
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
@@ -344,42 +346,42 @@
     <attribute name="fdSize" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>The size of the file descriptors of the guest running on the instance.</p>
+          <p>Number of file descriptor slots currently allocated.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
     <attribute name="vmSize" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Virtual memory size of the guest running on the instance.</p>
+          <p>Virtual memory size.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
     <attribute name="vmPeak" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Peak virtual memory size of the guest on the instance.</p>
+          <p>Peak virtual memory size.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
     <attribute name="vmRss" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Resident set size of the guest on the instance.</p>
+          <p>Resident set size.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
     <attribute name="vmHwm" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Peak resident set size ("high water mark") of the guest on the instance.</p>
+          <p>Peak resident set size ("high water mark").</p>
         </xsd:documentation>
       </annotation>
     </attribute>
     <attribute name="threads" type="xsd:integer" use="optional">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Number of threads in process containing this thread of the guest on the instance.</p>
+          <p>Number of threads in process containing this thread.</p>
         </xsd:documentation>
       </annotation>
     </attribute>

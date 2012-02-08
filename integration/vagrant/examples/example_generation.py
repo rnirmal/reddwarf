@@ -533,6 +533,13 @@ class ExampleGenerator(object):
                 req_xml['url'] = "%s?deleted=false" % req_xml['url']
         self.http_call("mgmt_instance_index", 'GET', req_json, req_xml)
 
+    def mgmt_get_instance_diagnostics(self, instance_ids):
+        req_json = {"url": "%s/mgmt/instances/%s/diagnostics"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/mgmt/instances/%s/diagnostics"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        self.http_call("mgmt_instance_diagnostics", 'GET', req_json, req_xml)
+
     def mgmt_list_hosts(self):
         req_json = {"url": "%s/mgmt/hosts" % self.dbaas_url}
         req_xml = {"url": "%s/mgmt/hosts" % self.dbaas_url}
@@ -594,6 +601,7 @@ class ExampleGenerator(object):
         self.mgmt_get_instance_details(instance_ids)
         self.mgmt_get_root_details(instance_ids)
         self.mgmt_instance_index(False)
+        self.mgmt_get_instance_diagnostics(instance_ids)
 
         # Configs
         config_id = "myconf"

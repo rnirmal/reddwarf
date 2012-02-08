@@ -1129,18 +1129,32 @@
             <para>This section describes the operations that are supported for managing database instances.</para>
             <wadl:resources 
                 xmlns:wadl="http://wadl.dev.java.net/2009/02">
+                <wadl:resource href="management.wadl#instances">
+                    <wadl:method href="getIndex"/>
+                </wadl:resource>
                 <wadl:resource href="management.wadl#instanceId">
                     <wadl:method href="showinstances"/>                
                 </wadl:resource>
+                <wadl:resource href="management.wadl#diagnostics">
+                    <wadl:method href="getdiagnosticdetails"/>
+                </wadl:resource>
+            </wadl:resources>
+        </section>
+
+        <section xml:id="Host_Information">
+            <title>Host Information</title>
+            <para>This section describes the operations that are supported for getting host information.</para>
+            <wadl:resources
+                    xmlns:wadl="http://wadl.dev.java.net/2009/02">
                 <wadl:resource href="management.wadl#hosts">
                     <wadl:method href="gethosts"/>
                 </wadl:resource>
                 <wadl:resource href="management.wadl#hostid">
-                    <wadl:method href="gethostbyid"/> 
+                    <wadl:method href="gethostbyid"/>
                 </wadl:resource>
-            </wadl:resources>               
-        </section>      
-        
+            </wadl:resources>
+        </section>
+
         <section xml:id="Storage_Management">
             <title>Storage Management</title>
             <para>This section describes the operations that are supported for getting information about storage devices.</para>
