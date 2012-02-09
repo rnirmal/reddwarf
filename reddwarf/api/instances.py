@@ -120,10 +120,6 @@ class Controller(object):
         self.volume_api.resize(context, volume_ref['id'], new_size)
         # Kickoff rescaning and resizing the filesystem
         self.compute_api.resize_volume(context, volume_ref['id'])
-        # TODO(rnirmal): Need to figure out how to set the instance state
-        # during volume resize, as the compute driver and guest agent will
-        # rewrite those states. We may have to include the volume state at
-        # some point.
         return exc.HTTPAccepted()
 
     def index(self, req):

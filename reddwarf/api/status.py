@@ -86,7 +86,7 @@ class InstanceStatus(object):
 
     @property
     def status(self):
-        if self.server_status in ["ERROR", "REBOOT"]:
+        if self.server_status in ["ERROR", "REBOOT", "RESIZE"]:
             return self.server_status
         # TODO(ed-) Possibly a mapping error resulting in this function
         # returning a None. Should raise an exception instead

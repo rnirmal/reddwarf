@@ -620,15 +620,17 @@ class ResizeInstance(object):
     @test
     @time_out(300)
     def test_volume_resize_success(self):
-        # TODO(rnirmal): # Timeout for the volume to get to resizing state
-        # This can ideally go away when we incorporate the resize into
-        # the instance status
-        time.sleep(10)
-        poll_until(lambda: db.volume_get(context.get_admin_context(),
-                                         instance_info.volume_id),
-                   lambda volume: volume.status == 'in-use',
-                   sleep_time=2,
-                   time_out=300)
+
+        def check_resize_status():
+            instance = dbaas.instances.get(instance_info.id)
+            if instance.status == "ACTIVE":
+                return True
+            elif instance.status == "RESIZE":
+                return False
+            else:
+                fail("Status should not be %s" % instance.status)
+
+        poll_until(check_resize_status, sleep_time=2, time_out=300)
         volumes = db.volume_get(context.get_admin_context(),
                                 instance_info.volume_id)
         assert_equal(volumes.status, 'in-use')
