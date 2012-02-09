@@ -190,7 +190,7 @@ class RestartTests(RebootTestBase):
     """Tests restarting MySQL."""
 
     def call_reboot(self):
-        self.instance.reboot()
+        self.instance.restart()
 
     @before_class
     def test_set_up(self):
@@ -219,7 +219,7 @@ class RebootTests(RebootTestBase):
     """Tests restarting instance."""
 
     def call_reboot(self):
-        self.instance.reboot(type=REBOOT_HARD)
+        instance_info.dbaas_admin.management.reboot(self.instance_id)
 
     @before_class
     def test_set_up(self):

@@ -100,11 +100,11 @@ class InstanceCommands(object):
         except:
             print sys.exc_info()[1]
 
-    def reboot(self, id, type="SOFT"):
-        """Reboot the database (SOFT) or the OS (HARD)"""
+    def restart(self, id):
+        """Restart the database"""
         dbaas = common.get_client()
         try:
-            result = dbaas.instances.reboot(id, type)
+            result = dbaas.instances.restart(id)
             if result:
                 print result
         except:

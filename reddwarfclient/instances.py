@@ -39,14 +39,11 @@ class Instance(base.Resource):
         """
         self.manager.delete(self)
 
-    def reboot(self, type=REBOOT_SOFT):
+    def restart(self):
         """
-        Reboot the server.
-
-        :param type: either :data:`REBOOT_SOFT` to restart MySQL, or
-                     `REBOOT_HARD` to restart the underlying VM.
+        Restart the database instance
         """
-        self.manager.reboot(self.id, type)
+        self.manager.restart(self.id)
 
 
 class Instances(base.ManagerWithFind):
@@ -133,13 +130,11 @@ class Instances(base.ManagerWithFind):
         body = {"resize": {"volume": {"size": volume_size}}}
         self._action(instance_id, body)
 
-    def reboot(self, instance_id, type=REBOOT_SOFT):
+    def restart(self, instance_id):
         """
-        Reboot a server.
+        Restart the database instance.
 
-        :param server: The :class:`Server` (or its ID) to share onto.
-        :param type: either :data:`REBOOT_SOFT` for a software-level reboot,
-                     or `REBOOT_HARD` for a virtual power cycle hard reboot.
+        :param instance_id: The :class:`Instance` (or its ID) to share onto.
         """
-        body = {'reboot': {'type': type}}
+        body = {'restart': {}}
         self._action(instance_id, body)

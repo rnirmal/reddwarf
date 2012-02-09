@@ -78,7 +78,7 @@ class Controller(object):
         common.instance_exists(ctxt, id, self.compute_api)
 
         _actions = {
-            'reboot': self._action_reboot,
+            'restart': self._action_restart,
             'resize': self._action_resize
             }
 
@@ -92,52 +92,18 @@ class Controller(object):
         msg = _("Invalid request body")
         raise exception.BadRequest(msg)
 
-    def _action_reboot(self, input_dict, req, id):
-        LOG.info("Call to reboot for instance %s", id)
-        reboot_type = self._get_reboot_type(input_dict)
+    def _action_restart(self, body, req, id):
+        LOG.info("Call to restart for instance %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
         local_id = dbapi.localid_from_uuid(id)
-        if reboot_type == "HARD":
-            self._action_reboot_hard(ctxt, local_id)
-        else:
-            self._action_reboot_soft(ctxt, local_id)
 
-    def _action_reboot_hard(self, ctxt, local_id):
-        try:
-            self.compute_api.reboot(ctxt, local_id)
-            return exc.HTTPAccepted()
-        except Exception, e:
-            LOG.exception(_("Error in reboot %s"), e)
-            raise exception.UnprocessableEntity()
-
-    def _action_reboot_soft(self, ctxt, local_id):
         try:
             self.compute_api.restart(ctxt, local_id)
             return exc.HTTPAccepted()
         except Exception as err:
             LOG.error(err)
             raise exception.InstanceFault("Error restarting MySQL.")
-
-    @staticmethod
-    def _get_reboot_type(input_dict):
-        """Fetches the the reboot type from a dict or raises an exception.
-
-        Return value is either "HARD" or "SOFT".
-
-        """
-        if 'reboot' in input_dict and 'type' in input_dict['reboot']:
-            valid_reboot_types = ['HARD', 'SOFT']
-            reboot_type = input_dict['reboot']['type'].upper()
-            if not valid_reboot_types.count(reboot_type):
-                msg = _("Argument 'type' for reboot is not HARD or SOFT")
-                LOG.exception(msg)
-                raise exception.BadRequest(msg)
-            return reboot_type
-        else:
-            msg = _("Missing argument 'type' for reboot")
-            LOG.exception(msg)
-            raise exception.BadRequest(explanation=msg)
 
     def _action_resize(self, body, req, id):
         LOG.info("Call to resize instance %s" % id)

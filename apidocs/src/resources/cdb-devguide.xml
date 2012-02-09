@@ -1507,7 +1507,7 @@
             <para>This section describes the actions that are supported for database instances.</para>
             <wadl:resources xmlns:wadl="http://wadl.dev.java.net/2009/02">
                 <wadl:resource href="dbaas.wadl#instanceAction" >
-                    <wadl:method href="rebootInstance"/>
+                    <wadl:method href="restartInstance"/>
                     <wadl:method href="resizeInstance"/>
                 </wadl:resource>
             </wadl:resources>

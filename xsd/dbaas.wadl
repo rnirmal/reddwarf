@@ -41,7 +41,7 @@
                         <method href="#getInstanceById" />
                         <method href="#deleteInstance" />
                         <resource id="instanceAction" path="action">
-                            <method href="#rebootInstance" />
+                            <method href="#restartInstance" />
                             <method href="#resizeInstance" />
                         </resource>
                         <resource id="databases" path="databases">
@@ -419,37 +419,35 @@
     </method>
 
     <!-- Instance Actions -->
-    <method name="POST" id="rebootInstance">
+    <method name="POST" id="restartInstance">
         <wadl:doc xml:lang="EN" title="Restart the Instance"  xmlns="http://docbook.org/ns/docbook">
-            <para role="shortdesc">Perform a soft/hard reboot of the instance.</para>
-            <para>This operation supports a soft and hard reboot. The soft reboot will restart only the Mysql Instance and a hard reboot will restart the underlying OS along with the mysql instance.</para>
-            <para>This operation does not return a response.</para>
+            <para role="shortdesc">Restart the Database service on the instance.</para>
+            <para>The restart will restart only the Mysql Instance. Restarting MySQL will erase any dynamic configuration settings that were made.</para>
+            <para>This operation returns a 202 Accepted response.</para>
         </wadl:doc>
         <request>
-            <representation mediaType="application/xml"
-                            element="dbaas:Reboot">
+            <representation mediaType="application/xml" element="dbaas:Restart">
                 <doc>
-                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the Reboot Instance requests:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-request.xml"/>
+                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the Restart Instance requests:</para>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-restart-request.xml"/>
                 </doc>
             </representation>
-            <representation mediaType="application/json"
-                            element="dbaas:Reboot">
+            <representation mediaType="application/json" element="dbaas:Restart">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-request.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-restart-request.json"/>
                 </doc>
             </representation>
         </request>
         <response status="202">
             <representation mediaType="application/xml">
                 <doc>
-                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the Reboot Instance responses:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-response.xml"/>
+                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the Restart Instance responses:</para>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-restart-response.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-reboot-SOFT-response.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-restart-response.json"/>
                 </doc>
             </representation>
         </response>

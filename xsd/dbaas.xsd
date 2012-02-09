@@ -79,11 +79,11 @@
       </xsd:documentation>
     </annotation>
   </element>
-  <element name="reboot" type="dbaas:Reboot">
+  <element name="restart">
     <annotation>
-       <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-         <p>Reboot an Instance</p>
-       </xsd:documentation>
+      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+        <p>Restart the Database</p>
+      </xsd:documentation>
     </annotation>
   </element>
   <element name="resize" type="dbaas:Resize">
@@ -378,16 +378,6 @@
     </attribute>
   </complexType>
 
-  <complexType name="Reboot">
-    <attribute name="type" type="dbaas:RebootType" use="required">
-      <annotation>
-        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>Reboot type.</p>
-        </xsd:documentation>
-      </annotation>
-    </attribute>
-  </complexType>
-
   <complexType name="Resize">
     <sequence>
       <xsd:element name="volume" type="dbaas:Volume" minOccurs="0" maxOccurs="1">
@@ -443,30 +433,6 @@
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>Enabled status.</p>
-          </xsd:documentation>
-        </annotation>
-      </enumeration>
-    </restriction>
-  </simpleType>
-
-  <simpleType name="RebootType">
-    <annotation>
-      <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-        <p>The instance status.</p>
-      </xsd:documentation>
-    </annotation>
-    <restriction base="xsd:string">
-      <enumeration value="soft">
-        <annotation>
-          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>Reboot the Mysql instance.</p>
-          </xsd:documentation>
-        </annotation>
-      </enumeration>
-      <enumeration value="hard">
-        <annotation>
-          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-            <p>Reboot the underlying OS.</p>
           </xsd:documentation>
         </annotation>
       </enumeration>
