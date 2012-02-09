@@ -27,7 +27,7 @@
           </resource>
       </resource>
       <resource id="instances" path="instances">
-        <method href="#getIndex" name="POST">
+        <method href="#getIndex" name="GET">
             <request>
               <param name="deleted" style="query" type="xsd:string" />
             </request>
@@ -174,27 +174,27 @@
       </para>
     </wadl:doc>
     <request>
-      <representation>
+      <representation mediaType="application/xml">
+        <doc>
+            <para xmlns="http://docbook.org/ns/docbook">The following examples show the List All Instances requests:</para>
+          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.xml"/>
+        </doc>
+      </representation>
+      <representation mediaType="application/json">
         <doc>
           <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.json"/>
         </doc>
       </representation>
-      <representation>
-        <doc>
-          <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-request.xml"/>
-        </doc>
-      </representation>
     </request>
-      <response status="200">
-      <representation mediaType="application/xml" element="dbaas:ManagmentIndexInstances">
+    <response status="200">
+      <representation mediaType="application/xml" element="dbaas:ManagementIndexInstances">
       <doc>
-        <para xmlns="http://docbook.org/ns/docbook" />
+        <para xmlns="http://docbook.org/ns/docbook">The following examples show the List All Instances response:</para>
         <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.xml"/>
       </doc>
       </representation>
-      <representation mediaType="application/json" element="dbaas:ManagmentIndexInstances">
+      <representation mediaType="application/json">
         <doc>
-          <para xmlns="http://docbook.org/ns/docbook" />
           <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.json"/>
         </doc>
       </representation>
@@ -565,9 +565,76 @@
   </method>
 
   <method name="GET" id="getdiagnosticdetails">
+      <wadl:doc xml:lang="EN" title="Get Diagnostics Info" xmlns="http://docbook.org/ns/docbook">
+          <para role="shortdesc">
+              Get the instance agent and other instance diagnostics info.
+          </para>
+          <para>This operation provides the following info for the guest agent managing the specified instance.</para>
+          <table rules="all">
+              <caption>Return attributes for Get Diagnostics Info</caption>
+              <thead>
+                  <tr>
+                      <td colspan="1">Name</td>
+                      <td colspan="3">Description</td>
+                  </tr>
+              </thead>
+              <tbody>
+                  <tr>
+                      <td colspan="1">version</td>
+                      <td colspan="3">The version of the guest installed on the instance.</td>
+                  </tr>
+                  <tr>
+                      <td colspan="1">fdSize</td>
+                      <td colspan="3">Number of file descriptor slots currently allocated.</td>
+                  </tr>
+                  <tr>
+                      <td colspan="1">vmSize</td>
+                      <td colspan="3">Virtual memory size.</td>
+                  </tr>
+                  <tr>
+                      <td colspan="1">vmPeak</td>
+                      <td colspan="3">Peak virtual memory size.</td>
+                  </tr>
+                  <tr>
+                      <td colspan="1">vmRss</td>
+                      <td colspan="3">Resident set size.</td>
+                  </tr>
+                  <tr>
+                      <td colspan="1">vmHwm</td>
+                      <td colspan="3">Peak resident set size ("high water mark").</td>
+                  </tr>
+                  <tr>
+                      <td colspan="1">threads</td>
+                      <td colspan="3">Number of threads in process containing this thread.</td>
+                  </tr>
+              </tbody>
+          </table>
+      </wadl:doc>
+      <request>
+          <representation mediaType="application/xml">
+              <doc>
+                  <para xmlns="http://docbook.org/ns/docbook">The following examples show the Get Diagnostics Info requests:</para>
+                  <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-diagnostics-request.xml"/>
+              </doc>
+          </representation>
+          <representation mediaType="application/json">
+              <doc>
+                  <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-diagnostics-request.json"/>
+              </doc>
+          </representation>
+      </request>
       <response status="200">
-          <representation mediaType="application/xml" element="dbaas:DiagnosticsDetails"/>
-          <representation mediaType="application/json" element="dbaas:DiagnosticsDetails"/>
+          <representation mediaType="application/xml" element="dbaas:DiagnosticsDetails">
+              <doc>
+                  <para xmlns="http://docbook.org/ns/docbook">The following examples show the Get Diagnostics Info requests:</para>
+                  <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-diagnostics-response.xml"/>
+              </doc>
+          </representation>
+          <representation mediaType="application/json">
+              <doc>
+                  <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-diagnostics-response.json"/>
+              </doc>
+          </representation>
       </response>
       &commonFaults;
       &getFaults;
