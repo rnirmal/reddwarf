@@ -717,7 +717,7 @@ class OpenVzConnTestCase(test.TestCase):
     def test_set_diskspace_soft_manual_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'set', INSTANCE['id'], '--save',
-                                  '--diskspace', '40G:50G', run_as_root=True)\
+                                  '--diskspace', '40G:44G', run_as_root=True)\
                                   .AndReturn(('', None))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
@@ -726,7 +726,7 @@ class OpenVzConnTestCase(test.TestCase):
     def test_set_diskspace_soft_and_hard_manual_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'set', INSTANCE['id'],
-                                  '--save', '--diskspace', '40G:50G',
+                                  '--save', '--diskspace', '40G:44G',
                                   run_as_root=True).AndReturn(('', None))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
