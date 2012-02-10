@@ -967,9 +967,6 @@ class OpenVzConnection(driver.ComputeDriver):
         of cores that are presented to each container and if this fails to set
         *ALL* cores will be presented to every container, that be bad.
         """
-        inst_typ = instance_types.get_instance_type(
-            instance['instance_type_id']
-        )
         vcpus = vcpus * multiplier
         # TODO(imsplitbit): We need to fix this to not allow allocation of
         # more than the maximum allowed cpus on the host.
