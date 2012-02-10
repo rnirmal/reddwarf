@@ -420,9 +420,10 @@
 
     <!-- Instance Actions -->
     <method name="POST" id="restartInstance">
-        <wadl:doc xml:lang="EN" title="Restart the Instance"  xmlns="http://docbook.org/ns/docbook">
-            <para role="shortdesc">Restart the Database service on the instance.</para>
-            <para>The restart will restart only the Mysql Instance. Restarting MySQL will erase any dynamic configuration settings that were made.</para>
+        <wadl:doc xml:lang="EN" title="Restart Instance"  xmlns="http://docbook.org/ns/docbook">
+            <para role="shortdesc">Restart the database service on the instance.</para>
+            <para>The restart will restart only the MySQL Instance. Restarting MySQL will erase any dynamic configuration settings that you have made within MySQL.</para>
+            <note>The MySQL service will be unavailable until the instance restarts.</note>
             <para>This operation returns a 202 Accepted response.</para>
         </wadl:doc>
         <request>
@@ -457,10 +458,11 @@
     </method>
 
     <method name="POST" id="resizeInstance">
-        <wadl:doc xml:lang="EN" title="Resize the Instance"  xmlns="http://docbook.org/ns/docbook">
+        <wadl:doc xml:lang="EN" title="Resize Instance"  xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Resize the volume attached to the Instance.</para>
-            <para>This supports resizing the attached volume to an instance. It only supports increasing the volume size and does not support decreasing the size.</para>
-            <para>This operation does not return a response.</para>
+            <para>This supports resizing the attached volume for an instance. It supports only increasing the volume size and does not support decreasing the size.</para>
+            <note>You cannot increase the volume to a size larger than the API volume size limit specifies.</note>
+            <para>This operation returns a 202 Accepted response.</para>
         </wadl:doc>
         <request>
             <representation mediaType="application/xml"

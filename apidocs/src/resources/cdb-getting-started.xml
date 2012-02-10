@@ -39,8 +39,19 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
-        <pubdate>2012-01-26</pubdate>
+        <pubdate>2012-02-13</pubdate>
         <revhistory>
+            <revision>
+                <date>2012-02-13</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Updated code examples to remove
+                                X-Auth-Project-ID header.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2012-01-26</date>
                 <revdescription>
