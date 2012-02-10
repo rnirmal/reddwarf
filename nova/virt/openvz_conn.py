@@ -880,7 +880,7 @@ class OpenVzConnection(driver.ComputeDriver):
         except ProcessExecutionError as err:
             LOG.error(_('Error setting kmemsize: %s') % err)
             raise exception.Error(
-                _('Error setting kmemsize to %(kmemsize) on %(id)s') %
+                _('Error setting kmemsize to %(kmemsize)s on %(id)s') %
                 {'kmemsize': kmemsize, 'id': instance['id']})
 
     def _set_cpuunits(self, instance, percent_of_resource):
