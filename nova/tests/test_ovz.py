@@ -348,7 +348,6 @@ class OpenVzConnTestCase(test.TestCase):
                                   run_as_root=True) \
                                  .AndRaise(exception.ProcessExecutionError)
         self.mox.ReplayAll()
-
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._start, INSTANCE)
 
@@ -659,7 +658,7 @@ class OpenVzConnTestCase(test.TestCase):
                                   .AndRaise(exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._get_cpuunits_usage)
+        conn._get_cpuunits_usage()
 
     def test_percent_of_resource(self):
         conn = openvz_conn.OpenVzConnection(False)
