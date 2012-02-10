@@ -74,7 +74,7 @@ class VolumeClient(Base):
         self._ensure_path(path, volume_id)
         return path
 
-    def _ensure_path(path, volume_id):
+    def _ensure_path(self, path, volume_id):
         """This will ensure a driver path exists so there are no kernel
            issues around timing. """
         LOG.info("this is the path SUCKAH %s %s" % (path, volume_id))
