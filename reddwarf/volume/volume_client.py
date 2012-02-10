@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os.path
 import time
 
 
@@ -71,6 +72,12 @@ class VolumeClient(Base):
             path = self.driver.discover_volume(context, volume_ref)
         self._ensure_path(path)
         return path
+
+    def _ensure_path(path):
+        """This will ensure a driver path exists so there are no kernel
+           issues around timing. """
+        LOG.info("this is the path SUCKAH %s " % path)
+        return os.path.isfile(fname)
 
     def remove_volume(self, context, volume_id, host):
         """Remove remote volume on compute host."""
