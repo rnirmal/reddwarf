@@ -62,6 +62,8 @@ GOODSTATUS = {
     'cpu_time': 0
 }
 
+ERRORMSG = "vz command ran but output something to stderr"
+
 MEMINFO = """MemTotal:         506128 kB
 MemFree:          291992 kB
 Buffers:           44512 kB
@@ -267,6 +269,8 @@ NETTEMPLATE = """
     """
 
 MEMORY = 536870912
+
+MEMORYMB = 512
 
 MEM_PAGES = 131072
 
@@ -617,7 +621,7 @@ class OpenVzConnTestCase(test.TestCase):
         # because it relies on the default memory size for flavor 1 never
         # changing.  Need to fix this.
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertEqual(conn._calc_pages(INSTANCE), 1048576)
+        self.assertEqual(conn._calc_pages(MEMORYMB), MEM_PAGES)
 
     def test_get_cpuunits_capability_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -656,7 +660,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(conn, 'utility')
         conn.utility = UTILITY
         self.mox.ReplayAll()
-        self.assertEqual(float, type(conn._percent_of_resource(INSTANCE)))
+        self.assertEqual(float, type(conn._percent_of_resource(MEMORYMB)))
 
     def test_get_memory_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -868,25 +872,34 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(conn, '_send_garp')
         conn._send_garp(INSTANCE['id'],
                         mox.IgnoreArg(),
-                        mox.IgnoreArg(),
                         mox.IgnoreArg()).MultipleTimes()
         self.mox.ReplayAll()
         conn._gratuitous_arp_all_addresses(INSTANCE, NETWORKINFO)
 
-    def test_send_garp(self):
+    def test_send_garp_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
-        openvz_conn.utils.execute('vzctl', 'exec', INSTANCE['id'], 'arping',
-                                  '-c', '5', '-I',
+        openvz_conn.utils.execute('vzctl', 'exec2', INSTANCE['id'], 'arping',
+                                  '-q', '-c', '5', '-A', '-I',
                                   NETWORKINFO[0][0]['bridge_interface'],
-                                  '-s', NETWORKINFO[0][1]['mac'], '-S',
                                   NETWORKINFO[0][1]['ips'][0]['ip'],
-                                  '-B', run_as_root=True).AndReturn(('', ''))
+                                  run_as_root=True).AndReturn(('', ERRORMSG))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         conn._send_garp(INSTANCE['id'], NETWORKINFO[0][1]['ips'][0]['ip'],
-                        NETWORKINFO[0][0]['bridge_interface'],
-                        NETWORKINFO[0][1]['mac'], NETWORKINFO[0][1]['gateway'])
+                        NETWORKINFO[0][0]['bridge_interface'])
 
+    def test_send_garp_faiure(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('vzctl', 'exec2', INSTANCE['id'], 'arping',
+                                  '-q', '-c', '5', '-A', '-I',
+                                  NETWORKINFO[0][0]['bridge_interface'],
+                                  NETWORKINFO[0][1]['ips'][0]['ip'],
+                                  run_as_root=True)\
+        .AndRaise(exception.ProcessExecutionError)
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._send_garp(INSTANCE['id'], NETWORKINFO[0][1]['ips'][0]['ip'],
+                        NETWORKINFO[0][0]['bridge_interface'])
     def test_ovz_network_bridge_driver_plug(self):
         self.mox.StubOutWithMock(
             openvz_conn.linux_net.LinuxBridgeInterfaceDriver,
