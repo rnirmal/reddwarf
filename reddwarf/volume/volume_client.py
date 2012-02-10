@@ -70,14 +70,14 @@ class VolumeClient(Base):
             path = self.driver.local_path(volume_ref)
         else:
             path = self.driver.discover_volume(context, volume_ref)
-        self._ensure_path(path)
+        self._ensure_path(path, volume_id)
         return path
 
-    def _ensure_path(path):
+    def _ensure_path(path, volume_id):
         """This will ensure a driver path exists so there are no kernel
            issues around timing. """
-        LOG.info("this is the path SUCKAH %s " % path)
-        return os.path.isfile(fname)
+        LOG.info("this is the path SUCKAH %s %s" % (path, volume_id))
+        return os.path.exists(path)
 
     def remove_volume(self, context, volume_id, host):
         """Remove remote volume on compute host."""
