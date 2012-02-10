@@ -317,6 +317,8 @@ class ReddwarfComputeManager(ComputeManager):
                      context=context)
 
         network_info = self._get_instance_nw_info(context, instance_ref)
+        for vol in instance_ref['volumes']:
+            self.volume_client._setup_volume(context, vol['id'], instance_ref['host'])
         self.driver.reboot(instance_ref, network_info)
 
         # Code unique to  Reddwarf:

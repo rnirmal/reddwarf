@@ -69,6 +69,7 @@ class VolumeClient(Base):
             path = self.driver.local_path(volume_ref)
         else:
             path = self.driver.discover_volume(context, volume_ref)
+        self._ensure_path(path)
         return path
 
     def remove_volume(self, context, volume_id, host):
