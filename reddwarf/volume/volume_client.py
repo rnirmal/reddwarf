@@ -21,6 +21,7 @@ from nova import db
 from nova import flags
 from nova import log as logging
 from nova import utils
+from reddwarf.utils import poll_until
 from reddwarf.volume.api import API
 from nova.db.base import Base
 
@@ -77,7 +78,10 @@ class VolumeClient(Base):
         """This will ensure a driver path exists so there are no kernel
            issues around timing. """
         LOG.info("this is the path SUCKAH %s %s" % (path, volume_id))
-        return os.path.exists(path)
+        poll_until(lambda: os.path.exists(path),
+                         lambda result: result is True,
+                         sleep_time=3,
+                         time_out=5 * FLAGS.num_tries)
 
     def remove_volume(self, context, volume_id, host):
         """Remove remote volume on compute host."""
