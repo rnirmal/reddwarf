@@ -62,6 +62,12 @@ GOODSTATUS = {
     'cpu_time': 0
 }
 
+FAKE_INST_TYPE = {
+    'local_gb': 40,
+    'memory_mb': 1024,
+    'id': 1
+}
+
 ERRORMSG = "vz command ran but output something to stderr"
 
 MEMINFO = """MemTotal:         506128 kB
@@ -709,7 +715,7 @@ class OpenVzConnTestCase(test.TestCase):
                                   run_as_root=True).AndReturn(('', None))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        conn._set_diskspace(INSTANCE)
+        conn._set_diskspace(INSTANCE, FAKE_INST_TYPE)
 
     def test_set_diskspace_soft_manual_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -718,7 +724,7 @@ class OpenVzConnTestCase(test.TestCase):
                                   .AndReturn(('', None))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        conn._set_diskspace(INSTANCE, 40)
+        conn._set_diskspace(INSTANCE, FAKE_INST_TYPE)
 
     def test_set_diskspace_soft_and_hard_manual_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -727,7 +733,7 @@ class OpenVzConnTestCase(test.TestCase):
                                   run_as_root=True).AndReturn(('', None))
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        conn._set_diskspace(INSTANCE, 40, 50)
+        conn._set_diskspace(INSTANCE, FAKE_INST_TYPE)
 
     def test_set_diskspace_failure(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
@@ -737,7 +743,8 @@ class OpenVzConnTestCase(test.TestCase):
                                   .AndRaise(exception.ProcessExecutionError)
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
-        self.assertRaises(exception.Error, conn._set_diskspace, INSTANCE)
+        self.assertRaises(exception.Error, conn._set_diskspace, INSTANCE,
+                          FAKE_INST_TYPE)
 
     def test_attach_volumes_success(self):
         conn = openvz_conn.OpenVzConnection(False)
