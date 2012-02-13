@@ -491,8 +491,8 @@ class OpenVzConnTestCase(test.TestCase):
     def test_set_instance_size_no_instance_type(self):
         self.mox.StubOutWithMock(openvz_conn.instance_types,
                                  'get_instance_type')
-        openvz_conn.instance_types.get_instance_type(INSTANCE['id'])\
-            .AndReturn(FAKE_INST_TYPE)
+        openvz_conn.instance_types.get_instance_type(
+            INSTANCE['instance_type_id']).AndReturn(FAKE_INST_TYPE)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_calc_pages')
         conn._calc_pages(FAKE_INST_TYPE['memory_mb']).AndReturn(MEM_PAGES)
@@ -522,8 +522,8 @@ class OpenVzConnTestCase(test.TestCase):
     def test_set_instance_size_instance_type(self):
         self.mox.StubOutWithMock(openvz_conn.instance_types,
                                  'get_instance_type')
-        openvz_conn.instance_types.get_instance_type(INSTANCE['id'])\
-        .AndReturn(FAKE_INST_TYPE)
+        openvz_conn.instance_types.get_instance_type(
+            INSTANCE['instance_type_id']).AndReturn(FAKE_INST_TYPE)
         conn = openvz_conn.OpenVzConnection(False)
         self.mox.StubOutWithMock(conn, '_calc_pages')
         conn._calc_pages(FAKE_INST_TYPE['memory_mb']).AndReturn(MEM_PAGES)
@@ -548,7 +548,7 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.StubOutWithMock(conn, '_set_diskspace')
         conn._set_diskspace(INSTANCE, FAKE_INST_TYPE)
         self.mox.ReplayAll()
-        conn._set_instance_size(INSTANCE)
+        conn._set_instance_size(INSTANCE, FAKE_INST_TYPE['id'])
 
     def test_set_vmguarpages_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
