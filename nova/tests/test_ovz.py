@@ -65,6 +65,7 @@ GOODSTATUS = {
 FAKE_INST_TYPE = {
     'local_gb': 40,
     'memory_mb': 1024,
+    'vcpus': 2,
     'id': 1
 }
 
@@ -486,6 +487,68 @@ class OpenVzConnTestCase(test.TestCase):
         self.mox.ReplayAll()
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._stop, INSTANCE)
+
+    def test_set_instance_size_no_instance_type(self):
+        self.mox.StubOutWithMock(openvz_conn.instance_types,
+                                 'get_instance_type')
+        openvz_conn.instance_types.get_instance_type(INSTANCE['id'])\
+            .AndReturn(FAKE_INST_TYPE)
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_calc_pages')
+        conn._calc_pages(FAKE_INST_TYPE['memory_mb']).AndReturn(MEM_PAGES)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(FAKE_INST_TYPE['memory_mb'])\
+            .AndReturn(RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_vmguarpages')
+        conn._set_vmguarpages(INSTANCE, MEM_PAGES)
+        self.mox.StubOutWithMock(conn, '_set_privvmpages')
+        conn._set_privvmpages(INSTANCE, MEM_PAGES)
+        self.mox.StubOutWithMock(conn, '_set_kmemsize')
+        conn._set_kmemsize(INSTANCE,
+            ((FAKE_INST_TYPE['memory_mb'] * 1024) * 1024))
+        self.mox.StubOutWithMock(conn, '_set_cpuunits')
+        conn._set_cpuunits(INSTANCE, RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_cpulimit')
+        conn._set_cpulimit(INSTANCE, RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_cpus')
+        conn._set_cpus(INSTANCE, FAKE_INST_TYPE['vcpus'])
+        self.mox.StubOutWithMock(conn, '_set_ioprio')
+        conn._set_ioprio(INSTANCE, RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_diskspace')
+        conn._set_diskspace(INSTANCE, FAKE_INST_TYPE)
+        self.mox.ReplayAll()
+        conn._set_instance_size(INSTANCE)
+
+    def test_set_instance_size_instance_type(self):
+        self.mox.StubOutWithMock(openvz_conn.instance_types,
+                                 'get_instance_type')
+        openvz_conn.instance_types.get_instance_type(INSTANCE['id'])\
+        .AndReturn(FAKE_INST_TYPE)
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_calc_pages')
+        conn._calc_pages(FAKE_INST_TYPE['memory_mb']).AndReturn(MEM_PAGES)
+        self.mox.StubOutWithMock(conn, '_percent_of_resource')
+        conn._percent_of_resource(FAKE_INST_TYPE['memory_mb'])\
+        .AndReturn(RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_vmguarpages')
+        conn._set_vmguarpages(INSTANCE, MEM_PAGES)
+        self.mox.StubOutWithMock(conn, '_set_privvmpages')
+        conn._set_privvmpages(INSTANCE, MEM_PAGES)
+        self.mox.StubOutWithMock(conn, '_set_kmemsize')
+        conn._set_kmemsize(INSTANCE,
+            ((FAKE_INST_TYPE['memory_mb'] * 1024) * 1024))
+        self.mox.StubOutWithMock(conn, '_set_cpuunits')
+        conn._set_cpuunits(INSTANCE, RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_cpulimit')
+        conn._set_cpulimit(INSTANCE, RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_cpus')
+        conn._set_cpus(INSTANCE, FAKE_INST_TYPE['vcpus'])
+        self.mox.StubOutWithMock(conn, '_set_ioprio')
+        conn._set_ioprio(INSTANCE, RES_PERCENT)
+        self.mox.StubOutWithMock(conn, '_set_diskspace')
+        conn._set_diskspace(INSTANCE, FAKE_INST_TYPE)
+        self.mox.ReplayAll()
+        conn._set_instance_size(INSTANCE)
 
     def test_set_vmguarpages_success(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')

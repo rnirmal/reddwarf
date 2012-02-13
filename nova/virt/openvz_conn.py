@@ -780,7 +780,6 @@ class OpenVzConnection(driver.ComputeDriver):
         instance_memory_pages = self._calc_pages(instance_type['memory_mb'])
         percent_of_resource = self._percent_of_resource(
             instance_type['memory_mb'])
-        instance_vcpus = instance_type['vcpus']
 
         self._set_vmguarpages(instance, instance_memory_pages)
         self._set_privvmpages(instance, instance_memory_pages)
@@ -790,7 +789,7 @@ class OpenVzConnection(driver.ComputeDriver):
         if FLAGS.ovz_use_cpulimit:
             self._set_cpulimit(instance, percent_of_resource)
         if FLAGS.ovz_use_cpus:
-            self._set_cpus(instance, instance_vcpus)
+            self._set_cpus(instance, instance_type['vcpus'])
         if FLAGS.ovz_use_ioprio:
             self._set_ioprio(instance, percent_of_resource)
         if FLAGS.ovz_use_disk_quotas:
