@@ -268,20 +268,26 @@ class ResizeInstanceTest(object):
     def flavor_id(self):
         return instance_info.dbaas_flavor_href
 
+    @property
+    def new_flavor_id(self):
+        result = self.dbaas.find_flavor_and_self_href(flavor_id=2)
+        dbaas_flavor, dbaas_flavor_href = result
+        return dbaas_flavor_href
+
     @before_class
     def setup(self):
         self.dbaas = instance_info.dbaas
 
     @test
     @expect_exception(exception.BadRequest)
-    def test_instance_resize(self):
+    def test_instance_resize1(self):
         self.dbaas.instances.resize_instance(self.instance_id, self.flavor_id)
 
     @test
-    def test_instance_resize(self):
-        self.dbaas.instances.resize_instance(self.instance_id, self.flavor_id)
+    def test_instance_resize2(self):
+        self.dbaas.instances.resize_instance(self.instance_id, self.new_flavor_id)
 
-    @test(depends_on=[test_instance_resize])
+    @test(depends_on=[test_instance_resize2])
     def test_status_changed_to_resize(self):
         instance = self.dbaas.instances.get(self.instance_id)
         assert_equal(instance.status, 'RESIZING')

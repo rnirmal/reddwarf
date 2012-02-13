@@ -16,7 +16,6 @@
 import os
 import re
 import string
-import sys
 import time
 import unittest
 from tests import util
@@ -615,7 +614,7 @@ class ResizeVolumeInstance(object):
     @test
     @time_out(60)
     def test_volume_resize(self):
-        dbaas.instances.resize(instance_info.id, self.new_volume_size)
+        dbaas.instances.resize_volume(instance_info.id, self.new_volume_size)
 
     @test
     @time_out(300)
