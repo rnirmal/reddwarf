@@ -757,7 +757,7 @@ class OpenVzConnection(driver.ComputeDriver):
         try:
             self._set_instance_size(instance)
             if restart_instance:
-                self.reboot(instance)
+                self.reboot(instance, None)
             return True
         except Exception:
             raise exception.InstanceUnacceptable(

@@ -488,6 +488,24 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._stop, INSTANCE)
 
+    def test_resize_in_place_success(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_set_instance_size')
+        conn._set_instance_size(INSTANCE, INSTANCE['instance_type_id'])
+        self.mox.StubOutWithMock(conn, 'reboot')
+        conn.reboot(INSTANCE, None)
+        self.mox.ReplayAll()
+        conn.resize_in_place(INSTANCE, INSTANCE['instance_type_id'], True)
+
+    def test_resize_in_place_failure(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_set_instance_size')
+        conn._set_instance_size(INSTANCE, INSTANCE['instance_type_id'])\
+            .AndRaise(exception.Error)
+        self.mox.ReplayAll()
+        self.assertRaises(exception.InstanceUnacceptable, conn.resize_in_place,
+                          INSTANCE, INSTANCE['instance_type_id'])
+
     def test_set_instance_size_no_instance_type(self):
         self.mox.StubOutWithMock(openvz_conn.instance_types,
                                  'get_instance_type')
