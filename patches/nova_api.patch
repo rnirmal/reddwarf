@@ -2,7 +2,7 @@ Index: reddwarf/nova/api/openstack/faults.py
 ===================================================================
 --- reddwarf.orig/nova/api/openstack/faults.py	2012-01-03 14:44:27.000000000 -0600
 +++ reddwarf/nova/api/openstack/faults.py	2012-01-10 11:43:46.000000000 -0600
-@@ -35,6 +35,8 @@
+@@ -35,6 +35,8 @@ class Fault(webob.exc.HTTPException):
              409: "inProgress",
              413: "overLimit",
              415: "badMediaType",
@@ -10,8 +10,8 @@ Index: reddwarf/nova/api/openstack/faults.py
 +            500: "instanceFault",
              501: "notImplemented",
              503: "serviceUnavailable"}
- 
-@@ -48,7 +50,7 @@
+
+@@ -48,12 +50,12 @@ class Fault(webob.exc.HTTPException):
          """Generate a WSGI response based on the exception passed to ctor."""
          # Replace the body with fault details.
          code = self.wrapped_exc.status_int
@@ -20,6 +20,12 @@ Index: reddwarf/nova/api/openstack/faults.py
          fault_data = {
              fault_name: {
                  'code': code,
+                 'message': self.wrapped_exc.explanation}}
+-        if code == 413:
++        if code == 413 and 'Retry-After' in self.wrapped_exc.headers:
+             retry = self.wrapped_exc.headers['Retry-After']
+             fault_data[fault_name]['retryAfter'] = retry
+
 Index: reddwarf/nova/api/openstack/servers.py
 ===================================================================
 --- reddwarf.orig/nova/api/openstack/servers.py	2012-01-03 14:44:32.000000000 -0600
