@@ -88,7 +88,6 @@ class InstanceStatus(object):
             ]
         return self.guest_state in responsive
 
-    @property
     def can_perform_action_on_instance(self):
         """
         Checks if the instance is in a state where an action can be performed.

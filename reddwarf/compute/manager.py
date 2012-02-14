@@ -291,8 +291,7 @@ class ReddwarfComputeManager(ComputeManager):
                 updated_vm_state = vm_states.ERROR
                 self.driver.reset_instance_size(instance_ref)
                 updated_vm_state = vm_states.ACTIVE
-            self.guest_api.start_mysql_with_conf_changes(context, instance_id,
-                                                         updated_memory_size)
+            self.guest_api.start_mysql_with_conf_changes(context, instance_id, updated_memory_size)
         except (exception.GuestError, nova_exception.InstanceUnacceptable) as e:
             err_values = { 'instance_id':instance_ref['id'],
                            'new_instance_type_id':new_instance_type_id,

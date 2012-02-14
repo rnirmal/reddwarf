@@ -257,10 +257,6 @@ class ResizeInstanceTest(object):
         return self.dbaas.instances.get(self.instance_id)
 
     @property
-    def instance_local_id(self):
-        return instance_info.get_local_id()
-
-    @property
     def instance_id(self):
         return instance_info.id
 
@@ -270,8 +266,7 @@ class ResizeInstanceTest(object):
 
     @property
     def new_flavor_id(self):
-        result = self.dbaas.find_flavor_and_self_href(flavor_id=2)
-        dbaas_flavor, dbaas_flavor_href = result
+        dbaas_flavor, dbaas_flavor_href = self.dbaas.find_flavor_and_self_href(flavor_id=2)
         return dbaas_flavor_href
 
     @before_class
