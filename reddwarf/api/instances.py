@@ -37,7 +37,6 @@ from reddwarf import exception
 from reddwarf import volume
 from reddwarf.api import common
 from reddwarf.api import deserializer
-from reddwarf.api.status import InstanceStatus
 from reddwarf.api.status import InstanceStatusLookup
 from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi
@@ -173,8 +172,8 @@ class Controller(object):
         local_id = dbapi.localid_from_uuid(id)
 
         # Validate the instance is available(status)
-        i_status = InstanceStatus.load_from_db(context, id)
-        i_status.can_perform_action_on_instance()
+        status_lookup = InstanceStatusLookup([id])
+        status_lookup.get_status_from_id(context,id).can_perform_action_on_instance()
 
         # Validate body is not empty and just a single resize in body
         Controller._validate_empty_body(body)
