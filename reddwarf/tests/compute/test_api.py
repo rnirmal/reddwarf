@@ -16,6 +16,7 @@ Tests for reddwarf.compute.api.
 """
 
 import webob
+import mox
 from paste import urlmap
 
 from nova import db
@@ -113,7 +114,7 @@ class ResizeInPlaceTest(test.TestCase):
         self.instance_id = self.create_instance(self.inst_type_small)
         # Stub out call to get available space on host.
         self.mox.StubOutWithMock(dbapi, "instance_get_memory_sum_by_host")
-        dbapi.instance_get_memory_sum_by_host(self.ctxt, 'fake_host')\
+        dbapi.instance_get_memory_sum_by_host(mox.IgnoreArg(), 'fake_host')\
             .AndReturn(1024 * 10)
         self.mox.ReplayAll()
         # Perform actual call.
@@ -125,7 +126,7 @@ class ResizeInPlaceTest(test.TestCase):
         self.instance_id = self.create_instance(self.inst_type_small)
         # Stub out call to get available space on host.
         self.mox.StubOutWithMock(dbapi, "instance_get_memory_sum_by_host")
-        dbapi.instance_get_memory_sum_by_host(self.ctxt, 'fake_host')\
+        dbapi.instance_get_memory_sum_by_host(mox.IgnoreArg(), 'fake_host')\
             .AndReturn(1024 * 10)
         self.mox.StubOutWithMock(self.api, "_cast_compute_message")
         # Stub out final cast call.

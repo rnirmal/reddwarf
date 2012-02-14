@@ -16,7 +16,7 @@ from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import rpc
-from nova import context as new_context
+from nova import context
 from nova.compute import api as nova_compute_api
 from nova.compute import instance_types
 from nova.compute import task_states
@@ -38,9 +38,9 @@ class API(nova_compute_api.API):
         super(API, self).__init__(*args, **kwargs)
 
     @scheduler_api.reroute_compute("resize_in_place")
-    def resize_in_place(self, context, instance_id, new_instance_type_id):
+    def resize_in_place(self, ctxt, instance_id, new_instance_type_id):
         """Resize an instance on its host."""
-        instance_ref = self._get_instance(context, instance_id,
+        instance_ref = self._get_instance(ctxt, instance_id,
                                           'resize_in_place')
         def get_memory_mb(instance_type_id):
             inst_type = instance_types.get_instance_type(instance_type_id)
@@ -52,40 +52,40 @@ class API(nova_compute_api.API):
         if diff_size < 0:
             raise exception.CannotResizeToSmallerSize()
         host = instance_ref['host']
-        admin_ctxt = new_context.get_admin_context()
+        admin_ctxt = context.get_admin_context()
         host_mem_used = dbapi.instance_get_memory_sum_by_host(admin_ctxt, host)
         if host_mem_used + diff_size > FLAGS.max_instance_memory_mb:
             raise reddwarf_exception.OutOfInstanceMemory()
-        self.update(context, instance_id, vm_state=vm_states.RESIZING)
+        self.update(ctxt, instance_id, vm_state=vm_states.RESIZING)
         params={'new_instance_type_id': new_instance_type_id}
-        self._cast_compute_message("resize_in_place", context, instance_id,
+        self._cast_compute_message("resize_in_place", ctxt, instance_id,
                                    params=params)
 
-    def resize_volume(self, context, volume_id):
+    def resize_volume(self, ctxt, volume_id):
         """
         Rescan and resize the attached volume filesystem once the actual volume
         resizing has been completed.
         """
-        context = context.elevated()
-        instance = self.db.volume_get_instance(context, volume_id)
+        ctxt = ctxt.elevated()
+        instance = self.db.volume_get_instance(ctxt, volume_id)
         if not instance:
             raise exception.Error(_("Volume isn't attached to anything!"))
-        self.update(context,
+        self.update(ctxt,
                     instance['id'],
                     vm_state=vm_states.RESIZING,
                     task_state=task_states.RESIZE_PREP)
-        rpc.cast(context,
-                 self.db.queue_get_for(context, FLAGS.compute_topic,
+        rpc.cast(ctxt,
+                 self.db.queue_get_for(ctxt, FLAGS.compute_topic,
                                        instance['host']),
                  {"method": "resize_volume",
                  "args": {"instance_id": instance['id'],
                           "volume_id": volume_id}})
 
     @scheduler_api.reroute_compute("restart")
-    def restart(self, context, instance_id):
+    def restart(self, ctxt, instance_id):
         """Reboot the given instance."""
-        self.update(context,
+        self.update(ctxt,
                     instance_id,
                     vm_state=vm_states.ACTIVE,
                     task_state=task_states.REBOOTING)
-        self._cast_compute_message('restart', context, instance_id)
+        self._cast_compute_message('restart', ctxt, instance_id)
