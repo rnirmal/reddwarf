@@ -16,6 +16,7 @@ from nova import exception
 from nova import flags
 from nova import log as logging
 from nova import rpc
+from nova import context as new_context
 from nova.compute import api as nova_compute_api
 from nova.compute import instance_types
 from nova.compute import task_states
@@ -51,7 +52,7 @@ class API(nova_compute_api.API):
         if diff_size < 0:
             raise exception.CannotResizeToSmallerSize()
         host = instance_ref['host']
-        admin_ctxt = context.elevated
+        admin_ctxt = new_context.get_admin_context()
         host_mem_used = dbapi.instance_get_memory_sum_by_host(admin_ctxt, host)
         if host_mem_used + diff_size > FLAGS.max_instance_memory_mb:
             raise reddwarf_exception.OutOfInstanceMemory()
