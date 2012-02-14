@@ -49,8 +49,8 @@ class API(nova_compute_api.API):
         old_size = get_memory_mb(instance_ref['instance_type_id'])
         new_size = get_memory_mb(new_instance_type_id)
         diff_size = new_size - old_size
-        if diff_size < 0:
-            raise exception.CannotResizeToSmallerSize()
+        if diff_size == 0:
+            raise exception.CannotResizeToSameSize()
         host = instance_ref['host']
         admin_ctxt = context.get_admin_context()
         host_mem_used = dbapi.instance_get_memory_sum_by_host(admin_ctxt, host)

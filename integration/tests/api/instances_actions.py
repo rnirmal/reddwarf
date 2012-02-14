@@ -21,7 +21,6 @@ from proboscis.asserts import assert_false
 from proboscis.asserts import assert_not_equal
 from proboscis.asserts import assert_raises
 from proboscis.asserts import assert_true
-from proboscis.decorators import expect_exception
 from proboscis.decorators import time_out
 
 from sqlalchemy import create_engine
@@ -32,7 +31,8 @@ from nova.compute import power_state
 from reddwarf.api.common import dbaas_mapping
 from reddwarf.guest.dbaas import LocalSqlClient
 from reddwarf.utils import poll_until
-from reddwarf import exception
+from novaclient.exceptions import BadRequest
+from reddwarfclient.exceptions import UnprocessableEntity
 import tests
 from tests.api.instances import GROUP as INSTANCE_GROUP
 from tests.api.instances import GROUP_START
@@ -275,7 +275,7 @@ class ResizeInstanceTest(object):
 
     @test
     def test_instance_resize1(self):
-        assert_raises(exception.BadRequest, self.dbaas.instances.resize_instance,
+        assert_raises(BadRequest, self.dbaas.instances.resize_instance,
             self.instance_id, self.flavor_id)
 
     @test
@@ -285,11 +285,11 @@ class ResizeInstanceTest(object):
     @test(depends_on=[test_instance_resize2])
     def test_status_changed_to_resize(self):
         instance = self.dbaas.instances.get(self.instance_id)
-        assert_equal(instance.status, 'RESIZING')
+        assert_equal(instance.status, 'RESIZE')
 
     @test(depends_on=[test_status_changed_to_resize])
     def test_fail_to_try_to_resize_again(self):
-        assert_raises(exception.UnprocessableEntity, self.dbaas.instances.resize_instance,
+        assert_raises(UnprocessableEntity, self.dbaas.instances.resize_instance,
             self.instance_id, self.flavor_id)
 
     @test(depends_on=[test_status_changed_to_resize])
@@ -297,7 +297,7 @@ class ResizeInstanceTest(object):
     def test_instance_returns_to_active_after_resize(self):
         def is_finished_resizing():
             instance = self.instance
-            if instance.status == "RESIZING":
+            if instance.status == "RESIZE":
                 return False
             assert_equal("ACTIVE", instance.status)
             return True

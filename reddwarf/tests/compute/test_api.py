@@ -106,9 +106,24 @@ class ResizeInPlaceTest(test.TestCase):
 
     def test_when_new_flavor_is_smaller(self):
         self.instance_id = self.create_instance(self.inst_type_big)
-        self.assertRaises(exception.CannotResizeToSmallerSize,
+        self.mox.StubOutWithMock(dbapi, "instance_get_memory_sum_by_host")
+        dbapi.instance_get_memory_sum_by_host(mox.IgnoreArg(), 'fake_host')\
+            .AndReturn(1024 * 10)
+        self.mox.StubOutWithMock(self.api, "_cast_compute_message")
+        # Stub out final cast call.
+        mock_params = {'new_instance_type_id':self.inst_type_small['id']}
+        self.api._cast_compute_message("resize_in_place", self.ctxt,
+                                       self.instance_id,
+                                       params=mock_params)
+        self.mox.ReplayAll()
+        self.api.resize_in_place(self.ctxt, self.instance_id,
+                                 self.inst_type_small['id'])
+
+    def test_when_new_flavor_is_the_same(self):
+        self.instance_id = self.create_instance(self.inst_type_big)
+        self.assertRaises(exception.CannotResizeToSameSize,
                           self.api.resize_in_place, self.ctxt,
-                          self.instance_id, self.inst_type_small['id'])
+                          self.instance_id, self.inst_type_big['id'])
 
     def test_when_new_flavor_is_too_big(self):
         self.instance_id = self.create_instance(self.inst_type_small)
