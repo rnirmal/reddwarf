@@ -51,7 +51,8 @@ class API(nova_compute_api.API):
         if diff_size < 0:
             raise exception.CannotResizeToSmallerSize()
         host = instance_ref['host']
-        host_mem_used = dbapi.instance_get_memory_sum_by_host(context, host)
+        admin_ctxt = context.elevated
+        host_mem_used = dbapi.instance_get_memory_sum_by_host(admin_ctxt, host)
         if host_mem_used + diff_size > FLAGS.max_instance_memory_mb:
             raise reddwarf_exception.OutOfInstanceMemory()
         self.update(context, instance_id, vm_state=vm_states.RESIZING)
