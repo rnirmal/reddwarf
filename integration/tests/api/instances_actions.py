@@ -274,9 +274,9 @@ class ResizeInstanceTest(object):
         self.dbaas = instance_info.dbaas
 
     @test
-    @expect_exception(exception.BadRequest)
     def test_instance_resize1(self):
-        self.dbaas.instances.resize_instance(self.instance_id, self.flavor_id)
+        assert_raises(exception.BadRequest, self.dbaas.instances.resize_instance,
+            self.instance_id, self.flavor_id)
 
     @test
     def test_instance_resize2(self):
@@ -288,9 +288,9 @@ class ResizeInstanceTest(object):
         assert_equal(instance.status, 'RESIZING')
 
     @test(depends_on=[test_status_changed_to_resize])
-    @expect_exception(exception.UnprocessableEntity)
     def test_fail_to_try_to_resize_again(self):
-        self.dbaas.instances.resize_instance(self.instance_id, self.flavor_id)
+        assert_raises(exception.UnprocessableEntity, self.dbaas.instances.resize_instance,
+            self.instance_id, self.flavor_id)
 
     @test(depends_on=[test_status_changed_to_resize])
     @time_out(TIME_OUT_TIME)
