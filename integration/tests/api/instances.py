@@ -313,51 +313,59 @@ class CreateInstance(unittest.TestCase):
       enabled=create_new_instance())
 class AfterInstanceCreation(unittest.TestCase):
 
+    @staticmethod
+    def assert_unprocessable(func, *args):
+        try:
+            func(*args)
+            # If the exception didn't get raised, but the instance is still in
+            # the BUILDING state, that's a bug.
+            result = dbaas.instances.get(instance_info.id)
+            if result.status == dbaas_mapping[power_state.BUILDING]:
+                fail("When an instance is being built, this function should "
+                     "always raise UnprocessableEntity.")
+        except exceptions.UnprocessableEntity:
+            pass # Good
+
     # instance calls
     def test_instance_delete_right_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.instances.delete,
-                      instance_info.id)
+        self.assert_unprocessable(dbaas.instances.delete, instance_info.id)
 
     # root calls
     def test_root_create_root_user_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.root.create,
-                      instance_info.id)
+        self.assert_unprocessable(dbaas.root.create, instance_info.id)
 
     def test_root_is_root_enabled_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.root.is_root_enabled,
-                      instance_info.id)
+        self.assert_unprocessable(dbaas.root.is_root_enabled, instance_info.id)
 
     # database calls
     def test_database_index_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.list,
-                      instance_info.id)
+        self.assert_unprocessable(dbaas.databases.list, instance_info.id)
 
     def test_database_delete_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.delete,
-                      instance_info.id, "testdb")
+        self.assert_unprocessable(dbaas.databases.delete, instance_info.id,
+                                  "testdb")
 
     def test_database_create_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.create,
-                      instance_info.id, instance_info.databases)
+        self.assert_unprocessable(dbaas.databases.create, instance_info.id,
+                                  instance_info.databases)
 
     # user calls
     def test_users_index_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.users.list,
-                      instance_info.id)
+        self.assert_unprocessable(dbaas.users.list, instance_info.id)
 
     def test_users_delete_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.users.delete,
-                      instance_info.id, "testuser")
-        
+        self.assert_unprocessable(dbaas.users.delete, instance_info.id,
+                                  "testuser")
+
     def test_users_create_after_create(self):
         users = list()
         users.append({"name": "testuser", "password": "password",
                       "database": "testdb"})
-        assert_raises(exceptions.UnprocessableEntity, dbaas.users.create,
-                      instance_info.id, users)
+        self.assert_unprocessable(dbaas.users.create, instance_info.id, users)
 
 
-@test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
+@test(depends_on_classes=[CreateInstance, AfterInstanceCreation],
+      groups=[GROUP, GROUP_START],
       enabled=create_new_instance())
 class WaitForGuestInstallationToFinish(unittest.TestCase):
     """

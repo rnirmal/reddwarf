@@ -240,7 +240,7 @@ class RebootTests(RebootTestBase):
         """Restart MySQL via the REST API successfully."""
         self.successful_restart()
 
-@test(groups=[tests.INSTANCES, INSTANCE_GROUP, GROUP],
+@test(groups=[tests.INSTANCES, INSTANCE_GROUP, GROUP, GROUP + ".resize.instance"],
       depends_on_groups=[GROUP_START], depends_on=[RebootTests])
 class ResizeInstanceTest(object):
     """
