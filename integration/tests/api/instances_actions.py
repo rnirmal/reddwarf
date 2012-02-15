@@ -244,13 +244,7 @@ class RebootTests(RebootTestBase):
       depends_on_groups=[GROUP_START], depends_on=[RebootTests])
 class ResizeInstanceTest(object):
     """
-    Unit Test cases for resize instance/volume
-    1. {resize: {volume: {size: 2}}} - pass
-    2. {resize: {volume: {}}}        - fail
-    3. {resize: {}}                  - fail
-    4. {resize: {flavorRef: 2}}      - pass
-    5. {resize: {flavorRef: 2,
-                 volume: {size: 2}}} - fail
+    Integration Test cases for resize instance
     """
     @property
     def instance(self):
@@ -274,18 +268,24 @@ class ResizeInstanceTest(object):
         self.dbaas = instance_info.dbaas
 
     @test
-    def test_instance_resize1(self):
+    def test_instance_resize_same_size_should_fail(self):
         assert_raises(BadRequest, self.dbaas.instances.resize_instance,
             self.instance_id, self.flavor_id)
 
     @test
-    def test_instance_resize2(self):
+    def test_instance_resize_up_success(self):
         self.dbaas.instances.resize_instance(self.instance_id, self.new_flavor_id)
 
-    @test(depends_on=[test_instance_resize2])
+    @test(depends_on=[test_instance_resize_up_success])
     def test_status_changed_to_resize(self):
         instance = self.dbaas.instances.get(self.instance_id)
         assert_equal(instance.status, 'RESIZE')
+
+    @test(depends_on=[test_status_changed_to_resize])
+    def test_make_sure_mysql_is_dead_during_resize(self):
+        reboot = RebootTestBase()
+        reboot.set_up()
+        reboot.wait_for_broken_connection()
 
     @test(depends_on=[test_status_changed_to_resize])
     def test_fail_to_try_to_resize_again(self):
@@ -303,3 +303,8 @@ class ResizeInstanceTest(object):
             return True
         poll_until(is_finished_resizing, time_out = TIME_OUT_TIME)
 
+    @test(depends_on=[test_instance_returns_to_active_after_resize])
+    def test_make_sure_mysql_is_running_after_resize(self):
+        reboot = RebootTestBase()
+        reboot.set_up()
+        reboot.ensure_mysql_is_running()
