@@ -285,14 +285,15 @@ class ResizeInstanceTest(object):
     def test_make_sure_mysql_is_dead_during_resize(self):
         reboot = RebootTestBase()
         reboot.set_up()
+        reboot.connection.connect()
         reboot.wait_for_broken_connection()
 
-    @test(depends_on=[test_status_changed_to_resize])
+    @test(depends_on=[test_make_sure_mysql_is_dead_during_resize])
     def test_fail_to_try_to_resize_again(self):
         assert_raises(UnprocessableEntity, self.dbaas.instances.resize_instance,
             self.instance_id, self.flavor_id)
 
-    @test(depends_on=[test_status_changed_to_resize])
+    @test(depends_on=[test_fail_to_try_to_resize_again])
     @time_out(TIME_OUT_TIME)
     def test_instance_returns_to_active_after_resize(self):
         def is_finished_resizing():
