@@ -266,6 +266,9 @@ class ResizeInstanceTest(object):
     @before_class
     def setup(self):
         self.dbaas = instance_info.dbaas
+        self.reboot = RebootTestBase()
+        self.reboot.set_up()
+        self.reboot.connection.connect()
 
     @test
     def test_instance_resize_same_size_should_fail(self):
@@ -283,10 +286,7 @@ class ResizeInstanceTest(object):
 
     @test(depends_on=[test_status_changed_to_resize])
     def test_make_sure_mysql_is_dead_during_resize(self):
-        reboot = RebootTestBase()
-        reboot.set_up()
-        reboot.connection.connect()
-        reboot.wait_for_broken_connection()
+        self.reboot.wait_for_broken_connection()
 
     @test(depends_on=[test_make_sure_mysql_is_dead_during_resize])
     def test_fail_to_try_to_resize_again(self):

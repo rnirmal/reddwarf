@@ -153,6 +153,7 @@ refresh_up_agent_work_directory() {
         git fetch
         echo "git checkout resize-flavor"
         git checkout resize-flavor
+        git rev-parse HEAD
     fi
 }
 

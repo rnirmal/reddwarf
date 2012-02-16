@@ -117,7 +117,7 @@ class OutOfInstanceMemory(nova_exception.NovaException):
 
 class GuestError(nova_exception.NovaException):
     message = _("An error occurred communicating with the guest: "
-                "%(original_message.")
+                "%(original_message).")
 
 class PollTimeOut(nova_exception.NovaException):
     message = _("Polling request timed out.")
