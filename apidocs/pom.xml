@@ -33,7 +33,7 @@
     </profile> 
   </profiles>
   <properties>
-    <doctools.version>1.0.10-SNAPSHOT</doctools.version>
+    <doctools.version>1.0.10</doctools.version>
   </properties>
 
     <dependencies>
