@@ -84,11 +84,11 @@ class RsDnsRecordNotFound(nova_exception.NotFound):
     message = _("RsDnsRecord with name= %(name)s not found.")
 
 
-class DuplicateConfigEntry(nova_exception.NotFound):
+class DuplicateConfigEntry(nova_exception.NovaException):
     message = _("Configuration %(key)s already exists.")
 
 
-class DuplicateRecordEntry(nova_exception.NotFound):
+class DuplicateRecordEntry(nova_exception.NovaException):
     message = _("Record with name %(name) or id=%(id) already exists.")
 
 
@@ -102,6 +102,13 @@ class VolumeProvisioningError(nova_exception.NotFound):
 
 class ISCSITargetNotDiscoverable(nova_exception.NotFound):
     message = _("Target for volume %(volume_id)s not found.")
+
+
+class VolumeAlreadyDiscovered(nova_exception.NovaException):
+    message = _("The volume was already setup.")
+
+class VolumeAlreadySetup(nova_exception.NovaException):
+    message = _("The volume was already setup.")
 
 
 class OutOfInstanceMemory(nova_exception.NovaException):

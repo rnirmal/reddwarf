@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os.path
 import time
 
 
@@ -20,7 +21,10 @@ from nova import db
 from nova import flags
 from nova import log as logging
 from nova import utils
+from reddwarf.utils import poll_until
 from reddwarf.volume.api import API
+from reddwarf.exception import VolumeAlreadyDiscovered
+from reddwarf.exception import VolumeAlreadySetup
 from nova.db.base import Base
 
 
@@ -68,8 +72,22 @@ class VolumeClient(Base):
         if volume_ref['host'] == host and FLAGS.use_local_volumes:
             path = self.driver.local_path(volume_ref)
         else:
-            path = self.driver.discover_volume(context, volume_ref)
+            try:
+                path = self.driver.discover_volume(context, volume_ref)
+            except VolumeAlreadyDiscovered:
+                raise VolumeAlreadySetup()
+        self._ensure_path_appears(path, volume_id)
         return path
+
+    def _ensure_path_appears(self, path, volume_id):
+        """
+        This will ensure a driver path exists so there are no kernel issues
+        around timing.
+        """
+        LOG.info("Ensuring the path %s for volume %s exists." %
+                 (path, volume_id))
+        poll_until(lambda: os.path.exists(path),
+                   sleep_time=3, time_out=5 * FLAGS.num_tries)
 
     def remove_volume(self, context, volume_id, host):
         """Remove remote volume on compute host."""

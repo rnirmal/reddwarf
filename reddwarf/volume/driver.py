@@ -253,9 +253,11 @@ class ReddwarfISCSIDriver(ReddwarfVolumeDriver, nova_driver.ISCSIDriver):
         self.set_iscsi_auth(iscsi_properties)
 
         try:
-            self._run_iscsiadm(iscsi_properties, "--login",
-                               num_tries=FLAGS.num_tries)
+            (out, err) = self._run_iscsiadm(iscsi_properties, "--login",
+                                            num_tries=FLAGS.num_tries)
         except nova_exception.ProcessExecutionError as err:
+            if "15 - already exists" in err.message:
+                raise exception.VolumeAlreadyDiscovered()
             LOG.error(err)
             raise nova_exception.Error(_("iSCSI device %s not found") %
                                         iscsi_properties['target_iqn'])

@@ -317,6 +317,16 @@ class ReddwarfComputeManager(ComputeManager):
                      context=context)
 
         network_info = self._get_instance_nw_info(context, instance_ref)
+        # Code unique to  Reddwarf:
+        # This will re-setup any volumes on reboot
+        for vol in instance_ref['volumes']:
+            try:
+                self.volume_client._setup_volume(context, vol['id'],
+                                                 instance_ref['host'])
+            except exception.VolumeAlreadySetup:
+                pass  # We're ensuring the volumes are setup; if they already
+                      # are then that's OK.
+        # End unique Reddwarf code.
         self.driver.reboot(instance_ref, network_info)
 
         # Code unique to  Reddwarf:
