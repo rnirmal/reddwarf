@@ -102,7 +102,7 @@ class InstanceApiTest(test.TestCase):
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 422)
 
-    def test_instances_delete_failed(self):
+    def test_instances_delete(self):
         self.stubs.Set(nova.compute.API, "delete", compute_delete)
         self.stubs.Set(nova.compute.API, "get", compute_get_building)
         self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_failed)
@@ -112,7 +112,17 @@ class InstanceApiTest(test.TestCase):
 
 
 class InstanceApiValidation(test.TestCase):
-    """Test the instance api validation methods"""
+    """
+    Test the instance api validation methods
+
+    Unit Test cases for resize instance/volume
+    1. {resize: {volume: {size: 2}}} - pass
+    2. {resize: {volume: {}}}        - fail
+    3. {resize: {}}                  - fail
+    4. {resize: {flavorRef: 2}}      - pass
+    5. {resize: {flavorRef: 2,
+                 volume: {size: 2}}} - fail
+    """
 
     resize_body = {'resize': {'volume': {'size': 2}}}
 
@@ -125,23 +135,29 @@ class InstanceApiValidation(test.TestCase):
     def test_create_empty_body(self):
         self.controller._validate({})
 
-    def test_valid_resize(self):
+    def test_valid_resize_volume_is_not_emtpty(self):
+        self.controller._validate_empty_body(self.resize_body)
+
+    def test_valid_single_resize_in_body(self):
+        self.controller._validate_single_resize_in_body(self.resize_body)
+
+    def test_valid_resize_volume(self):
         self.controller._validate_resize(self.resize_body, 1)
 
     @raises(exception.BadRequest)
-    def test_invalid_resize_size(self):
+    def test_invalid_resize_volume_size(self):
         self.controller._validate_resize(self.resize_body, 2)
 
     @raises(exception.BadRequest)
-    def test_invalid_resize_size2(self):
+    def test_invalid_resize_volume_size2(self):
         self.controller._validate_resize(self.resize_body, 5.2)
 
     @raises(exception.BadRequest)
-    def test_invalid_resize_size3(self):
+    def test_invalid_resize_volume_size3(self):
         self.controller._validate_resize(self.resize_body, 'a')
 
     @raises(exception.BadRequest)
-    def test_resize_no_size(self):
+    def test_resize_volume_no_size(self):
         body = {'resize': {'volume': {}}}
         self.controller._validate_resize(body, 1)
 
@@ -149,3 +165,59 @@ class InstanceApiValidation(test.TestCase):
     def test_resize_no_volume(self):
         body = {'resize': {}}
         self.controller._validate_resize(body, 1)
+
+    def test_valid_single_resize_in_body(self):
+        body = {'resize': {'flavorRef': 2}}
+        self.controller._validate_single_resize_in_body(body)
+
+    def test_valid_resize_flavor(self):
+        body = {'resize': {'flavorRef': 2}}
+        self.controller._validate_resize_instance(body)
+
+    @raises(exception.BadRequest)
+    def test_resize_flavor_no_size(self):
+        body = {'resize': {'flavorRef': {}}}
+        self.controller._validate_resize(body, 1)
+
+    @raises(exception.BadRequest)
+    def test_resize_flavor_and_volume_invalid(self):
+        body = {'resize': {'flavorRef': 2,'volume': {'size': 2}}}
+        self.controller._validate_single_resize_in_body(body)
+
+    @raises(exception.BadRequest)
+    def test_resize_flavor_and_volume_invalid2(self):
+        body = {'resize': {'flavorRef': 2,'volume': {}}}
+        self.controller._validate_resize(body, 1)
+
+    @raises(exception.BadRequest)
+    def test_single_resize_invalid(self):
+        body = {'flavorRef': 2,'volume': {}}
+        self.controller._validate_single_resize_in_body(body)
+
+    @raises(exception.BadRequest)
+    def test_resize_instance_invalid2(self):
+        body = {'flavorRef': 2,'volume': {}}
+        self.controller._validate_resize_instance(body)
+
+    @raises(exception.BadRequest)
+    def test_resize_invalid3(self):
+        body = {'flavorRef': 2,'volume': {}}
+        self.controller._validate(body)
+
+    @raises(exception.BadRequest)
+    def test_resize_invalid4(self):
+        body = {'instance': {'flavorRef': 2,'volume': {}}}
+        self.controller._validate(body)
+
+    @raises(exception.BadRequest)
+    def test_validate_volume_size_bad(self):
+        self.controller._validate_volume_size('a')
+
+    @raises(exception.BadRequest)
+    def test_validate_volume_size_bad2(self):
+        self.controller._validate_volume_size(-1)
+
+    @raises(exception.BadRequest)
+    def test_validate_volume_size_bad3(self):
+        self.controller._validate_volume_size(9999999)
+

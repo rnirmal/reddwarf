@@ -16,7 +16,6 @@
 import os
 import re
 import string
-import sys
 import time
 import unittest
 from tests import util
@@ -260,7 +259,7 @@ class CreateInstance(unittest.TestCase):
         if create_new_instance():
             assert_equal(result.status, dbaas_mapping[power_state.BUILDING])
         else:
-            report.log("Test was invoked with TESTS_USE_INSTANCE=%s, so no "
+            report.log("Test was invoked with TESTS_USE_INSTANCE_ID=%s, so no "
                        "instance was actually created." % id)
             report.log("Local id = %d" % instance_info.get_local_id())
 
@@ -308,6 +307,17 @@ class CreateInstance(unittest.TestCase):
                                         instance_info.user.tenant, "tcp_3306"):
             assert_false(True, "Security groups did not get created")
 
+def assert_unprocessable(func, *args):
+    try:
+        func(*args)
+        # If the exception didn't get raised, but the instance is still in
+        # the BUILDING state, that's a bug.
+        result = dbaas.instances.get(instance_info.id)
+        if result.status == dbaas_mapping[power_state.BUILDING]:
+            fail("When an instance is being built, this function should "
+                 "always raise UnprocessableEntity.")
+    except exceptions.UnprocessableEntity:
+        pass # Good
 
 @test(depends_on_classes=[CreateInstance],
       groups=[GROUP, GROUP_START, 'dbaas.mgmt.hosts_post_install'],
@@ -316,49 +326,44 @@ class AfterInstanceCreation(unittest.TestCase):
 
     # instance calls
     def test_instance_delete_right_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.instances.delete,
-                      instance_info.id)
+        assert_unprocessable(dbaas.instances.delete, instance_info.id)
 
     # root calls
     def test_root_create_root_user_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.root.create,
-                      instance_info.id)
+        assert_unprocessable(dbaas.root.create, instance_info.id)
 
     def test_root_is_root_enabled_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.root.is_root_enabled,
-                      instance_info.id)
+        assert_unprocessable(dbaas.root.is_root_enabled, instance_info.id)
 
     # database calls
     def test_database_index_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.list,
-                      instance_info.id)
+        assert_unprocessable(dbaas.databases.list, instance_info.id)
 
     def test_database_delete_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.delete,
-                      instance_info.id, "testdb")
+        assert_unprocessable(dbaas.databases.delete, instance_info.id,
+                                  "testdb")
 
     def test_database_create_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.databases.create,
-                      instance_info.id, instance_info.databases)
+        assert_unprocessable(dbaas.databases.create, instance_info.id,
+                                  instance_info.databases)
 
     # user calls
     def test_users_index_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.users.list,
-                      instance_info.id)
+        assert_unprocessable(dbaas.users.list, instance_info.id)
 
     def test_users_delete_after_create(self):
-        assert_raises(exceptions.UnprocessableEntity, dbaas.users.delete,
-                      instance_info.id, "testuser")
-        
+        assert_unprocessable(dbaas.users.delete, instance_info.id,
+                                  "testuser")
+
     def test_users_create_after_create(self):
         users = list()
         users.append({"name": "testuser", "password": "password",
                       "database": "testdb"})
-        assert_raises(exceptions.UnprocessableEntity, dbaas.users.create,
-                      instance_info.id, users)
+        assert_unprocessable(dbaas.users.create, instance_info.id, users)
 
 
-@test(depends_on_classes=[CreateInstance], groups=[GROUP, GROUP_START],
+@test(depends_on_classes=[CreateInstance, AfterInstanceCreation],
+      groups=[GROUP, GROUP_START],
       enabled=create_new_instance())
 class WaitForGuestInstallationToFinish(unittest.TestCase):
     """
@@ -383,7 +388,7 @@ class WaitForGuestInstallationToFinish(unittest.TestCase):
                 break
         report.log("Created an instance, ID = %s." % instance_info.id)
         report.log("Local id = %d" % instance_info.get_local_id())
-        report.log("Rerun the tests with TESTS_USE_INSTANCE=%s to skip ahead "
+        report.log("Rerun the tests with TESTS_USE_INSTANCE_ID=%s to skip ahead "
                    "to this point." % instance_info.id)
 
 
@@ -593,64 +598,7 @@ class TestInstanceListing(object):
         CheckInstance(result._info).volume_mgmt()
 
 
-@test(depends_on_groups=['dbaas.api.root'], groups=[GROUP, tests.INSTANCES])
-class ResizeInstance(object):
-    """ Resize the volume of the instance """
-
-    @before_class
-    def setUp(self):
-        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
-                                                instance_info.local_id)
-        instance_info.volume_id = volumes[0].id
-        self.old_volume_size = int(volumes[0].size)
-        self.new_volume_size = self.old_volume_size + 1
-
-        # Create some databases to check they still exist after the resize
-        self.expected_dbs = ['salmon', 'halibut']
-        databases = []
-        for name in self.expected_dbs:
-            databases.append({"name": name})
-        dbaas.databases.create(instance_info.id, databases)
-
-    @test
-    @time_out(60)
-    def test_volume_resize(self):
-        dbaas.instances.resize(instance_info.id, self.new_volume_size)
-
-    @test
-    @time_out(300)
-    def test_volume_resize_success(self):
-
-        def check_resize_status():
-            instance = dbaas.instances.get(instance_info.id)
-            if instance.status == "ACTIVE":
-                return True
-            elif instance.status == "RESIZE":
-                return False
-            else:
-                fail("Status should not be %s" % instance.status)
-
-        poll_until(check_resize_status, sleep_time=2, time_out=300)
-        volumes = db.volume_get(context.get_admin_context(),
-                                instance_info.volume_id)
-        assert_equal(volumes.status, 'in-use')
-        assert_equal(volumes.size, self.new_volume_size)
-        assert_equal(volumes.attach_status, 'attached')
-
-    @test
-    @time_out(300)
-    def test_volume_resize_success_databases(self):
-        databases = dbaas.databases.list(instance_info.id)
-        db_list = []
-        for database in databases:
-            db_list.append(database.name)
-        for name in self.expected_dbs:
-            if not name in db_list:
-                fail("Database %s was not found after the volume resize. "
-                     "Returned list: %s" % (name, databases))
-
-
-@test(depends_on_classes=[ResizeInstance], groups=[GROUP, tests.INSTANCES, "dbaas.diagnostics"])
+@test(depends_on_groups=['dbaas.api.instances.actions'], groups=[GROUP, tests.INSTANCES, "dbaas.diagnostics"])
 class CheckDiagnosticsAfterTests(object):
     """ Check the diagnostics after running api commands on an instance. """
     @test

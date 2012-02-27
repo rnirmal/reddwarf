@@ -27,6 +27,7 @@ from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
+from nova.compute import instance_types
 from nova.compute import power_state
 from nova.compute import vm_states
 from nova.notifier import api as notifier
@@ -36,6 +37,7 @@ from reddwarf import exception
 from reddwarf import volume
 from reddwarf.api import common
 from reddwarf.api import deserializer
+from reddwarf.api.status import InstanceStatus
 from reddwarf.api.status import InstanceStatusLookup
 from reddwarf.api.views import instances
 from reddwarf.db import api as dbapi
@@ -105,15 +107,10 @@ class Controller(object):
             LOG.error(err)
             raise exception.InstanceFault("Error restarting MySQL.")
 
-    def _action_resize(self, body, req, id):
-        LOG.info("Call to resize instance %s" % id)
-        LOG.debug("%s - %s", req.environ, req.body)
-        context = req.environ['nova.context']
-        local_id = dbapi.localid_from_uuid(id)
+    def _resize_volume_action(self, context, body, local_id):
         volumes = db.volume_get_all_by_instance(context, local_id)
         assert len(volumes) == 1
         volume_ref = volumes[0]
-
         Controller._validate_resize(body, volume_ref['size'])
         # Initiate the resizing of the volume
         new_size = body['resize']['volume']['size']
@@ -121,6 +118,72 @@ class Controller(object):
         # Kickoff rescaning and resizing the filesystem
         self.compute_api.resize_volume(context, volume_ref['id'])
         return exc.HTTPAccepted()
+
+    def _resize_instance_action(self, context, body, id):
+        # Validate the size attributes
+        Controller._validate_resize_instance(body)
+        instance_ref = self.compute_api.get(context, id)
+        current_instance_type_id = instance_ref['instance_type_id']
+        LOG.debug("the current_instance_type is = %r" % current_instance_type_id)
+
+        new_flavor_ref = body['resize'].get('flavorRef')
+        try:
+            # Get the instance type from the flavor id
+            new_flavor_id = nova_common.get_id_from_href(new_flavor_ref)
+            new_instance_type_id = instance_types.get_instance_type_by_flavor_id(new_flavor_id)
+        except nova_exception.FlavorNotFound:
+            raise exception.BadRequest("Required element/key - flavorRef (%s) was not found in the system" %
+                                       new_flavor_ref)
+        LOG.debug("the new_instance_type_id is = %r" % new_instance_type_id)
+
+        try:
+            # Send the resize action to the compute api
+            self.compute_api.resize_in_place(context, id, new_instance_type_id['id'])
+        except exception.OutOfInstanceMemory:
+            raise exception.UnprocessableEntity()
+        except nova_exception.CannotResizeToSameSize:
+            msg = "When resizing, instances must change size!"
+            raise exception.BadRequest(msg)
+
+        return exc.HTTPAccepted()
+
+    def _action_resize(self, body, req, id):
+        """
+        Handles 2 cases
+        1. resize volume
+            body only contains {volume: {size: x}}
+        2. resize instance
+            body only contains {flavorRef: http.../2}
+
+        If the body has both we will throw back an error.
+        """
+        LOG.info("Call to resize instance %s" % id)
+        LOG.debug("%s - %s", req.environ, req.body)
+        context = req.environ['nova.context']
+        local_id = dbapi.localid_from_uuid(id)
+
+        # Validate the instance is available(status)
+        instanceStatus = InstanceStatus.load_from_db(context, id)
+        instanceStatus.can_perform_action_on_instance()
+
+        # Validate body is not empty and just a single resize in body
+        Controller._validate_empty_body(body)
+        Controller._validate_single_resize_in_body(body)
+
+        if 'volume' in body['resize']:
+            # This must be a volume resize
+            LOG.debug("VOLUME RESIZE")
+
+            return self._resize_volume_action(context, body, local_id)
+
+        elif 'flavorRef' in body['resize']:
+            # This must be an instance resize with flavorRef
+            LOG.debug("INSTANCE RESIZE WITH FLAVORREF")
+
+            return self._resize_instance_action(context, body, id)
+
+        else:
+            return exception.BadRequest()
 
     def index(self, req):
         """ Returns a list of instance names and ids for a given user """
@@ -412,10 +475,34 @@ class Controller(object):
         Controller._validate_volume_size(volume_size)
 
     @staticmethod
+    def _validate_resize_instance(body):
+        """ Validate that the resize body has the attributes for flavorRef """
+        try:
+            body['resize']
+            body['resize']['flavorRef']
+        except KeyError as e:
+            LOG.error("Resize Instance Required field(s) - %s" % e)
+            raise exception.BadRequest("Required element/key - %s was not "
+                                       "specified" % e)
+
+    @staticmethod
+    def _validate_single_resize_in_body(body):
+        # Validate body resize does not have both volume and flavorRef
+        try:
+            resize = body['resize']
+            if 'volume' in resize and 'flavorRef' in resize:
+                msg = "Not allowed to resize volume and flavor at the same time."
+                LOG.error(msg)
+                raise exception.BadRequest(msg)
+        except KeyError as e:
+            LOG.error("Resize Instance Required field(s) - %s" % e)
+            raise exception.BadRequest("Required element/key - %s was not "
+                                       "specified" % e)
+
+    @staticmethod
     def _validate_resize(body, old_volume_size):
         """
-        Currently we only support volume resizing, so we are going to check
-        if that's present.
+        We are going to check that volume resizing data is present.
         """
         Controller._validate_empty_body(body)
         try:
