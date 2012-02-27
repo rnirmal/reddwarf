@@ -461,7 +461,7 @@
     <method name="POST" id="resizeInstance">
         <wadl:doc xml:lang="EN" title="Resize the Instance"  xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Resize the memory of the Instance.</para>
-            <para>Changes the memory size of the Instance, provided a valid flavor_id. Restarts MySQL in the process.</para>
+            <para>Changes the memory size of the Instance, provided a valid flavorRef. Restarts MySQL in the process.</para>
         </wadl:doc>
         <request>
             <representation mediaType="application/xml"

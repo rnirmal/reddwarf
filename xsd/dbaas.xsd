@@ -117,10 +117,10 @@
          </annotation>
        </element>
     </sequence>
-    <attribute name="username" type="xsd:string" use="required">
+    <attribute name="name" type="xsd:string" use="required">
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>The username for the user.</p>
+          <p>The name for the user.</p>
         </xsd:documentation>
       </annotation>
     </attribute>
@@ -378,12 +378,29 @@
     </attribute>
   </complexType>
 
+  <complexType name="FlavorRef">
+      <attribute name="flavorRef" type="xsd:ID" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>A unique flavor id.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+
   <complexType name="Resize">
     <sequence>
       <xsd:element name="volume" type="dbaas:Volume" minOccurs="0" maxOccurs="1">
         <annotation>
           <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
             <p>The volume attached to the instance.</p>
+          </xsd:documentation>
+        </annotation>
+      </xsd:element>
+      <xsd:element name="flavorRef" type="dbaas:FlavorRef" minOccurs="0" maxOccurs="1">
+        <annotation>
+          <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+            <p>New flavorRef to size the instance.</p>
           </xsd:documentation>
         </annotation>
       </xsd:element>

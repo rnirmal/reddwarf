@@ -384,6 +384,20 @@ class ExampleGenerator(object):
         self.http_call('instance_resize_volume', 'POST', req_json, req_xml)
         time.sleep(120) #TODO: replace
 
+    def instance_resize_flavor(self, instance_ids):
+        req_json = {"url": "%s/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        json_data = {'resize': {'flavorRef': '%s/flavors/3' % self.dbaas_url,}}
+        xml_data = """<?xml version="1.0" encoding="UTF-8"?>
+                <resize xmlns="http://docs.openstack.org/database/api/v1.0"
+                flavorRef="%s/flavors/3"></resize>""" % self.dbaas_url
+        req_json['body'] = json.dumps(json_data)
+        req_xml['body'] = xml_data
+        self.http_call('instance_resize_flavor', 'POST', req_json, req_xml)
+        time.sleep(60) #TODO: replace
+
     def get_list_users(self, instance_ids):
         req_json = {"url": "%s/instances/%s/users"
                             % (self.dbaas_url, instance_ids['json'])}
@@ -603,6 +617,7 @@ class ExampleGenerator(object):
         self.get_instance_details(instance_ids)
         self.instance_restart(instance_ids)
         self.instance_resize_volume(instance_ids)
+        self.instance_resize_flavor(instance_ids)
 
         # Do some mgmt calls before deleting the instances
         self.mgmt_list_hosts()

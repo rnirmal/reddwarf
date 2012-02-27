@@ -204,10 +204,6 @@ class InstanceApiValidation(test.TestCase):
         body = {'flavorRef': 2,'volume': {}}
         self.controller._validate(body)
 
-    def test_resize_valid(self):
-        body = {'instance': {'volume': {'size': 2}}}
-        self.controller._validate(body)
-
     @raises(exception.BadRequest)
     def test_resize_invalid4(self):
         body = {'instance': {'flavorRef': 2,'volume': {}}}

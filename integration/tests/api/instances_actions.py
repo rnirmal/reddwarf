@@ -21,29 +21,37 @@ from proboscis.asserts import assert_false
 from proboscis.asserts import assert_not_equal
 from proboscis.asserts import assert_raises
 from proboscis.asserts import assert_true
+from proboscis.asserts import fail
 from proboscis.decorators import time_out
 
 from sqlalchemy import create_engine
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.sql.expression import text
 
+from nova import context
+from nova import db
+
 from nova.compute import power_state
+
+from novaclient.exceptions import BadRequest
+
 from reddwarf.api.common import dbaas_mapping
 from reddwarf.guest.dbaas import LocalSqlClient
 from reddwarf.utils import poll_until
-from novaclient.exceptions import BadRequest
+
 from reddwarfclient.exceptions import UnprocessableEntity
+
 import tests
 from tests.api.instances import GROUP as INSTANCE_GROUP
 from tests.api.instances import GROUP_START
 from tests.api.instances import instance_info
+from tests.api.instances import assert_unprocessable
 from tests import util
 
 
 GROUP = "dbaas.api.instances.actions"
 MYSQL_USERNAME = "test_user"
 MYSQL_PASSWORD = "abcde"
-
 
 class MySqlConnection(object):
 
@@ -242,60 +250,19 @@ class RebootTests(RebootTestBase):
 
 @test(groups=[tests.INSTANCES, INSTANCE_GROUP, GROUP, GROUP + ".resize.instance"],
       depends_on_groups=[GROUP_START], depends_on=[RebootTests])
-class ResizeInstanceTest(object):
+class ResizeInstanceTest(RebootTestBase):
     """
     Integration Test cases for resize instance
     """
     @property
-    def instance(self):
-        return self.dbaas.instances.get(self.instance_id)
-
-    @property
-    def instance_id(self):
-        return instance_info.id
-
-    @property
     def flavor_id(self):
         return instance_info.dbaas_flavor_href
 
-    @property
-    def new_flavor_id(self):
-        dbaas_flavor, dbaas_flavor_href = self.dbaas.find_flavor_and_self_href(flavor_id=2)
+    def get_flavor_id(self, flavor_id=2):
+        dbaas_flavor, dbaas_flavor_href = instance_info.dbaas.find_flavor_and_self_href(flavor_id)
         return dbaas_flavor_href
 
-    @before_class
-    def setup(self):
-        self.dbaas = instance_info.dbaas
-        self.reboot = RebootTestBase()
-        self.reboot.set_up()
-        self.reboot.connection.connect()
-
-    @test
-    def test_instance_resize_same_size_should_fail(self):
-        assert_raises(BadRequest, self.dbaas.instances.resize_instance,
-            self.instance_id, self.flavor_id)
-
-    @test
-    def test_instance_resize_up_success(self):
-        self.dbaas.instances.resize_instance(self.instance_id, self.new_flavor_id)
-
-    @test(depends_on=[test_instance_resize_up_success])
-    def test_status_changed_to_resize(self):
-        instance = self.dbaas.instances.get(self.instance_id)
-        assert_equal(instance.status, 'RESIZE')
-
-    @test(depends_on=[test_status_changed_to_resize])
-    def test_make_sure_mysql_is_dead_during_resize(self):
-        self.reboot.wait_for_broken_connection()
-
-    @test(depends_on=[test_make_sure_mysql_is_dead_during_resize])
-    def test_fail_to_try_to_resize_again(self):
-        assert_raises(UnprocessableEntity, self.dbaas.instances.resize_instance,
-            self.instance_id, self.flavor_id)
-
-    @test(depends_on=[test_fail_to_try_to_resize_again])
-    @time_out(TIME_OUT_TIME)
-    def test_instance_returns_to_active_after_resize(self):
+    def wait_for_resize(self):
         def is_finished_resizing():
             instance = self.instance
             if instance.status == "RESIZE":
@@ -304,8 +271,96 @@ class ResizeInstanceTest(object):
             return True
         poll_until(is_finished_resizing, time_out = TIME_OUT_TIME)
 
+    @before_class
+    def setup(self):
+        self.set_up()
+        self.connection.connect()
+
+    @test
+    def test_instance_resize_same_size_should_fail(self):
+        assert_raises(BadRequest, self.dbaas.instances.resize_instance,
+            self.instance_id, self.flavor_id)
+
+    @test(depends_on=[test_instance_resize_same_size_should_fail])
+    def test_status_changed_to_resize(self):
+        self.dbaas.instances.resize_instance(self.instance_id, self.get_flavor_id(flavor_id=2))
+        #(WARNING) IF THE RESIZE IS WAY TOO FAST THIS WILL FAIL
+        assert_unprocessable(self.dbaas.instances.resize_instance,
+                                     self.instance_id, self.flavor_id)
+        instance = self.dbaas.instances.get(self.instance_id)
+        assert_equal(instance.status, 'RESIZE')
+
+    @test(depends_on=[test_status_changed_to_resize])
+    @time_out(TIME_OUT_TIME)
+    def test_instance_returns_to_active_after_resize(self):
+        self.wait_for_resize()
+
     @test(depends_on=[test_instance_returns_to_active_after_resize])
     def test_make_sure_mysql_is_running_after_resize(self):
-        reboot = RebootTestBase()
-        reboot.set_up()
-        reboot.ensure_mysql_is_running()
+        self.ensure_mysql_is_running()
+        assert_equal(self.get_flavor_id(self.instance.flavor['id']), self.get_flavor_id(flavor_id=2))
+
+    @test(depends_on=[test_make_sure_mysql_is_running_after_resize])
+    @time_out(TIME_OUT_TIME)
+    def test_resize_down(self):
+        self.dbaas.instances.resize_instance(self.instance_id,
+                                             self.get_flavor_id(flavor_id=1))
+        self.wait_for_resize()
+        assert_equal(self.get_flavor_id(self.instance.flavor['id']), self.flavor_id)
+
+
+@test(depends_on_classes=[ResizeInstanceTest], groups=[GROUP, tests.INSTANCES])
+class ResizeInstanceVolume(object):
+    """ Resize the volume of the instance """
+
+    @before_class
+    def setUp(self):
+        volumes = db.volume_get_all_by_instance(context.get_admin_context(),
+                                                instance_info.local_id)
+        instance_info.volume_id = volumes[0].id
+        self.old_volume_size = int(volumes[0].size)
+        self.new_volume_size = self.old_volume_size + 1
+
+        # Create some databases to check they still exist after the resize
+        self.expected_dbs = ['salmon', 'halibut']
+        databases = []
+        for name in self.expected_dbs:
+            databases.append({"name": name})
+        instance_info.dbaas.databases.create(instance_info.id, databases)
+
+    @test
+    @time_out(60)
+    def test_volume_resize(self):
+        instance_info.dbaas.instances.resize_volume(instance_info.id, self.new_volume_size)
+
+    @test
+    @time_out(300)
+    def test_volume_resize_success(self):
+
+        def check_resize_status():
+            instance = instance_info.dbaas.instances.get(instance_info.id)
+            if instance.status == "ACTIVE":
+                return True
+            elif instance.status == "RESIZE":
+                return False
+            else:
+                fail("Status should not be %s" % instance.status)
+
+        poll_until(check_resize_status, sleep_time=2, time_out=300)
+        volumes = db.volume_get(context.get_admin_context(),
+                                instance_info.volume_id)
+        assert_equal(volumes.status, 'in-use')
+        assert_equal(volumes.size, self.new_volume_size)
+        assert_equal(volumes.attach_status, 'attached')
+
+    @test
+    @time_out(300)
+    def test_volume_resize_success_databases(self):
+        databases = instance_info.dbaas.databases.list(instance_info.id)
+        db_list = []
+        for database in databases:
+            db_list.append(database.name)
+        for name in self.expected_dbs:
+            if not name in db_list:
+                fail("Database %s was not found after the volume resize. "
+                     "Returned list: %s" % (name, databases))

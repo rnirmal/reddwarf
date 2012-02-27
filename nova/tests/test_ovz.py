@@ -499,14 +499,15 @@ class OpenVzConnTestCase(test.TestCase):
 
     # TODO(imsplitbit): figure out where the exception clash is happening
     # with mox.
-#    def test_resize_in_place_failure(self):
-#        conn = openvz_conn.OpenVzConnection(False)
-#        self.mox.StubOutWithMock(conn, '_set_instance_size')
-#        conn._set_instance_size(INSTANCE, INSTANCE['instance_type_id'])\
-#            .AndRaise(exception.Error)
-#        self.mox.ReplayAll()
-#        self.assertRaises(exception.InstanceUnacceptable, conn.resize_in_place,
-#                          INSTANCE, INSTANCE['instance_type_id'])
+    @test.skip_test("figure out where the exception clash is happening")
+    def test_resize_in_place_failure(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_set_instance_size')
+        conn._set_instance_size(INSTANCE, INSTANCE['instance_type_id'])\
+            .AndRaise(exception.Error)
+        self.mox.ReplayAll()
+        self.assertRaises(exception.InstanceUnacceptable, conn.resize_in_place,
+                          INSTANCE, INSTANCE['instance_type_id'])
 
     def test_reset_instance_size_success(self):
         conn = openvz_conn.OpenVzConnection(False)
@@ -519,13 +520,14 @@ class OpenVzConnTestCase(test.TestCase):
 
     # TODO(imsplitbit): figure out where the exception clash is happening
     # with mox.
-#    def test_reset_instance_size_failure(self):
-#        conn = openvz_conn.OpenVzConnection(False)
-#        self.mox.StubOutWithMock(conn, '_set_instance_size')
-#        conn._set_instance_size(INSTANCE).AndRaise(exception.Error)
-#        self.mox.ReplayAll()
-#        self.assertRaises(exception.InstanceUnacceptable,
-#                          conn.reset_instance_size, INSTANCE)
+    @test.skip_test("figure out where the exception clash is happening")
+    def test_reset_instance_size_failure(self):
+        conn = openvz_conn.OpenVzConnection(False)
+        self.mox.StubOutWithMock(conn, '_set_instance_size')
+        conn._set_instance_size(INSTANCE).AndRaise(exception.Error)
+        self.mox.ReplayAll()
+        self.assertRaises(exception.InstanceUnacceptable,
+                          conn.reset_instance_size, INSTANCE)
 
     def test_set_instance_size_no_instance_type(self):
         self.mox.StubOutWithMock(openvz_conn.instance_types,

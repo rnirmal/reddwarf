@@ -267,6 +267,10 @@ class ReddwarfComputeManager(ComputeManager):
         the guest status is bad the overall status from the API will be reported
         correctly.
         """
+        method = 'resize_in_place'
+        if not hasattr(self.driver, method):
+            raise exception.UnsupportedDriver(method=method)
+
         instance_ref = self.db.instance_get(context, instance_id)
         actual_instance_type_id = instance_ref['instance_type_id']
         updated_memory_size = None

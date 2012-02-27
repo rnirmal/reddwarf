@@ -592,8 +592,8 @@ run_unit_tests() {
     UNITTEST_FIXTURE=reddwarf $NOVA_HOME/run_tests.sh -N $@
     exclaim "Running RSDNS Unit Tests..."
     UNITTEST_FIXTURE=rsdns $NOVA_HOME/run_tests.sh -N $@
-    #exclaim "Running OpenVZ Driver NOVA Unit Tests..."
-    #UNITTEST_FIXTURE=nova /src/run_tests.sh -N test_ovz
+    exclaim "Running OpenVZ Driver NOVA Unit Tests..."
+    UNITTEST_FIXTURE=nova /src/run_tests.sh -N test_ovz
 }
 
 

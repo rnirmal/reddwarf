@@ -121,3 +121,6 @@ class GuestError(nova_exception.NovaException):
 
 class PollTimeOut(nova_exception.NovaException):
     message = _("Polling request timed out.")
+
+class UnsupportedDriver(nova_exception.NovaException):
+    message = _("This driver does not support the method requested: %(method)")

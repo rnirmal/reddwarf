@@ -132,28 +132,18 @@ class Controller(object):
             new_flavor_id = nova_common.get_id_from_href(new_flavor_ref)
             new_instance_type_id = instance_types.get_instance_type_by_flavor_id(new_flavor_id)
         except nova_exception.FlavorNotFound:
-            raise exception.BadRequest("Required element/key - flavor_id (%s) was not found in the system" %
+            raise exception.BadRequest("Required element/key - flavorRef (%s) was not found in the system" %
                                        new_flavor_ref)
         LOG.debug("the new_instance_type_id is = %r" % new_instance_type_id)
 
-        def get_memory_mb(instance_type_id):
-            inst_type = instance_types.get_instance_type(instance_type_id)
-            return inst_type['memory_mb']
-
-        #TODO(cp16net) should we just rely on the compute api to check the size?
-        old_size = get_memory_mb(current_instance_type_id)
-        new_size = get_memory_mb(new_instance_type_id['id'])
-        diff_size = new_size - old_size
-        if diff_size == 0:
-            msg = "When resizing, instances must change size!"
-            LOG.error(msg)
-            raise exception.BadRequest(msg)
-
         try:
-            # Perform the resize
+            # Send the resize action to the compute api
             self.compute_api.resize_in_place(context, id, new_instance_type_id['id'])
         except exception.OutOfInstanceMemory:
             raise exception.UnprocessableEntity()
+        except nova_exception.CannotResizeToSameSize:
+            msg = "When resizing, instances must change size!"
+            raise exception.BadRequest(msg)
 
         return exc.HTTPAccepted()
 
@@ -476,7 +466,7 @@ class Controller(object):
         Controller._validate_empty_body(body)
         try:
             body['instance']
-            body['instance']['volume']
+            body['instance']['flavorRef']
             volume_size = body['instance']['volume']['size']
         except KeyError as e:
             LOG.error("Create Instance Required field(s) - %s" % e)
