@@ -452,6 +452,7 @@ dbaas_pkg_upload_nova() {
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze glance_2011.3-${GIT_REVISION}*_amd64.changes
 }
 
+
 dbaas_pkg_build_sneaky_pete() {
     exclaim "Building and packaging Sneaky Pete..."
     # Build new package
@@ -459,10 +460,7 @@ dbaas_pkg_build_sneaky_pete() {
     # Clean this to prevent any shenanigans.
     if [ "$1" != "no-clean" ]; then
         rm -rf $AGENT_DIR/bin
-
     fi
-
-    # Copy SP source into build directory.
     cd $AGENT_DIR
 
     # Create the directory here so root won't own it.
@@ -470,12 +468,43 @@ dbaas_pkg_build_sneaky_pete() {
     mkdir -p parrot
 
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+
     exclaim Guest packaging finished, moving to $BUILD_DIR.
     mv $AGENT_DIR/../nova-guest*_all.deb $BUILD_DIR/
     mv $AGENT_DIR/../nova-guest*_amd64.changes $BUILD_DIR/
 
     # Install in repo
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze $BUILD_DIR/nova-guest*_amd64.changes
+
+    exclaim Creating Dopple-Pete...
+    cd $AGENT_DIR
+    # Make the version call return some nonsense.
+    echo '
+          #ifndef __NOVA_GUEST_VERSION_H
+          #define __NOVA_GUEST_VERSION_H
+
+          #define NOVA_GUEST_CURRENT_VERSION "Dopple-Pete"
+
+          #endif //__NOVA_GUEST_VERSION_H
+         ' > bin/gcc-4.4.5/release/link-static/nova_guest_version.hpp
+    # Delete the binary just in case Boost Build attempts deception.
+    rm -f bin/gcc-4.4.5/release/link-static/nova-guest
+    # Update the changelog so the new version comes from the future.
+    sudo sed -i.bak "s/2012/2013/g" debian/changelog
+    # Build and package it again
+    sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    # Revert the changelog.
+    sudo sed -i.bak "s/2013/2012/g" debian/changelog
+
+    exclaim Dopple-Pete packaging finished, moving to $BUILD_DIR.
+    mv $AGENT_DIR/../nova-guest*_all.deb $BUILD_DIR/
+    mv $AGENT_DIR/../nova-guest*_amd64.changes $BUILD_DIR/
+}
+
+dpkg_summon_dopple_pete() {
+    # Installs the "Dopple-Pete" package create by dbaas_pkg_build_sneaky_pete
+    # and puts it in the repo so that the next install or upgrade will use it.
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze $BUILD_DIR/nova-guest_2013.21.12_amd64.changes
 }
 
 patch_src_dir() {
@@ -535,6 +564,14 @@ build_agent() {
     dbaas_pkg_build_sneaky_pete no-clean
     sudo apt-get update
 }
+
+repkg_agent_with_nonsense_version() {
+    modify_pkg = $BUILD_DIR/oizys/generic_package_scripts/modify_package.sh
+    deb_full_path = $BUILD_DIR/nova-guest_2012.21.12_all.deb
+    old_version_string = $1
+    $modify_pkg $deb_full_path $old_version_string $new_version_string
+}
+
 
 ###############################################################################
 
@@ -1011,6 +1048,7 @@ case "$1" in
     "patch" ) patch_src_dir;;
     "revert-patch" ) revert_patch;;
     "unit-tests" ) shift; run_unit_tests $@;;
+    "summon-dopple-pete" ) dpkg_summon_dopple_pete;;
     * )
         echo "'$1' not a valid command"
         exit 1
