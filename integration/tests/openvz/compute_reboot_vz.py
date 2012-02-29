@@ -106,7 +106,7 @@ class VerifyRebootRestartsTheVZ(InstanceTest):
                       run_as_root=True)
 
     @test()
-    @time_out(200)
+    @time_out(300)
     def wait_for_vz_to_restart(self):
         """Tests Compute managers init_host to bring the VZ online.
            This test manually stops the vz and iscsi, and then restarts

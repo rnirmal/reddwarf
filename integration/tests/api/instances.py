@@ -230,7 +230,7 @@ class CreateInstance(unittest.TestCase):
 
     def test_instance_size_too_big(self):
         too_big = dbaas_FLAGS.reddwarf_max_accepted_volume_size
-        assert_raises(nova_exceptions.BadRequest, dbaas.instances.create,
+        assert_raises(nova_exceptions.OverLimit, dbaas.instances.create,
                       "way_too_large", instance_info.dbaas_flavor_href,
                       {'size': too_big + 1}, [])
 

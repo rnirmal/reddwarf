@@ -456,9 +456,9 @@ class Controller(object):
                                        % volume_size)
         max_size = FLAGS.reddwarf_max_accepted_volume_size
         if int(volume_size) > max_size:
-            raise exception.BadRequest("Volume 'size' cannot exceed maximum "
-                                       "of %d Gb, %s cannot be accepted."
-                                       % (max_size, volume_size))
+            raise exception.OverLimit("Volume 'size' cannot exceed maximum "
+                                      "of %d Gb, %s cannot be accepted."
+                                      % (max_size, volume_size))
 
     @staticmethod
     def _validate(body):

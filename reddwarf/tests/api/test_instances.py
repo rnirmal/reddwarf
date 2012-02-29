@@ -156,6 +156,11 @@ class InstanceApiValidation(test.TestCase):
     def test_invalid_resize_volume_size3(self):
         self.controller._validate_resize(self.resize_body, 'a')
 
+    @raises(exception.OverLimit)
+    def test_resize_too_large(self):
+        body = {'resize': {'volume': {'size': 1024 * 1024 * 1024}}}
+        self.controller._validate_resize(body, 2)
+
     @raises(exception.BadRequest)
     def test_resize_volume_no_size(self):
         body = {'resize': {'volume': {}}}
@@ -217,7 +222,7 @@ class InstanceApiValidation(test.TestCase):
     def test_validate_volume_size_bad2(self):
         self.controller._validate_volume_size(-1)
 
-    @raises(exception.BadRequest)
+    @raises(exception.OverLimit)
     def test_validate_volume_size_bad3(self):
         self.controller._validate_volume_size(9999999)
 
