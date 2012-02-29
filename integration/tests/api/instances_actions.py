@@ -27,6 +27,7 @@ from proboscis.decorators import time_out
 from sqlalchemy import create_engine
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.sql.expression import text
+from tests.util.check import Checker
 
 from nova import context
 from nova import db
@@ -117,14 +118,16 @@ class RebootTestBase(object):
 
     def ensure_mysql_is_running(self):
         """Make sure MySQL is accessible before restarting."""
-        self.connection.connect()
-        assert_true(self.connection.is_connected(), "Able to connect to MySQL.")
-        self.proc_id = self.find_mysql_proc_on_instance()
-        assert_true(self.proc_id is not None, "MySQL process can be found.")
-        instance = self.instance
-        assert_false(instance is None)
-        assert_equal(instance.status, dbaas_mapping[power_state.RUNNING],
-                     "REST API reports MySQL as RUNNING.")
+        with Checker() as check:
+            self.connection.connect()
+            check.true(self.connection.is_connected(),
+                       "Able to connect to MySQL.")
+            self.proc_id = self.find_mysql_proc_on_instance()
+            check.true(self.proc_id is not None, "MySQL process can be found.")
+            instance = self.instance
+            check.false(instance is None)
+            check.equal(instance.status, dbaas_mapping[power_state.RUNNING],
+                        "REST API reports MySQL as RUNNING.")
 
     def wait_for_broken_connection(self):
         """Wait until our connection breaks."""
@@ -283,12 +286,11 @@ class ResizeInstanceTest(RebootTestBase):
 
     @test(depends_on=[test_instance_resize_same_size_should_fail])
     def test_status_changed_to_resize(self):
-        self.dbaas.instances.resize_instance(self.instance_id, self.get_flavor_id(flavor_id=2))
+        self.dbaas.instances.resize_instance(self.instance_id,
+                                             self.get_flavor_id(flavor_id=2))
         #(WARNING) IF THE RESIZE IS WAY TOO FAST THIS WILL FAIL
         assert_unprocessable(self.dbaas.instances.resize_instance,
-                                     self.instance_id, self.flavor_id)
-        instance = self.dbaas.instances.get(self.instance_id)
-        assert_equal(instance.status, 'RESIZE')
+                             self.instance_id, self.get_flavor_id(flavor_id=2))
 
     @test(depends_on=[test_status_changed_to_resize])
     @time_out(TIME_OUT_TIME)
@@ -298,7 +300,8 @@ class ResizeInstanceTest(RebootTestBase):
     @test(depends_on=[test_instance_returns_to_active_after_resize])
     def test_make_sure_mysql_is_running_after_resize(self):
         self.ensure_mysql_is_running()
-        assert_equal(self.get_flavor_id(self.instance.flavor['id']), self.get_flavor_id(flavor_id=2))
+        assert_equal(self.get_flavor_id(self.instance.flavor['id']),
+                     self.get_flavor_id(flavor_id=2))
 
     @test(depends_on=[test_make_sure_mysql_is_running_after_resize])
     @time_out(TIME_OUT_TIME)
