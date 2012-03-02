@@ -108,6 +108,9 @@ flags.DEFINE_integer('ovz_kmemsize_percent_of_memory',
 flags.DEFINE_integer('ovz_kmemsize_barrier_differential',
                     10,
                     'Difference of kmemsize barrier vs limit')
+flags.DEFINE_bool('ovz_use_bind_mount',
+                  False,
+                  'Use bind mounting instead of simfs')
 
 LOG = logging.getLogger('nova.virt.openvz')
 
@@ -2003,8 +2006,12 @@ class OVZMountFile(OVZMounts):
         within the container's root filesystem.  This is done with the bind
         mount feature and is the prescribed method for OpenVz
         """
-        return 'mount --bind %s %s' % \
-               (self.host_mount, self.container_root_mount)
+        if FLAGS.ovz_use_bind_mount:
+            return 'mount --bind %s %s' % \
+                (self.host_mount, self.container_root_mount)
+        else:
+            return 'mount -n -t simfs %s %s -o %s' % \
+                   (self.host_mount, self.container_root_mount, self.host_mount)
 
     def delete_mounts(self):
         """
