@@ -465,6 +465,9 @@ dbaas_pkg_build_sneaky_pete() {
     # Copy SP source into build directory.
     cd $AGENT_DIR
 
+    # Create the directory here so root won't own it.
+    mkdir -p bin/gcc-4.4.5
+
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     exclaim Guest packaging finished, moving to $BUILD_DIR.
     mv $AGENT_DIR/../nova-guest*_all.deb $BUILD_DIR/
