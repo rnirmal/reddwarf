@@ -48,9 +48,6 @@ def request_obj(url, method, body={}):
     req.headers["content-type"] = "application/json"
     return req
 
-def compute_get_exception(self, ctxt, id):
-    raise nova_exception.NotFound(message="WHOOPS")
-
 def localid_from_uuid(id):
     return id
 

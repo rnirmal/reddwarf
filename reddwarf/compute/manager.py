@@ -233,7 +233,7 @@ class ReddwarfInstanceInitializer(object):
 
     def _set_instance_status_to_fail(self):
         """Sets the instance to FAIL."""
-        dbapi.guest_status_update(self.instance_id, power_state.FAILED)
+        dbapi.guest_status_update(self.instance_id, guest_status.FAILED)
 
     def wait_until_volume_is_ready(self, time_out):
         """Sleeps until the given volume has finished provisioning."""
@@ -406,7 +406,7 @@ class ReddwarfComputeManager(ComputeManager):
         # Code unique to  Reddwarf:
         #TODO(tim.simpson): Setting this to "paused" is unclear. Once the
         # status code is cleaned up, change this to RESTART or something.
-        dbapi.guest_status_update(instance_id, power_state.PAUSED, "paused")
+        dbapi.guest_status_update(instance_id, guest_status.PAUSED)
         # End unique Reddwarf code.
 
         current_power_state = self._get_power_state(context, instance_ref)
@@ -455,6 +455,16 @@ class ReddwarfComputeManager(ComputeManager):
                         % (volume_id, instance_id))
 
     def update_guest(self, context, instance_id):
+        """Call the guest to update itself.
+
+        If the guest raises an exception it means it could not update itself,
+        but may still be running just fine. There's no real way to report that
+        to the user so we don't bother catching the exception (which means it
+        will be logged).
+        If we timeout, it may mean that the guest shut down and never started
+        back up, so we change the status to UNKNOWN. The guest can change it
+        back when / if it comes online.
+        """
         time_out = Timeout(FLAGS.reddwarf_guest_update_time_out)
         try:
             LOG.debug("Calling 'update_guest' for instance %s." % instance_id)

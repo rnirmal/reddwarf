@@ -42,6 +42,7 @@ from nova.compute import power_state
 
 from reddwarf import exception
 from reddwarf.db import models
+from reddwarf.guest.status import GuestStatus
 
 FLAGS = flags.FLAGS
 LOG = logging.getLogger('reddwarf.db.api')
@@ -95,7 +96,7 @@ def guest_status_get_list(instance_ids, session=None):
         raise nova_exception.InstanceNotFound(instance_id=instance_ids)
     return result
 
-def guest_status_update(instance_id, state, description=None):
+def guest_status_update(instance_id, status):
     """Update the state of the guest with one of the valid states
        along with the description
 
@@ -103,15 +104,12 @@ def guest_status_update(instance_id, state, description=None):
     :param state: state id
     :param description: description of the state
     """
-    if not description:
-        description = power_state.name(state)
-
     session = get_session()
     with session.begin():
         session.query(models.GuestStatus).\
                 filter_by(instance_id=instance_id).\
-                update({'state': state,
-                        'state_description': description})
+                update({'state': status.code,
+                        'state_description': status.description})
 
 
 def guest_status_delete(instance_id):

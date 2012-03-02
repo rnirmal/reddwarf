@@ -31,6 +31,7 @@ from tests.util.check import Checker
 
 from nova import context
 from nova import db
+from nova import utils
 
 from nova.compute import power_state
 
@@ -48,6 +49,7 @@ from tests.api.instances import GROUP_START
 from tests.api.instances import instance_info
 from tests.api.instances import assert_unprocessable
 from tests import util
+from tests.util import test_config
 
 
 GROUP = "dbaas.api.instances.actions"
@@ -370,37 +372,51 @@ class ResizeInstanceVolume(object):
                      "Returned list: %s" % (name, databases))
 
 
-@test(groups=[tests.INSTANCES, INSTANCE_GROUP, GROUP],
+# This tests the ability of the guest to upgrade itself.
+# It is necessarily tricky because we need to be able to upload a new copy of
+# the guest into an apt-repo in the middle of the test.
+# "guest-update-test" is where the knowledge of how to do this is set in the
+# test conf. If it is not specified this test never runs.
+UPDATE_GUEST_CONF = test_config.values.get("guest-update-test", None)
+
+@test(groups=[tests.INSTANCES, INSTANCE_GROUP, GROUP, GROUP + ".update_guest"],
       depends_on_groups=[GROUP_START])
 class UpdateGuest(object):
-
-    #TODO(tim.simpson): 1. Make the "NEXT_VERSION" var driven by a conf value.
-    #                   2. Figure out a way to automatically save that this test
-    #                      has been run, so Reddwarfers on a CI box won't risk
-    #                      running this test twice (its really only going to
-    #                      work for CI boxes).
-
-    NEXT_VERSION = "Dopple-Pete"
 
     def get_version(self):
         info = instance_info.dbaas_admin.diagnostics.get(instance_info.id)
         return info.version
 
-    @before_class
+    @before_class(enabled=UPDATE_GUEST_CONF is not None)
     def check_version_is_old(self):
         """Make sure we have the old version before proceeding."""
-        self.old_version = get_version()
-        assert_not_equal(self.old_version, NEXT_VERSION)
+        self.old_version = self.get_version()
+        self.next_version = UPDATE_GUEST_CONF["next-version"]
+        assert_not_equal(self.old_version, self.next_version)
 
-    @test
+    @test(enabled=UPDATE_GUEST_CONF is not None)
+    def upload_update_to_repo(self):
+        cmds = UPDATE_GUEST_CONF["install-repo-cmd"]
+        utils.execute(*cmds, run_as_root=True)
+
+    @test(enabled=UPDATE_GUEST_CONF is not None,
+          depends_on=[upload_update_to_repo])
     def update_and_wait_to_finish(self):
-        instance_info.dbaas_admin.update_guest(instance_info.id)
+        instance_info.dbaas_admin.management.update(instance_info.id)
         def finished():
-            current_version = get_version()
-            if current_version == NEXT_VERSION:
+            current_version = self.get_version()
+            if current_version == self.next_version:
                 return True
             # The only valid thing for it to be aside from next_version is
             # old version.
             assert_equal(current_version, self.old_version)
-        poll_until(finished(), sleep_time=1, time_out=3 * 60)
+        poll_until(finished, sleep_time=1, time_out=3 * 60)
 
+    @test(enabled=UPDATE_GUEST_CONF is not None,
+          depends_on=[upload_update_to_repo])
+    @time_out(30)
+    def update_again(self):
+        """Test the wait time of a pointless update."""
+        instance_info.dbaas_admin.management.update(instance_info.id)
+        # Make sure this isn't taking too long.
+        instance_info.dbaas_admin.diagnostics.get(instance_info.id)

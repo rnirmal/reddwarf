@@ -22,6 +22,7 @@ from nova import log as logging
 from nova.api.openstack import servers
 from nova.api.openstack import wsgi
 from nova.compute import power_state
+from nova import exception as nova_exception
 
 from reddwarf import compute
 from reddwarf import exception
@@ -279,6 +280,6 @@ class Controller(object):
         try:
             self.compute_api.update_guest(ctxt, local_id)
             return exc.HTTPAccepted()
-        except Exception as err:
+        except nova_exception.InstanceNotFound as err:
             LOG.exception(_("Error in update guest agent: %s"), err)
             raise exception.NotFound()

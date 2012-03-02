@@ -22,32 +22,30 @@ from nova.api.openstack import common
 from nova import db
 
 from reddwarf.db import api as dbapi
-from reddwarf.guest import status as Guest_status
+from reddwarf.guest import status as guest_statuses
 from reddwarf.exception import NotFound
 from reddwarf.exception import UnprocessableEntity
+from reddwarf.guest.status import GuestStatus
 
 LOG = logging.getLogger('reddwarf.api.status')
+
 
 class InstanceStatus(object):
     """The authoritative source of a Reddwarf Instance status."""
     
     def __init__(self, 
-                #vm_state=None,
-                #power_state=None,
                 guest_state=None,
-                guest_status=None,
+                guest_status_debug_info=None,
                 server_status=None,
                 ):
-        #self.vm_state = vm_state
-        #self.power_state = power_state
-        self.guest_state = guest_state or Guest_status.SHUTDOWN.code
-        self.guest_status = guest_status
+        if guest_state:
+            self.guest_status = GuestStatus.from_code(guest_state)
+        else:
+            self.guest_status = guest_statuses.SHUTDOWN
+        self.guest_status_debug_info = guest_status_debug_info
         # TODO(ed-): incorporate volume status.
-        self.server_status = server_status or Guest_status.SHUTDOWN.description
-
-        assert isinstance(self.guest_state, int) or isinstance(self.guest_state, long)
+        self.server_status = server_status or guest_statuses.SHUTDOWN.description
         assert isinstance(self.server_status, types.StringTypes)
-        assert Guest_status.GuestStatus.is_valid_code(self.guest_state)
 
     @staticmethod
     def load_from_db(context, instance_id):
@@ -66,16 +64,16 @@ class InstanceStatus(object):
     @property
     def is_sql_running(self):
         responsive = [
-            Guest_status.RUNNING.code,
+            guest_statuses.RUNNING,
             ]
-        return self.guest_state in responsive
+        return self.guest_status in responsive
 
     def can_perform_action_on_instance(self):
         """
         Checks if the instance is in a state where an action can be performed.
         """
         valid_action_states = ['ACTIVE']
-        if not self.status in valid_action_states:
+        if self.status not in valid_action_states:
             msg = "Instance is not currently available for an action to be performed. Status [%s]" % self.status
             LOG.debug(msg)
             raise UnprocessableEntity(msg)
@@ -86,21 +84,22 @@ class InstanceStatus(object):
             return self.server_status
         # TODO(ed-) Possibly a mapping error resulting in this function
         # returning a None. Should raise an exception instead
-        if Guest_status.PAUSED == self.guest_state: # Use GuestStatus' smarter comparator.
+        if guest_statuses.PAUSED == self.guest_status: # Use GuestStatus' smarter comparator.
             return "REBOOT"
-        return Guest_status.GuestStatus.from_description(self.guest_state).description
+        return self.guest_status.api_status
 
     def get_guest_status(self):
         """Build out the guest status information"""
         result = {}
-        if self.guest_status is not None:
-            result['created_at'] = self.guest_status.created_at
-            result['deleted'] = self.guest_status.deleted
-            result['deleted_at'] = self.guest_status.deleted_at
-            result['instance_id'] = self.guest_status.instance_id
-            result['state'] = self.guest_status.state
-            result['state_description'] = self.guest_status.state_description
-            result['updated_at'] = self.guest_status.updated_at
+        if self.guest_status_debug_info is not None:
+            debug = self.guest_status_debug_info
+            result['created_at'] = debug.created_at
+            result['deleted'] = debug.deleted
+            result['deleted_at'] = debug.deleted_at
+            result['instance_id'] = debug.instance_id
+            result['state'] =debug.state
+            result['state_description'] = debug.state_description
+            result['updated_at'] = debug.updated_at
         return result
 
 
@@ -149,5 +148,5 @@ class InstanceStatusLookup(object):
         if guest_status is not None:
                 guest_state = guest_status.state
         return InstanceStatus(guest_state=guest_state,
-                              guest_status=guest_status,
+                              guest_status_debug_info=guest_status,
                               server_status=server_status)

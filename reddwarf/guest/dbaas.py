@@ -28,7 +28,6 @@ handles RPC calls relating to Platform specific operations.
 
 import os
 import re
-import sys
 import uuid
 
 from datetime import date
@@ -39,12 +38,12 @@ from sqlalchemy.sql.expression import text
 
 from nova import flags
 from nova import log as logging
-from nova.compute import power_state
 from nova.exception import ProcessExecutionError
 
 from reddwarf.db import api as dbapi
 from reddwarf.guest import utils as guest_utils, utils
 from reddwarf.guest.db import models
+from reddwarf.guest import status as guest_status
 
 ADMIN_USER_NAME = "os_admin"
 LOG = logging.getLogger('nova.guest.dbaas')
@@ -275,27 +274,27 @@ class DBaaSAgent(object):
         instance_id = guest_utils.get_instance_id()
 
         if PREPARING:
-            dbapi.guest_status_update(instance_id, power_state.BUILDING)
+            dbapi.guest_status_update(instance_id, guest_status.BUILDING)
             return
 
         try:
             out, err = utils.execute("/usr/bin/mysqladmin", "ping", run_as_root=True)
-            dbapi.guest_status_update(instance_id, power_state.RUNNING)
+            dbapi.guest_status_update(instance_id, guest_status.RUNNING)
         except ProcessExecutionError as e:
             try:
                 out, err = utils.execute("ps", "-C", "mysqld", "h")
                 pid = out.split()[0]
                 # TODO(rnirmal): Need to create new statuses for instances where
                 # the mysql service is up, but unresponsive
-                dbapi.guest_status_update(instance_id, power_state.BLOCKED)
+                dbapi.guest_status_update(instance_id, guest_status.BLOCKED)
             except ProcessExecutionError as e:
                 if not MYSQLD_ARGS:
                     MYSQLD_ARGS = load_mysqld_options()
                 pid_file = MYSQLD_ARGS.get('pid-file', '/var/run/mysqld/mysqld.pid')
                 if os.path.exists(pid_file):
-                    dbapi.guest_status_update(instance_id, power_state.CRASHED)
+                    dbapi.guest_status_update(instance_id, guest_status.CRASHED)
                 else:
-                    dbapi.guest_status_update(instance_id, power_state.SHUTDOWN)
+                    dbapi.guest_status_update(instance_id, guest_status.SHUTDOWN)
 
 
 class LocalSqlClient(object):
