@@ -11,7 +11,7 @@
 
 # Global Configuration
 
-AGENT_DIR=/agent
+AGENT_DIR=/src/reddwarf-guest
 
 PYTHON_NOVACLIENT_VERSION=113
 GLANCE_VERSION="ecbcc09ce5c337a84d8adf19f957529c4f76a075"
@@ -39,10 +39,6 @@ TESTS_CONF="/home/vagrant/tests.conf"
 
 GUEST_IMAGE="debian-squeeze-x86_64-openvz.tar.gz"
 
-AGENT_WORK_DIR=$AGENT_DIR
-if [ ! -d $AGENT_WORK_DIR ]; then
-    AGENT_WORK_DIR=$BUILD_DIR/agent
-fi
 
 ###############################################################################
 # Usage and list of available commands                                        #
@@ -137,25 +133,6 @@ check_network() {
             sudo ip route del default via 10.0.4.2
         fi
     done
-}
-
-refresh_up_agent_work_directory() {
-    if [ ! -d $AGENT_DIR ]; then
-        exclaim "Source not found, cloning from GIT."
-        if [ -d $AGENT_WORK_DIR ]; then
-            rm -rf $AGENT_WORK_DIR
-        fi
-        sudo mkdir -p $AGENT_WORK_DIR
-        sudo chown vagrant $AGENT_WORK_DIR
-        echo "git clone git://github.com/hub-cap/sneaky-pete.git $AGENT_WORK_DIR"
-        git clone git://github.com/hub-cap/sneaky-pete.git $AGENT_WORK_DIR
-        # Used this commented out when changing the repo for development
-        # cd $AGENT_WORK_DIR
-        # git fetch
-        # echo "git checkout resize-flavor"
-        # git checkout resize-flavor
-        # git rev-parse HEAD
-    fi
 }
 
 
@@ -303,9 +280,10 @@ update_config() {
 
 install_sneaky_pete_deps() {
     exclaim "Installing Sneaky Pete dependencies."
-    refresh_up_agent_work_directory
     # Install all the stuff needed to build Sneaky Pete.
-    $AGENT_WORK_DIR/vagrant/initialize.sh
+    cp -rf $AGENT_DIR/vagrant/initialize.sh ~/initialize-sp.sh
+    chmod 700 ~/initialize-sp.sh
+    ~/initialize-sp.sh
 }
 
 install_deps() {
@@ -476,44 +454,24 @@ dbaas_pkg_upload_nova() {
 
 dbaas_pkg_build_sneaky_pete() {
     exclaim "Building and packaging Sneaky Pete..."
-    refresh_up_agent_work_directory
     # Build new package
-
-    # If we're using a shared folder with a copy of Sneaky-Pete, copy it over.
-    if [ ! -d $BUILD_DIR/agent ]; then
-        mkdir $BUILD_DIR/agent
-    fi
 
     # Clean this to prevent any shenanigans.
     if [ "$1" != "no-clean" ]; then
-        rm -rf $AGENT_WORK_DIR/bin
+        rm -rf $AGENT_DIR/bin
 
     fi
 
-    # If using a working copy, AGENT_DIR == AGENT_WORK_DIR.
-    # So enter that directory, build it there first (to avoid confusion), then
-    # copy it to the $BUILD_DIR.
-    if [ -d $AGENT_DIR ]; then
-        cd $AGENT_WORK_DIR
+    # Copy SP source into build directory.
+    cd $AGENT_DIR
 
-        bjam -d+2 link=static release nova-guest
-        cp -rf $AGENT_WORK_DIR/* $BUILD_DIR/agent
-    fi
-
-    # If there isn't a working copy $BUILD_DIR/agent will already exist and
-    # have a fresh copy of the GIT source from a previous step.
-
-    cd $BUILD_DIR/agent
     sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    exclaim Guest packaging finished, moving to $BUILD_DIR.
+    mv $AGENT_DIR/../nova-guest*_all.deb $BUILD_DIR/
+    mv $AGENT_DIR/../nova-guest*_amd64.changes $BUILD_DIR/
+
     # Install in repo
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze $BUILD_DIR/nova-guest*_amd64.changes
-
-    # If we don't do this, we won't have the permission to the bin directory
-    # to run functional tests later (this is only if we aren't using the
-    # /agent shared directory).
-    cd $BUILD_DIR/agent
-    sudo chown -R vagrant bin
-    sudo chown -R vagrant parrot
 }
 
 patch_src_dir() {
@@ -675,7 +633,7 @@ setup_nova_conf() {
 
 setup_tests_conf() {
     cat /vagrant/conf/host.tests.conf_begin > $TESTS_CONF
-    echo "\"agent_bin\" : \"$AGENT_WORK_DIR/bin/gcc-4.4.5/release/link-static/nova-guest\", " >> $TESTS_CONF
+    echo "\"agent_bin\" : \"$AGENT_DIR/bin/gcc-4.4.5/release/link-static/nova-guest\", " >> $TESTS_CONF
     echo "\"host_name\" : \"`hostname`\", " >> $TESTS_CONF
     cat /vagrant/conf/host.tests.conf_end >> $TESTS_CONF
 }
@@ -842,21 +800,21 @@ initialize() {
 ###############################################################################
 
 run_agent_tests() {
-    cd $AGENT_WORK_DIR
+    cd $AGENT_DIR
     echo "Agent tests : AMQP"
-    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug send_and_receive
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug send_and_receive
 
     echo "Agent tests : MySQL"
-    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug int_tests_mysql
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug int_tests_mysql
 
     echo "Agent tests : DB API"
-    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug api_tests
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug api_tests
 
     echo "Agent tests : APT"
-    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug apt_tests
 
     echo "Agent tests : MySqlNovaUpdater"
-    TEST_ARGS=--flagfile=$AGENT_WORK_DIR/config/test.nova.conf bjam -d+2 debug mysql_nova_updater_tests
+    TEST_ARGS=--flagfile=$AGENT_DIR/config/test.nova.conf bjam -d+2 debug mysql_nova_updater_tests
 
     echo "Agent tests : Rabbit Reconnects"
     run_tests --group=agent
