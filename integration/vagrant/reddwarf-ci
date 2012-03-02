@@ -470,8 +470,8 @@ dbaas_pkg_upload_nova() {
 
     cd $BUILD_DIR
     sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR includedeb squeeze reddwarf-config_${PACKAGE_VERSION}-${GIT_REVISION}*_all.deb
-    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze nova_${PACKAGE_VERSION}-${GIT_REVISION}_amd64.changes
-    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze glance_2011.3-${GIT_REVISION}_amd64.changes
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze nova_${PACKAGE_VERSION}-${GIT_REVISION}*_amd64.changes
+    sudo -E reprepro --ignore=wrongdistribution -Vb $PACKAGES_DIR include squeeze glance_2011.3-${GIT_REVISION}*_amd64.changes
 }
 
 dbaas_pkg_build_sneaky_pete() {
