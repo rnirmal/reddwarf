@@ -368,7 +368,7 @@ class ExampleGenerator(object):
         req_json['body'] = json.dumps(JSON_DATA)
         req_xml['body'] = XML_DATA
         self.http_call('instance_restart', 'POST', req_json, req_xml)
-        time.sleep(60) #TODO: replace
+        time.sleep(60)
 
     def instance_resize_volume(self, instance_ids):
         req_json = {"url": "%s/instances/%s/action"
@@ -382,7 +382,7 @@ class ExampleGenerator(object):
         req_json['body'] = json.dumps(json_data)
         req_xml['body'] = xml_data
         self.http_call('instance_resize_volume', 'POST', req_json, req_xml)
-        time.sleep(120) #TODO: replace
+        time.sleep(120)
 
     def instance_resize_flavor(self, instance_ids):
         req_json = {"url": "%s/instances/%s/action"
@@ -396,7 +396,7 @@ class ExampleGenerator(object):
         req_json['body'] = json.dumps(json_data)
         req_xml['body'] = xml_data
         self.http_call('instance_resize_flavor', 'POST', req_json, req_xml)
-        time.sleep(60) #TODO: replace
+        time.sleep(60)
 
     def get_list_users(self, instance_ids):
         req_json = {"url": "%s/instances/%s/users"
@@ -569,7 +569,7 @@ class ExampleGenerator(object):
         req_json['body'] = json.dumps(JSON_DATA)
         req_xml['body'] = XML_DATA
         self.http_call('instance_reboot', 'POST', req_json, req_xml)
-        time.sleep(60) #TODO: replace
+        time.sleep(60)
 
     def main(self):
 
@@ -615,9 +615,15 @@ class ExampleGenerator(object):
         self.get_list_instance_index()
         self.get_list_instance_details()
         self.get_instance_details(instance_ids)
+
+        # Need to wait after each of these calls for
+        # the instance to return back to active
         self.instance_restart(instance_ids)
+        self.wait_for_instances()
         self.instance_resize_volume(instance_ids)
+        self.wait_for_instances()
         self.instance_resize_flavor(instance_ids)
+        self.wait_for_instances()
 
         # Do some mgmt calls before deleting the instances
         self.mgmt_list_hosts()
@@ -629,6 +635,7 @@ class ExampleGenerator(object):
         self.mgmt_instance_index(False)
         self.mgmt_get_instance_diagnostics(instance_ids)
         self.mgmt_instance_reboot(instance_ids)
+        self.wait_for_instances()
 
         # Configs
         config_id = "myconf"
