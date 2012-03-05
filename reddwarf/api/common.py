@@ -71,9 +71,6 @@ def populate_users(users):
             u = models.MySQLUser()
             u.name = user.get('name', '')
             u.password = user.get('password', '')
-            dbname = user.get('database', '')
-            if dbname:
-                u.databases = dbname
             dbs = user.get('databases', '')
             if dbs:
                 for db in dbs:

@@ -31,7 +31,7 @@ from reddwarf import exception
 from reddwarf.api import users
 from reddwarf.tests import util
 
-databases_url = "%s/1/users" % util.v1_instances_prefix
+users_url = "%s/1/users" % util.v1_instances_prefix
 
 
 class FakeState(object):
@@ -46,6 +46,9 @@ def localid_from_uuid(id):
 
 def instance_exists(ctxt, instance_id, compute_api):
     return True
+
+def create_user(self, ctxt, local_id, users):
+    pass
 
 def request_obj(url, method, body=None):
     req = webob.Request.blank(url)
@@ -65,32 +68,48 @@ class UserApiTest(test.TestCase):
         self.stubs.Set(reddwarf.api.common, "instance_exists", instance_exists)
         self.stubs.Set(reddwarf.db.api, "localid_from_uuid", localid_from_uuid)
         self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get)
+        self.stubs.Set(reddwarf.guest.api.API, "create_user", create_user)
 
     def tearDown(self):
         self.stubs.UnsetAll()
         super(UserApiTest, self).tearDown()
 
     def test_delete_user_name_begin_space(self):
-        req = request_obj(databases_url+"/%20test", 'DELETE')
+        req = request_obj(users_url+"/%20test", 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 400)
 
     def test_delete_user_name_end_space(self):
-        req = request_obj(databases_url+"/test%20", 'DELETE')
+        req = request_obj(users_url+"/test%20", 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 400)
 
     def test_create_user_name_begin_space(self):
         body = {'users': [{'name': ' test', 'password': 'password'}]}
-        req = request_obj(databases_url, 'POST', body=body)
+        req = request_obj(users_url, 'POST', body=body)
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 400)
 
     def test_create_user_name_end_space(self):
         body = {'users': [{'name': 'test ', 'password': 'password'}]}
-        req = request_obj(databases_url, 'POST', body=body)
+        req = request_obj(users_url, 'POST', body=body)
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 400)
+
+    def test_create_user_single_database_old_format(self):
+        body = {'users': [{'name': 'test', 'password': 'password',
+                           'database': 'testdb'}]}
+        req = request_obj(users_url, 'POST', body=body)
+        res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
+        self.assertEqual(res.status_int, 202)
+
+    def test_create_user_multiple_databases(self):
+        body = {'users': [{'name': 'test', 'password': 'password',
+                           'databases': [{'name': 'testdb'},
+                           {'name': 'roosterdb'}]}]}
+        req = request_obj(users_url, 'POST', body=body)
+        res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
+        self.assertEqual(res.status_int, 202)
 
     @raises(exception.BadRequest)
     def test_create_user_no_password(self):
