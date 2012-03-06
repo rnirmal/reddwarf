@@ -150,18 +150,18 @@ Example Calls/Utilties for Reddwarf/Nova
 
 #. Create an instance::
 
-    [vagrant:/src/bin]$ ./reddwarf-cli create instance test 1 flavors/2
-    [vagrant:/src/bin]$ ./reddwarf-cli list instances
+    [vagrant:/src/bin]$ ./reddwarf-cli instance create test 1 flavors/2
+    [vagrant:/src/bin]$ ./reddwarf-cli instance list
     [vagrant:/src/bin]$ sudo vzlist
     [vagrant:/src/bin]$ sudo vzctl enter 1
 
 #. Create database::
 
-    [vagrant:/src/bin]$ ./reddwarf-cli create database 1 testdb
+    [vagrant:/src/bin]$ ./reddwarf-cli database create 1 testdb
 
 #. Create a user::
 
-    [vagrant:/src/bin]$ ./reddwarf-cli create user 1 testuser testpass testdb
+    [vagrant:/src/bin]$ ./reddwarf-cli user create 1 testuser testpass testdb
 
 #. Login to mysql::
 
