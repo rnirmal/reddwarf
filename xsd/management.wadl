@@ -297,12 +297,12 @@
             <representation mediaType="application/xml" element="dbaas:UpdateGuest">
                 <doc>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the Update Guest Instance requests:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-update-guest-request.xml"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-guest-update-request.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json" element="dbaas:UpdateGuest">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-update-guest-request.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-guest-update-request.json"/>
                 </doc>
             </representation>
         </request>
@@ -310,12 +310,12 @@
             <representation mediaType="application/xml">
                 <doc>
                     <para xmlns="http://docbook.org/ns/docbook">The following examples show the UpdateGuest Instance responses:</para>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-update-guest-response.xml"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-guest-update-response.xml"/>
                 </doc>
             </representation>
             <representation mediaType="application/json">
                 <doc>
-                    <xsdxt:code href="../apidocs/src/resources/samples/db-instance-update-guest-response.json"/>
+                    <xsdxt:code href="../apidocs/src/resources/samples/db-guest-update-response.json"/>
                 </doc>
             </representation>
         </response>
