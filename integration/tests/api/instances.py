@@ -784,6 +784,11 @@ class CheckInstance(object):
 
 def diagnostic_tests_helper(diagnostics):
     print("diagnostics : %r" % diagnostics._info)
-    expected_attrs = ['version', 'fdSize', 'vmSize', 'vmHwm', 'vmRss', 'vmPeak', 'threads']
+    expected_attrs = ['version', 'fdSize', 'vmSize', 'vmHwm', 'vmRss', 'vmPeak',
+                      'threads']
     CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
                                     msg="Diagnostics")
+    version_pattern = re.compile(r'[a-f0-9]+')
+    msg = "Version %s does not match pattern %s." % (diagnostics.version,
+                                                     version_pattern)
+    assert_true(version_pattern.match(diagnostics.version), msg)
