@@ -188,6 +188,10 @@ class Controller(object):
                 'address': ip['address'],
                 'virtual_interface_id': ip['virtual_interface_id'],
                 } for ip in ips]
+
+            # Associate storage
+
+
             result.append(details)
 
         return {"instances": result}
