@@ -92,13 +92,8 @@ namespace {
         return JsonData::from_null();
     }
 
-    JSON_METHOD(create_database) {
-        MySqlAdminPtr sql = guest->sql_admin();
-        return _create_database(sql, args);
-    }
-
-    JSON_METHOD(create_user) {
-        MySqlAdminPtr sql = guest->sql_admin();
+    JsonDataPtr _create_user(MySqlAdminPtr sql, JsonObjectPtr args) {
+        NOVA_LOG_INFO2("guest create_user");
         MySqlUserListPtr users(new MySqlUserList());
         JsonArrayPtr array = args->get_array("users");
         for (int i = 0; i < array->get_length(); i ++) {
@@ -106,6 +101,16 @@ namespace {
         };
         sql->create_users(users);
         return JsonData::from_null();
+    }
+
+    JSON_METHOD(create_database) {
+        MySqlAdminPtr sql = guest->sql_admin();
+        return _create_database(sql, args);
+    }
+
+    JSON_METHOD(create_user) {
+        MySqlAdminPtr sql = guest->sql_admin();
+        return _create_user(sql, args);
     }
 
     JSON_METHOD(list_users) {
@@ -256,8 +261,10 @@ JsonDataPtr MySqlAppMessageHandler::handle_message(const GuestInput & input) {
         app->install_and_secure(this->apt, memory_mb);
         // The argument signature is the same as create_database so just
         // forward the method.
-        NOVA_LOG_INFO("Creating initial databases following successful prepare");
-        return _create_database(MySqlMessageHandler::sql_admin(), input.args);
+        NOVA_LOG_INFO("Creating initial databases and users following successful prepare");
+        _create_database(MySqlMessageHandler::sql_admin(), input.args);
+        _create_user(MySqlMessageHandler::sql_admin(), input.args);
+        return JsonData::from_null();
     } else if (input.method_name == "restart") {
         NOVA_LOG_INFO("Calling restart...");
         MySqlAppPtr app = this->create_mysql_app();

@@ -70,8 +70,3 @@ class TestMysqlAccess(object):
         """Ensure we aren't allowed access with root and wrong password."""
         assert_mysql_connection_fails("root", "dsfgnear",
                                       instance_info.user_ip)
-
-    @test
-    def test_zfirst_db(self):
-        if not instance_info.check_database("firstdb"):
-            fail("Database 'firstdb' was not created")
