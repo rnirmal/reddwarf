@@ -62,7 +62,8 @@ class MgmtInstancesIndex(object):
                 'deleted_at',
                 'deleted',
                 'flavorid',
-                'ips'
+                'ips',
+                'volumes'
             ]
         index = self.admin_client.management.index()
         for instance in index:

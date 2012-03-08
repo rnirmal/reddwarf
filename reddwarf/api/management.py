@@ -190,7 +190,13 @@ class Controller(object):
                 } for ip in ips]
 
             # Associate storage
-
+            if instance['volumes']:
+                details['volumes'] = [{
+                    'size': volume['size'],
+                    'mountpoint': volume['mountpoint']
+                } for volume in instance['volumes']]
+            else:
+                details['volumes'] = []
 
             result.append(details)
 
