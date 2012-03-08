@@ -448,7 +448,7 @@ class Controller(object):
             volume_size = float(size)
         except (ValueError, TypeError) as err:
             LOG.error(err)
-            raise exception.BadRequest("Required element/key - instance volume"
+            raise exception.BadRequest("Required element/key - instance volume "
                                        "'size' was not specified as a number")
         if int(volume_size) != volume_size or int(volume_size) < 1:
             raise exception.BadRequest("Volume 'size' needs to be a positive "
