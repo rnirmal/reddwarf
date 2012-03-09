@@ -189,6 +189,16 @@ class Controller(object):
                 'address': ip['address'],
                 'virtual_interface_id': ip['virtual_interface_id'],
                 } for ip in ips]
+
+            # Associate storage
+            if instance['volumes']:
+                details['volumes'] = [{
+                    'size': volume['size'],
+                    'mountpoint': volume['mountpoint']
+                } for volume in instance['volumes']]
+            else:
+                details['volumes'] = []
+
             result.append(details)
 
         return {"instances": result}
