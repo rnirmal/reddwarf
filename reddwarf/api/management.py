@@ -185,10 +185,11 @@ class Controller(object):
 
             # Now associate the IPs.
             # TODO(ed-): A join would be preferable.
+            instance_ips = filter((lambda ip: ip['instance_id'] == instance['id']), ips)
             details['ips'] = [{
                 'address': ip['address'],
                 'virtual_interface_id': ip['virtual_interface_id'],
-                } for ip in ips]
+                } for ip in instance_ips]
 
             # Associate storage
             if instance['volumes']:
