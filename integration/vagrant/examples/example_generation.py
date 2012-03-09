@@ -327,7 +327,7 @@ class ExampleGenerator(object):
                     {
                     "name": "dbuser3",
                     "password": "password",
-                    "database": "databaseA"
+                    "databases": [{"name": "databaseA"}]
                 },
                     {
                     "name": "dbuser4",
@@ -345,7 +345,11 @@ class ExampleGenerator(object):
         }
         XML_DATA = ('<?xml version="1.0" ?>'
                     '<users xmlns="http://docs.openstack.org/database/api/v1.0">'
-                    '<user name="%s" password="password" database="databaseC"/>'
+                    '<user name="%s" password="password">'
+                    '<databases>'
+                    '<database name="databaseC"/>'
+                    '</databases>'
+                    '</user>'
                     '<user name="userwith2dbs" password="password">'
                     '<databases>'
                     '<database name="databaseA"/>'

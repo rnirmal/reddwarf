@@ -100,7 +100,7 @@
          <element name="users" type="dbaas:User" minOccurs="1" maxOccurs="unbounded">
            <annotation>
              <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-               <p>A list of database names.</p>
+               <p>A list of database user names.</p>
              </xsd:documentation>
            </annotation>
          </element>
@@ -135,13 +135,6 @@
       <annotation>
         <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
           <p>The status of the user.</p>
-        </xsd:documentation>
-      </annotation>
-    </attribute>
-    <attribute name="database" type="xsd:string" use="optional">
-      <annotation>
-        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
-          <p>A single convenience method for adding a user to the single database.</p>
         </xsd:documentation>
       </annotation>
     </attribute>

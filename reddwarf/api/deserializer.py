@@ -63,7 +63,7 @@ class XMLDeserializer(wsgi.XMLDeserializer):
         users = []
         for user in user_nodes:
             user_data = dict()
-            for attr in ["name", "password", "database"]:
+            for attr in ["name", "password"]:
                 if user.hasAttribute(attr):
                     user_data[attr] = user.getAttribute(attr)
             dbs_node = self._find_first_child_named(user, "databases")
