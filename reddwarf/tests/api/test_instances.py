@@ -226,3 +226,10 @@ class InstanceApiValidation(test.TestCase):
     def test_validate_volume_size_bad3(self):
         self.controller._validate_volume_size(9999999)
 
+    def test_valid_instance_restart(self):
+        self.controller._validate_restart_instance(1, vm_states.ACTIVE)
+
+    @raises(exception.UnprocessableEntity)
+    def test_invalid_instance_restart(self):
+        self.controller._validate_restart_instance(1, vm_states.BUILDING)
+

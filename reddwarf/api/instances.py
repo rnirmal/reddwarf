@@ -98,10 +98,10 @@ class Controller(object):
         LOG.info("Call to restart for instance %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        local_id = dbapi.localid_from_uuid(id)
-
+        instance = common.instance_exists(ctxt, id, self.compute_api)
+        Controller._validate_restart_instance(id, instance['vm_state'])
         try:
-            self.compute_api.restart(ctxt, local_id)
+            self.compute_api.restart(ctxt, instance['id'])
             return exc.HTTPAccepted()
         except Exception as err:
             LOG.error(err)
@@ -519,6 +519,19 @@ class Controller(object):
                                        "than the current volume size of '%s'"
                                        % old_volume_size)
 
+    @staticmethod
+    def _validate_restart_instance(id, instance_state):
+        """ Validate that the restart instance is ready """
+
+        build_states = [
+            nova_common.vm_states.REBUILDING,
+            nova_common.vm_states.BUILDING,
+            ]
+        if instance_state in build_states:
+            LOG.debug("Restart instance not allowed while instance is in %s status" % instance_state)
+            # If the state is building then we throw an exception back
+            raise exception.UnprocessableEntity("Instance %s is not ready."
+                                                % id)
 
 def create_resource(version='1.0'):
     controller = {
