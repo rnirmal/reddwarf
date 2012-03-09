@@ -158,6 +158,8 @@ const char *  MySqlException::code_to_string(Code code) {
             return "Prepare statement bind failed.";
         case PREPARE_FAILED:
             return "An error occurred creating prepared statement.";
+        case PREPARE_STATEMENT_FAILED:
+            return "Failed prepare_statement call.";
         case QUERY_FAILED:
             return "Query failed.";
         case QUERY_FETCH_RESULT_FAILED:
@@ -251,100 +253,6 @@ int MySqlResultSet::get_int_non_null(int index) const {
         throw MySqlException(MySqlException::COULD_NOT_CONVERT_TO_INT);
     }
 }
-
-
-/**---------------------------------------------------------------------------
- *- MySqlPreparedResultSet
- *---------------------------------------------------------------------------*/
-
-//http://dev.mysql.com/doc/refman/5.0/en/mysql-stmt-fetch.html
-class MySqlPreparedResultSet : public MySqlResultSet {
-
-public:
-    MySqlPreparedResultSet(MYSQL * con, MYSQL_STMT* stmt, size_t size)
-    : bind(0), buffer(0), finished(false), row_count(0), size(size),
-      started(false), stmt(stmt)
-    {
-        buffer = new StringParameterBuffer[size];
-        bind = new MYSQL_BIND[size];
-        memset(bind, 0, sizeof(bind));
-
-        for (size_t index = 0; index < size; index ++) {
-            buffer[index].bind(bind[index]);
-        }
-
-        if (mysql_stmt_bind_result(stmt, bind) != 0) {
-            NOVA_LOG_ERROR2("Binding result set failed: %s\n",
-                            mysql_stmt_error(stmt));
-            throw MySqlException(MySqlException::BIND_RESULT_SET_FAILED);
-        }
-    }
-
-    virtual ~MySqlPreparedResultSet() {
-        close();
-    }
-
-    virtual void close() {
-        if (bind != 0) {
-            delete[] bind;
-            delete[] buffer;
-            bind = 0;
-            buffer = 0;
-        }
-    }
-
-    virtual int get_field_count() const {
-        return size;
-    }
-
-    virtual optional<string> get_string(int index) const {
-        if (index < 0 || index >= (int) size) {
-            throw MySqlException(MySqlException::RESULT_INDEX_OUT_OF_BOUNDS);
-        }
-        if (!started) {
-            throw MySqlException(MySqlException::RESULT_SET_NOT_STARTED);
-        }
-        if (finished) {
-            throw MySqlException(MySqlException::RESULT_SET_FINISHED);
-        }
-        if (index < 0 || index >= (int) size) {
-            throw MySqlException(MySqlException::RESULT_INDEX_OUT_OF_BOUNDS);
-        }
-        return buffer[index].to_string();
-    }
-
-    virtual bool next() {
-        if (finished) {
-            return false;
-        }
-        int result = mysql_stmt_fetch(stmt);
-        if (result == MYSQL_NO_DATA) {
-            finished = true;
-            return false;
-        } else if (result == 0) {
-            row_count ++;
-            started = true;
-            return true;
-        }
-        NOVA_LOG_ERROR2("Error calling next mysql_stmt_fetch. Code was %d: %s",
-                        result, mysql_stmt_error(stmt));
-        throw MySqlException(MySqlException::NEXT_FETCH_FAILED);
-    }
-
-    virtual int get_row_count() const {
-        return row_count;
-    }
-
-private:
-    MYSQL_BIND * bind;
-    StringParameterBuffer * buffer;
-    bool finished;
-    int row_count;
-    size_t size;
-    bool started;
-    MYSQL_STMT * stmt;
-
-};
 
 
 /**---------------------------------------------------------------------------
@@ -518,17 +426,10 @@ public:
         }
     }
 
-    virtual MySqlResultSetPtr execute(int result_count) {
+    virtual void execute(int result_count) {
         if (mysql_stmt_execute(stmt) != 0) {
             NOVA_LOG_ERROR2("execute failed: %s", mysql_stmt_error(stmt));
-        }
-        if (result_count == 0) {
-            MySqlResultSetPtr ptr(new MySqlQueryResultSet(con));
-            return ptr;
-        } else {
-            MySqlResultSetPtr ptr(new MySqlPreparedResultSet(con, stmt,
-                                                             result_count));
-            return ptr;
+            throw MySqlException(MySqlException::PREPARE_STATEMENT_FAILED);
         }
     }
 

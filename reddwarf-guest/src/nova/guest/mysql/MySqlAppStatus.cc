@@ -155,10 +155,9 @@ int MySqlAppStatus::get_guest_instance_id() {
     }
     string address = utils::get_ipv4_address(guest_ethernet_device.c_str());
 
-    MySqlPreparedStatementPtr stmt = nova_db->prepare_statement(
-        "SELECT instance_id FROM fixed_ips WHERE address=? ");
-    stmt->set_string(0, address.c_str());
-    MySqlResultSetPtr result = stmt->execute(1);
+    string text = str(format("SELECT instance_id FROM fixed_ips WHERE "
+                      "address=\"%s\"") % nova_db->escape_string(address.c_str()));
+    MySqlResultSetPtr result = nova_db->query(text.c_str());
     if (!result->next()) {
         NOVA_LOG_ERROR2("Could not find guest instance for host given address "
                         "%s.", address.c_str());
@@ -179,10 +178,9 @@ const char * MySqlAppStatus::get_current_status_string() const {
 
 optional<MySqlAppStatus::Status> MySqlAppStatus::get_status_from_nova_db() {
     int instance_id = get_guest_instance_id();
-    MySqlPreparedStatementPtr stmt = nova_db->prepare_statement(
-        "SELECT state FROM guest_status WHERE instance_id= ? ");
-    stmt->set_int(0, instance_id);
-    MySqlResultSetPtr result = stmt->execute(1);
+    string text = str(format("SELECT state FROM guest_status WHERE "
+                             "instance_id= %d ") % instance_id);
+    MySqlResultSetPtr result = nova_db->query(text.c_str());
     if (result->next()) {
         optional<int> status_as_int = result->get_int(0);
         if (status_as_int) {
@@ -273,7 +271,7 @@ void MySqlAppStatus::set_status(MySqlAppStatus::Status status) {
         stmt->set_string(2, now.c_str());
         stmt->set_int(3, instance_id);
     }
-    MySqlResultSetPtr result = stmt->execute(0);
+    stmt->execute(0);
     this->status = optional<int>(status);
 }
 

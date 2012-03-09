@@ -30,6 +30,7 @@ namespace nova { namespace db { namespace mysql {
                 PARAMETER_INDEX_OUT_OF_BOUNDS,
                 PREPARE_BIND_FAILED,
                 PREPARE_FAILED,
+                PREPARE_STATEMENT_FAILED,
                 QUERY_FAILED,
                 QUERY_FETCH_RESULT_FAILED,
                 QUERY_RESULT_SET_FINISHED,
@@ -168,7 +169,7 @@ namespace nova { namespace db { namespace mysql {
         public:
             virtual ~MySqlPreparedStatement();
             virtual void close() = 0;
-            virtual MySqlResultSetPtr execute(int result_count = 0) = 0;
+            virtual void execute(int result_count = 0) = 0;
             virtual int get_parameter_count() const = 0;
             virtual void set_bool(int index, bool value);
             virtual void set_int(int index, int value);
