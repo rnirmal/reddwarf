@@ -98,16 +98,10 @@ class Controller(object):
         LOG.info("Call to restart for instance %s", id)
         LOG.debug("%s - %s", req.environ, req.body)
         ctxt = req.environ['nova.context']
-        local_id = dbapi.localid_from_uuid(id)
-        try:
-            instance = self.compute_api.get(ctxt, local_id)
-        except nova_exception.NotFound:
-            raise exception.NotFound()
-        LOG.debug("instance - %s", instance)
-
+        instance = common.instance_exists(ctxt, id, self.compute_api)
         Controller._validate_restart_instance(id, instance['vm_state'])
         try:
-            self.compute_api.restart(ctxt, local_id)
+            self.compute_api.restart(ctxt, instance['id'])
             return exc.HTTPAccepted()
         except Exception as err:
             LOG.error(err)
