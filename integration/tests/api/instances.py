@@ -728,7 +728,6 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
                 'character_set': 'latin2',
                 'collate': 'latin2_general_ci',
                 }],
-            'users': [],
             'volume': {
                 'id': volume.id,
                 'name': volume.display_name,
@@ -747,6 +746,11 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
             self.assertEqual(getattr(mgmt_details, k), v,
                 "Attr %r expected to be %r but was %r." %
                 (k, v, getattr(mgmt_details, k)))
+        print(mgmt_details.users)
+        for user in mgmt_details.users:
+            self.assertTrue('name' in user, "'name' not in users element.")
+
+
 
 
 class CheckInstance(object):
