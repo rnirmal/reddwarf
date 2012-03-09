@@ -90,6 +90,7 @@ class ReddwarfInstanceMetaData(object):
                                                "/mnt/" + str(self.volume_id))
         # Get the databases to create along with this instance.
         self.databases = json.loads(metadata['database_list'])
+        self.users = json.loads(metadata['user_list'])
 
 
 class ReddwarfInstanceInitializer(object):
@@ -104,7 +105,7 @@ class ReddwarfInstanceInitializer(object):
 
     def __init__(self, compute_manager, db, context, instance_id,
                  volume_id=None, volume=None, volume_mount_point=None,
-                 databases=None):
+                 databases=None, users=None):
         """Creates a new instance."""
         self.db = db
         self.context = context
@@ -113,6 +114,7 @@ class ReddwarfInstanceInitializer(object):
         self.volume = volume
         self.volume_mount_point = volume_mount_point
         self.databases = databases
+        self.users = users
         self.compute_manager = compute_manager
         self.volume_api = volume_api.API()
 
@@ -171,7 +173,7 @@ class ReddwarfInstanceInitializer(object):
             instance_ref = self.db.instance_get(self.context, self.instance_id)
             memory_mb = instance_ref['memory_mb']
             guest_api.prepare(self.context, self.instance_id, memory_mb,
-                                          self.databases)
+                              self.databases, self.users)
             poll_until(lambda : dbapi.guest_status_get(self.instance_id),
                              lambda status : status.state == power_state.RUNNING,
                              sleep_time=2,
@@ -344,7 +346,7 @@ class ReddwarfComputeManager(ComputeManager):
         metadata = ReddwarfInstanceMetaData(self.db, context, instance_id)
         instance = ReddwarfInstanceInitializer(self.compute_manager, self.db,
             context, instance_id, metadata.volume_id, metadata.volume,
-            metadata.volume_mount_point, metadata.databases)
+            metadata.volume_mount_point, metadata.databases, metadata.users)
         # If any steps return False, cancel subsequent steps.
         (instance.initialize_volume(self.volume_api,
                                     self.volume_client, self.host) and

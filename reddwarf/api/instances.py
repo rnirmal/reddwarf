@@ -384,7 +384,9 @@ class Controller(object):
         # We create these once and throw away the result to take advantage
         # of the validators.
         db_list = common.populate_databases(instance.get('databases', []))
+        user_list = common.populate_users(instance.get('users', []))
         server['metadata']['database_list'] = json.dumps(db_list)
+        server['metadata']['user_list'] = json.dumps(user_list)
         return server
 
     def _setup_security_groups(self, context, group_name, port):

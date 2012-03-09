@@ -175,10 +175,7 @@
                 <para>You can create only one database instance per <command>POST</command> request.</para>
             </listitem>
             <listitem>
-                <para>You can create a database instance with one or more databases, but not with users.</para>
-            </listitem>
-            <listitem>
-                <para>Refer to <xref linkend="POST_createUser__version___accountID__instances__instanceId__users_user_management"/> for information about creating users for the database instance.</para>
+                <para>You can create a database instance with one or more databases, and users associated to those databases.</para>
             </listitem>
             <listitem>
                 <para>The default binding for the MySQL instance is port 3306.</para>
@@ -224,6 +221,11 @@
                 <tr>
                     <td colspan="1">collation</td>
                     <td colspan="3">Set of rules for comparing characters in a character set. The default collation is <code>utf8_general_ci</code>.</td>
+                    <td colspan="1">No</td>
+                </tr>
+                <tr>
+                    <td colspan="1">users</td>
+                    <td colspan="3">Specifies user name and password and associated databases for those users on instance creation. Refer to <xref linkend="POST_createUser__version___accountID__instances__instanceId__users_users"/> for the required xml/json format.</td>
                     <td colspan="1">No</td>
                 </tr>
             </tbody>

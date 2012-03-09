@@ -95,6 +95,7 @@ class InstanceTestInfo(object):
         self.databases = None # The databases created on the instance.
         self.host_info = None # Host Info before creating instances
         self.user_context = None # A regular user context
+        self.users = None # The users created on the instance.
 
     def check_database(self, dbname):
         return check_database(self.get_local_id(), dbname)
@@ -240,6 +241,10 @@ class CreateInstance(unittest.TestCase):
                           "collate": "latin2_general_ci"})
         databases.append({"name": "db2"})
         instance_info.databases = databases
+        users = []
+        users.append({"name": "lite", "password": "litepass",
+                      "databases": [{"name": "firstdb"}]})
+        instance_info.users = users
         instance_info.volume = {'size': 2}
 
         if create_new_instance():
@@ -247,7 +252,7 @@ class CreateInstance(unittest.TestCase):
                                                instance_info.name,
                                                instance_info.dbaas_flavor_href,
                                                instance_info.volume,
-                                               databases)
+                                               databases, users)
         else:
             id = existing_instance()
             instance_info.initial_result = dbaas.instances.get(id)
@@ -474,6 +479,28 @@ class TestVolume(unittest.TestCase):
         volumes = db.volume_get_all_by_instance(context.get_admin_context(),
                                                 instance_info.local_id)
         self.assertEqual(1, len(volumes))
+
+
+@test(depends_on_classes=[WaitForGuestInstallationToFinish],
+      groups=[GROUP, GROUP_TEST])
+class TestAfterInstanceCreatedGuestData(object):
+    """
+    Test the optional parameters (databases and users) passed in to create
+    instance call were created.
+    """
+
+    @test
+    def test_databases(self):
+        for db in instance_info.databases:
+            if not instance_info.check_database(db["name"]):
+                fail("Database '%s' was not created" % db["name"])
+
+    @test
+    def test_users(self):
+        users = dbaas.users.list(instance_info.id)
+        usernames = [user.name for user in users]
+        for user in instance_info.users:
+            assert_true(user["name"] in usernames)
 
 
 @test(depends_on_classes=[WaitForGuestInstallationToFinish],

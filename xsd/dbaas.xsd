@@ -154,14 +154,21 @@
 
   <complexType name="instance">
    <sequence>
-      <element name="databases" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
+      <xsd:element name="databases" type="dbaas:Database" minOccurs="0" maxOccurs="unbounded">
          <annotation>
            <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
              <p>A list of optional databases.</p>
            </xsd:documentation>
          </annotation>
-       </element>
-       <xsd:element name="links" type="dbaas:Links" minOccurs="0" maxOccurs="1">
+      </xsd:element>
+      <xsd:element name="users" type="dbaas:User" minOccurs="0" maxOccurs="unbounded">
+           <annotation>
+               <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+                   <p>A list of optional users.</p>
+               </xsd:documentation>
+           </annotation>
+      </xsd:element>
+      <xsd:element name="links" type="dbaas:Links" minOccurs="0" maxOccurs="1">
            <annotation>
            <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
              <p>The links for the type of instance.</p>

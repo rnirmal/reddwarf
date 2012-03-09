@@ -256,6 +256,17 @@ class ExampleGenerator(object):
                         "name": "nextround"
                     }
                 ],
+                "users": [
+                    {
+                        "name": "demouser",
+                        "password": "demopassword",
+                        "databases": [
+                            {
+                                "name": "sampledb"
+                            }
+                        ]
+                    }
+                ],
                 "volume":
                         {
                         "size": "2"
@@ -268,6 +279,13 @@ class ExampleGenerator(object):
                     '<database name="sampledb" character_set="utf8" collate="utf8_general_ci" />'
                     '<database name="nextround" />'
                     '</databases>'
+                    '<users>'
+                    '<user name="demouser" password="demopassword">'
+                    '<databases>'
+                    '<database name="sampledb"/>'
+                    '</databases>'
+                    '</user>'
+                    '</users>'
                     '<volume size="2" />'
                     '</instance>') % self.dbaas_url
         req_json['body'] = json.dumps(JSON_DATA)
