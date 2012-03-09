@@ -17,6 +17,8 @@
 
 import json
 
+from eventlet.timeout import Timeout
+
 from nova import flags
 from nova import log as logging
 from nova import exception as nova_exception
@@ -35,12 +37,16 @@ from nova.volume import api as volume_api
 from reddwarf import guest
 from reddwarf.db import api as dbapi
 from reddwarf import exception
+from reddwarf.guest import status as guest_status
 from reddwarf.utils import poll_until
 
 
 flags.DEFINE_integer('reddwarf_guest_initialize_time_out', 10 * 60,
                      'Time in seconds for a guest to initialize before it is '
                      'considered a failure and aborted.')
+flags.DEFINE_integer('reddwarf_guest_update_time_out', 10 * 60,
+                     'Time in seconds for the guest update to finish before '
+                     'the manager presumes it to have failed.')
 flags.DEFINE_integer('reddwarf_instance_suspend_time_out', 3 * 60,
                      'Time in seconds for a compute instance to suspend '
                      'during when aborted before a PollTimeOut is raised.')
@@ -227,7 +233,7 @@ class ReddwarfInstanceInitializer(object):
 
     def _set_instance_status_to_fail(self):
         """Sets the instance to FAIL."""
-        dbapi.guest_status_update(self.instance_id, power_state.FAILED)
+        dbapi.guest_status_update(self.instance_id, guest_status.FAILED)
 
     def wait_until_volume_is_ready(self, time_out):
         """Sleeps until the given volume has finished provisioning."""
@@ -400,7 +406,7 @@ class ReddwarfComputeManager(ComputeManager):
         # Code unique to  Reddwarf:
         #TODO(tim.simpson): Setting this to "paused" is unclear. Once the
         # status code is cleaned up, change this to RESTART or something.
-        dbapi.guest_status_update(instance_id, power_state.PAUSED, "paused")
+        dbapi.guest_status_update(instance_id, guest_status.PAUSED)
         # End unique Reddwarf code.
 
         current_power_state = self._get_power_state(context, instance_ref)
@@ -447,3 +453,27 @@ class ReddwarfComputeManager(ComputeManager):
                         'volume.resize.resizefs', notifier.ERROR,
                         "Error re-sizing filesystem volume:%s instance:%s"
                         % (volume_id, instance_id))
+
+    def update_guest(self, context, instance_id):
+        """Call the guest to update itself.
+
+        If the guest raises an exception it means it could not update itself,
+        but may still be running just fine. There's no real way to report that
+        to the user so we don't bother catching the exception (which means it
+        will be logged).
+        If we timeout, it may mean that the guest shut down and never started
+        back up, so we change the status to UNKNOWN. The guest can change it
+        back when / if it comes online.
+        """
+        time_out = Timeout(FLAGS.reddwarf_guest_update_time_out)
+        try:
+            LOG.debug("Calling 'update_guest' for instance %s." % instance_id)
+            version = self.guest_api.update_guest(context, instance_id)
+            LOG.info("update_guest finished for %s. Version is now %s."
+                     % (instance_id, version))
+        except Timeout as to:
+            LOG.error("Timeout while waiting for update_guest (instance=%s): %s"
+                      % (instance_id, str(to)))
+            dbapi.guest_status_update(instance_id, guest_status.UNKNOWN)
+        finally:
+            time_out.cancel()

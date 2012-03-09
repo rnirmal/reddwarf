@@ -788,7 +788,12 @@ def diagnostic_tests_helper(diagnostics):
                       'threads']
     CheckInstance(None).attrs_exist(diagnostics._info, expected_attrs,
                                     msg="Diagnostics")
+    actual_version = diagnostics.version
+    update_test_conf = test_config.values.get("guest-update-test", None)
+    if update_test_conf is not None:
+        if actual_version == update_test_conf['next-version']:
+            return  # This is acceptable but may not match the regex.
     version_pattern = re.compile(r'[a-f0-9]+')
-    msg = "Version %s does not match pattern %s." % (diagnostics.version,
+    msg = "Version %s does not match pattern %s." % (actual_version,
                                                      version_pattern)
-    assert_true(version_pattern.match(diagnostics.version), msg)
+    assert_true(version_pattern.match(actual_version), msg)

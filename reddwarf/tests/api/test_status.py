@@ -117,7 +117,7 @@ class StatusApiTest(test.TestCase):
 
         nonempty = status.InstanceStatus(
             guest_state=power_state.RUNNING, 
-            guest_status=fake_status())
+            guest_status_debug_info=fake_status())
         gs = nonempty.get_guest_status()
         expected_fields = [
             'created_at',

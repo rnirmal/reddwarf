@@ -558,6 +558,19 @@ class ExampleGenerator(object):
         req_xml = {"url": "%s/mgmt/hosts" % self.dbaas_url}
         self.http_call("mgmt_list_hosts", 'GET', req_json, req_xml)
 
+    def mgmt_instance_guest_update(self, instance_ids):
+        req_json = {"url": "%s/mgmt/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['json'])}
+        req_xml = {"url": "%s/mgmt/instances/%s/action"
+                            % (self.dbaas_url, instance_ids['xml'])}
+        JSON_DATA = {'update': {}}
+        XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
+                <update xmlns="http://docs.openstack.org/database/api/v1.0"/>"""
+        req_json['body'] = json.dumps(JSON_DATA)
+        req_xml['body'] = XML_DATA
+        self.http_call('guest_update', 'POST', req_json, req_xml)
+        time.sleep(60)
+
     def mgmt_instance_reboot(self, instance_ids):
         req_json = {"url": "%s/mgmt/instances/%s/action"
                             % (self.dbaas_url, instance_ids['json'])}
@@ -634,6 +647,7 @@ class ExampleGenerator(object):
         self.mgmt_get_root_details(instance_ids)
         self.mgmt_instance_index(False)
         self.mgmt_get_instance_diagnostics(instance_ids)
+        self.mgmt_instance_guest_update(instance_ids)
         self.mgmt_instance_reboot(instance_ids)
         self.wait_for_instances()
 

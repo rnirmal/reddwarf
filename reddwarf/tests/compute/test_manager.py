@@ -18,7 +18,8 @@ Tests for reddwarf.compute.manager.
 import webob
 from paste import urlmap
 
-from nova import db
+from eventlet.timeout import Timeout
+
 from nova import context
 from nova import exception
 from nova import flags
@@ -27,11 +28,9 @@ from nova import utils
 from nova.compute import instance_types
 from nova.compute import vm_states
 from reddwarf import exception as reddwarf_exception
-from reddwarf.compute.api import API
 from reddwarf.compute import manager
-from reddwarf.compute.manager import ReddwarfComputeManager
 from reddwarf.db import api as dbapi
-from reddwarf.tests import util
+from reddwarf.guest import status as guest_status
 
 
 FLAGS = flags.FLAGS
@@ -239,3 +238,40 @@ class RdComputeManagerResizeInPlaceTest(test.TestCase):
 
         self.rd_compute.resize_in_place(self.ctxt, self.instance_id,
                                         self.new_instance_type_id)
+
+
+class RdComputeManagerGuestUpdateTest(test.TestCase):
+
+    def setUp(self):
+        super(RdComputeManagerGuestUpdateTest, self).setUp()
+        self.flags(connection_type='openvz',
+                   compute_manager="reddwarf.compute.manager.ReddwarfComputeManager",
+                   stub_network=True,
+                   notification_driver='nova.notifier.test_notifier',
+                   network_manager='nova.network.manager.FlatManager')
+        self.rd_compute = utils.import_object(FLAGS.compute_manager)
+        self.ctxt = context.get_admin_context()
+        self.old_instance_type_id = 555
+        self.new_instance_type_id = 777
+        self.new_memory_size=1024 * 2
+        self.instance_id = 12345
+        self.instance_ref = {
+            'id':self.instance_id,
+            'instance_type_id': self.old_instance_type_id,
+            }
+        self.user_id = 'fake'
+        self.mox.StubOutWithMock(self.rd_compute.guest_api, "update_guest")
+        self.mox.StubOutWithMock(dbapi, "guest_status_update")
+
+
+    def test_when_everything_works(self):
+        self.rd_compute.guest_api.update_guest(self.ctxt, self.instance_id)
+        self.mox.ReplayAll()
+        self.rd_compute.update_guest(self.ctxt, self.instance_id)
+
+    def test_when_the_call_times_out_it_should_fail(self):
+        self.rd_compute.guest_api.update_guest(self.ctxt, self.instance_id)\
+            .AndRaise(Timeout)
+        dbapi.guest_status_update(self.instance_id, guest_status.UNKNOWN)
+        self.mox.ReplayAll()
+        self.rd_compute.update_guest(self.ctxt, self.instance_id)
