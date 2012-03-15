@@ -17,6 +17,7 @@ Tests for Instances API calls
 
 import mox
 import json
+import time
 import stubout
 import webob
 from paste import urlmap
@@ -36,6 +37,21 @@ from reddwarf.tests import util
 
 base_url = util.v1_prefix
 mgmt_url = util.v1_mgmt_prefix
+
+FAKE_CONTEXT = {'user': 'admin', 'role': 'admin'}
+FAKE_INSTANCE = {'id': 102}
+FAKE_DB_LIST = [
+    {'_name': 'foobar',
+     '_collate': 'utf8_general_ci',
+     '_character_set': 'utf8'},
+    {'_name': 'mysql',
+     '_collate': 'latin1_swedish_ci',
+     '_character_set': 'latin1'}
+]
+FAKE_USER_LIST = [
+    {'_name': 'foobar'},
+    {'_name': 'root'}
+]
 
 def images_show(self, req, id):
     return {'image': {'id': id, 'name': id}}
@@ -101,3 +117,75 @@ class MgmtApiTest(test.TestCase):
 
     def test_instances_index_restricted(self):
         self._test_path_restricted('instances')
+
+    def test_get_guest_info_no_dbs(self):
+        # Instantiate the controller because we need to inject mocked
+        # attributes and methods
+        controller = reddwarf.api.management.Controller()
+
+        # We may need to do this a different way but for the purposes of just
+        # testing this code flow it should suffice.
+        root_enabled = mox.MockAnything()
+        created_at = int(time.time())
+        root_enabled.created_at = created_at
+        root_enabled.user_id = 'admin'
+
+        # Just some mock goodness
+        status = mox.MockAnything()
+        status.is_sql_running = False
+        self.mox.StubOutWithMock(reddwarf.api.management.dbapi,
+                                 'get_root_enabled_history')
+        reddwarf.api.management.dbapi.get_root_enabled_history(
+            FAKE_CONTEXT, FAKE_INSTANCE['id']).AndReturn(root_enabled)
+
+        self.mox.ReplayAll()
+        instance = controller._get_guest_info(FAKE_CONTEXT,
+                                              FAKE_INSTANCE['id'],
+                                              status,
+                                              FAKE_INSTANCE)
+        self.assertTrue(isinstance(instance['databases'], list))
+        self.assertTrue(isinstance(instance['users'], list))
+        self.assertTrue(len(instance['databases']) == 0)
+        self.assertTrue(len(instance['users']) == 0)
+        self.assertEqual(root_enabled.created_at, instance['root_enabled_at'])
+        self.assertEqual(root_enabled.user_id, instance['root_enabled_by'])
+
+    def test_get_guest_info_dbs(self):
+        # Instantiate the controller because we need to inject mocked
+        # attributes and methods
+        controller = reddwarf.api.management.Controller()
+
+        # We may need to do this a different way but for the purposes of just
+        # testing this code flow it should suffice.
+        root_enabled = mox.MockAnything()
+        created_at = int(time.time())
+        root_enabled.created_at = created_at
+        root_enabled.user_id = 'admin'
+
+        # Just some mock goodness
+        status = mox.MockAnything()
+        status.is_sql_running = True
+        self.mox.StubOutWithMock(controller.guest_api, 'list_databases')
+        controller.guest_api.list_databases(FAKE_CONTEXT,
+                                            FAKE_INSTANCE['id'])\
+            .AndReturn(FAKE_DB_LIST)
+        self.mox.StubOutWithMock(controller.guest_api, 'list_users')
+        controller.guest_api.list_users(FAKE_CONTEXT,
+                                        FAKE_INSTANCE['id'])\
+            .AndReturn(FAKE_USER_LIST)
+        self.mox.StubOutWithMock(reddwarf.api.management.dbapi,
+                                 'get_root_enabled_history')
+        reddwarf.api.management.dbapi.get_root_enabled_history(
+            FAKE_CONTEXT, FAKE_INSTANCE['id']).AndReturn(root_enabled)
+
+        self.mox.ReplayAll()
+        instance = controller._get_guest_info(FAKE_CONTEXT,
+                                              FAKE_INSTANCE['id'],
+                                              status,
+                                              FAKE_INSTANCE)
+        self.assertTrue(isinstance(instance['databases'], list))
+        self.assertTrue(isinstance(instance['users'], list))
+        self.assertTrue(len(instance['databases']) >= 0)
+        self.assertTrue(len(instance['users']) >= 0)
+        self.assertEqual(root_enabled.created_at, instance['root_enabled_at'])
+        self.assertEqual(root_enabled.user_id, instance['root_enabled_by'])

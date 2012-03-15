@@ -206,8 +206,8 @@ class Controller(object):
 
     def _get_guest_info(self, context, id, status, instance):
         """Get all the guest details and add it to the response"""
-        dbs = None
-        users = None
+        dbs = []
+        users = []
         if status.is_sql_running:
             db_list = self.guest_api.list_databases(context, id)
 
