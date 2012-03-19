@@ -11,6 +11,10 @@
         <!ENTITY PUT    '<command xmlns="http://docbook.org/ns/docbook">PUT</command>'>
         <!ENTITY POST   '<command xmlns="http://docbook.org/ns/docbook">POST</command>'>
         <!ENTITY DELETE '<command xmlns="http://docbook.org/ns/docbook">DELETE</command>'>
+        
+        <!-- changing authentication endpoints; define entities for US & UK rather than maintaining in text -->
+        <!ENTITY ENDPOINT-US "https://identity.api.rackspacecloud.com/v1.1/">
+        <!ENTITY ENDPOINT-UK "https://lon.identity.api.rackspacecloud.com/v1.1/">
 
         <!-- Useful for specs -->
         <!ENTITY MAY    '<emphasis xmlns="http://docbook.org/ns/docbook" role="strong">MAY</emphasis>'>
@@ -39,8 +43,28 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
-        <pubdate>2012-02-16</pubdate>
+        <pubdate>2012-03-13</pubdate>
         <revhistory>
+            <revision>
+                <date>2012-03-13</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Added note about solving certificate
+                                errors when using cURL to make API
+                                calls in <xref
+                                   linkend="DB_using-curl-cli"
+                                />.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Updated all authentication endpoints
+                                in <xref
+                                   linkend="Generating_Auth_Token"
+                                />.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2012-02-16</date>
                 <revdescription>
@@ -171,7 +195,7 @@
     </info>
     <section xml:id="DB_Doc_Change_History">
         <title>Document Change History</title>
-        <para>This version of the Developer Guide replaces and
+        <para>This version of the Getting Started replaces and
             obsoletes all previous versions. The most recent changes
             are described in the table below:</para>
         <?rax revhistory?>
@@ -179,9 +203,9 @@
     <section xml:id="DB_Overview">
         <title>Overview</title>
         <para>Follow the steps described in this guide to use the
-            Rackspace Cloud Database API and Cloud Servers section of
-            Control Panel to create and access your database instances
-            via Rackspace Cloud Servers.</para>
+            Rackspace Cloud Database API and the Cloud Servers section
+            of the Control Panel to create and access your database
+            instances via Rackspace Cloud Servers.</para>
         <para>For details about using the Cloud Database API, refer to
             the <citetitle>Cloud Database Developer
                 Guide</citetitle>.</para>
@@ -194,10 +218,7 @@
                 have the following prerequisites: <itemizedlist
                     spacing="compact">
                     <listitem>
-                        <para>Rackspace Cloud Servers account</para>
-                    </listitem>
-                    <listitem>
-                        <para>Rackspace Cloud Database account</para>
+                        <para>Rackspace Cloud account</para>
                     </listitem>
                     <listitem>
                         <para>Rackspace Cloud username and password,
@@ -270,12 +291,24 @@
                     </listitem>
                 </varlistentry>
             </variablelist>
-            <note>
-                <para>If you have the tools, you can run the cURL JSON
-                    request examples with the following options to
-                    format the output from cURL: <command>&lt;curl
-                        JSON request example> | python
-                        -mjson.tool</command>.</para>
+            <note> <title>Notes</title>
+                <itemizedlist>
+                    <listitem>
+                        <para>If you get a certificate error when
+                            using cURL to make an API call, you can
+                            try using the <emphasis role="bold"
+                                >-k</emphasis> cURL option to skip the
+                            certificate check.</para>
+                    </listitem>
+                    <listitem>
+                        <para>If you have the tools, you can run the
+                            cURL JSON request examples with the
+                            following options to format the output
+                            from cURL: <command>&lt;curl JSON request
+                                example> | python
+                                -mjson.tool</command>.</para>
+                    </listitem>
+                </itemizedlist>
             </note>
         </section>
         <section xml:id="DB_copy_paste_examples">
@@ -285,9 +318,10 @@
                 on Linux or Mac systems, copy and paste each example
                 from the HTML version of this guide into an ASCII
                 editor (for example <emphasis role="bold"
-                    >vi</emphasis>). Then modify each example with
-                your required account information and so forth, as
-                detailed in this guide.</para>
+                    >vi</emphasis> or <emphasis role="bold"
+                    >TextEdit</emphasis>). Then modify each example
+                with your required account information and so forth,
+                as detailed in this guide.</para>
             <note>
                 <para>The carriage returns in the cURL request
                     examples that are part of the cURL syntax are
@@ -305,11 +339,11 @@
                 <screen><command>curl</command> <option>-i</option> <option>-d</option> \
 '&lt;?xml version="1.0" encoding="UTF-8"?>  
 &lt;credentials xmlns="http://docs.rackspacecloud.com/auth/api/v1.1" 
-             username="your_username" 
-             key="your_api_key"/>' \
-<option>-H "Content-Type: application/xml"</option> \
-<option>-H "Accept: application/xml"</option> \
-<uri>https://auth.api.rackspacecloud.com/v1.1/auth</uri></screen>
+             username="<emphasis role="bold">your_username</emphasis>" 
+             key="<emphasis role="bold">your_api_key</emphasis>"/>' \
+<option>-H 'Content-Type: application/xml'</option> \
+<option>-H 'Accept: application/xml'</option> \
+<uri>'https://identity.api.rackspacecloud.com/v1.1/auth'</uri></screen>
             </example>
             <para>You can see that the lines that are part of the cURL
                 command syntax have all been escaped with a backslash
@@ -317,10 +351,10 @@
                 next line:</para>
             <screen><command>curl</command> <option>-i</option> <option>-d</option> \
  
-             key="your_api_key"/>' \
-<option>-H "Content-Type: application/xml"</option> \
-<option>-H "Accept: application/xml"</option> \
-<uri>https://auth.api.rackspacecloud.com/v1.1/auth</uri></screen>
+             key="<emphasis role="bold">your_api_key</emphasis>"/>' \
+<option>-H 'Content-Type: application/xml'</option> \
+<option>-H 'Accept: application/xml'</option> \
+<uri>'https://identity.api.rackspacecloud.com/v1.1/auth'</uri></screen>
             <para>However the lines <emphasis>within</emphasis> the
                 xml portion of the message are
                     <emphasis>not</emphasis> escaped with a backslash
@@ -328,8 +362,8 @@
                 processing:</para>
             <screen>'&lt;?xml version="1.0" encoding="UTF-8"?>  
 &lt;credentials xmlns="http://docs.rackspacecloud.com/auth/api/v1.1" 
-             username="your_username" 
-             key="your_api_key"/>' \
+             username="<emphasis role="bold">your_username</emphasis>" 
+             key="<emphasis role="bold">your_api_key</emphasis>"/>' \
 </screen>
             <note>
                 <para>The final line of the xml message is escaped
@@ -340,10 +374,12 @@
             </note>
             <para>After you are finished modifying the text for the
                 cURL request example with your information (for
-                example <code>your_username</code> and
-                    <code>your_api_key</code>), paste it into your
-                terminal window. Then execute the cURL command by
-                pressing <guilabel>Enter</guilabel>.</para>
+                example <emphasis role="bold"
+                        ><code>your_username</code></emphasis> and
+                    <emphasis role="bold"
+                    ><code>your_api_key</code></emphasis>), paste it
+                into your terminal window. Then execute the cURL
+                command by pressing <guilabel>Enter</guilabel>.</para>
             <para>If you have trouble copying and pasting the examples
                 as described, try typing the entire example on one
                 long line, removing all the backslash line
@@ -367,21 +403,60 @@
         <para>Remember to replace the names in the Authenticate
             Request examples below with their respective values:<itemizedlist spacing="compact">
                 <listitem>
-                    <para>your_username &mdash; The username is your
-                        common Rackspace Cloud username, as supplied
-                        during registration.</para>
+                    <para><emphasis role="bold"
+                            >your_username</emphasis> &mdash; The
+                        username is your common Rackspace Cloud
+                        username, as supplied during
+                        registration.</para>
                 </listitem>
                 <listitem>
-                    <para>your_api_key &mdash; The key is your API
-                        access key. The key can be obtained from the
-                        Rackspace Cloud Control Panel in the <guimenu>Your Account</guimenu> /
-                        <guimenuitem>API
-                            Access</guimenuitem> section.</para>
+                    <para><emphasis role="bold"
+                            >your_api_key</emphasis> &mdash; The key
+                        is your API access key. The key can be
+                        obtained from the Rackspace Cloud Control
+                        Panel in the <guimenu>Your Account</guimenu> /
+                            <guimenuitem>API Access</guimenuitem>
+                        section.</para>
                 </listitem>
             </itemizedlist></para>
+        <para> To access the Authentication Service, you must know
+            whether your account is US-based or UK-based: </para>
+        <itemizedlist spacing="compact">
+            <listitem>
+                <para> US-based accounts authenticate through <link
+                        xlink:href="&ENDPOINT-US;"
+                        >&ENDPOINT-US;</link>. </para>
+            </listitem>
+            <listitem>
+                <para> UK-based accounts authenticate through <link
+                        xlink:href="&ENDPOINT-UK;"
+                        >&ENDPOINT-UK;</link>. </para>
+            </listitem>
+        </itemizedlist>
+        <para> Your account may be based in either the US or the UK;
+            this is not determined by your physical location but by
+            the location of the Rackspace retail site which was used
+            to create your account: </para>
+        <itemizedlist spacing="compact">
+            <listitem>
+                <para> If your account was created via <link
+                        xlink:href="http://www.rackspacecloud.com"
+                        >http://www.rackspacecloud.com</link>, it is a
+                    US-based account. </para>
+            </listitem>
+            <listitem>
+                <para> If your account was created via <link
+                        xlink:href="http:/www.rackspace.co.uk"
+                        >http:/www.rackspace.co.uk</link>, it is a
+                    UK-based account. </para>
+            </listitem>
+        </itemizedlist>
+        <para> If you are unsure how your account was created, use the
+            Rackspace contact information at either site to ask for
+            help. </para>
         <para>Notice that you authenticate using a special URL for
-            Cloud authentication services
-                (<code>https://auth.api.rackspacecloud.com/v1.1/auth</code>),
+            Cloud authentication services, for example
+                <code>https://identity.api.rackspacecloud.com/v1.1/auth</code>),
             as shown in the following Authenticate Request
             examples.</para>
         <example>
@@ -390,11 +465,11 @@
             <screen><command>curl</command> <option>-i</option> <option>-d</option> \
 '&lt;?xml version="1.0" encoding="UTF-8"?>  
 &lt;credentials xmlns="http://docs.rackspacecloud.com/auth/api/v1.1" 
-             username="your_username" 
-             key="your_api_key"/>' \
-<option>-H "Content-Type: application/xml"</option> \
-<option>-H "Accept: application/xml"</option> \
-<uri>https://auth.api.rackspacecloud.com/v1.1/auth</uri></screen>
+             username="<emphasis role="bold">your_username</emphasis>" 
+             key="<emphasis role="bold">your_api_key</emphasis>"/>' \
+<option>-H 'Content-Type: application/xml'</option> \
+<option>-H 'Accept: application/xml'</option> \
+<uri>'https://identity.api.rackspacecloud.com/v1.1/auth'</uri></screen>
         </example>
         <example>
             <title>cURL Authenticate Request: JSON</title>
@@ -402,11 +477,11 @@
             <programlisting><command>curl</command> <option>-i</option> <option>-d</option> \
 '{ 
     "credentials": {  
-        "username": "your_username",  
-        "key": "your_api_key"}  
+        "username": "<emphasis role="bold">your_username</emphasis>",  
+        "key": "<emphasis role="bold">your_api_key</emphasis>"}  
     }' \
-<option>-H "Content-Type: application/json"</option> \
-<uri>https://auth.api.rackspacecloud.com/v1.1/auth</uri></programlisting>
+<option>-H 'Content-Type: application/json'</option> \
+<uri>'https://identity.api.rackspacecloud.com/v1.1/auth'</uri></programlisting>
             
         </example>
         <example>
@@ -424,10 +499,20 @@
             <title>Notes</title>
             <itemizedlist spacing="compact">
                 <listitem>
+                    <para>For all response examples in this guide, the
+                        field values you receive in your responses
+                        will vary from those shown here since they
+                        will be specific to your account.</para>
+                </listitem>
+                <listitem>
                     <para>The <code>id</code> attribute in the
                         Authenticate Response specifies the
                         authentication token. Tokens are valid for a
                         finite duration.</para>
+                    <para>Remember to supply your authentication token
+                        wherever you see the field <emphasis
+                            role="bold">your_auth_token</emphasis> in
+                        the examples in this guide.</para>
                 </listitem>
                 <listitem>
                     <para> The <code>expires</code> attribute denotes
@@ -464,7 +549,9 @@
             '/' in the <code>publicURL</code> field. In this example,
             you can see that the account number is 1234. You need to
             specify your account number on most of the Cloud Database
-            API calls.</para>
+            API calls, wherever you see the field <emphasis
+                role="bold">your_acct_id</emphasis> specified in the
+            examples in this guide.</para>
         <para>After authentication, you can use cURL to perform &GET;,
             &DELETE;, and &POST; requests for the Cloud Database
             API.</para>
@@ -508,19 +595,30 @@
             </table>
         </para>
         <note>
-            <itemizedlist spacing="compact">
+            <title>Notes:</title>
+            <itemizedlist>
                 <listitem>
                     <para>The Cloud Server that you use in <xref
                             linkend="Create_Cloud_Server"/> must be
                         located in the same datacenter where your
                         database resides.</para>
                 </listitem>
+                <listitem>
+                    <para>All examples in this guide assume that you
+                        are operating against the ORD datacenter,
+                        however if you are using a different
+                        datacenter, be sure to use the associated
+                        endpoint from the table above instead.</para>
+                </listitem>
             </itemizedlist>
         </note>
         <para>Replace the sample account ID number,
                 <parameter>1234</parameter>, with your actual account
             number returned as part of the authentication response.
-            Refer to <xref linkend="Generating_Auth_Token"/>.</para>
+            Use your actual account number wherever you see the field
+                <emphasis role="bold">your_acct_id</emphasis>
+            specified in this guide. Refer to <xref
+                linkend="Generating_Auth_Token"/>.</para>
         <para>When making a Cloud Database API call, place the
             endpoint at the beginning of the request URL, for example:
                 (<code>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/</code>),
@@ -542,25 +640,32 @@
         <example>
             <title>cURL List Flavors Details Request: XML</title>
             <programlisting><command>curl -i</command> \
-<option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "Accept: application/xml"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri></programlisting>
+-H 'X-Auth-Token: <emphasis role="bold">your_auth_token</emphasis>' \
+<option>-H 'Accept: application/xml'</option> \
+<uri>'https://ord.databases.api.rackspacecloud.com/v1.0/</uri><emphasis role="bold">your_acct_id</emphasis><uri>/flavors/detail'</uri></programlisting>
         </example>
         <example>
             <title>cURL List Flavors Details Request: JSON</title>
             <programlisting><command>curl -i</command> \
-<option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "Accept: application/json"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/detail</uri></programlisting>
+-H 'X-Auth-Token: <emphasis role="bold">your_auth_token</emphasis>' \
+<option>-H 'Accept: application/json'</option> \
+<uri>'https://ord.databases.api.rackspacecloud.com/v1.0/</uri><emphasis role="bold">your_acct_id</emphasis><uri>/flavors/detail'</uri></programlisting>
         </example>
         <para>Remember to replace the names in the examples above with
             their actual respective values for all the cURL examples
             that follow:<itemizedlist spacing="compact">
                 <listitem>
-                    <para>your_auth_token &mdash; as returned in your
-                        authentication response (see the response
-                        examples in <xref
+                    <para><emphasis role="bold"
+                            >your_auth_token</emphasis> &mdash; as
+                        returned in your authentication response (see
+                        the response examples in <xref
                             linkend="Generating_Auth_Token"/>)</para>
+                </listitem>
+                <listitem>
+                    <para><emphasis role="bold"
+                            >your_acct_id</emphasis> &mdash; as
+                        returned in your authentication response (must
+                        be replaced in the request URL)</para>
                 </listitem>
             </itemizedlist></para>
         <para>The following examples show the responses for List
@@ -622,10 +727,10 @@
     &lt;/databases> 
     &lt;volume size="2" /> 
 &lt;/instance>' \
-<option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "Content-Type: application/xml"</option> \
-<option>-H "Accept: application/xml"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri></programlisting>
+-H 'X-Auth-Token: <emphasis role="bold">your_auth_token</emphasis>' \
+<option>-H 'Content-Type: application/xml'</option> \
+<option>-H 'Accept: application/xml'</option> \
+<uri>'https://ord.databases.api.rackspacecloud.com/v1.0/</uri><emphasis role="bold">your_acct_id</emphasis><uri>/instances'</uri></programlisting>
         </example>
         <example>
             <title>cURL Create Instance Request : JSON</title>
@@ -648,24 +753,33 @@
             } 
     } 
 }' \
-<option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "Content-Type: application/json"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances</uri></programlisting>
+-H 'X-Auth-Token: <emphasis role="bold">your_auth_token</emphasis>' \
+<option>-H 'Content-Type: application/json'</option> \
+<uri>'https://ord.databases.api.rackspacecloud.com/v1.0/</uri><emphasis role="bold">your_acct_id</emphasis><uri>/instances'</uri></programlisting>
         </example>
         <para>Remember to replace the names in the examples above with
             their actual respective values for all the cURL examples
             that follow:<itemizedlist spacing="compact">
                 <listitem>
-                    <para>your_auth_token &mdash; as returned in your
-                        authentication response (see the response
-                        examples in <xref
+                    <para><emphasis role="bold"
+                            >your_auth_token</emphasis> &mdash; as
+                        returned in your authentication response (see
+                        the response examples in <xref
                             linkend="Generating_Auth_Token"/>)</para>
+                </listitem>
+                <listitem>
+                    <para><emphasis role="bold"
+                            >your_acct_id</emphasis> &mdash; as
+                        returned in your authentication response (must
+                        be replaced in the request URL)</para>
                 </listitem>
             </itemizedlist></para>
         <para>Also remember to replace the dummy account id
                 <code>1234</code> shown in the <code>flavorRef</code>
             property for the examples with your actual account id:
-                <code>"https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/flavors/1"</code>.</para>
+                <code>"https://ord.databases.api.rackspacecloud.com/v1.0/</code><emphasis
+                role="bold"
+                >your_acct_id</emphasis><code>/flavors/1"</code>.</para>
         <para>The following examples show the Create Instance
             responses:</para>
             
@@ -691,8 +805,8 @@
         <para>This operation asynchronously provisions a new user
                 (<code>simplestUser</code>) and password
                 (<code>password</code>) for the specified database
-            instance (instance_id) and database
-            (<code>sampledb</code>), as specified in the request. </para>
+            instance (<emphasis role="bold">instance_id</emphasis>) and database
+                (<code>sampledb</code>), as specified in the request. </para>
         <para>Once the request is validated and progress has started
             on the provisioning process, a 202 Accepted response
             object is returned.</para>
@@ -706,10 +820,10 @@
     &lt;user name="simplestUser" 
          password="password" database="sampledb"/> 
 &lt;/users>' \
-<option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "Content-Type: application/xml"</option> \
-<option>-H "Accept: application/xml"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances/instance_id/users</uri></programlisting>
+-H 'X-Auth-Token: <emphasis role="bold">your_auth_token</emphasis>' \
+<option>-H 'Content-Type: application/xml'</option> \
+<option>-H 'Accept: application/xml'</option> \
+<uri>'https://ord.databases.api.rackspacecloud.com/v1.0/</uri><emphasis role="bold">your_acct_id</emphasis><uri>/instances/</uri><emphasis role="bold">instance_id</emphasis><uri>/users'</uri></programlisting>
         </example>
         <example>
             <?dbfo keep-together="always"?>
@@ -724,29 +838,31 @@
         } 
     ] 
 }' \
-<option>-H "X-Auth-Token: your_auth_token"</option> \
-<option>-H "Content-Type: application/json"</option> \
-<uri>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/instances/instance_id/users</uri></programlisting>
+-H 'X-Auth-Token: <emphasis role="bold">your_auth_token</emphasis>' \
+<option>-H 'Content-Type: application/json'</option> \
+<uri>'https://ord.databases.api.rackspacecloud.com/v1.0/</uri><emphasis role="bold">your_acct_id</emphasis><uri>/instances/</uri><emphasis role="bold">instance_id</emphasis><uri>/users'</uri></programlisting>
         </example>
         <para>Remember to replace the names in the examples above with
             their actual respective values:<itemizedlist spacing="compact">
                 <listitem>
-                    <para>your_auth_token &mdash; as returned in your
-                        authentication response (see the examples in
-                            <xref linkend="Generating_Auth_Token"
-                        />)</para>
+                    <para><emphasis role="bold"
+                            >your_auth_token</emphasis> &mdash; as
+                        returned in your authentication response (see
+                        the examples in <xref
+                            linkend="Generating_Auth_Token"/>)</para>
                 </listitem>
                 <listitem>
-                    <para>your_acct_id &mdash; as returned in your
-                        authentication response (see the examples in
-                            <xref linkend="Generating_Auth_Token"
-                        />)</para>
+                    <para><emphasis role="bold"
+                            >your_acct_id</emphasis> &mdash; as
+                        returned in your authentication response (see
+                        the examples in <xref
+                            linkend="Generating_Auth_Token"/>)</para>
                 </listitem>
                 <listitem>
-                    <para>instance_id &mdash; as returned in your
-                        create instance response (see the examples in
-                            <xref linkend="Create_DB_Instance"
-                        />)</para>
+                    <para><emphasis role="bold">instance_id</emphasis>
+                        &mdash; as returned in your create instance
+                        response (see the examples in <xref
+                            linkend="Create_DB_Instance"/>)</para>
                 </listitem>
             </itemizedlist></para>
         <para>This operation does not return a response body.</para>
