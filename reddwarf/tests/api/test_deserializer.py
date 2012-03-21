@@ -195,3 +195,36 @@ class DeserializationTest(test.TestCase):
                                                 {'name': 'dbB', 'collate': '',
                                                  'character_set': ''}]}]}}
         self.assertDictMatch(users, users_dict)
+
+    def test_create_instance_database_users(self):
+        instance = self.instance_deser.create("""
+                <instance xmlns="http://docs.openstack.org/database/api/v1.0"
+                    name="testinstance" flavorRef="https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1">
+                    <databases>
+                        <database name="testdb"/>
+                    </databases>
+                    <users>
+                        <user name="test" password="password">
+                            <databases>
+                                <database name="testdb" />
+                            </databases>
+                        </user>
+                    </users>
+                    <volume size="2" />
+                </instance>
+                """)
+        expected_dict = {'body':
+                            {'instance':
+                                {'name': 'testinstance',
+                                 'flavorRef': 'https://ord.databases.api.rackspacecloud.com/v1.0/1234/flavors/1',
+                                 'databases': [{'name': 'testdb', 'collate': '',
+                                                'character_set': ''}],
+                                 'users': [{'name': 'test', 'password': 'password',
+                                            'databases': [{'name': 'testdb',
+                                                           'character_set': '',
+                                                           'collate': ''}]}],
+                                 'volume': {'size': '2'}
+                                }
+                             }
+                        }
+        self.assertDictMatch(instance, expected_dict)
