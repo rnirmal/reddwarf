@@ -80,6 +80,25 @@ namespace {
         } else {
             out << "null";
         }
+        out << ", \"_databases\":";
+        if (user->get_databases()) {
+            std::stringstream database_xml;
+            database_xml << "[";
+            bool once = false;
+            BOOST_FOREACH(MySqlDatabasePtr & database, *user->get_databases()) {
+                if (once) {
+                    database_xml << ", ";
+                }
+                once = true;
+                database_xml << "{ \"_name\":"
+                             << JsonData::json_string(database->get_name())
+                             << " }";
+            }
+            database_xml << "]";
+            out << database_xml.str().c_str();
+        } else {
+            out << "null";
+        }
         out << " }";
     }
 
