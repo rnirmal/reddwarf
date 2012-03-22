@@ -288,15 +288,16 @@
         <wadl:doc xml:lang="EN" title="Update the Guest Agent"  xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Update the guest agent on the instance.</para>
             <para>This operation returns a 202 Accepted response.</para>
-            <para>While the guest agent is being updated the instance status
-                will be TODO_MYSTERY and some calls which require the agent
-                (such as listing databases or users) will return
-                unprocessableEntity (422).</para>
+          <para>In all cases, the call returns immediately. To determine if the operation succeeded, 
+            call Get Diagnostics Info (see <xref linkend="GET_getdiagnosticdetails_mgmt_instances__instanceId__diagnostics_Database_Instance_Management"></xref>) 
+            to check whether the version of the guest installed on the instance has changed. Note that the version will <emphasis>not</emphasis> change if no new version of the guest is available.
+            </para>
+          <para>In the event an upgrade fails and leaves the guest in a bad state, the instance status changes to "ERROR". At this point certain API functionality may not work on the instance, and manual intervention by support is necessary.</para>
         </wadl:doc>
         <request>
             <representation mediaType="application/xml" element="dbaas:UpdateGuest">
                 <doc>
-                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the Update Guest Instance requests:</para>
+                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the Update Guest Agent requests:</para>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-guest-update-request.xml"/>
                 </doc>
             </representation>
@@ -309,7 +310,7 @@
         <response status="202">
             <representation mediaType="application/xml">
                 <doc>
-                    <para xmlns="http://docbook.org/ns/docbook">The following examples show the UpdateGuest Instance responses:</para>
+                  <para xmlns="http://docbook.org/ns/docbook">The following examples show the UpdateGuest Agent responses:</para>
                     <xsdxt:code href="../apidocs/src/resources/samples/db-guest-update-response.xml"/>
                 </doc>
             </representation>
@@ -654,7 +655,7 @@
           </para>
           <para>This operation provides the following info for the guest agent managing the specified instance.</para>
           <table rules="all">
-              <caption>Return attributes for Get Diagnostics Info</caption>
+              <caption>Return Attributes for Get Diagnostics Info</caption>
               <thead>
                   <tr>
                       <td colspan="1">Name</td>
