@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import httplib2
 import json
 import os
@@ -559,14 +560,17 @@ class ExampleGenerator(object):
     def mgmt_instance_index(self, deleted=None):
         req_json = {"url": "%s/mgmt/instances" % self.dbaas_url}
         req_xml = {"url": "%s/mgmt/instances" % self.dbaas_url}
+        flag = ''
         if deleted is not None:
             if deleted:
                 req_json['url'] = "%s?deleted=true" % req_json['url']
                 req_xml['url'] = "%s?deleted=true" % req_xml['url']
+                flag = '_deleted'
             else:
                 req_json['url'] = "%s?deleted=false" % req_json['url']
                 req_xml['url'] = "%s?deleted=false" % req_xml['url']
-        self.http_call("mgmt_instance_index", 'GET', req_json, req_xml)
+                flag = '_not_deleted'
+        self.http_call("mgmt_instance_index%s" % flag, 'GET', req_json, req_xml)
 
     def mgmt_get_instance_diagnostics(self, instance_ids):
         req_json = {"url": "%s/mgmt/instances/%s/diagnostics"
@@ -667,6 +671,8 @@ class ExampleGenerator(object):
         self.mgmt_get_account_details()
         self.mgmt_get_instance_details(instance_ids)
         self.mgmt_get_root_details(instance_ids)
+        self.mgmt_instance_index()
+        self.mgmt_instance_index(True)
         self.mgmt_instance_index(False)
         self.mgmt_get_instance_diagnostics(instance_ids)
         self.mgmt_instance_guest_update(instance_ids)
