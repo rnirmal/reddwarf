@@ -1,8 +1,10 @@
 GET /v1.0/1234/mgmt/instances HTTP/1.1
 User-Agent: python-example-client
 Host: ord.databases.api.rackspacecloud.com
-X-Auth-Token: 59f99e27-8c87-475c-95c1-00f55cae9f82
+X-Auth-Token: 9e5f5340-5c36-427a-b677-e13603b43b44
 Accept: application/json
 Content-Type: application/json
 
-
+{
+    "deleted": "true"
+}

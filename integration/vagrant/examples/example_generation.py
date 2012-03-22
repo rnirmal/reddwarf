@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import httplib2
 import json
 import os
@@ -563,12 +562,18 @@ class ExampleGenerator(object):
         flag = ''
         if deleted is not None:
             if deleted:
-                req_json['url'] = "%s?deleted=true" % req_json['url']
-                req_xml['url'] = "%s?deleted=true" % req_xml['url']
+                JSON_DATA = {'deleted': 'true'}
+                XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
+                        <deleted xmlns="http://docs.openstack.org/database/api/v1.0">true</deleted>"""
+                req_json['body'] = json.dumps(JSON_DATA)
+                req_xml['body'] = XML_DATA
                 flag = '_deleted'
             else:
-                req_json['url'] = "%s?deleted=false" % req_json['url']
-                req_xml['url'] = "%s?deleted=false" % req_xml['url']
+                JSON_DATA = {'deleted': 'false'}
+                XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
+                        <deleted xmlns="http://docs.openstack.org/database/api/v1.0">false</deleted>"""
+                req_json['body'] = json.dumps(JSON_DATA)
+                req_xml['body'] = XML_DATA
                 flag = '_not_deleted'
         self.http_call("mgmt_instance_index%s" % flag, 'GET', req_json, req_xml)
 

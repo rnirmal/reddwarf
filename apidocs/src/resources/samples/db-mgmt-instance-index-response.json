@@ -1,94 +1,22 @@
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 2081
-Date: Thu, 22 Mar 2012 19:36:55 GMT
+Content-Length: 647
+Date: Thu, 22 Mar 2012 21:39:27 GMT
 
 {
     "instances": [
         {
             "account_id": "1234", 
-            "created_at": "2012-03-22 18:33:49", 
-            "deleted": true, 
-            "deleted_at": "2012-03-22 18:46:23", 
-            "flavorid": 3, 
-            "host": "host", 
-            "id": "d99788de-2916-47c4-b151-d4ac8b2a7ff2", 
-            "ips": [], 
-            "status": "deleted", 
-            "volumes": []
-        }, 
-        {
-            "account_id": "1234", 
-            "created_at": "2012-03-22 18:33:54", 
-            "deleted": true, 
-            "deleted_at": "2012-03-22 18:46:18", 
-            "flavorid": 3, 
-            "host": "host", 
-            "id": "0d3010c5-ede3-41e8-a50e-b68fa67e978b", 
-            "ips": [], 
-            "status": "deleted", 
-            "volumes": []
-        }, 
-        {
-            "account_id": "1234", 
-            "created_at": "2012-03-22 18:47:32", 
-            "deleted": true, 
-            "deleted_at": "2012-03-22 18:59:53", 
-            "flavorid": 3, 
-            "host": "host", 
-            "id": "55d7c3ef-266b-40eb-b6d7-a62b2c076964", 
-            "ips": [], 
-            "status": "deleted", 
-            "volumes": []
-        }, 
-        {
-            "account_id": "1234", 
-            "created_at": "2012-03-22 18:47:39", 
-            "deleted": true, 
-            "deleted_at": "2012-03-22 18:59:48", 
-            "flavorid": 3, 
-            "host": "host", 
-            "id": "ac3d5fc3-2529-4811-ae5f-81652099d322", 
-            "ips": [], 
-            "status": "deleted", 
-            "volumes": []
-        }, 
-        {
-            "account_id": "1234", 
-            "created_at": "2012-03-22 19:06:18", 
-            "deleted": true, 
-            "deleted_at": "2012-03-22 19:18:30", 
-            "flavorid": 3, 
-            "host": "host", 
-            "id": "0c1de6e1-ae21-4772-b3fa-5354382d1d6c", 
-            "ips": [], 
-            "status": "deleted", 
-            "volumes": []
-        }, 
-        {
-            "account_id": "1234", 
-            "created_at": "2012-03-22 19:06:25", 
-            "deleted": true, 
-            "deleted_at": "2012-03-22 19:18:32", 
-            "flavorid": 3, 
-            "host": "host", 
-            "id": "f378ea1d-5622-45c1-90cb-f8696989baf8", 
-            "ips": [], 
-            "status": "deleted", 
-            "volumes": []
-        }, 
-        {
-            "account_id": "1234", 
-            "created_at": "2012-03-22 19:28:03", 
+            "created_at": "2012-03-22 21:30:10", 
             "deleted": false, 
             "deleted_at": null, 
             "flavorid": 3, 
             "host": "host", 
-            "id": "389c6dd0-4100-4d03-83b4-ab980dc05991", 
+            "id": "4a551897-6b5c-4a38-8c64-88a457fe08d4", 
             "ips": [
                 {
-                    "address": "10.0.2.16", 
-                    "virtual_interface_id": 7
+                    "address": "10.0.2.17", 
+                    "virtual_interface_id": 2
                 }
             ], 
             "status": "active", 
@@ -101,16 +29,16 @@ Date: Thu, 22 Mar 2012 19:36:55 GMT
         }, 
         {
             "account_id": "1234", 
-            "created_at": "2012-03-22 19:28:09", 
+            "created_at": "2012-03-22 21:30:16", 
             "deleted": false, 
             "deleted_at": null, 
             "flavorid": 3, 
             "host": "host", 
-            "id": "4a950b41-ee79-44db-9520-13e8155cc060", 
+            "id": "c31e9b00-1b1f-4cdf-8e9b-a7641aa66326", 
             "ips": [
                 {
-                    "address": "10.0.2.17", 
-                    "virtual_interface_id": 8
+                    "address": "10.0.2.16", 
+                    "virtual_interface_id": 1
                 }
             ], 
             "status": "active", 
