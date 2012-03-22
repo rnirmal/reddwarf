@@ -58,16 +58,25 @@ def assert_flavors_are_roughly_equivalent(os_flavor, dbaas_flavor):
 def assert_link_list_is_equal(flavor):
     assert_true(hasattr(flavor, 'links'))
 
+    # Within this for loop we have chosen to do a local replace of the
+    # expected href because of the way that CI tests are run.  CI runs
+    # local without SSL however production always uses SSL.  This difference
+    # adds a level of complexity because of the need to force SSL links that
+    # are returned by the api in production.  CI uses a configuration file to
+    # stub in links throughout the CI process and changing these to SSL links
+    # isn't an option, thus the changes are made here so we can verify that
+    # the api always returns https links per production needs.
     for link in flavor.links:
         href = link['href']
         if "self" in link['rel']:
-            expected_href = os.path.join(test_config.dbaas.url, "flavors",
-                                             str(flavor.id))
+            expected_href = os.path.join(test_config.dbaas.url.replace(
+                'http:', 'https:'), "flavors", str(flavor.id))
             assert_equal(href, expected_href,
                          '"href" must be %s' % expected_href)
         elif "bookmark" in link['rel']:
             base_url = test_config.version_url
-            expected_href = os.path.join(base_url, "flavors", str(flavor.id))
+            expected_href = os.path.join(base_url.replace('http:', 'https:'),
+                                         "flavors", str(flavor.id))
             assert_equal(href, expected_href,
                          '"href" must be %s' % expected_href)
         else:

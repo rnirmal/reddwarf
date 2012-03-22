@@ -69,7 +69,10 @@ class ViewBuilder(object):
     @staticmethod
     def _build_links(req, instance):
         """Build the links for the instance"""
-        base_url = _base_url(req)
+
+        # Fixup the base url to make sure we return https
+        base_url = str(_base_url(req)).replace('http:', 'https:')
+
         href = os.path.join(base_url, _project_id(req),
                             "instances", str(instance['id']))
         bookmark = os.path.join(nova_common.remove_version_from_href(base_url),

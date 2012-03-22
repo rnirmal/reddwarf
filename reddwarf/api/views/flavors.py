@@ -40,6 +40,11 @@ class ViewBuilder(os_flavors.ViewBuilderV11):
 
     def _build_links(self, flavor_obj):
         """Generate a container of links that refer to the provided flavor."""
+
+        # rewrite the urls to https because internal systems may rewrite
+        # them to http when they are in fact https.
+        self.base_url = str(self.base_url).replace('http:', 'https:')
+
         href = os.path.join(self.base_url, self.project_id, "flavors", str(flavor_obj['id']))
         bookmark = os.path.join(common.remove_version_from_href(self.base_url),
                                 "flavors", str(flavor_obj['id']))
