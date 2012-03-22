@@ -119,12 +119,16 @@ class InstanceXMLDeserializer(XMLDeserializer):
         if not instance_node:
             raise exception.BadRequest("Required element/key 'instance' was "
                                        "not specified")
-        for attr in ["name", "port", "flavorRef"]:
+        for attr in ["name", "flavorRef"]:
             instance[attr] = instance_node.getAttribute(attr)
         #dbtype = self._extract_dbtype(instance_node)
         databases = self._extract_databases(instance_node)
         if databases is not None:
             instance["databases"] = databases
+
+        users = self._extract_users(instance_node)
+        if users is not None:
+            instance["users"] = users
         #instance["dbtype"] = dbtype
         instance["volume"] = self._extract_volume(instance_node)
         return instance
