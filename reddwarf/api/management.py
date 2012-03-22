@@ -14,6 +14,7 @@
 #    under the License.
 
 from webob import exc
+import webob
 
 from nova import exception as nova_exception
 from nova import flags
@@ -277,7 +278,7 @@ class Controller(object):
 
         try:
             self.compute_api.reboot(ctxt, local_id)
-            return exc.HTTPAccepted()
+            return webob.Response(status_int=202)
         except Exception as err:
             LOG.exception(_("Error in reboot %s"), err)
             raise exception.UnprocessableEntity()
@@ -290,7 +291,7 @@ class Controller(object):
 
         try:
             self.compute_api.update_guest(ctxt, local_id)
-            return exc.HTTPAccepted()
+            return webob.Response(status_int=202)
         except nova_exception.InstanceNotFound as err:
             LOG.exception(_("Error in update guest agent: %s"), err)
             raise exception.NotFound()
