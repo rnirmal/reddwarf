@@ -54,6 +54,8 @@ class TestUsers(object):
     db2 = "seconddb"
 
     created_users = [username, username1]
+    expected_user_db_association = {username: [], username1: [db1, db2],
+                                    'lite': ['firstdb']}
     system_users = ['root', 'debian_sys_maint']
 
     @before_class
@@ -85,6 +87,9 @@ class TestUsers(object):
         for user in self.created_users:
             for result in users:
                 if user == result.name:
+                    # Verify that they have the associated databases
+                    user_dbs = [db['name'] for db in result.databases]
+                    assert_equal(user_dbs, self.expected_user_db_association[user])
                     found = True
             assert_true(found, "User '%s' not found in result" % user)
             found = False

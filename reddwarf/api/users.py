@@ -61,7 +61,10 @@ class Controller(object):
         for user in result:
             mysql_user = models.MySQLUser()
             mysql_user.deserialize(user)
-            users['users'].append({'name': mysql_user.name})
+            dbs = []
+            for db in mysql_user.databases:
+                dbs.append({'name': db['_name']})
+            users['users'].append({'name': mysql_user.name, 'databases': dbs})
         LOG.debug("LIST USERS RETURN - %s", users)
         return users
 

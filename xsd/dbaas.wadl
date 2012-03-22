@@ -931,7 +931,7 @@
     <method name="GET" id="getUsers">
         <wadl:doc xml:lang="EN" title="List Users in Database Instance"  xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Lists the users in the specified database instance.</para>
-            <para>This operation lists the users in the specified database instance. </para>
+            <para>This operation lists the users in the specified database instance, along with the associated databases for that user. </para>
             <note>This operation does not return the system users (database administrators that administer the health of the database). Also, this operation returns the "root" user only if "root" user has been enabled.</note>
 
             <para>The following notes apply to MySQL users:</para>
