@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from webob import exc
 import webob
 
 from nova import exception as nova_exception
