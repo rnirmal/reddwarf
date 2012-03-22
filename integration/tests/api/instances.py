@@ -704,6 +704,14 @@ class VerifyInstanceMgmtInfo(unittest.TestCase):
         # The client reshapes the exception into just an OpenStackException.
         assert_raises(nova_exceptions.NotFound, dbaas_admin.management.show, -1)
 
+    def test_mgmt_ips_associated(self):
+        # Test that the management index properly associates an instances with
+        # ONLY its IPs.
+        mgmt_index = dbaas_admin.management.index()
+        # Every instances has exactly one address.
+        for instance in mgmt_index:
+            self.assertEqual(1, len(instance.ips))
+
     def test_mgmt_data(self):
         # Test that the management API returns all the values we expect it to.
         info = instance_info
