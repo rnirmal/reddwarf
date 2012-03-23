@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from webob import exc
+import webob
 
 from nova import compute
 from nova import log as logging
@@ -80,7 +80,7 @@ class Controller(object):
             raise exception.BadRequest(ve.message)
 
         self.guest_api.delete_database(ctxt, local_id, mydb.serialize())
-        return exc.HTTPAccepted()
+        return webob.Response(status_int=202)
 
     def create(self, req, instance_id, body):
         """ Creates a new Database in the specified instance """
@@ -94,7 +94,7 @@ class Controller(object):
 
         databases = common.populate_databases(body.get('databases', ''))
         self.guest_api.create_database(ctxt, local_id, databases)
-        return exc.HTTPAccepted("")
+        return webob.Response(status_int=202)
 
     def _validate(self, body):
         """Validate that the request has all the required parameters"""

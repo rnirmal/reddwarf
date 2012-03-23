@@ -67,6 +67,9 @@ def guest_status_get_failed(id, session=None):
     status.state = power_state.FAILED
     return status
 
+def guest_status_delete(id, session=None):
+    return
+
 def request_obj(url, method, body={}):
     req = webob.Request.blank(url)
     req.method = method
@@ -104,12 +107,13 @@ class InstanceApiTest(test.TestCase):
 
     def test_instances_delete(self):
         self.stubs.Set(nova.compute.API, "delete", compute_delete)
-        self.stubs.Set(nova.compute.API, "get", compute_get_building)
-        self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_failed)
+        self.stubs.Set(nova.compute.API, "get", compute_get)
+        self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_running)
+        self.stubs.Set(reddwarf.db.api, "guest_status_delete", guest_status_delete)
         req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 202)
-
+        self.assertEqual(res.body, '')
 
 class InstanceApiValidation(test.TestCase):
     """

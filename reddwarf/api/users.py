@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from webob import exc
+import webob
 
 from nova import compute
 from nova import log as logging
@@ -84,7 +84,7 @@ class Controller(object):
             raise exception.BadRequest(ve.message)
 
         self.guest_api.delete_user(ctxt, local_id, user.serialize())
-        return exc.HTTPAccepted()
+        return webob.Response(status_int=202)
 
     def create(self, req, instance_id, body):
         """ Creates a new user for the db instance """
@@ -98,7 +98,7 @@ class Controller(object):
 
         users = common.populate_users(body.get('users', ''))
         self.guest_api.create_user(ctxt, local_id, users)
-        return exc.HTTPAccepted()
+        return webob.Response(status_int=202)
 
     def _validate(self, body):
         """Validate that the request has all the required parameters"""

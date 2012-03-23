@@ -18,6 +18,7 @@
 import copy
 import json
 from webob import exc
+import webob
 
 from nova import db
 from nova import exception as nova_exception
@@ -102,7 +103,7 @@ class Controller(object):
         Controller._validate_restart_instance(id, instance['vm_state'])
         try:
             self.compute_api.restart(ctxt, instance['id'])
-            return exc.HTTPAccepted()
+            return webob.Response(status_int=202)
         except Exception as err:
             LOG.error(err)
             raise exception.InstanceFault("Error restarting MySQL.")
@@ -117,7 +118,7 @@ class Controller(object):
         self.volume_api.resize(context, volume_ref['id'], new_size)
         # Kickoff rescaning and resizing the filesystem
         self.compute_api.resize_volume(context, volume_ref['id'])
-        return exc.HTTPAccepted()
+        return webob.Response(status_int=202)
 
     def _resize_instance_action(self, context, body, id):
         # Validate the size attributes
@@ -145,7 +146,7 @@ class Controller(object):
             msg = "When resizing, instances must change size!"
             raise exception.BadRequest(msg)
 
-        return exc.HTTPAccepted()
+        return webob.Response(status_int=202)
 
     def _action_resize(self, body, req, id):
         """
@@ -285,7 +286,7 @@ class Controller(object):
         self.server_controller.delete(req, instance_id)
         #TODO(rnirmal): Use a deferred here to update status
         dbapi.guest_status_delete(instance_id)
-        return exc.HTTPAccepted()
+        return webob.Response(status_int=202)
 
     def create(self, req, body):
         """ Creates a new Instance for a given user """
