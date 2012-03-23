@@ -147,7 +147,8 @@ class AuthProtocol(object):
             try:
                 data, status = self._validate_token(claims, tenant)
             except :
-                msg = "Authorization Service is not available at this time."
+                msg = ("Authorization Service is not available at this "
+                       "time for (tenant=%s)." % tenant)
                 LOG.error(msg)
                 return faults.Fault(exception.ServiceUnavailable(msg)) \
                                     (env, start_response)
@@ -217,20 +218,29 @@ class AuthProtocol(object):
                 if response.status == 302:
                     # Can be ignored because the service relies on basic auth
                     return ""
-                raise exception.Unauthorized("Error authenticating service")
+                msg = "Error authenticating service with user(%s)" % username
+                LOG.error(msg)
+                raise exception.Unauthorized(msg)
             else:
                 body = json.loads(data)
                 admin_token = body['auth']['token']['id']
                 return admin_token
         except:
-            raise exception.Unauthorized("Error authenticating service")
+            msg = "Error authenticating service with user(%s)" % username
+            LOG.error(msg)
+            raise exception.Unauthorized(msg)
 
     def _reject_request(self, env, start_response):
         """Redirect client to auth server"""
+        tenant = self._retrieve_tenant(env)
+        LOG.error("Rejecting the authentication request "
+                  "for (tenant=%s)" % tenant)
         return faults.Fault(exception.Unauthorized())(env, start_response)
 
     def _reject_claims(self, env, start_response):
         """Client sent bad claims"""
+        tenant = self._retrieve_tenant(env)
+        LOG.error("Rejecting the claim for (tenant=%s)" % tenant)
         return faults.Fault(exception.Unauthorized())(env, start_response)
 
     def _validate_token(self, claims, tenant=None):
