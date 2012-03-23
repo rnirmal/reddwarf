@@ -116,7 +116,8 @@ class ExampleGenerator(object):
     def output_request(self, url, output_headers, body, content_type, method):
         output_list = []
         parsed = urlparse(url)
-        output_list.append("%s %s HTTP/1.1" % (method, parsed.path))
+        query = '?' + parsed.query if parsed.query else ''
+        output_list.append("%s %s%s HTTP/1.1" % (method, parsed.path, query))
         output_list.append("User-Agent: %s" % output_headers['User-Agent'])
         output_list.append("Host: %s" % parsed.netloc)
         output_list.append("X-Auth-Token: %s" % output_headers['X-Auth-Token'])
@@ -557,24 +558,20 @@ class ExampleGenerator(object):
         self.http_call("mgmt_get_host_detail", 'GET', req_json, req_xml)
 
     def mgmt_instance_index(self, deleted=None):
-        req_json = {"url": "%s/mgmt/instances" % self.dbaas_url}
-        req_xml = {"url": "%s/mgmt/instances" % self.dbaas_url}
+        url = "%s/mgmt/instances%%s" % self.dbaas_url
+        req_json = {}
+        req_xml = {}
         flag = ''
+        query = ''
         if deleted is not None:
             if deleted:
-                JSON_DATA = {'deleted': 'true'}
-                XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
-                        <deleted xmlns="http://docs.openstack.org/database/api/v1.0">true</deleted>"""
-                req_json['body'] = json.dumps(JSON_DATA)
-                req_xml['body'] = XML_DATA
+                query='?deleted=true'
                 flag = '_deleted'
             else:
-                JSON_DATA = {'deleted': 'false'}
-                XML_DATA = """<?xml version="1.0" encoding="UTF-8"?>
-                        <deleted xmlns="http://docs.openstack.org/database/api/v1.0">false</deleted>"""
-                req_json['body'] = json.dumps(JSON_DATA)
-                req_xml['body'] = XML_DATA
+                query='?deleted=false'
                 flag = '_not_deleted'
+        req_xml['url'] = url % query
+        req_json['url'] = url % query
         self.http_call("mgmt_instance_index%s" % flag, 'GET', req_json, req_xml)
 
     def mgmt_get_instance_diagnostics(self, instance_ids):
