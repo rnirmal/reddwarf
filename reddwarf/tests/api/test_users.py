@@ -102,6 +102,7 @@ class UserApiTest(test.TestCase):
         req = request_obj(users_url, 'POST', body=body)
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 202)
+        self.assertEqual(res.body, '')
 
     def test_create_user_multiple_databases(self):
         body = {'users': [{'name': 'test', 'password': 'password',
@@ -110,6 +111,7 @@ class UserApiTest(test.TestCase):
         req = request_obj(users_url, 'POST', body=body)
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 202)
+        self.assertEqual(res.body, '')
 
     @raises(exception.BadRequest)
     def test_create_user_no_password(self):
