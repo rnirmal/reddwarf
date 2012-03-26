@@ -584,6 +584,7 @@ class TestInstanceListing(object):
     def test_volume_found(self):
         instance = dbaas.instances.get(instance_info.id)
         assert_equal(instance_info.volume['size'], instance.volume['size'])
+        assert_true(0.12 < instance.volume['used'] < 0.25)
 
     @test
     def test_index_detail_match_for_regular_user(self):
@@ -786,7 +787,7 @@ class CheckInstance(object):
         self.links(self.instance['flavor']['links'])
 
     def volume(self):
-        expected_attrs = ['size']
+        expected_attrs = ['size', 'used']
         self.attrs_exist(self.instance['volume'], expected_attrs,
                          msg="Volumes")
 

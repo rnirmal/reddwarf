@@ -39,6 +39,14 @@ namespace {
         out << "}";
         return out.str();
     }
+
+    string fs_stats_to_stream(const FileSystemStatsPtr fs_stats) {
+        stringstream out;
+        out << "{";
+        out << JsonData::json_string("used") << ": " << fs_stats->used;
+        out << "}";
+        return out.str();
+    }
 } // end of anonymous namespace
 
 InterrogatorMessageHandler::InterrogatorMessageHandler(const Interrogator & interrogator)
@@ -60,6 +68,13 @@ JsonDataPtr InterrogatorMessageHandler::handle_message(const GuestInput & input)
         } else {
             return JsonData::from_null();
         }
+    } if (input.method_name == "get_filesystem_stats") {
+        NOVA_LOG_DEBUG("handling the get_filesystem_stats method");
+        string fs_path = input.args->get_string("fs_path");
+        FileSystemStatsPtr fs_stats = interrogator.get_filesystem_stats(fs_path);
+        string json = fs_stats_to_stream(fs_stats);
+        JsonDataPtr rtn(new JsonObject(json.c_str()));
+        return rtn;
     } else {
         return JsonDataPtr();
     }

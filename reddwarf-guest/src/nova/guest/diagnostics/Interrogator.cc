@@ -9,6 +9,7 @@
 #include "nova/Log.h"
 #include <sstream>
 #include <string>
+#include <sys/statvfs.h>
 
 using nova::utils::Regex;
 using nova::utils::RegexMatchesPtr;
@@ -99,6 +100,23 @@ void Interrogator::get_proc_status(pid_t pid, ProcStatus & process_info) {
         }
     }
     status_file.close();
+}
+
+FileSystemStatsPtr Interrogator::get_filesystem_stats(std::string fs_path) {
+    NOVA_LOG_DEBUG2("Retrieving FileSystem Stats for : %s", fs_path.c_str());
+    struct statvfs stats_buf;
+    FileSystemStatsPtr fs_stats(new FileSystemStats());
+    if (!statvfs(fs_path.c_str(), &stats_buf)) {
+        fs_stats->block_size = stats_buf.f_bsize;
+        fs_stats->total_blocks = stats_buf.f_blocks;
+        fs_stats->free_blocks = stats_buf.f_bfree;
+        fs_stats->total = fs_stats->total_blocks * fs_stats->block_size;
+        fs_stats->free = fs_stats->free_blocks * fs_stats->block_size;
+        fs_stats->used = fs_stats->total - fs_stats->free;
+        return fs_stats;
+    } else {
+        throw InterrogatorException(InterrogatorException::FILESYSTEM_NOT_FOUND);
+    }
 }
 
 } } } // end namespace nova::guest::diagnostics

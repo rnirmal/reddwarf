@@ -19,6 +19,8 @@ const char * InterrogatorException::what() const throw() {
             return "Status file was not found.";
         case PATTERN_DOES_NOT_MATCH:
             return "Pattern did not match the status line.";
+        case FILESYSTEM_NOT_FOUND:
+            return "The specified filesystem could not be found";
         default:
             return "An error occurred.";
     }

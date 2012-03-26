@@ -97,7 +97,7 @@ class ViewBuilder(object):
         return instance
 
     def build_single(self, server, req, status_lookup, databases=None,
-                     root_enabled=False, create=False):
+                     root_enabled=False, create=False, volume_info=None):
         """
         Given a server (obtained from the servers API) returns an instance.
         """
@@ -107,6 +107,9 @@ class ViewBuilder(object):
             # Add Database and root_enabled
             instance['databases'] = databases
             instance['rootEnabled'] = root_enabled
+            if volume_info:
+                used_in_gb = volume_info['used']/1024.0**3
+                instance['volume']['used'] = used_in_gb
 
         return instance
 
