@@ -169,3 +169,9 @@ class API(base.Base):
                  "args": {}
             })
 
+    def get_volume_info(self, context, id):
+        """Make a synchronous call to get volume info for the container"""
+        LOG.debug("Check Volume Info on Instance %s", id)
+        return rpc.call(context, self._get_routing_key(context, id),
+                        {"method": "get_filesystem_stats",
+                         "args": {"fs_path": "/var/lib/mysql"}})

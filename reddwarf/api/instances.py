@@ -231,13 +231,17 @@ class Controller(object):
         status_lookup = InstanceStatusLookup([server['id']])
         databases = None
         root_enabled = None
+        volume_info = None
         if status_lookup.get_status_from_server(server).is_sql_running:
             databases, root_enabled = self._get_guest_info(context, server['id'])
+            # Lookup additional volume information
+            volume_info = self.guest_api.get_volume_info(context, server['id'])
         instance = self.view.build_single(server,
                                           req,
                                           status_lookup,
                                           databases=databases,
-                                          root_enabled=root_enabled)
+                                          root_enabled=root_enabled,
+                                          volume_info=volume_info)
         LOG.debug("instance - %s" % instance)
         return {'instance': instance}
 
@@ -548,7 +552,7 @@ def create_resource(version='1.0'):
             'dbtype': ['name', 'version'],
             'flavor': ['id'],
             'link': ['rel', 'href'],
-            'volume': ['size'],
+            'volume': ['size', 'used'],
             'database': ['name', 'collate', 'character_set'],
         },
     }

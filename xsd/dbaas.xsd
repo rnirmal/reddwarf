@@ -376,6 +376,13 @@
         </xsd:documentation>
       </annotation>
     </attribute>
+    <attribute name="used" type="xsd:float" use="required">
+      <annotation>
+        <xsd:documentation xml:lang="EN" xmlns="http://www.w3.org/1999/xhtml">
+          <p>Used space on the attached volume in GBs.</p>
+        </xsd:documentation>
+      </annotation>
+    </attribute>
   </complexType>
 
   <complexType name="FlavorRef">

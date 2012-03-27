@@ -7,6 +7,7 @@
 #include "nova/utils/regex.h"
 #include <fstream>
 #include <unistd.h>
+#include <sstream>
 
 using boost::optional;
 using namespace nova;
@@ -42,4 +43,25 @@ BOOST_AUTO_TEST_CASE(get_something_back_from_diagnostics)
     BOOST_CHECK(diags->vm_hwm > 0 && diags->vm_hwm < 5000);
     BOOST_CHECK_EQUAL(diags->threads, 1);
     BOOST_CHECK_EQUAL(diags->version, NOVA_GUEST_CURRENT_VERSION);
+}
+
+
+/** Filesystem stats test */
+BOOST_AUTO_TEST_CASE(get_filesystem_stats)
+{
+    unsigned long mb = 1024*1024;
+    diagnostics::Interrogator guest;
+    FileSystemStatsPtr stats = guest.get_filesystem_stats("/home");
+    std::ostringstream oss;
+    oss << "Block Size: " << stats->block_size << ", ";
+    oss << "Total Blocks: " << stats->total_blocks << ", ";
+    oss << "Free Blocks: " << stats->free_blocks << "\n";
+    oss << "Total: " << stats->total << ", Used: " << stats->used << ", Free: " << stats->free;
+    NOVA_LOG_DEBUG(oss.str().c_str());
+    BOOST_CHECK(stats->block_size > 0);
+    BOOST_CHECK(stats->total_blocks > 0);
+    BOOST_CHECK(stats->free_blocks > 0);
+    BOOST_CHECK(stats->total > mb);
+    BOOST_CHECK(stats->free > mb);
+    BOOST_CHECK(stats->used > mb);
 }
