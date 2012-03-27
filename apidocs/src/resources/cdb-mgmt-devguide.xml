@@ -56,7 +56,7 @@
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
         <productname>Rackspace Cloud Database BETA</productname>
-        <pubdate>2012-01-26</pubdate>
+        <pubdate>2012-04-04</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -71,6 +71,35 @@
         </abstract>
         
         <revhistory>
+            <revision>
+                <date>2012-04-04</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Added new section <xref
+                                   linkend="Service_Access_Endpoints-d1e753"
+                                />.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Added new section <xref
+                                   linkend="Host_Information"
+                                />.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Added new section <xref
+                                   linkend="Management_Instances_Actions"
+                                />.</para>
+                        </listitem>
+                        <listitem>
+                            <para>Updated response examples for List
+                                Database Instance Status and Details
+                                (see <xref
+                                   linkend="Database_Instance_Management"
+                                />).</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2012-01-26</date>
                 <revdescription>
@@ -328,6 +357,27 @@
                     please contact your supervisor and have the
                     appropriate LDAP roles/permissions added. </para>
             </note>
+        </section>
+        <section xml:id="Service_Access_Endpoints-d1e753">
+            <title>Service Access</title>
+            <para>The Database Service is a regionalized service. The
+                user of the service is therefore responsible for
+                appropriate replication, caching, and overall
+                maintenance of Cloud Database data across regional
+                boundaries to other Cloud Database servers.</para>
+            <?rax-fo keep-with-next?>
+            <para>Replace the sample account ID number,
+                    <parameter>1234</parameter>, as shown in the URLs
+                in this guide, with your actual account number
+                returned as part of the authentication service
+                response.</para>
+            <para>You will find the actual account number after the
+                final '/' in the <code>publicURL</code> field returned
+                by the authentication response. In the following
+                example, you can see from the <code>publicURL</code>
+                field for <code>cloudServers</code>
+                (publicURL="https://servers.api.rackspacecloud.com/v1.0/322781")
+                that the account number is 322781.</para>
         </section>
         <section xml:id="Request_Response_Types-d1e503">
             <title>Request/Response Types</title>

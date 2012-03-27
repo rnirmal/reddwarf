@@ -43,8 +43,19 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 BETA</releaseinfo>
-        <pubdate>2012-03-13</pubdate>
+        <pubdate>2012-03-xx</pubdate>
         <revhistory>
+            <revision>
+                <date>2012-03-xx</date>
+                <revdescription>
+                    <itemizedlist spacing="compact">
+                        <listitem>
+                            <para>Added trademark to Cloud
+                                Servers.</para>
+                        </listitem>
+                    </itemizedlist>
+                </revdescription>
+            </revision>
             <revision>
                 <date>2012-03-13</date>
                 <revdescription>
@@ -203,9 +214,10 @@
     <section xml:id="DB_Overview">
         <title>Overview</title>
         <para>Follow the steps described in this guide to use the
-            Rackspace Cloud Database API and the Cloud Servers section
-            of the Control Panel to create and access your database
-            instances via Rackspace Cloud Servers.</para>
+            Rackspace Cloud Database API and the Cloud
+            Servers<trademark/> section of the Control Panel to create
+            and access your database instances via Rackspace Cloud
+            Servers.</para>
         <para>For details about using the Cloud Database API, refer to
             the <citetitle>Cloud Database Developer
                 Guide</citetitle>.</para>
