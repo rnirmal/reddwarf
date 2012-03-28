@@ -229,17 +229,14 @@ class Controller(object):
         server = server_response['server']
 
         status_lookup = InstanceStatusLookup([server['id']])
-        databases = None
         root_enabled = None
         volume_info = None
         if status_lookup.get_status_from_server(server).is_sql_running:
-            databases, root_enabled = self._get_guest_info(context, server['id'])
-            # Lookup additional volume information
-            volume_info = self.guest_api.get_volume_info(context, server['id'])
+            root_enabled, volume_info = self._get_guest_info(context,
+                                                             server['id'])
         instance = self.view.build_single(server,
                                           req,
                                           status_lookup,
-                                          databases=databases,
                                           root_enabled=root_enabled,
                                           volume_info=volume_info)
         LOG.debug("instance - %s" % instance)
@@ -428,19 +425,16 @@ class Controller(object):
                                                           security_group['id'])
 
     def _get_guest_info(self, context, id):
-        """Get the list of databases on a instance"""
+        """Get the root and volume information from the guest"""
+        root_enabled = None
+        volume_info = None
         try:
-            result = self.guest_api.list_databases(context, id)
-            databases = [{'name': db['_name'],
-                         'collate': db['_collate'],
-                         'character_set': db['_character_set']}
-                         for db in result]
             root_enabled = self.guest_api.is_root_enabled(context, id)
-            return databases, root_enabled
+            volume_info = self.guest_api.get_volume_info(context, id)
         except Exception as err:
             LOG.error(err)
-            LOG.error("guest not responding on instance %s" % id)
-            return None, None
+            LOG.error("Guest not responding on instance %s" % id)
+        return root_enabled, volume_info
 
     @staticmethod
     def _validate_empty_body(body):
