@@ -475,6 +475,17 @@ class OpenVzConnTestCase(test.TestCase):
         conn = openvz_conn.OpenVzConnection(False)
         self.assertRaises(exception.Error, conn._stop, INSTANCE)
 
+    def test_stop_failure_on_exec_locked_instance(self):
+        self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
+        openvz_conn.utils.execute('vzctl', 'stop', INSTANCE['id'],
+                                  run_as_root=True)\
+                                  .AndRaise(exception.ProcessExecutionError(
+            stderr='Container already locked\n', exit_code=9
+        ))
+        self.mox.ReplayAll()
+        conn = openvz_conn.OpenVzConnection(False)
+        conn._stop(INSTANCE)
+
     def test_stop_failure_on_db_access(self):
         self.mox.StubOutWithMock(openvz_conn.utils, 'execute')
         openvz_conn.utils.execute('vzctl', 'stop', INSTANCE['id'],
