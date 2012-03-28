@@ -78,6 +78,43 @@ def request_obj(url, method, body={}):
     req.headers["content-type"] = "application/json"
     return req
 
+def server_show(self, req, instance_id):
+    server = {'uuid': '123', 'id': 1, 'name': 'test', 'status': 'ACTIVE',
+              'volume': {'size': 1}}
+    return {'server': server}
+
+def guest_status(local_ids):
+
+    class StatusDict(object):
+        def __init__(self, id, state):
+            self.id = id
+            self.instance_id = id
+            self.state = state
+
+    class Result(object):
+        def __init__(self, items):
+            self.items = items
+
+        def all(self):
+            return self.items
+
+    status = []
+    for id in local_ids:
+        d1 = StatusDict(id, 1)
+        status.append(d1)
+    return Result(status)
+
+def get_guest_info(self, context, server):
+    return [], []
+
+def get_volume_info(self, context, id):
+    raise exception.GuestError()
+
+def build_view(self, server, req, instance):
+    return {'uuid': '123', 'id': 1, 'name': 'test', 'status': 'ACTIVE',
+            'volume': {'size': 1}}
+
+
 class InstanceApiTest(test.TestCase):
     """Test various Database API calls"""
 
@@ -87,6 +124,7 @@ class InstanceApiTest(test.TestCase):
         self.controller = instances.Controller()
         self.stubs.Set(reddwarf.db.api, "localid_from_uuid", localid_from_uuid)
         self.stubs.Set(nova.compute.API, "get", compute_get)
+        self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_running)
 
     def tearDown(self):
         self.stubs.UnsetAll()
@@ -100,7 +138,6 @@ class InstanceApiTest(test.TestCase):
 
     def test_instances_delete_unprocessable(self):
         self.stubs.Set(nova.compute.API, "get", compute_get_building)
-        self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_running)
         req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 422)
@@ -108,12 +145,31 @@ class InstanceApiTest(test.TestCase):
     def test_instances_delete(self):
         self.stubs.Set(nova.compute.API, "delete", compute_delete)
         self.stubs.Set(nova.compute.API, "get", compute_get)
-        self.stubs.Set(reddwarf.db.api, "guest_status_get", guest_status_get_running)
         self.stubs.Set(reddwarf.db.api, "guest_status_delete", guest_status_delete)
         req = request_obj('%s/1' % instances_url, 'DELETE')
         res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
         self.assertEqual(res.status_int, 202)
         self.assertEqual(res.body, '')
+
+    def test_instance_get_errored_guest(self):
+        self.stubs.Set(nova.api.openstack.servers.ControllerV11, "show",
+                       server_show)
+        self.stubs.Set(reddwarf.db.api, 'guest_status_get_list', guest_status)
+        self.stubs.Set(reddwarf.api.instances.Controller, '_get_guest_info',
+                       get_guest_info)
+        self.stubs.Set(reddwarf.guest.api.API, 'get_volume_info',
+                       get_volume_info)
+        self.stubs.Set(reddwarf.api.views.instances.ViewBuilder,
+                       '_build_basic', build_view)
+        self.stubs.Set(reddwarf.api.views.instances.ViewBuilder,
+                       '_build_detail', build_view)
+        req = request_obj('%s/1' % instances_url, 'GET')
+        res = req.get_response(util.wsgi_app(fake_auth_context=self.context))
+        self.assertEqual(res.status_int, 200)
+        volume = json.loads(res.body)['instance']['volume']
+        self.assertTrue(volume.get('size', None) is not None)
+        self.assertTrue(volume.get('used', None) is None)
+
 
 class InstanceApiValidation(test.TestCase):
     """

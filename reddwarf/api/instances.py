@@ -235,7 +235,14 @@ class Controller(object):
         if status_lookup.get_status_from_server(server).is_sql_running:
             databases, root_enabled = self._get_guest_info(context, server['id'])
             # Lookup additional volume information
-            volume_info = self.guest_api.get_volume_info(context, server['id'])
+            try:
+                volume_info = self.guest_api.get_volume_info(context,
+                                                             server['id'])
+            except exception.GuestError as ge:
+                LOG.error(ge)
+                LOG.error("Failed to get volume information from guest for %s"
+                          % id)
+
         instance = self.view.build_single(server,
                                           req,
                                           status_lookup,
