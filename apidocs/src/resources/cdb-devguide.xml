@@ -1594,7 +1594,11 @@
                 <listitem>
                     <para>BLOCKED &ndash; The database instance is
                         unresponsive at the moment.</para>
-                </listitem> 
+                </listitem>
+                <listitem>
+                    <para>RESIZE &ndash; The database instance is being
+                        resized at the moment.</para>
+                </listitem>
                 <listitem>
                     <para>SHUTDOWN &ndash; The database instance is
                         terminating services. Also, SHUTDOWN is
