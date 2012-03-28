@@ -81,8 +81,7 @@ class ReddwarfVolumeManager(manager.VolumeManager):
     def delete_volume_when_available(self, context, volume_id, time_out):
         """Waits until the volume is available or error and then deletes it."""
         poll_until(lambda: self.db.volume_get(context, volume_id),
-                         lambda volume: volume['status'] == 'available'
-                                        or volume['status'] == 'error',
+                         lambda volume: volume['status'] in ['available', 'error'],
                          sleep_time=1, time_out=time_out)
         self.delete_volume(context, volume_id)
 
