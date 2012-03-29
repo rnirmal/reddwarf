@@ -540,7 +540,7 @@ class TestInstanceListing(object):
 
     @test
     def test_get_instance(self):
-        expected_attrs = ['created', 'databases', 'flavor', 'hostname', 'id',
+        expected_attrs = ['created', 'flavor', 'hostname', 'id',
                           'links', 'name', 'rootEnabled', 'status', 'updated',
                           'volume']
         instance = dbaas.instances.get(instance_info.id)
@@ -551,7 +551,6 @@ class TestInstanceListing(object):
         CheckInstance(instance_dict).flavor()
         CheckInstance(instance_dict).links(instance_dict['links'])
         CheckInstance(instance_dict).volume()
-        CheckInstance(instance_dict).databases()
 
     @test
     def test_instance_hostname(self):
