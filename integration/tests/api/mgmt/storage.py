@@ -75,5 +75,4 @@ class StorageAfterInstanceCreation(object):
             assert_equal(device.name, instance_info.storage[index].name)
             assert_equal(device.totalsize, instance_info.storage[index].totalsize)
             assert_equal(device.type, instance_info.storage[index].type)
-            avail = instance_info.storage[index].availablesize - instance_info.volume['size']
-            assert_equal(device.availablesize, avail)
+            assert_true(device.availablesize < instance_info.storage[index].availablesize)
