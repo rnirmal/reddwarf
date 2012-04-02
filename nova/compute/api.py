@@ -146,7 +146,7 @@ class API(base.Base):
         # In future, we may support more variable length strings, so we act
         #  as if this is quota-controlled for forwards compatibility
         for k, v in metadata.iteritems():
-            if len(k) > 255 or len(v) > 255:
+            if len(k) > 255 or len(v) > FLAGS.metadata_max_size:
                 pid = context.project_id
                 msg = _("Quota exceeded for %(pid)s, metadata property "
                         "key or value too long") % locals()

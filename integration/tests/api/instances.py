@@ -235,6 +235,17 @@ class CreateInstance(unittest.TestCase):
                       "way_too_large", instance_info.dbaas_flavor_href,
                       {'size': too_big + 1}, [])
 
+    def test_instance_quota_error(self):
+        single_user = {"name": "test", "password": "test",
+                       "databases": [{"name": "testdb"}]}
+        users = []
+        for i in range(100):
+            users.append(single_user)
+
+        assert_raises(nova_exceptions.BadRequest, dbaas.instances.create,
+                      "user_quota", instance_info.dbaas_flavor_href,
+                      {'size': 1}, [], users)
+
     def test_create(self):
         databases = []
         databases.append({"name": "firstdb", "character_set": "latin2",

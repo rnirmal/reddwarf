@@ -24,6 +24,7 @@ from nova import db
 from nova import exception as nova_exception
 from nova import flags
 from nova import log as logging
+from nova import quota
 from nova.api.openstack import common as nova_common
 from nova.api.openstack import faults
 from nova.api.openstack import servers
@@ -58,6 +59,8 @@ flags.DEFINE_string('reddwarf_volume_description',
 flags.DEFINE_integer('reddwarf_max_accepted_volume_size', 128,
                     'Maximum accepted volume size (in gigabytes) when creating'
                     ' an instance.')
+flags.DEFINE_integer('metadata_max_size', 5000,
+                     'Max size of the Metadata value column.')
 
 
 def publisher_id(host=None):
@@ -357,6 +360,11 @@ class Controller(object):
         except (TypeError, AttributeError, KeyError) as e:
             LOG.error(e)
             raise exception.UnprocessableEntity()
+        except quota.QuotaError as qe:
+            LOG.error(qe)
+            raise exception.BadRequest("Exceeded the max allowable size of "
+                                       "'%r' chars for database/user fields."
+                                       % FLAGS.metadata_max_size)
 
     @staticmethod
     def _create_server_dict(instance, volume_id, mount_point):
