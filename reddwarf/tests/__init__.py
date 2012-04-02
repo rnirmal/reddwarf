@@ -21,7 +21,7 @@ from nova.db import migration as nova_migration
 
 database_file = "reddwarf_test.sqlite"
 clean_db = "clean.sqlite"
-reddwarf_db_version = 6
+reddwarf_db_version = 7
 
 FLAGS = flags.FLAGS
 
