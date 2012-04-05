@@ -405,6 +405,10 @@
         <wadl:doc xml:lang="EN" title="List Database Instance Status and Details"  xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Lists status and details for a specified database instance or all database instances associated with an account.</para>
             <para>This operation lists the status and details of the specified database instance or, if no database instance is specified, all database instances associated with an account.</para>
+            <para>If a database instance is specified, this operation lists the volume size in gigabytes (GB) and the approximate GB used.</para>
+            <note>After instance creation, the used size of your volume will be
+                greater than 0. This is expected and due to the automatic creation of
+                non-empty transaction logs for mysql optimization.</note>
             <para>Refer to <xref linkend="database_instance_status"/> for a list of possible database instance statuses that may be returned.</para>
             <para>The list operations return a DNS-resolvable hostname associated with the database instance instead of an IP address. Since the hostname always resolves to the correct IP address of the database instance, this relieves the user from the task of maintaining the mapping. Note that although the IP address may likely change on resizing, migrating, and so forth, the hostname always resolves to the correct database instance.</para>
         </wadl:doc>
@@ -959,7 +963,7 @@
                 <listitem>
                     <para>For additional information, refer to: <link
                         xlink:href="http://dev.mysql.com/doc/refman/5.1/en/user-account-management.html"
-                        >http://http://dev.mysql.com/doc/refman/5.1/en/user-account-management.html</link></para>
+                        >http://dev.mysql.com/doc/refman/5.1/en/user-account-management.html</link></para>
                 </listitem>
             </itemizedlist>
         </wadl:doc>
@@ -1157,7 +1161,7 @@
     <method name="GET" id="getFlavorDetails">
         <wadl:doc xml:lang="EN" title="List Flavors Details" xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Lists all details for all available flavors.</para>
-            <para>This operation lists all available flavors with details of the RAM.</para>
+            <para>This operation lists all available flavors with details on the available RAM.</para>
             <para>This resource is identical to the flavors found in the OpenStack Nova API, but without the disk property.</para>
         </wadl:doc>
         <request>

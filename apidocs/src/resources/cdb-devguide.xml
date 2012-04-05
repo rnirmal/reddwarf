@@ -36,12 +36,11 @@
     xmlns:m="http://www.w3.org/1998/Math/MathML"
     xmlns:html="http://www.w3.org/1999/xhtml" 
     xml:id="cdb-devguide"
-    status="draft"
     version="5.0">
-    <?rax status.bar.text="BETA"?>
+    <?rax status.bar.text="Early Access"?>
     <?rax title.font.size="35px" subtitle.font.size="20px"?>
-    <title>Rackspace Cloud Database BETA Developer Guide</title>
-    <titleabbrev>Rackspace Cloud Database BETA Dev Guide</titleabbrev>
+    <title>Rackspace Cloud Database Developer Guide</title>
+    <titleabbrev>Rackspace Cloud Database Developer Guide</titleabbrev>
     <info>
         <author>
             <personname>
@@ -58,9 +57,9 @@
             <year>2012</year>
             <holder>Rackspace US, Inc.</holder>
         </copyright>
-        <releaseinfo>API v1.0 BETA</releaseinfo>
+        <releaseinfo>API v1.0 EAP</releaseinfo>
         <productname>Rackspace Cloud Database</productname>
-        <pubdate>2012-04-04</pubdate>
+        <pubdate>2012-04-06</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -75,11 +74,21 @@
         
         <revhistory>
             <revision>
-                <date>2012-04-04</date>
+                <date>2012-04-06</date>
                 <revdescription>
                     <itemizedlist spacing="compact">
                         <listitem>
-                            <para>Added volume capacity information to
+                            <para>Removed listing of vcpus in List
+                                Flavor By ID response (see <xref
+                                   linkend="GET_getFlavorById__version___accountID__flavors__flavorId__flavors"
+                                />) and List Flavors Detail response
+                                (see <xref
+                                   linkend="GET_getFlavorDetails__version___accountID__flavors_detail_flavors"
+                                />).</para>
+                        </listitem>
+                        <listitem>
+                            <para>Removed listing of databases and
+                                added volume capacity information to
                                 List Database Instance Status and
                                 Details response (see <xref
                                    linkend="GET_getInstanceById__version___accountID__instances__instanceId__Database_Instances"
@@ -386,6 +395,13 @@
                     >http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html</link>.
             </para>
         </section>
+        <section xml:id="API_Contract_Changes-d1e363">
+            <title>API Contract Changes</title>
+            <para>The API contract is not locked and may change during
+                the Early Access program.</para>
+            <para>Rackspace will notify customers in Release Notes
+                when and if the contract does change.</para>
+        </section>
     </chapter>
     <chapter xml:id="Concepts-d1e563">
         <title>Concepts</title>
@@ -422,9 +438,9 @@
             <title>Volume</title>
             <para>A volume is user-specified storage that contains the
                 MySQL data directory. Volumes are automatically
-                provisioned on dedicated Internet Small Computer
-                System Interface (iSCSI) storage area networks (SAN)
-                that provide for increased performance, scalability,
+                provisioned on shared Internet Small Computer System
+                Interface (iSCSI) storage area networks (SAN) that
+                provide for increased performance, scalability,
                 availability and manageability. Applications with high
                 I/O demands are performance optimized and data is
                 protected through both local and network RAID-10.
@@ -546,7 +562,7 @@
                             <area xml:id="credentials.json.key"
                                 units="linecolumn" coords="12 18"/>
                         </areaspec>
-                        <programlisting language="javascript">
+                        <programlisting language="json">
 <xi:include href="samples/db-credentials.json" parse="text"/>
                     </programlisting>
                     </programlistingco>
@@ -611,7 +627,7 @@
                             <area xml:id="auth.json.sc.s.e.iu"
                                 units="linecolumn" coords="19 36"/>
                         </areaspec>
-                        <programlisting language="javascript">
+                        <programlisting language="json">
 <xi:include href="samples/db-auth.json" parse="text"/>
                     </programlisting>
                     </programlistingco>
@@ -892,7 +908,7 @@
             <example xml:id="request_with_headers_json">
                 <title>Request with Headers: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml"><xi:include href="samples/db-request-types.json" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
+                <programlisting language="json"><xi:include href="samples/db-request-types.json" parse="text"><xi:fallback>Missing code sample!<?rax fail?></xi:fallback></xi:include></programlisting>
             </example>
             <para><?rax-fo keep-with-next?>Therefore an XML response format is returned:</para>
             <example>
@@ -926,7 +942,7 @@
             <example>
                 <title>202 ACCEPTED Response: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">Reviewer: need code example</programlisting>
+                <programlisting language="json">Reviewer: need code example</programlisting>
             </example>
             <para>The following table shows the attributes for asynchronous responses:</para>
             <table rules="all">
@@ -1530,7 +1546,7 @@
             <example>
                 <title>Example Fault Response: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">
+                <programlisting language="json">
 <xi:include href="samples/db-faults-instanceFault.json" parse="text"/>
                     </programlisting>
             </example>
@@ -1557,7 +1573,7 @@
                 <title>Example badRequest Fault on Volume Size Errors:
                     JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">
+                <programlisting language="json">
 <xi:include href="samples/db-faults-badRequest.json" parse="text"/>
                     </programlisting>
             </example>
@@ -1573,7 +1589,7 @@
             <example>
                 <title>Example itemNotFound Fault: JSON</title>
                 <?dbfo keep-together="always"?>
-                <programlisting language="xml">
+                <programlisting language="json">
 <xi:include href="samples/db-faults-itemNotFound.json" parse="text"/>
                     </programlisting>
             </example>

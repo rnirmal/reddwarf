@@ -32,13 +32,13 @@
     xmlns:m="http://www.w3.org/1998/Math/MathML"
     xmlns:html="http://www.w3.org/1999/xhtml" 
     xml:id="cdb-devguide"
-    status="draft"
+   
     version="5.0">
-    <?rax status.bar.text="BETA"?>
+    <?rax status.bar.text="Early Access"?>
     <?rax title.font.size="35px" subtitle.font.size="20px"?>
-    <title>Rackspace Cloud Database BETA Developer Guide for Service Management</title>
+    <title>Rackspace Cloud Database Developer Guide for Service Management</title>
     <?rax status.bar.text="RAX INTERNAL"?>
-    <titleabbrev>Rackspace Cloud Database BETA Mgmt Dev Guide</titleabbrev>
+    <titleabbrev>Rackspace Cloud Database Management Developer Guide</titleabbrev>
     <info>
         <author>
             <personname>
@@ -54,9 +54,9 @@
             <year>2012</year>
             <holder>Rackspace US, Inc.</holder>
         </copyright>
-        <releaseinfo>API v1.0 BETA</releaseinfo>
-        <productname>Rackspace Cloud Database BETA</productname>
-        <pubdate>2012-04-04</pubdate>
+        <releaseinfo>API v1.0 EAP</releaseinfo>
+        <productname>Rackspace Cloud Database</productname>
+        <pubdate>2012-04-06</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -72,7 +72,7 @@
         
         <revhistory>
             <revision>
-                <date>2012-04-04</date>
+                <date>2012-04-06</date>
                 <revdescription>
                     <itemizedlist spacing="compact">
                         <listitem>

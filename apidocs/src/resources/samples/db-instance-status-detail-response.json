@@ -31,8 +31,7 @@ Date: Wed, 28 Mar 2012 21:37:29 GMT
                 "rel": "bookmark"
             }
         ], 
-        "name": "xml_rack_instance", 
-        "rootEnabled": true, 
+        "name": "xml_rack_instance",  
         "status": "ACTIVE", 
         "updated": "2012-03-28T21:34:25Z", 
         "volume": {
