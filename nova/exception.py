@@ -26,6 +26,7 @@ SHOULD include dedicated exception logging.
 
 from functools import wraps
 import sys
+import json
 
 from nova import log as logging
 
@@ -39,9 +40,14 @@ class ProcessExecutionError(IOError):
             description = _('Unexpected error while running command.')
         if exit_code is None:
             exit_code = '-'
-        message = _('%(description)s\nCommand: %(cmd)s\n'
-                    'Exit code: %(exit_code)s\nStdout: %(stdout)r\n'
-                    'Stderr: %(stderr)r') % locals()
+        message = {
+            'stdout': stdout,
+            'stderr': stderr,
+            'exit_code': exit_code,
+            'cmd': cmd,
+            'description': description
+        }
+        message = json.dumps(message)
         IOError.__init__(self, message)
 
 

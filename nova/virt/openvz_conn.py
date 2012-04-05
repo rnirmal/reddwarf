@@ -23,6 +23,7 @@ is sketchy at best.
 import os
 import fnmatch
 import socket
+import json
 from nova import db
 from nova import exception
 from nova import flags
@@ -515,8 +516,15 @@ class OpenVzConnection(driver.ComputeDriver):
             if err:
                 LOG.error(_('Stderr output from vzctl: %s') % err)
         except ProcessExecutionError as err:
-            LOG.error(_('Stderr output from vzctl: %s') % err)
-            raise exception.Error(_('Failed to stop %s') % instance['id'])
+            err = json.loads(str(err))
+            if err['exit_code'] == 9:
+                if err['stderr'] == 'Container already locked\n':
+                    LOG.warn(_('Container %s was locked, cannot stop') %
+                             instance['id'])
+                    return
+            else:
+                LOG.error(_('Stderr output from vzctl: %s') % err)
+                raise exception.Error(_('Failed to stop %s') % instance['id'])
 
         # Update instance state
         try:
@@ -1282,6 +1290,12 @@ class OpenVzConnection(driver.ComputeDriver):
                 if err:
                     LOG.error(_('Stderr output from vzctl: %s') % err)
             except ProcessExecutionError as err:
+                err = json.loads(str(err))
+                if err['exit_code'] == 9:
+                    if err['stderr'] == 'Container already locked\n':
+                        LOG.warn(_('Container %s locked, cannot continue') %
+                                 instance['id'])
+                        timer.stop()
                 LOG.error(_('Stderr output from vzctl: %s') % err)
                 raise exception.Error(_('Error destroying %d') % instance['id'])
             except exception.NotFound:
