@@ -156,7 +156,9 @@ default_storage_engine = innodb
 # ssl-ca=/etc/mysql/cacert.pem
 # ssl-cert=/etc/mysql/server-cert.pem
 # ssl-key=/etc/mysql/server-key.pem
-
+#
+# Disable LOAD DATA LOCAL INFILE
+local-infile = 0
 
 [mysqldump]
 quick

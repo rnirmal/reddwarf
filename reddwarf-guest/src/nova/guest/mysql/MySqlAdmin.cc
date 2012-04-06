@@ -137,6 +137,7 @@ MySqlUserPtr MySqlAdmin::enable_root() {
     }
     set_password("root", root_user->get_password().get().c_str());
     con->grant_all_privileges("root", "%");
+    con->revoke_privileges("root", "%", "FILE");
     con->flush_privileges();
     return root_user;
 }

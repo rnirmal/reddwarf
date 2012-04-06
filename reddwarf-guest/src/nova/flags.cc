@@ -245,7 +245,7 @@ FlagValues::FlagValues(FlagMapPtr map)
 }
 
 const char * FlagValues::apt_self_package_name() const {
-    return map->get("apt_self_package_name", "nova-guest");
+    return map->get("apt_self_package_name", "reddwarf-config nova-guest");
 }
 
 int FlagValues::apt_self_update_time_out() const {

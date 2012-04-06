@@ -564,6 +564,17 @@ void MySqlConnection::grant_all_privileges(const char * username,
     stmt->close();
 }
 
+void MySqlConnection::revoke_privileges(const char * username,
+                                        const char * host,
+                                        const char * privs) {
+    string text = str(format("REVOKE %s ON *.* FROM '%s'@'%s';")
+                      % escape_string(privs) % escape_string(username)
+                      % escape_string(host));
+    MySqlPreparedStatementPtr stmt = prepare_statement(text.c_str());
+    stmt->execute();
+    stmt->close();
+}
+
 void MySqlConnection::init() {
     if (con != 0) {
         throw std::exception();
