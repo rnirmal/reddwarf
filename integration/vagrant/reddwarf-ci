@@ -457,25 +457,19 @@ dbaas_pkg_build_sneaky_pete() {
     exclaim "Building and packaging Sneaky Pete..."
 
     # Build new package
-
     # Clean this to prevent any shenanigans.
     if [ "$1" != "no-clean" ]; then
         rm -rf $AGENT_DIR/bin
     fi
     cd $AGENT_DIR
+    cp -R $BUILD_DIR/oizys/generic_package_scripts/nova_guest_diablo_scripts debian
 
-    # Create the directory here so root won't own it.
-    mkdir -p bin/gcc-4.4.5
-    mkdir -p parrot
-
-    sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
 
     exclaim Guest packaging finished, moving to $BUILD_DIR.
-    mv -f $AGENT_DIR/../nova-guest*_all.deb $BUILD_DIR/
-    mv -f $AGENT_DIR/../nova-guest*_amd64.changes $BUILD_DIR/
+    mv -f $AGENT_DIR/../nova-guest_* $BUILD_DIR/
 
     exclaim Creating Dopple-Pete...
-    cd $AGENT_DIR
     # Make the version call return some nonsense.
     echo '
           #ifndef __NOVA_GUEST_VERSION_H
@@ -488,15 +482,15 @@ dbaas_pkg_build_sneaky_pete() {
     # Delete the binary just in case Boost Build attempts deception.
     rm -f bin/gcc-4.4.5/release/link-static/nova-guest
     # Update the changelog so the new version comes from the future.
-    sudo sed -i.bak "s/2012/2013/g" debian/changelog
+    sed -i.bak "s/2012/2013/g" debian/changelog
     # Build and package it again
-    sudo DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
+    DEB_BUILD_OPTIONS=nocheck,nodocs dpkg-buildpackage -rfakeroot -b -uc -us
     # Revert the changelog.
-    sudo sed -i.bak "s/2013/2012/g" debian/changelog
+    sed -i.bak "s/2013/2012/g" debian/changelog
 
     exclaim Dopple-Pete packaging finished, moving to $BUILD_DIR.
-    mv -f $AGENT_DIR/../nova-guest*_all.deb $BUILD_DIR/
-    mv -f $AGENT_DIR/../nova-guest*_amd64.changes $BUILD_DIR/
+    mv -f $AGENT_DIR/../nova-guest_* $BUILD_DIR/
+    rm -rf $AGENT?_DIR/debian
 }
 
 dpkg_restore_normal_pete() {
@@ -565,10 +559,6 @@ build_agent() {
     remove_agent_pkg
 
     GIT_REVISION=`git --git-dir=${NOVA_HOME}/.git rev-parse HEAD`
-
-    mkdir -p $BUILD_DIR
-    cd $BUILD_DIR
-    # git clone https://github.com/hub-cap/oizys.git
 
     dbaas_pkg_build_sneaky_pete no-clean
     sudo apt-get update
