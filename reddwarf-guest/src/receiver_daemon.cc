@@ -183,7 +183,9 @@ int main(int argc, char* argv[]) {
         MessageHandlerPtr handlers[handler_count];
 
         /* Create Apt Guest */
-        AptGuest apt_worker(flags.apt_use_sudo(), flags.apt_self_package_name(),
+        AptGuest apt_worker(flags.apt_use_sudo(),
+                            flags.apt_guest_config_package(),
+                            flags.apt_self_package_name(),
                             flags.apt_self_update_time_out());
         handlers[0].reset(new AptMessageHandler(&apt_worker));
 
