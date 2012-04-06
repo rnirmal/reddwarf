@@ -802,7 +802,7 @@ class CheckInstance(object):
                          msg="Volumes")
 
     def volume_mgmt(self):
-        expected_attrs = ['description', 'id', 'name', 'size']
+        expected_attrs = ['description', 'id', 'name', 'size', 'used']
         self.attrs_exist(self.instance['volume'], expected_attrs,
                          msg="Volumes")
 
@@ -827,10 +827,6 @@ class CheckInstance(object):
         self.attrs_exist(self.instance['guest_status'], expected_attrs,
                          msg="Guest status")
 
-    def mgmt_volume(self):
-        expected_attrs = ['description', 'id', 'name', 'size']
-        self.attrs_exist(self.instance['volume'], expected_attrs,
-                         msg="Volume")
 
 def diagnostic_tests_helper(diagnostics):
     print("diagnostics : %r" % diagnostics._info)
