@@ -167,7 +167,7 @@
                         </goals>
                         <phase>generate-sources</phase>
                         <configuration>
-                            <security>internal</security>
+                            
                             <xincludeSupported>true</xincludeSupported>
                             <sourceDirectory>src/resources</sourceDirectory>
                             <highlightSource>false</highlightSource>
@@ -191,7 +191,7 @@
                     </goals>
                     <phase>generate-sources</phase>
                     <configuration>
-                      <security>internal</security>
+                      
                       <xincludeSupported>true</xincludeSupported>
                       <sourceDirectory>src/resources</sourceDirectory>
                       <highlightSource>false</highlightSource>
@@ -206,6 +206,7 @@
                 </executions>
                 
               <configuration>
+                <socialIcons>1</socialIcons>
                 <branding>rackspace</branding>
               </configuration>
             </plugin>

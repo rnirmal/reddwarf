@@ -27,11 +27,7 @@
           </resource>
       </resource>
       <resource id="instances" path="instances">
-        <method href="#getIndex" name="GET">
-            <request>
-              <param name="deleted" style="query" type="xsd:boolean" />
-            </request>
-        </method>
+        <method href="#getIndex"/>
         <resource id="instanceId" path="{instanceId}">
           <param name="instanceId" style="template" type="xsd:string"> 
             <doc>The instance ID for the specified database instance.</doc></param>
@@ -178,6 +174,13 @@
       </para>
     </wadl:doc>
     <request>
+        <param name="deleted" style="query" type="xsd:boolean">
+          <wadl:doc xmlns="http://docbook.org/ns/docbook">
+            <para>This query parameter specifies whether or not to list deleted instances. 
+              If <code>true</code>, deleted instances are listed. If <code>false</code>, deleted instances are not listed.
+            </para>
+          </wadl:doc>
+        </param>
       <representation mediaType="application/xml">
         <doc>
             <para xmlns="http://docbook.org/ns/docbook">The following examples show the List All Instances requests:</para>
@@ -200,6 +203,8 @@
       <representation mediaType="application/json">
         <doc>
           <xsdxt:code href="../apidocs/src/resources/samples/db-mgmt-instance-index-response.json"/>
+          <para xmlns="http://docbook.org/ns/docbook">By default, all instances (both deleted and not deleted) are displayed. 
+            Use the <code>deleted</code> query parameter to list only the deleted or not deleted instances.</para>
         </doc>
       </representation>
     </response>
