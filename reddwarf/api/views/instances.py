@@ -36,6 +36,9 @@ def _project_id(req):
 def _base_url(req):
     return req.application_url
 
+def _to_gb(bytes):
+    return bytes/1024.0**3
+
 
 class ViewBuilder(object):
     """Views for an instance"""
@@ -110,8 +113,7 @@ class ViewBuilder(object):
             # Add root_enabled and volume_info
             instance['rootEnabled'] = root_enabled
             if volume_info:
-                used_in_gb = volume_info['used']/1024.0**3
-                instance['volume']['used'] = used_in_gb
+                instance['volume']['used'] = _to_gb(volume_info['used'])
 
         return instance
 
@@ -139,12 +141,14 @@ class MgmtViewBuilder(ViewBuilder):
     def __init__(self):
         super(MgmtViewBuilder, self).__init__()
 
-    def build_mgmt_single(self, server, instance_ref, req, status_lookup):
+    def build_mgmt_single(self, server, instance_ref, req, status_lookup, volume_info):
         """Build out the management view for a single instance"""
         instance = self._build_basic(server, req, status_lookup)
         instance = self._build_detail(server, req, instance)
         instance = self._build_server_details(server, instance)
         instance = self._build_compute_api_details(instance_ref, instance)
+        if volume_info:
+            instance['volume']['used'] = _to_gb(volume_info['used'])
         return instance
 
     def build_guest_info(self, instance, status=None, dbs=None, users=None,

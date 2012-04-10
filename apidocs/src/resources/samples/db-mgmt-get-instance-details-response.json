@@ -86,7 +86,8 @@ Date: Wed, 25 Jan 2012 21:58:25 GMT
             "description": "Volume ID: None assigned to Instance: None", 
             "id": 2, 
             "name": "xml_rack_instance", 
-            "size": 2
+            "size": 2,
+            "used": 0.12451171875
         }
     }
 }
