@@ -101,6 +101,10 @@ namespace nova { namespace db { namespace mysql {
             void grant_all_privileges(const char * username,
                                       const char * host);
 
+            void revoke_privileges(const char * username,
+                                   const char * host,
+                                   const char * privs);
+
             void init();
 
             MySqlPreparedStatementPtr prepare_statement(const char * text);

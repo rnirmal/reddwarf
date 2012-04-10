@@ -15,6 +15,7 @@
 import time
 
 from sqlalchemy.sql.expression import text
+from sqlalchemy import exc
 
 from reddwarf.guest.dbaas import LocalSqlClient
 
@@ -66,6 +67,7 @@ class TestRoot(object):
 
     def _root(self):
         global root_password
+        global root_user
         host = "%"
         user, password = self.dbaas.root.create(instance_info.id)
 
@@ -78,6 +80,7 @@ class TestRoot(object):
                 assert_equal(user, row['User'])
                 assert_equal(host, row['Host'])
         root_password = password
+        root_user = user
         self.root_enabled_timestamp = self.dbaas_admin.management.show(instance_info.id).root_enabled_at
         assert_not_equal(self.root_enabled_timestamp, 'Never')
 
@@ -101,6 +104,45 @@ class TestRoot(object):
     def test_enable_root(self):
         self._root()
         assert_not_equal(self.root_enabled_timestamp, 'Never')
+
+    @test(depends_on=[test_enable_root])
+    def test_verify_root_load_file(self):
+        global root_user
+        global root_password
+        engine = init_engine(root_user, root_password, instance_info.user_ip)
+        client = LocalSqlClient(engine)
+        with client:
+            t = text("""SELECT load_file("/etc/nova/guest.conf");""")
+            result = client.execute(t)
+            print result
+            for row in result:
+                print row
+                assert_equal(None, row[0])
+
+    @test(depends_on=[test_enable_root])
+    def test_verify_root_cannot_create_super_user(self):
+        """
+        Next check that root is not able to create a new user with full perms.
+        """
+        global root_user
+        global root_password
+        super_user = "foo"
+        super_pwd = "foo"
+        host = "%"
+        engine = init_engine(root_user, root_password, instance_info.user_ip)
+        client = LocalSqlClient(engine)
+        with client:
+            t = text("""CREATE USER :user@:host;""")
+            client.execute(t, user=super_user, host=host)
+            t = text("""UPDATE mysql.user SET Password=PASSWORD(:pwd)
+                        WHERE User=:user;""")
+            client.execute(t, pwd=super_pwd, user=super_user)
+            t = text("""GRANT ALL PRIVILEGES ON *.* TO :user@:host
+                        WITH GRANT OPTION;""")
+            assert_raises(exc.OperationalError,
+                          client.execute, t, user=super_user, host=host)
+            t = text("""DROP USER :user@:host""")
+            client.execute(t, user=super_user, host=host)
 
     @test(depends_on=[test_enable_root])
     def test_root_now_enabled(self):

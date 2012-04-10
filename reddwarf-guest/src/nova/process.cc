@@ -142,7 +142,7 @@ namespace {
             stringstream str;
             str << "Running the following process: { ";
             BOOST_FOREACH(const char * cmd, cmds) {
-                str << cmd;
+                str << "'" << cmd << "'";
                 str << " ";
             }
             str << "}";
