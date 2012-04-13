@@ -36,9 +36,11 @@
     version="5.0">
     <?rax status.bar.text="Early Access"?>
     <?rax title.font.size="35px" subtitle.font.size="20px"?>
-    <title>Rackspace Cloud Database Developer Guide for Service Management</title>
+    <title>Rackspace Cloud Databases Developer Guide for Service
+        Management</title>
     <?rax status.bar.text="RAX INTERNAL"?>
-    <titleabbrev>Rackspace Cloud Database Management Developer Guide</titleabbrev>
+    <titleabbrev>Rackspace Cloud Databases Management Developer
+        Guide</titleabbrev>
     <info>
         <author>
             <personname>
@@ -55,8 +57,8 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 EAP</releaseinfo>
-        <productname>Rackspace Cloud Database</productname>
-        <pubdate>2012-04-06</pubdate>
+        <productname>Rackspace Cloud Databases</productname>
+        <pubdate>2012-04-16</pubdate>
         <legalnotice role="rs-api">
             <annotation>
                 <remark>Copyright details are filled in by the template.</remark>
@@ -65,73 +67,19 @@
         <abstract>
             <para>This document is intended for software developers
                 interested in developing service management
-                applications using the Rackspace Cloud Database
+                applications using the Rackspace Cloud Databases
                 Application Programming Interface
                     (<abbrev>API</abbrev>). </para>
         </abstract>
         
         <revhistory>
             <revision>
-                <date>2012-04-06</date>
+                <date>2012-04-16</date>
                 <revdescription>
                     <itemizedlist spacing="compact">
                         <listitem>
-                            <para>Added new section <xref
-                                   linkend="Service_Access_Endpoints-d1e753"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added new section <xref
-                                   linkend="Host_Information"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added new section <xref
-                                   linkend="Management_Instances_Actions"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Updated response examples for List
-                                Database Instance Status and Details
-                                (see <xref
-                                   linkend="Database_Instance_Management"
-                                />).</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-01-26</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated doc for bug fixes in
-                                code.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-01-16</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated xml examples to remove extra
-                                white space.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added <xref
-                                   linkend="Root_Flag"/>.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-01-11</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Initial draft.</para>
+                            <para>Initial Early Access Program (EAP)
+                                release.</para>
                         </listitem>
                     </itemizedlist>
                 </revdescription>
@@ -147,11 +95,12 @@
     </info>
     <chapter xml:id="overview">
         <title>Overview</title>
-        <para>Rackspace Cloud Database is a database available to
+        <para>Rackspace Cloud Databases is a database available to
             Rackspace Cloud customers. Interactions with Cloud
-            Database occur programmatically via the Cloud Database API
-            as described in this <citetitle>Cloud Database Developer
-                Guide for Service Management</citetitle>.</para>
+            Databases occur programmatically via the Cloud Databases
+            API as described in this <citetitle>Cloud Databases
+                Developer Guide for Service
+            Management</citetitle>.</para>
         <remark>Writer: need to synch up Overview section with
             marketing blurb for web. These should be
             consistent.</remark>
@@ -159,13 +108,13 @@
             name once we have settled on that name; then get product
             name modified throughout entire manual .</remark>
         <para>The API operations described in this manual relate to
-            support of Cloud Database service activities on behalf of
+            support of Cloud Databases service activities on behalf of
             a specific customer. The scope of these operations is
             narrow, relating to the needs of a single customer. A
             customer might directly request these operations, however
             only Rackers are authorized to perform them.</para>
         <para security="writeronly">The following figure shows an
-            overview of Cloud Database Infrastructure: <informalfigure>
+            overview of Cloud Databases Infrastructure: <informalfigure>
                 <mediaobject>
                     <imageobject role="fo">
                         <imagedata
@@ -193,7 +142,8 @@
             ticket, chat, email, or phone.</remark>
         <section xml:id="Intended_Audience-d1e122">
             <title>Intended Audience</title>
-            <para>Two APIs provide access to Rackspace Cloud Database: </para>
+            <para>Two APIs provide access to Rackspace Cloud
+                Databases: </para>
             <itemizedlist spacing="compact">
                 <listitem>
                     <para>The <emphasis>management</emphasis> API,
@@ -208,7 +158,7 @@
                         available to developers within Rackspace and
                         Rackspace customers, is the subject of a
                         companion document, the <citetitle>Cloud
-                            Database Developer
+                            Databases Developer
                         Guide</citetitle>.</para>
                 </listitem>
             </itemizedlist>
@@ -244,10 +194,10 @@
         </section>
         <section xml:id="Additional_Resources-d1e532">
             <title>Additional Resources</title>
-            <para>Descriptive information about Cloud Database is also
-                published in its Web Application Description Language
-                (WADL) and XML Schema Definition (XSD). You are
-                welcome to read this information here:</para>
+            <para>Descriptive information about Cloud Databases is
+                also published in its Web Application Description
+                Language (WADL) and XML Schema Definition (XSD). You
+                are welcome to read this information here:</para>
             <itemizedlist>
                 <listitem>
                     <para>The WADL is <link
@@ -264,9 +214,9 @@
                     xlink:href="http://docs.rackspace.com/api/"
                     >http://docs.rackspace.com/api/</link>. </para>
             <para>For information about getting started using Cloud
-                Database and Cloud Servers, refer to
+                Databases and Cloud Servers, refer to
                     <citetitle>Getting Started with Rackspace Cloud
-                    Database and Servers</citetitle>.</para>
+                    Databases and Servers</citetitle>.</para>
             <para>For information about Rackspace Cloud products,
                 refer to <link
                     xlink:href="http://www.rackspace.com/cloud/"
@@ -274,9 +224,16 @@
                 also offers links to Rackspace's official support
                 channels, including knowledge base articles, forums,
                 phone, chat, and email. </para>
-            <para>For issues using the Cloud Database API, please send
-                email to the beta support list:
-                    <email>clouddb_beta@rackspace.com</email>.</para>
+            <para>Get access to the Cloud Databases Forum during the
+                Early Access Program (EAP) by sending an email to:
+                    <email>clouddb_beta@rackspace.com</email>. Once
+                received, we will send you an invitation to join our
+                forum group and you may set up your account if you
+                don’t already have one.</para>
+            <para>Please visit our <link
+                    xlink:href="http://feedback.rackspacecloud.com/forums/71021-product-feedback/category/42449-cloud-databases"
+                    >Product Feedback Forum</link> to find out what
+                customers think about Cloud Databases.</para>
             <para>You can also follow Rackspace updates and
                 announcements via twitter at <link
                     xlink:href="http://www.twitter.com/rackspace"
@@ -291,7 +248,7 @@
     <chapter xml:id="Concepts-d1e563">
         <title>Concepts</title>
         <?dbhtml stop-chunking?>
-        <para> To use the Cloud Database API effectively, you should
+        <para> To use the Cloud Databases API effectively, you should
             understand several key concepts: </para>
         <remark>Reviewer: Daniel  Morris is asking Daniel Salinas to
             do an initial write-up of this chapter.</remark>
@@ -337,22 +294,22 @@
     </chapter>
     <chapter xml:id="General_API_Information-d1e633">
         <title>General API Information</title>
-        <para> The Cloud Database Management API is implemented using
+        <para> The Cloud Databases Management API is implemented using
             a ReSTful web service interface. Most functions of the
-            customer-facing Cloud Database API may be accessed on
-            behalf of a customer. The Cloud Database Management API
+            customer-facing Cloud Databases API may be accessed on
+            behalf of a customer. The Cloud Databases Management API
             also extends this functionality to include operations for
             managing features of the public API <remark>as well as
                 additional data fields not available to
                 customers</remark>.</para>
         <section xml:id="Authentication-d1e647">
             <title>Authentication</title>
-            <para>Every ReST request against the Cloud Database
+            <para>Every ReST request against the Cloud Databases
                 Management API requires that the caller be
                 authenticated with HTTP Basic Auth using LDAP. </para>
             <note>
                 <para>Not all Rackspace employees will have access to
-                    the Cloud Database Management API. If you cannot
+                    the Cloud Databases Management API. If you cannot
                     access the service and feel that this is in error,
                     please contact your supervisor and have the
                     appropriate LDAP roles/permissions added. </para>
@@ -363,8 +320,8 @@
             <para>The Database Service is a regionalized service. The
                 user of the service is therefore responsible for
                 appropriate replication, caching, and overall
-                maintenance of Cloud Database data across regional
-                boundaries to other Cloud Database servers.</para>
+                maintenance of Cloud Databases data across regional
+                boundaries to other Cloud Databases servers.</para>
             <?rax-fo keep-with-next?>
             <para>Replace the sample account ID number,
                     <parameter>1234</parameter>, as shown in the URLs
@@ -381,7 +338,7 @@
         </section>
         <section xml:id="Request_Response_Types-d1e503">
             <title>Request/Response Types</title>
-            <para> The Cloud Database API supports both the JSON and
+            <para> The Cloud Databases API supports both the JSON and
                 XML data serialization formats. The request format is
                 specified using the <code>Content-Type</code> header
                 and is <emphasis>required</emphasis> for calls that
@@ -980,7 +937,7 @@
         <section xml:id="DB_faults">
             <title>Faults</title>
             <remark>Reviewer: need to update this section as needed
-                for Cloud Database.</remark>
+                for Cloud Databases.</remark>
             <para> When an error occurs, the Database Service returns
                 a fault object containing an HTTP error response code
                 that denotes the type of error. In the body of the

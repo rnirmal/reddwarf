@@ -34,7 +34,7 @@
          class="specification">
     <?rax status.bar.text="Early Access"?>
     <info>
-        <title>Getting Started with Rackspace Cloud Database and
+        <title>Getting Started with Rackspace Cloud Databases and
             Servers</title>
         <copyright>
             <year>2011</year>
@@ -42,175 +42,15 @@
             <holder>Rackspace US, Inc.</holder>
         </copyright>
         <releaseinfo>API v1.0 EAP</releaseinfo>
-        <pubdate>2012-04-06</pubdate>
+        <pubdate>2012-04-16</pubdate>
         <revhistory>
             <revision>
-                <date>2012-04-06</date>
+                <date>2012-04-16</date>
                 <revdescription>
                     <itemizedlist spacing="compact">
                         <listitem>
-                            <para>Added trademark to Cloud
-                                Servers.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Combined section on creating a user
-                                with Creating a Database Instance with
-                                a Database (see <xref
-                                   linkend="Create_DB_Instance"
-                                />).</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added sections <xref
-                                   linkend="List_DBS_For_Instance"/>
-                                and <xref
-                                   linkend="List_Users_DB_Instance"
-                                />.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-03-13</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Added note about solving certificate
-                                errors when using cURL to make API
-                                calls in <xref
-                                   linkend="DB_using-curl-cli"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Updated all authentication endpoints
-                                in <xref
-                                   linkend="Generating_Auth_Token"
-                                />.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-02-16</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated service catalog for
-                                authentication examples in <xref
-                                   linkend="Generating_Auth_Token"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added LON endpoint in <xref
-                                   linkend="Service_Access_Endpoints-d1e753"
-                                />.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-02-13</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated code examples to remove
-                                X-Auth-Project-ID header.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-01-26</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated doc for bug fixes in
-                                code.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added DFW service endpoint in <xref
-                                   linkend="Service_Access_Endpoints-d1e753"
-                                /></para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-01-16</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated xml examples to remove extra
-                                white space.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2012-01-11</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Added new <xref
-                                   linkend="DB_copy_paste_examples"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Updated procedure steps for <xref
-                                   linkend="Create_Cloud_Server"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added additional supporting details
-                                to explain individual sections.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Updated examples.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-12-22</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Updated name for <xref
-                                   linkend="Generating_Auth_Token"
-                                />.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Added additional supporting details
-                                to explain individual sections.</para>
-                        </listitem>
-                        <listitem>
-                            <para>Divided the section "Configure Your
-                                Existing Cloud Server" into two
-                                sections: <xref
-                                   linkend="Configure_Cloud_Server_DB"
-                                /> and <xref
-                                   linkend="Configure_Cloud_Server_Routing"
-                                />.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-12-20</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Fixed cURL XML and JSON examples for
-                                Create User.</para>
-                        </listitem>
-                    </itemizedlist>
-                </revdescription>
-            </revision>
-            <revision>
-                <date>2011-12-8</date>
-                <revdescription>
-                    <itemizedlist spacing="compact">
-                        <listitem>
-                            <para>Initial Private Beta Release.</para>
+                            <para>Initial Early Access Program (EAP)
+                                release.</para>
                         </listitem>
                     </itemizedlist>
                 </revdescription>
@@ -227,16 +67,59 @@
     <section xml:id="DB_Overview">
         <title>Overview</title>
         <para>Follow the steps described in this guide to use the
-            Rackspace Cloud Database API and the Cloud
+            Rackspace Cloud Databases API and the Cloud
             Servers<trademark/> section of the Control Panel to create
             and access your database instances via Rackspace Cloud
             Servers.</para>
-        <para>For details about using the Cloud Database API, refer to
-            the <citetitle>Cloud Database Developer
+        <para>For details about using the Cloud Databases API, refer
+            to the <citetitle>Cloud Databases Developer
                 Guide</citetitle>.</para>
-        <para>For issues with the Cloud Database API, please send
-            email to the beta support list:
-                <email>clouddb_beta@rackspace.com</email>.</para>
+        <para>Request access to the Cloud Databases Forum during the
+            Early Access Program (EAP) by sending an email to:
+                <email>clouddb_beta@rackspace.com</email>. Once
+            received, we will send you an invitation to join our forum
+            group and you may set up your account if you don’t already
+            have one.</para>
+        <para>Support for Cloud Databases during the Early Access
+            Program is available for US and UK customers Monday-Friday
+            8:00AM-5:00PM (Central) and (BST) via phone, chat, or you
+            may also <link
+                xlink:href="https://manage.rackspacecloud.com/Tickets/YourTickets.do"
+                >File a Ticket</link>.</para>
+        <para>Please visit our <link
+                xlink:href="http://feedback.rackspacecloud.com/forums/71021-product-feedback/category/42449-cloud-databases"
+                >Product Feedback Forum</link> and let us know what
+            you think about Cloud Databases!</para>
+        <para>The Early Access Program (EAP) has some limitations. By
+            using the Rackspace Cloud Databases API, you agree and
+            understand that:<itemizedlist spacing="compact">
+                <listitem>
+                    <para>Rackspace Cloud Databases is
+                        API-only.</para>
+                </listitem>
+                <listitem>
+                    <para>There is no charge for this service during
+                        the EAP period.</para>
+                </listitem>
+                <listitem>
+                    <para>We will charge for Rackspace Cloud Databases
+                        when this service becomes generally
+                        available.</para>
+                </listitem>
+                <listitem>
+                    <para>If you participate in this Early-Access
+                        Program, you will receive a notification prior
+                        to general availability.</para>
+                </listitem>
+                <listitem>
+                    <para>There is no Service Level Agreement. </para>
+                </listitem>
+                <listitem>
+                    <para>Support is available from 8 am–5 pm (Central
+                        Time) Monday–Friday.</para>
+                </listitem>
+            </itemizedlist>
+        </para>
         <section xml:id="Prerequisites_Examples">
             <title>Prerequisites for Running Examples</title>
             <para>In order to run the examples in this guide, you must
@@ -316,24 +199,12 @@
                     </listitem>
                 </varlistentry>
             </variablelist>
-            <note> <title>Notes</title>
-                <itemizedlist>
-                    <listitem>
-                        <para>If you get a certificate error when
-                            using cURL to make an API call, you can
-                            try using the <emphasis role="bold"
-                                >-k</emphasis> cURL option to skip the
-                            certificate check.</para>
-                    </listitem>
-                    <listitem>
-                        <para>If you have the tools, you can run the
-                            cURL JSON request examples with the
-                            following options to format the output
-                            from cURL: <command>&lt;curl JSON request
-                                example> | python
-                                -mjson.tool</command>.</para>
-                    </listitem>
-                </itemizedlist>
+            <note>
+                <para>If you have the tools, you can run the cURL JSON
+                    request examples with the following options to
+                    format the output from cURL: <command>&lt;curl
+                        JSON request example> | python
+                        -mjson.tool</command>.</para>
             </note>
         </section>
         <section xml:id="DB_copy_paste_examples">
@@ -423,7 +294,7 @@
         <para>The following example demonstrates how to use cURL to
             obtain the authentication token and the account number.
             You will need to supply the authentication token and
-            account number when making subsequent Cloud Database API
+            account number when making subsequent Cloud Databases API
             calls.</para>
         <para>Remember to replace the names in the Authenticate
             Request examples below with their respective values:<itemizedlist spacing="compact">
@@ -480,7 +351,8 @@
             Rackspace contact information at either site to ask for
             help. </para>
         <para>Notice that you authenticate using a special URL for
-            Cloud authentication services, for example
+            Cloud authentication services. For example, for US-based
+            accounts, you use
                 <code>https://identity.api.rackspacecloud.com/v1.1/auth</code>),
             as shown in the following Authenticate Request
             examples.</para>
@@ -509,6 +381,13 @@
 <uri>'https://identity.api.rackspacecloud.com/v1.1/auth'</uri></programlisting>
             
         </example>
+        <note>
+            <para>For UK-based accounts, you would need to modify the
+                URL shown in the last line of each of the Authenticate
+                Request  examples above to be
+                    <code>'https://lon.identity.api.rackspacecloud.com/v1.1/auth'</code>
+                instead.</para>
+        </note>
         <example>
             <title>Authenticate Response: XML</title>
             <programlisting language="xml"><xi:include href="../../src/resources/samples/db-auth.xml" parse="text"><xi:fallback>Missing code sample! <?rax fail?></xi:fallback></xi:include></programlisting>
@@ -523,6 +402,14 @@
         <note>
             <title>Notes</title>
             <itemizedlist spacing="compact">
+                <listitem>
+                    <para>The information shown in the Authenticate
+                        Response examples above is for US-based
+                        accounts. If you authenticate against the
+                        UK-endpoint for auth, you will see the service
+                        catalog information for UK-based
+                        accounts.</para>
+                </listitem>
                 <listitem>
                     <para>For all response examples in this guide, the
                         field values you receive in your responses
@@ -558,35 +445,26 @@
                 </listitem>
             </itemizedlist>
         </note>
-        <para>The <code>publicURL</code> endpoint (for example
-                <code>https://servers.api.rackspacecloud.com/v1.0/1234</code>)
-            is also returned in the response. </para>
-        <note>
-            <para>The <code>serviceCatalog</code> that is returned in
-                the auth response, does not currently contain an entry
-                for <code>cloudDatabase</code>. Therefore you will
-                need to select your service access/endpoint as
-                described in <xref
-                    linkend="Service_Access_Endpoints-d1e753"
-                />.</para>
-        </note>
+        <para>The <code>publicURL</code> endpoints for
+                <code>cloudDatabases</code> (for example
+                <code>https://ord.databases.api.rackspacecloud.com/v1.0/1234</code>)
+            are also returned in the response. </para>
         <para>You will find the actual account number after the final
             '/' in the <code>publicURL</code> field. In this example,
             you can see that the account number is 1234. You need to
-            specify your account number on most of the Cloud Database
+            specify your account number on most of the Cloud Databases
             API calls, wherever you see the field <emphasis
                 role="bold">your_acct_id</emphasis> specified in the
             examples in this guide.</para>
         <para>After authentication, you can use cURL to perform &GET;,
-            &DELETE;, and &POST; requests for the Cloud Database
+            &DELETE;, and &POST; requests for the Cloud Databases
             API.</para>
         
     </section>
     <section xml:id="Service_Access_Endpoints-d1e753">
         <title>Service Access/Endpoints</title>
-        <para>Specify a region to operate against by selecting an
-            endpoint from the table below to use for your Cloud
-            Database API calls.</para>
+        <para>The endpoints to use for your Cloud Databases API calls
+            are summarized in the table below.</para>
         <?rax-fo keep-with-next?>
         <para>
             <table rules="all">
@@ -644,7 +522,7 @@
                 <emphasis role="bold">your_acct_id</emphasis>
             specified in this guide. Refer to <xref
                 linkend="Generating_Auth_Token"/>.</para>
-        <para>When making a Cloud Database API call, place the
+        <para>When making a Cloud Databases API call, place the
             endpoint at the beginning of the request URL, for example:
                 (<code>https://ord.databases.api.rackspacecloud.com/v1.0/your_acct_id/</code>),
             as you can see in the cURL List Flavors Details Request
@@ -723,9 +601,9 @@
             uses the tiny flavor and a volume size of 2 gigabytes
             (GB). </para>
         <para>Refer to <link
-            xlink:href="http://docs-beta.rackspace.com/cdb/api/v1.0/cdb-devguide/content/POST_createDatabase__version___accountID__instances__instanceId__databases_databases.html"
+                xlink:href="http://docs-beta.rackspace.com/cdb/api/v1.0/cdb-devguide/content/POST_createDatabase__version___accountID__instances__instanceId__databases_databases.html"
                 >Create Database</link> in the <citetitle>Cloud
-                Database Developer Guide</citetitle> for the
+                Databases Developer Guide</citetitle> for the
             restrictions for choosing the database name.</para>
         <para>The example creates a database instance
                 <code>myrackinstance</code>, with the following: <itemizedlist>
@@ -1011,7 +889,9 @@ Date: Thu, 05 Apr 2012 18:20:18 GMT
     &lt;user name="simplestUser">
         &lt;databases>
             &lt;database>
-                &lt;name>sampledb&lt;/name>
+                &lt;name>
+                    sampledb
+                &lt;/name>
             &lt;/database>
         &lt;/databases>
     &lt;/user>
@@ -1034,7 +914,7 @@ Date: Thu, 05 Apr 2012 18:13:53 GMT
                     "name": "sampledb"
                 }
             ],
-            "name": "simplestUser"
+            "name": "simplestUser"  
         }
     ]
 }</programlisting>
