@@ -1081,7 +1081,7 @@
     </method>
 
     <method name="GET" id="isRootEnabled">
-        <wadl:doc xml:lang="EN" title="Check Root User Access"  xmlns="http://docbook.org/ns/docbook">
+        <wadl:doc xml:lang="EN" title="Check Root User"  xmlns="http://docbook.org/ns/docbook">
             <para role="shortdesc">Returns true if root user is enabled for the specified database instance or false otherwise.</para>
             <para>This operation checks an active specified database instance to see if root access is enabled. It returns True if root user is enabled for the specified database instance or False otherwise.</para>
         </wadl:doc>
