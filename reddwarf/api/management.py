@@ -133,17 +133,23 @@ class Controller(object):
             LOG.error("Could not find an instance with id %s" % id)
             raise exception.NotFound("No instance with id %s" % id)
 
-        # Lookup additional volume information
-        volume_info = self.guest_api.get_volume_info(context, server['id'])
-
         status_lookup = InstanceStatusLookup([instance_id])
+        status = status_lookup.get_status_from_server(server)
+
+        # Lookup additional volume information
+        volume_info = None
+        try:
+            if status.is_sql_running:
+                volume_info = self.guest_api.get_volume_info(context, server['id'])
+        except exception.GuestError as err:
+            LOG.warn("Skipping Volume information as guest is not yet available")
+
         instance = self.instance_view.build_mgmt_single(server,
                                                         instance_ref,
                                                         req,
                                                         status_lookup,
                                                         volume_info)
         try:
-            status = status_lookup.get_status_from_server(server)
             instance = self._get_guest_info(context, instance_id, status,
                                             instance)
 
